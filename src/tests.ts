@@ -18,8 +18,8 @@ export class BitcoinTestSuite implements TestSuite {
           throw new Error('Character not found');
         }
         
-        if (character.name !== 'BitcoinExpert') {
-          throw new Error(`Expected character name 'BitcoinExpert', got '${character.name}'`);
+        if (character.name !== 'Satoshi') {
+          throw new Error(`Expected character name 'Satoshi', got '${character.name}'`);
         }
         
         if (!character.system.includes('100K BTC Holders')) {

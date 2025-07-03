@@ -11,7 +11,7 @@ describe('Character Configuration', () => {
   });
 
   it('should have the correct name', () => {
-    expect(character.name).toBe('Eliza');
+    expect(character.name).toBe('Satoshi');
   });
 
   it('should have plugins defined as an array', () => {
