@@ -44,6 +44,154 @@ const configSchema = z.object({
 });
 
 /**
+ * CoinGecko API response interface
+ */
+interface CoinGeckoApiResponse {
+  market_data?: {
+    current_price?: { usd?: number };
+    market_cap?: { usd?: number };
+    total_volume?: { usd?: number };
+    price_change_percentage_24h?: number;
+    price_change_percentage_7d?: number;
+    price_change_percentage_30d?: number;
+    ath?: { usd?: number };
+    atl?: { usd?: number };
+    circulating_supply?: number;
+    total_supply?: number;
+    max_supply?: number;
+    last_updated?: string;
+  };
+}
+
+/**
+ * Bitcoin price data interface
+ */
+interface BitcoinPriceData {
+  price: number;
+  marketCap: number;
+  volume24h: number;
+  priceChange24h: number;
+  priceChange7d: number;
+  priceChange30d: number;
+  allTimeHigh: number;
+  allTimeLow: number;
+  circulatingSupply: number;
+  totalSupply: number;
+  maxSupply: number;
+  lastUpdated: string;
+}
+
+/**
+ * Bitcoin thesis tracking data interface
+ */
+interface BitcoinThesisData {
+  currentPrice: number;
+  targetPrice: number;
+  progressPercentage: number;
+  multiplierNeeded: number;
+  estimatedHolders: number;
+  targetHolders: number;
+  holdersProgress: number;
+  timeframe: string;
+  requiredCAGR: {
+    fiveYear: number;
+    tenYear: number;
+  };
+  catalysts: string[];
+}
+
+/**
+ * Custom error types for better error handling
+ */
+class BitcoinDataError extends Error {
+  constructor(message: string, public readonly code: string, public readonly retryable: boolean = false) {
+    super(message);
+    this.name = 'BitcoinDataError';
+  }
+}
+
+class RateLimitError extends BitcoinDataError {
+  constructor(message: string) {
+    super(message, 'RATE_LIMIT', true);
+    this.name = 'RateLimitError';
+  }
+}
+
+class NetworkError extends BitcoinDataError {
+  constructor(message: string) {
+    super(message, 'NETWORK_ERROR', true);
+    this.name = 'NetworkError';
+  }
+}
+
+/**
+ * Retry utility with exponential backoff
+ */
+async function retryOperation<T>(
+  operation: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelay: number = 1000
+): Promise<T> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      const isRetryable = error instanceof BitcoinDataError && error.retryable;
+      const isLastAttempt = attempt === maxRetries;
+      
+      if (!isRetryable || isLastAttempt) {
+        throw error;
+      }
+      
+      const delay = baseDelay * Math.pow(2, attempt - 1);
+      logger.warn(`Operation failed (attempt ${attempt}/${maxRetries}), retrying in ${delay}ms...`, error);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  throw new Error('Unexpected end of retry loop');
+}
+
+/**
+ * Enhanced fetch with timeout and better error handling
+ */
+async function fetchWithTimeout(url: string, options: RequestInit & { timeout?: number } = {}): Promise<Response> {
+  const { timeout = 10000, ...fetchOptions } = options;
+  
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  
+  try {
+    const response = await fetch(url, {
+      ...fetchOptions,
+      signal: controller.signal,
+    });
+    
+    if (!response.ok) {
+      if (response.status === 429) {
+        throw new RateLimitError(`Rate limit exceeded: ${response.status}`);
+      }
+      if (response.status >= 500) {
+        throw new NetworkError(`Server error: ${response.status}`);
+      }
+      throw new BitcoinDataError(`HTTP error: ${response.status}`, 'HTTP_ERROR');
+    }
+    
+    return response;
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      throw new NetworkError('Request timeout');
+    }
+    if (error instanceof BitcoinDataError) {
+      throw error;
+    }
+    throw new NetworkError(`Network error: ${error.message}`);
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+/**
  * Bitcoin Price Provider
  * Fetches real-time Bitcoin price data from CoinGecko API
  */
@@ -56,15 +204,28 @@ const bitcoinPriceProvider: Provider = {
     _message: Memory,
     _state: State
   ): Promise<ProviderResult> => {
+    const correlationId = generateCorrelationId();
+    const contextLogger = new LoggerWithContext(correlationId, 'BitcoinPriceProvider');
+    const performanceTracker = new PerformanceTracker(contextLogger, 'fetch_bitcoin_price');
+    
     try {
-      const apiKey = runtime.getSetting('COINGECKO_API_KEY');
-      const baseUrl = 'https://api.coingecko.com/api/v3';
-      const headers = apiKey ? { 'x-cg-demo-api-key': apiKey } : {};
+      contextLogger.info('Fetching Bitcoin price data from CoinGecko');
+      
+      const result = await retryOperation(async () => {
+        const apiKey = runtime.getSetting('COINGECKO_API_KEY');
+        const baseUrl = 'https://api.coingecko.com/api/v3';
+        const headers = apiKey ? { 'x-cg-demo-api-key': apiKey } : {};
 
-      const response = await fetch(`${baseUrl}/coins/bitcoin`, { headers });
-      const data = await response.json() as any; // Type assertion for API response
+        const response = await fetchWithTimeout(`${baseUrl}/coins/bitcoin`, { 
+          headers,
+          timeout: 15000 
+        });
+        return await response.json() as CoinGeckoApiResponse;
+      });
 
-      const priceData = {
+      const data = result;
+
+      const priceData: BitcoinPriceData = {
         price: data.market_data?.current_price?.usd || 100000,
         marketCap: data.market_data?.market_cap?.usd || 2000000000000,
         volume24h: data.market_data?.total_volume?.usd || 50000000000,
@@ -79,18 +240,73 @@ const bitcoinPriceProvider: Provider = {
         lastUpdated: data.market_data?.last_updated || new Date().toISOString(),
       };
 
+      const responseText = `Bitcoin is currently trading at $${priceData.price.toLocaleString()} with a market cap of $${(priceData.marketCap / 1e12).toFixed(2)}T. 24h change: ${priceData.priceChange24h.toFixed(2)}%. Current supply: ${(priceData.circulatingSupply / 1e6).toFixed(2)}M BTC out of 21M max supply.`;
+      
+      performanceTracker.finish(true, {
+        price: priceData.price,
+        market_cap_trillions: (priceData.marketCap / 1e12).toFixed(2),
+        price_change_24h: priceData.priceChange24h.toFixed(2),
+        data_source: 'CoinGecko'
+      });
+      
+      contextLogger.info('Successfully fetched Bitcoin price data', {
+        price: priceData.price,
+        market_cap: priceData.marketCap,
+        volume_24h: priceData.volume24h
+      });
+
       return {
-        text: `Bitcoin is currently trading at $${priceData.price.toLocaleString()} with a market cap of $${(priceData.marketCap / 1e12).toFixed(2)}T. 24h change: ${priceData.priceChange24h.toFixed(2)}%. Current supply: ${(priceData.circulatingSupply / 1e6).toFixed(2)}M BTC out of 21M max supply.`,
+        text: responseText,
         values: priceData,
-        data: { source: 'CoinGecko', timestamp: new Date().toISOString() },
+        data: { 
+          source: 'CoinGecko', 
+          timestamp: new Date().toISOString(),
+          correlation_id: correlationId
+        },
       };
     } catch (error) {
-      logger.error('Error fetching Bitcoin price data:', error);
-      return {
-        text: 'Unable to fetch Bitcoin price data at this time',
-        values: {},
-        data: { error: error.message },
+      const errorMessage = error instanceof BitcoinDataError ? error.message : 'Unknown error occurred';
+      const errorCode = error instanceof BitcoinDataError ? error.code : 'UNKNOWN_ERROR';
+      
+      performanceTracker.finish(false, {
+        error_code: errorCode,
+        error_message: errorMessage
+      });
+      
+      contextLogger.error('Error fetching Bitcoin price data', {
+        message: errorMessage,
+        code: errorCode,
+        retryable: error instanceof BitcoinDataError ? error.retryable : false,
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      
+      // Provide fallback data with current market estimates
+      const fallbackData: BitcoinPriceData = {
+        price: 100000, // Current market estimate
+        marketCap: 2000000000000, // ~$2T estimate
+        volume24h: 50000000000, // ~$50B estimate
+        priceChange24h: 0,
+        priceChange7d: 0,
+        priceChange30d: 0,
+        allTimeHigh: 100000,
+        allTimeLow: 3000,
+        circulatingSupply: 19700000,
+        totalSupply: 19700000,
+        maxSupply: 21000000,
+        lastUpdated: new Date().toISOString(),
       };
+      
+              return {
+          text: `Bitcoin price data unavailable (${errorCode}). Using fallback estimate: $100,000 BTC with ~19.7M circulating supply.`,
+          values: fallbackData,
+          data: { 
+            error: errorMessage,
+            code: errorCode,
+            fallback: true,
+            timestamp: new Date().toISOString(),
+            correlation_id: correlationId
+          },
+        };
     }
   },
 };
@@ -120,7 +336,7 @@ const bitcoinThesisProvider: Provider = {
       const targetHolders = 100000;
       const holdersProgress = (estimatedHolders / targetHolders) * 100;
 
-      const thesisData = {
+      const thesisData: BitcoinThesisData = {
         currentPrice,
         targetPrice,
         progressPercentage,
@@ -152,11 +368,44 @@ const bitcoinThesisProvider: Provider = {
         },
       };
     } catch (error) {
-      logger.error('Error calculating thesis metrics:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown calculation error';
+      
+      logger.error('Error calculating thesis metrics:', {
+        message: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      
+      // Provide fallback thesis data
+      const fallbackThesis: BitcoinThesisData = {
+        currentPrice: 100000,
+        targetPrice: 1000000,
+        progressPercentage: 10.0,
+        multiplierNeeded: 10,
+        estimatedHolders: 75000,
+        targetHolders: 100000,
+        holdersProgress: 75.0,
+        timeframe: '5-10 years',
+        requiredCAGR: {
+          fiveYear: 58.5,
+          tenYear: 25.9,
+        },
+        catalysts: [
+          'U.S. Strategic Bitcoin Reserve',
+          'Banking Bitcoin services',
+          'Corporate treasury adoption',
+          'EU regulatory clarity',
+          'Institutional ETF demand',
+        ],
+      };
+      
       return {
-        text: 'Unable to calculate thesis progress at this time',
-        values: {},
-        data: { error: error.message },
+        text: `Thesis calculation unavailable. Using estimates: 75,000 addresses with 10+ BTC (75% of target), need 10x to $1M (26% CAGR over 10 years).`,
+        values: fallbackThesis,
+        data: { 
+          error: errorMessage,
+          fallback: true,
+          timestamp: new Date().toISOString()
+        },
       };
     }
   },
@@ -185,7 +434,7 @@ const bitcoinAnalysisAction: Action = {
     runtime: IAgentRuntime,
     message: Memory,
     state: State,
-    _options: any,
+    _options: unknown,
     callback: HandlerCallback,
     _responses: Memory[]
   ) => {
@@ -273,7 +522,7 @@ const bitcoinThesisStatusAction: Action = {
     runtime: IAgentRuntime,
     message: Memory,
     state: State,
-    _options: any,
+    _options: unknown,
     callback: HandlerCallback,
     _responses: Memory[]
   ) => {
@@ -420,6 +669,67 @@ export class BitcoinDataService extends Service {
       },
     };
   }
+}
+
+/**
+ * Logging utilities with correlation IDs and performance tracking
+ */
+class LoggerWithContext {
+  constructor(private correlationId: string, private component: string) {}
+
+  private formatMessage(level: string, message: string, data?: any): string {
+    const timestamp = new Date().toISOString();
+    const logData = data ? ` | Data: ${JSON.stringify(data)}` : '';
+    return `[${timestamp}] [${level}] [${this.component}] [${this.correlationId}] ${message}${logData}`;
+  }
+
+  info(message: string, data?: any) {
+    logger.info(this.formatMessage('INFO', message, data));
+  }
+
+  warn(message: string, data?: any) {
+    logger.warn(this.formatMessage('WARN', message, data));
+  }
+
+  error(message: string, data?: any) {
+    logger.error(this.formatMessage('ERROR', message, data));
+  }
+
+  debug(message: string, data?: any) {
+    logger.debug(this.formatMessage('DEBUG', message, data));
+  }
+}
+
+/**
+ * Performance monitoring utility
+ */
+class PerformanceTracker {
+  private startTime: number;
+  private logger: LoggerWithContext;
+
+  constructor(logger: LoggerWithContext, private operation: string) {
+    this.logger = logger;
+    this.startTime = Date.now();
+    this.logger.debug(`Starting operation: ${operation}`);
+  }
+
+  finish(success: boolean = true, additionalData?: any) {
+    const duration = Date.now() - this.startTime;
+    const status = success ? 'SUCCESS' : 'FAILURE';
+    this.logger.info(`Operation ${this.operation} completed`, {
+      status,
+      duration_ms: duration,
+      ...additionalData
+    });
+    return duration;
+  }
+}
+
+/**
+ * Generate correlation ID for request tracking
+ */
+function generateCorrelationId(): string {
+  return `btc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
 /**
