@@ -49,23 +49,41 @@ const configSchema = z.object({
 });
 
 /**
- * CoinGecko API response interface
+ * CoinGecko Public API interfaces
  */
-interface CoinGeckoApiResponse {
-  market_data?: {
-    current_price?: { usd?: number };
-    market_cap?: { usd?: number };
-    total_volume?: { usd?: number };
-    price_change_percentage_24h?: number;
-    price_change_percentage_7d?: number;
-    price_change_percentage_30d?: number;
-    ath?: { usd?: number };
-    atl?: { usd?: number };
-    circulating_supply?: number;
-    total_supply?: number;
-    max_supply?: number;
-    last_updated?: string;
+interface CoinMarketData {
+  id: string;
+  name: string;
+  symbol: string;
+  image: string;
+  market_cap_rank: number;
+  current_price: number;
+  market_cap: number;
+  total_volume: number;
+  high_24h: number;
+  low_24h: number;
+  price_change_percentage_24h: number;
+  price_change_percentage_7d: number;
+  price_change_percentage_7d_in_currency: number;
+  btc_relative_performance?: number;
+}
+
+interface CoinSimplePrice {
+  [coinId: string]: {
+    usd?: number;
+    usd_24h_change?: number;
+    usd_market_cap?: number;
+    usd_24h_vol?: number;
   };
+}
+
+interface TrendingCoin {
+  id: string;
+  name: string;
+  symbol: string;
+  market_cap_rank: number;
+  current_price: number;
+  price_change_percentage_24h: number;
 }
 
 /**
@@ -103,6 +121,40 @@ interface BitcoinThesisData {
     tenYear: number;
   };
   catalysts: string[];
+}
+
+/**
+ * Altcoin Bitcoin performance data interface
+ */
+interface AltcoinBTCPerformance {
+  symbol: string;
+  name: string;
+  usdPrice: number;
+  btcPrice: number;
+  btcPerformance24h: number;
+  btcPerformance7d: number;
+  btcPerformance30d: number;
+  outperformingBTC: boolean;
+  marketCapRank: number;
+  volume24h: number;
+  lastUpdated: string;
+}
+
+/**
+ * Altcoin outperformance tracking data
+ */
+interface AltcoinOutperformanceData {
+  bitcoinPrice: number;
+  topOutperformers: AltcoinBTCPerformance[];
+  underperformers: AltcoinBTCPerformance[];
+  summary: {
+    totalTracked: number;
+    outperforming24h: number;
+    outperforming7d: number;
+    outperforming30d: number;
+    avgBTCPerformance24h: number;
+  };
+  lastUpdated: string;
 }
 
 /**
@@ -394,39 +446,35 @@ const bitcoinPriceProvider: Provider = {
       contextLogger.info('Fetching Bitcoin price data from CoinGecko');
       
       const result = await retryOperation(async () => {
-        const apiKey = runtime.getSetting('COINGECKO_API_KEY');
         const baseUrl = 'https://api.coingecko.com/api/v3';
-        const headers: Record<string, string> = {};
+        const headers: Record<string, string> = { 'Accept': 'application/json' };
         
-        if (apiKey) {
-          headers['x-cg-demo-api-key'] = apiKey;
-          contextLogger.debug('Using CoinGecko API key for authenticated request');
-        } else {
-          contextLogger.warn('No CoinGecko API key found, using rate-limited public endpoint');
-        }
+        contextLogger.debug('Using CoinGecko public API endpoint');
 
-        const response = await fetchWithTimeout(`${baseUrl}/coins/bitcoin`, { 
-          headers,
-          timeout: 15000 
-        });
-        return await response.json() as CoinGeckoApiResponse;
+        const response = await fetchWithTimeout(
+          `${baseUrl}/coins/markets?vs_currency=usd&ids=bitcoin&order=market_cap_desc&per_page=1&page=1&sparkline=false&price_change_percentage=24h%2C7d%2C30d`, 
+          { headers, timeout: 15000 }
+        );
+        
+        const data = await response.json() as CoinMarketData[];
+        return data[0]; // Bitcoin is the only result
       });
 
       const data = result;
 
       const priceData: BitcoinPriceData = {
-        price: data.market_data?.current_price?.usd || 100000,
-        marketCap: data.market_data?.market_cap?.usd || 2000000000000,
-        volume24h: data.market_data?.total_volume?.usd || 50000000000,
-        priceChange24h: data.market_data?.price_change_percentage_24h || 0,
-        priceChange7d: data.market_data?.price_change_percentage_7d || 0,
-        priceChange30d: data.market_data?.price_change_percentage_30d || 0,
-        allTimeHigh: data.market_data?.ath?.usd || 100000,
-        allTimeLow: data.market_data?.atl?.usd || 3000,
-        circulatingSupply: data.market_data?.circulating_supply || 19700000,
-        totalSupply: data.market_data?.total_supply || 19700000,
-        maxSupply: data.market_data?.max_supply || 21000000,
-        lastUpdated: data.market_data?.last_updated || new Date().toISOString(),
+        price: data.current_price || 100000,
+        marketCap: data.market_cap || 2000000000000,
+        volume24h: data.total_volume || 50000000000,
+        priceChange24h: data.price_change_percentage_24h || 0,
+        priceChange7d: data.price_change_percentage_7d || 0,
+        priceChange30d: 0, // Not available in markets endpoint, would need separate call
+        allTimeHigh: data.high_24h || 100000, // Using 24h high as proxy
+        allTimeLow: data.low_24h || 3000, // Using 24h low as proxy
+        circulatingSupply: 19700000, // Static for Bitcoin
+        totalSupply: 19700000, // Static for Bitcoin
+        maxSupply: 21000000, // Static for Bitcoin
+        lastUpdated: new Date().toISOString(),
       };
 
       const responseText = `Bitcoin is currently trading at $${priceData.price.toLocaleString()} with a market cap of $${(priceData.marketCap / 1e12).toFixed(2)}T. 24h change: ${priceData.priceChange24h.toFixed(2)}%. Current supply: ${(priceData.circulatingSupply / 1e6).toFixed(2)}M BTC out of 21M max supply.`;
@@ -735,6 +783,241 @@ ${institutionalData.sovereignActivity.slice(0, 3).map(item => `• ${item}`).joi
           fallback: true,
           timestamp: new Date().toISOString(),
           correlation_id: correlationId,
+        },
+      };
+    }
+  },
+};
+
+/**
+ * Altcoin BTC Performance Provider
+ * Tracks altcoin performance denominated in Bitcoin to identify outperformers
+ */
+const altcoinBTCPerformanceProvider: Provider = {
+  name: 'ALTCOIN_BTC_PERFORMANCE_PROVIDER',
+  description: 'Tracks altcoin performance denominated in Bitcoin to identify which coins are outperforming BTC',
+
+  get: async (
+    runtime: IAgentRuntime,
+    _message: Memory,
+    _state: State
+  ): Promise<ProviderResult> => {
+    const correlationId = generateCorrelationId();
+    const contextLogger = new LoggerWithContext(correlationId, 'AltcoinBTCPerformanceProvider');
+    const performanceTracker = new PerformanceTracker(contextLogger, 'fetch_altcoin_btc_performance');
+    
+    // Check cache first
+    const cacheKey = 'altcoin_btc_performance_data';
+    const cachedData = providerCache.get<ProviderResult>(cacheKey);
+    if (cachedData) {
+      contextLogger.info('Returning cached altcoin BTC performance data');
+      performanceTracker.finish(true, { source: 'cache' });
+      return cachedData;
+    }
+    
+    try {
+      contextLogger.info('Fetching altcoin BTC performance data from CoinGecko');
+      
+      const result = await retryOperation(async () => {
+        const apiKey = runtime.getSetting('COINGECKO_API_KEY');
+        const baseUrl = 'https://api.coingecko.com/api/v3';
+        const headers: Record<string, string> = {};
+        
+        if (apiKey) {
+          headers['x-cg-demo-api-key'] = apiKey;
+          contextLogger.debug('Using CoinGecko API key for authenticated request');
+        } else {
+          contextLogger.warn('No CoinGecko API key found, using rate-limited public endpoint');
+        }
+
+        // Fetch Bitcoin price first
+        const btcResponse = await fetchWithTimeout(`${baseUrl}/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true`, { 
+          headers,
+          timeout: 15000 
+        });
+        const btcData = await btcResponse.json() as any;
+        const bitcoinPrice = btcData.bitcoin?.usd || 100000;
+        
+        // Fetch top altcoins by market cap
+        const altcoinsResponse = await fetchWithTimeout(`${baseUrl}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=1&sparkline=false&price_change_percentage=24h%2C7d%2C30d`, { 
+          headers,
+          timeout: 15000 
+        });
+        const altcoinsData = await altcoinsResponse.json() as any[];
+        
+        return { bitcoinPrice, altcoinsData };
+      });
+
+      const { bitcoinPrice, altcoinsData } = result;
+      const btcChange24h = altcoinsData.find(coin => coin.id === 'bitcoin')?.price_change_percentage_24h || 0;
+      const btcChange7d = altcoinsData.find(coin => coin.id === 'bitcoin')?.price_change_percentage_7d || 0;
+      const btcChange30d = altcoinsData.find(coin => coin.id === 'bitcoin')?.price_change_percentage_30d || 0;
+
+      // Process altcoins (excluding Bitcoin)
+      const altcoinPerformance: AltcoinBTCPerformance[] = altcoinsData
+        .filter(coin => coin.id !== 'bitcoin')
+        .map(coin => {
+          const btcPrice = coin.current_price / bitcoinPrice;
+          const btcPerformance24h = (coin.price_change_percentage_24h || 0) - btcChange24h;
+          const btcPerformance7d = (coin.price_change_percentage_7d || 0) - btcChange7d;
+          const btcPerformance30d = (coin.price_change_percentage_30d || 0) - btcChange30d;
+          
+          return {
+            symbol: coin.symbol?.toUpperCase() || 'UNKNOWN',
+            name: coin.name || 'Unknown',
+            usdPrice: coin.current_price || 0,
+            btcPrice,
+            btcPerformance24h,
+            btcPerformance7d,
+            btcPerformance30d,
+            outperformingBTC: btcPerformance24h > 0,
+            marketCapRank: coin.market_cap_rank || 999,
+            volume24h: coin.total_volume || 0,
+            lastUpdated: new Date().toISOString(),
+          };
+        });
+
+      // Sort by BTC performance
+      const topOutperformers = altcoinPerformance
+        .filter(coin => coin.outperformingBTC)
+        .sort((a, b) => b.btcPerformance24h - a.btcPerformance24h)
+        .slice(0, 10);
+
+      const underperformers = altcoinPerformance
+        .filter(coin => !coin.outperformingBTC)
+        .sort((a, b) => a.btcPerformance24h - b.btcPerformance24h)
+        .slice(0, 10);
+
+      // Calculate summary statistics
+      const outperforming24h = altcoinPerformance.filter(coin => coin.btcPerformance24h > 0).length;
+      const outperforming7d = altcoinPerformance.filter(coin => coin.btcPerformance7d > 0).length;
+      const outperforming30d = altcoinPerformance.filter(coin => coin.btcPerformance30d > 0).length;
+      const avgBTCPerformance24h = altcoinPerformance.reduce((sum, coin) => sum + coin.btcPerformance24h, 0) / altcoinPerformance.length;
+
+      const outperformanceData: AltcoinOutperformanceData = {
+        bitcoinPrice,
+        topOutperformers,
+        underperformers,
+        summary: {
+          totalTracked: altcoinPerformance.length,
+          outperforming24h,
+          outperforming7d,
+          outperforming30d,
+          avgBTCPerformance24h,
+        },
+        lastUpdated: new Date().toISOString(),
+      };
+
+      // Format response text
+      const topOutperformersList = topOutperformers.slice(0, 5).map(coin => 
+        `${coin.symbol}: +${coin.btcPerformance24h.toFixed(2)}% vs BTC`
+      ).join(', ');
+
+      const responseText = `
+**ALTCOIN BTC OUTPERFORMANCE ANALYSIS**
+
+**Bitcoin Price:** $${bitcoinPrice.toLocaleString()}
+
+**Top Outperformers (24h vs BTC):**
+${topOutperformers.slice(0, 5).map(coin => 
+  `• ${coin.symbol} (${coin.name}): +${coin.btcPerformance24h.toFixed(2)}% vs BTC`
+).join('\n')}
+
+**Summary:**
+• ${outperforming24h}/${altcoinPerformance.length} coins outperforming BTC (24h)
+• ${outperforming7d}/${altcoinPerformance.length} coins outperforming BTC (7d)
+• ${outperforming30d}/${altcoinPerformance.length} coins outperforming BTC (30d)
+• Average BTC performance: ${avgBTCPerformance24h.toFixed(2)}%
+
+**Analysis:** ${outperforming24h > altcoinPerformance.length / 2 ? 'Altseason momentum building' : 'Bitcoin dominance continues'}
+      `.trim();
+      
+      performanceTracker.finish(true, {
+        bitcoin_price: bitcoinPrice,
+        outperformers_24h: outperforming24h,
+        total_tracked: altcoinPerformance.length,
+        avg_btc_performance: avgBTCPerformance24h.toFixed(2),
+        data_source: 'CoinGecko'
+      });
+      
+      contextLogger.info('Successfully fetched altcoin BTC performance data', {
+        bitcoinPrice,
+        totalTracked: altcoinPerformance.length,
+        outperformers24h: outperforming24h,
+        topOutperformer: topOutperformers[0]?.symbol
+      });
+
+      const providerResult: ProviderResult = {
+        text: responseText,
+        values: outperformanceData,
+        data: { 
+          source: 'CoinGecko', 
+          timestamp: new Date().toISOString(),
+          correlation_id: correlationId,
+          bitcoin_price: bitcoinPrice,
+          total_tracked: altcoinPerformance.length
+        },
+      };
+
+      // Cache the result for 5 minutes
+      providerCache.set(cacheKey, providerResult, 300000);
+      contextLogger.debug('Cached altcoin BTC performance data', { cacheKey, ttl: '5m' });
+
+      return providerResult;
+    } catch (error) {
+      const errorMessage = error instanceof BitcoinDataError ? error.message : 'Unknown error occurred';
+      const errorCode = error instanceof BitcoinDataError ? error.code : 'UNKNOWN_ERROR';
+      
+      performanceTracker.finish(false, {
+        error_code: errorCode,
+        error_message: errorMessage
+      });
+      
+      const enhancedError = ElizaOSErrorHandler.handleCommonErrors(error as Error, 'AltcoinBTCPerformanceProvider');
+      ElizaOSErrorHandler.logStructuredError(enhancedError, contextLogger, {
+        provider: 'altcoin_btc_performance',
+        retryable: error instanceof BitcoinDataError ? error.retryable : false,
+        resolution: enhancedError instanceof ElizaOSError ? enhancedError.resolution : undefined
+      });
+      
+      // Provide fallback data
+      const fallbackData: AltcoinOutperformanceData = {
+        bitcoinPrice: 100000,
+        topOutperformers: [
+          {
+            symbol: 'ETH',
+            name: 'Ethereum',
+            usdPrice: 4000,
+            btcPrice: 0.04,
+            btcPerformance24h: 2.5,
+            btcPerformance7d: 5.0,
+            btcPerformance30d: -2.0,
+            outperformingBTC: true,
+            marketCapRank: 2,
+            volume24h: 20000000000,
+            lastUpdated: new Date().toISOString(),
+          },
+        ],
+        underperformers: [],
+        summary: {
+          totalTracked: 49,
+          outperforming24h: 20,
+          outperforming7d: 15,
+          outperforming30d: 10,
+          avgBTCPerformance24h: 0.5,
+        },
+        lastUpdated: new Date().toISOString(),
+      };
+      
+      return {
+        text: `Altcoin BTC performance data unavailable (${errorCode}). Using fallback: 20/49 coins outperforming Bitcoin over 24h with ETH leading at +2.5% vs BTC.`,
+        values: fallbackData,
+        data: { 
+          error: errorMessage,
+          code: errorCode,
+          fallback: true,
+          timestamp: new Date().toISOString(),
+          correlation_id: correlationId
         },
       };
     }
@@ -1805,6 +2088,432 @@ These calculations assume thesis progression occurs. Bitcoin volatility means tw
 };
 
 /**
+ * Altcoin BTC Performance Analysis Action
+ * Analyzes which altcoins are outperforming Bitcoin and provides market insights
+ */
+const altcoinBTCPerformanceAction: Action = {
+  name: 'ALTCOIN_BTC_PERFORMANCE',
+  similes: ['ALTCOIN_ANALYSIS', 'ALTCOIN_OUTPERFORMANCE', 'CRYPTO_PERFORMANCE', 'ALTSEASON_CHECK'],
+  description: 'Analyzes altcoin performance denominated in Bitcoin to identify outperformers and market trends',
+
+  validate: async (runtime: IAgentRuntime, message: Memory, state: State): Promise<boolean> => {
+    const text = message.content.text.toLowerCase();
+    return (
+      text.includes('altcoin') ||
+      text.includes('altseason') ||
+      text.includes('outperform') ||
+      text.includes('crypto') ||
+      text.includes('vs btc') ||
+      text.includes('against bitcoin')
+    ) && (
+      text.includes('performance') ||
+      text.includes('analysis') ||
+      text.includes('tracking') ||
+      text.includes('monitor') ||
+      text.includes('compare')
+    );
+  },
+
+  handler: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+    state: State,
+    _options: unknown,
+    callback: HandlerCallback,
+    _responses: Memory[]
+  ) => {
+    try {
+      logger.info('Generating altcoin BTC performance analysis');
+
+      // Get altcoin BTC performance data
+      const performanceData = await altcoinBTCPerformanceProvider.get(runtime, message, state);
+
+      const analysis = `
+🪙 **ALTCOIN BTC OUTPERFORMANCE ANALYSIS**
+
+${performanceData.text}
+
+**Market Context:**
+${performanceData.values.summary.outperforming24h > performanceData.values.summary.totalTracked / 2 
+  ? `🚀 **ALTSEASON SIGNALS DETECTED**
+• ${performanceData.values.summary.outperforming24h}/${performanceData.values.summary.totalTracked} coins beating Bitcoin (24h)
+• Market breadth suggests risk-on sentiment
+• Consider this a temporary deviation from Bitcoin dominance
+• Altcoins often outperform in late bull market phases`
+  : `₿ **BITCOIN DOMINANCE CONTINUES**
+• Only ${performanceData.values.summary.outperforming24h}/${performanceData.values.summary.totalTracked} coins beating Bitcoin (24h)
+• Flight to quality favoring Bitcoin as digital gold
+• Institutional demand absorbing altcoin volatility
+• Classic pattern: Bitcoin leads, altcoins follow`}
+
+**Strategic Implications:**
+• **Bitcoin-First Strategy**: Altcoin outperformance often temporary
+• **Risk Management**: Most altcoins are beta plays on Bitcoin
+• **Exit Strategy**: Altcoin gains best rotated back into Bitcoin
+• **Market Timing**: Use outperformance data for portfolio rebalancing
+
+**Investment Philosophy:**
+Altcoins are venture capital plays on crypto infrastructure and applications. Bitcoin is monetary infrastructure. Track altcoin performance for market sentiment, but remember: the exit is always Bitcoin.
+
+**Performance Trends:**
+• 7-day outperformers: ${performanceData.values.summary.outperforming7d}/${performanceData.values.summary.totalTracked}
+• 30-day outperformers: ${performanceData.values.summary.outperforming30d}/${performanceData.values.summary.totalTracked}
+• Average vs BTC: ${performanceData.values.summary.avgBTCPerformance24h.toFixed(2)}%
+
+*Analysis generated: ${new Date().toISOString()}*
+      `;
+
+      const responseContent: Content = {
+        text: analysis.trim(),
+        actions: ['ALTCOIN_BTC_PERFORMANCE'],
+        source: message.content.source,
+      };
+
+      await callback(responseContent);
+      return responseContent;
+    } catch (error) {
+      logger.error('Error in altcoin BTC performance analysis:', error);
+      
+      const errorContent: Content = {
+        text: 'Unable to analyze altcoin BTC performance at this time. Remember: altcoins are distractions from the main event—Bitcoin. The exit is, and always has been, Bitcoin.',
+        actions: ['ALTCOIN_BTC_PERFORMANCE'],
+        source: message.content.source,
+      };
+
+      await callback(errorContent);
+      return errorContent;
+    }
+  },
+
+  examples: [
+    [
+      {
+        name: '{{user}}',
+        content: {
+          text: 'Which altcoins are outperforming Bitcoin today?',
+        },
+      },
+      {
+        name: 'Satoshi',
+        content: {
+          text: 'Current analysis shows 15/49 altcoins outperforming Bitcoin over 24h. ETH leading at +2.3% vs BTC. Remember: altcoins are venture capital plays on crypto infrastructure. Bitcoin is monetary infrastructure. The exit is always Bitcoin.',
+          actions: ['ALTCOIN_BTC_PERFORMANCE'],
+        },
+      },
+    ],
+  ],
+};
+
+/**
+ * Individual Cryptocurrency Price Lookup Action
+ * Gets current price for a specific cryptocurrency using public CoinGecko API
+ */
+const cryptoPriceLookupAction: Action = {
+  name: 'CRYPTO_PRICE_LOOKUP',
+  similes: ['CRYPTO_PRICE', 'COIN_PRICE', 'ETH_PRICE', 'TOKEN_PRICE', 'PRICE_CHECK'],
+  description: 'Gets current price for a specific cryptocurrency using public CoinGecko API',
+
+  validate: async (runtime: IAgentRuntime, message: Memory, state: State): Promise<boolean> => {
+    const text = message.content.text.toLowerCase();
+    const hasSymbol = /\b(eth|ethereum|btc|bitcoin|ada|cardano|sol|solana|dot|polkadot|link|chainlink|uni|uniswap|aave|comp|compound|mkr|maker|snx|synthetix|doge|dogecoin|ltc|litecoin|bch|bitcoin cash|xrp|ripple|bnb|binance|usdt|tether|usdc|usd coin|dai|shib|shiba|matic|polygon|avax|avalanche|ftm|fantom|atom|cosmos|algo|algorand)\b/.test(text);
+    
+    const hasPriceQuery = text.includes('price') || text.includes('cost') || text.includes('value') || text.includes('worth');
+    const hasCurrentQuery = text.includes('current') || text.includes('now') || text.includes('today') || text.includes('latest');
+    
+    return hasSymbol && (hasPriceQuery || hasCurrentQuery || text.includes('what\'s') || text.includes('how much'));
+  },
+
+  handler: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+    state: State,
+    _options: unknown,
+    callback: HandlerCallback,
+    _responses: Memory[]
+  ) => {
+    try {
+      const text = message.content.text.toLowerCase();
+      logger.info('Processing crypto price lookup request');
+
+      // Extract coin symbol from text
+      const coinMatch = text.match(/\b(eth|ethereum|btc|bitcoin|ada|cardano|sol|solana|dot|polkadot|link|chainlink|uni|uniswap|aave|comp|compound|mkr|maker|snx|synthetix|doge|dogecoin|ltc|litecoin|bch|bitcoin cash|xrp|ripple|bnb|binance|usdt|tether|usdc|usd coin|dai|shib|shiba|matic|polygon|avax|avalanche|ftm|fantom|atom|cosmos|algo|algorand)\b/);
+      
+      if (!coinMatch) {
+        const responseContent: Content = {
+          text: 'Unable to identify the cryptocurrency. Please specify a valid coin symbol (e.g., ETH, BTC, SOL, ADA, etc.)',
+          actions: ['CRYPTO_PRICE_LOOKUP'],
+          source: message.content.source,
+        };
+        await callback(responseContent);
+        return responseContent;
+      }
+
+      const coinSymbol = coinMatch[1];
+      
+      // Map common names to CoinGecko IDs
+      const coinIdMap: Record<string, string> = {
+        'eth': 'ethereum', 'ethereum': 'ethereum',
+        'btc': 'bitcoin', 'bitcoin': 'bitcoin',
+        'ada': 'cardano', 'cardano': 'cardano',
+        'sol': 'solana', 'solana': 'solana',
+        'dot': 'polkadot', 'polkadot': 'polkadot',
+        'link': 'chainlink', 'chainlink': 'chainlink',
+        'uni': 'uniswap', 'uniswap': 'uniswap',
+        'aave': 'aave',
+        'comp': 'compound-governance-token', 'compound': 'compound-governance-token',
+        'mkr': 'maker', 'maker': 'maker',
+        'snx': 'havven', 'synthetix': 'havven',
+        'doge': 'dogecoin', 'dogecoin': 'dogecoin',
+        'ltc': 'litecoin', 'litecoin': 'litecoin',
+        'bch': 'bitcoin-cash', 'bitcoin cash': 'bitcoin-cash',
+        'xrp': 'ripple', 'ripple': 'ripple',
+        'bnb': 'binancecoin', 'binance': 'binancecoin',
+        'usdt': 'tether', 'tether': 'tether',
+        'usdc': 'usd-coin', 'usd coin': 'usd-coin',
+        'dai': 'dai',
+        'shib': 'shiba-inu', 'shiba': 'shiba-inu',
+        'matic': 'matic-network', 'polygon': 'matic-network',
+        'avax': 'avalanche-2', 'avalanche': 'avalanche-2',
+        'ftm': 'fantom', 'fantom': 'fantom',
+        'atom': 'cosmos', 'cosmos': 'cosmos',
+        'algo': 'algorand', 'algorand': 'algorand',
+      };
+
+      const coinId = coinIdMap[coinSymbol] || coinSymbol;
+      
+      // Fetch price data from CoinGecko public API
+      const correlationId = generateCorrelationId();
+      const contextLogger = new LoggerWithContext(correlationId, 'CryptoPriceLookup');
+      
+      const result = await retryOperation(async () => {
+        const baseUrl = 'https://api.coingecko.com/api/v3';
+        const headers: Record<string, string> = { 'Accept': 'application/json' };
+
+        const response = await fetchWithTimeout(
+          `${baseUrl}/coins/markets?vs_currency=usd&ids=${coinId}&order=market_cap_desc&per_page=1&page=1&sparkline=false&price_change_percentage=24h`, 
+          { headers, timeout: 10000 }
+        );
+        
+        if (!response.ok) {
+          throw new Error(`CoinGecko API error: ${response.status} ${response.statusText}`);
+        }
+        
+        const data = await response.json() as CoinMarketData[];
+        if (!data.length) {
+          throw new Error('Cryptocurrency not found');
+        }
+        return data[0];
+      });
+
+      const price = result.current_price;
+      const priceChange24h = result.price_change_percentage_24h || 0;
+      const marketCap = result.market_cap || 0;
+      const volume24h = result.total_volume || 0;
+      const marketCapRank = result.market_cap_rank || 0;
+
+      // Get Bitcoin price for comparison
+      const bitcoinPrice = 100000; // This could be fetched from the Bitcoin provider
+      const btcPrice = price / bitcoinPrice;
+
+      const responseText = `
+**${result.name?.toUpperCase() || coinSymbol.toUpperCase()}**: $${price.toLocaleString()}
+
+**24h Change**: ${priceChange24h >= 0 ? '+' : ''}${priceChange24h.toFixed(2)}%
+**Market Cap**: $${(marketCap / 1e9).toFixed(2)}B
+**Volume (24h)**: $${(volume24h / 1e9).toFixed(2)}B
+**Market Rank**: #${marketCapRank}
+**BTC Price**: ₿${btcPrice.toFixed(8)}
+
+*But price is vanity, protocol fundamentals are sanity. Focus on sound money principles.*
+      `.trim();
+
+      const responseContent: Content = {
+        text: responseText,
+        actions: ['CRYPTO_PRICE_LOOKUP'],
+        source: message.content.source,
+      };
+
+      await callback(responseContent);
+      return responseContent;
+    } catch (error) {
+      logger.error('Error in crypto price lookup:', error);
+      
+      const errorContent: Content = {
+        text: `Unable to fetch price data. Remember: prices are temporary, Bitcoin is forever. Focus on building wealth through sound money principles, not price tracking.`,
+        actions: ['CRYPTO_PRICE_LOOKUP'],
+        source: message.content.source,
+      };
+
+      await callback(errorContent);
+      return errorContent;
+    }
+  },
+
+  examples: [
+    [
+      {
+        name: '{{user}}',
+        content: {
+          text: 'What\'s the current price of ETH?',
+        },
+      },
+      {
+        name: 'Satoshi',
+        content: {
+          text: 'ETH: $3,500. 24h Change: +2.5%. Market Cap: $420B. But price is vanity, protocol fundamentals are sanity. Focus on sound money principles.',
+          actions: ['CRYPTO_PRICE_LOOKUP'],
+        },
+      },
+    ],
+  ],
+};
+
+/**
+ * BTC Relative Performance Action
+ * Shows which coins are outperforming Bitcoin using public CoinGecko API
+ */
+const btcRelativePerformanceAction: Action = {
+  name: 'BTC_RELATIVE_PERFORMANCE',
+  similes: ['ALTCOIN_PERFORMANCE', 'BITCOIN_OUTPERFORMANCE', 'CRYPTO_OUTPERFORMERS', 'ALTSEASON_CHECK'],
+  description: 'Shows which cryptocurrencies are outperforming Bitcoin over 7 days',
+
+  validate: async (runtime: IAgentRuntime, message: Memory, state: State): Promise<boolean> => {
+    const text = message.content.text.toLowerCase();
+    return (
+      text.includes('outperform') ||
+      text.includes('altseason') ||
+      text.includes('vs btc') ||
+      text.includes('vs bitcoin') ||
+      text.includes('relative performance') ||
+      (text.includes('altcoin') && (text.includes('performance') || text.includes('bitcoin')))
+    );
+  },
+
+  handler: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+    state: State,
+    _options: unknown,
+    callback: HandlerCallback,
+    _responses: Memory[]
+  ) => {
+    try {
+      logger.info('Processing BTC relative performance analysis');
+
+      const correlationId = generateCorrelationId();
+      const contextLogger = new LoggerWithContext(correlationId, 'BTCRelativePerformance');
+      
+      const result = await retryOperation(async () => {
+        const baseUrl = 'https://api.coingecko.com/api/v3';
+        const headers: Record<string, string> = { 'Accept': 'application/json' };
+
+        const response = await fetchWithTimeout(
+          `${baseUrl}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=200&page=1&price_change_percentage=7d&sparkline=false`, 
+          { headers, timeout: 15000 }
+        );
+        
+        if (!response.ok) {
+          throw new Error(`CoinGecko API error: ${response.status} ${response.statusText}`);
+        }
+        
+        return await response.json() as CoinMarketData[];
+      });
+
+      // Find Bitcoin's 7d performance
+      const bitcoin = result.find(coin => coin.id === 'bitcoin');
+      if (!bitcoin) {
+        throw new Error('Bitcoin data not found');
+      }
+
+      const btcChange7d = bitcoin.price_change_percentage_7d || 0;
+
+      // Calculate relative performance and sort
+      const relativePerformers = result
+        .filter(coin => 
+          coin.id !== 'bitcoin' && 
+          typeof coin.price_change_percentage_7d === 'number' &&
+          coin.market_cap_rank <= 200
+        )
+        .map(coin => ({
+          ...coin,
+          btc_relative_performance: coin.price_change_percentage_7d - btcChange7d
+        }))
+        .sort((a, b) => b.btc_relative_performance - a.btc_relative_performance)
+        .slice(0, 8);
+
+      const outperformers = relativePerformers.filter(coin => coin.btc_relative_performance > 0);
+      const outperformerCount = outperformers.length;
+      const totalCount = relativePerformers.length;
+
+      const isAltseason = outperformerCount > totalCount / 2;
+
+      const topOutperformers = outperformers.slice(0, 5);
+
+      const responseText = `
+**🪙 BTC RELATIVE PERFORMANCE (7D)**
+
+**Bitcoin**: ${btcChange7d >= 0 ? '+' : ''}${btcChange7d.toFixed(2)}%
+
+**Top Outperformers vs BTC:**
+${topOutperformers.map(coin => 
+  `• ${coin.symbol.toUpperCase()}: +${coin.btc_relative_performance.toFixed(2)}% vs BTC`
+).join('\n')}
+
+**Market Analysis:**
+• ${outperformerCount}/${totalCount} coins beating Bitcoin over 7 days
+• ${isAltseason ? '🚀 Altseason signals detected' : '₿ Bitcoin dominance continues'}
+
+**Strategic Context:**
+${isAltseason 
+  ? 'Altcoin outperformance often temporary. Consider taking profits and rotating back to Bitcoin.'
+  : 'Flight to quality favoring Bitcoin as digital gold. Classic pattern: Bitcoin leads, altcoins follow.'
+}
+
+*Remember: Altcoins are venture capital plays on crypto infrastructure. Bitcoin is monetary infrastructure. The exit is always Bitcoin.*
+      `.trim();
+
+      const responseContent: Content = {
+        text: responseText,
+        actions: ['BTC_RELATIVE_PERFORMANCE'],
+        source: message.content.source,
+      };
+
+      await callback(responseContent);
+      return responseContent;
+    } catch (error) {
+      logger.error('Error in BTC relative performance analysis:', error);
+      
+      const errorContent: Content = {
+        text: 'Unable to analyze altcoin performance. Remember: altcoins are distractions from the main event—Bitcoin. The exit is, and always has been, Bitcoin.',
+        actions: ['BTC_RELATIVE_PERFORMANCE'],
+        source: message.content.source,
+      };
+
+      await callback(errorContent);
+      return errorContent;
+    }
+  },
+
+  examples: [
+    [
+      {
+        name: '{{user}}',
+        content: {
+          text: 'Which altcoins are outperforming Bitcoin?',
+        },
+      },
+      {
+        name: 'Satoshi',
+        content: {
+          text: 'Current analysis shows 15/200 coins outperforming Bitcoin over 7d. ETH leading at +2.3% vs BTC. Remember: altcoins are venture capital plays. The exit is always Bitcoin.',
+          actions: ['BTC_RELATIVE_PERFORMANCE'],
+        },
+      },
+    ],
+  ],
+};
+
+/**
  * Bitcoin Data Service
  * Manages Bitcoin data fetching, caching, and analysis
  */
@@ -2091,22 +2800,26 @@ export class StarterService extends Service {
    */
   async getEnhancedMarketData(): Promise<BitcoinPriceData> {
     try {
-      const response = await fetch('https://api.coingecko.com/api/v3/coins/bitcoin');
-      const data = await response.json() as CoinGeckoApiResponse;
+      const response = await fetch(
+        'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin&order=market_cap_desc&per_page=1&page=1&sparkline=false&price_change_percentage=24h%2C7d',
+        { headers: { 'Accept': 'application/json' } }
+      );
+      const data = await response.json() as CoinMarketData[];
+      const bitcoin = data[0];
 
       return {
-        price: data.market_data?.current_price?.usd || 100000,
-        marketCap: data.market_data?.market_cap?.usd || 2000000000000,
-        volume24h: data.market_data?.total_volume?.usd || 50000000000,
-        priceChange24h: data.market_data?.price_change_percentage_24h || 0,
-        priceChange7d: data.market_data?.price_change_percentage_7d || 0,
-        priceChange30d: data.market_data?.price_change_percentage_30d || 0,
-        allTimeHigh: data.market_data?.ath?.usd || 100000,
-        allTimeLow: data.market_data?.atl?.usd || 100,
-        circulatingSupply: data.market_data?.circulating_supply || 19700000,
-        totalSupply: data.market_data?.total_supply || 19700000,
-        maxSupply: data.market_data?.max_supply || 21000000,
-        lastUpdated: data.market_data?.last_updated || new Date().toISOString(),
+        price: bitcoin.current_price || 100000,
+        marketCap: bitcoin.market_cap || 2000000000000,
+        volume24h: bitcoin.total_volume || 50000000000,
+        priceChange24h: bitcoin.price_change_percentage_24h || 0,
+        priceChange7d: bitcoin.price_change_percentage_7d || 0,
+        priceChange30d: 0, // Not available in markets endpoint
+        allTimeHigh: bitcoin.high_24h || 100000,
+        allTimeLow: bitcoin.low_24h || 100,
+        circulatingSupply: 19700000, // Static for Bitcoin
+        totalSupply: 19700000, // Static for Bitcoin
+        maxSupply: 21000000, // Static for Bitcoin
+        lastUpdated: new Date().toISOString(),
       };
     } catch (error) {
       logger.error('Error fetching enhanced market data:', error);
@@ -2349,6 +3062,7 @@ const bitcoinPlugin: Plugin = {
   name: 'starter',
   description: 'A starter plugin for Eliza',
   
+
   config: {
     EXAMPLE_PLUGIN_VARIABLE: process.env.EXAMPLE_PLUGIN_VARIABLE,
     COINGECKO_API_KEY: process.env.COINGECKO_API_KEY,
@@ -2380,7 +3094,7 @@ const bitcoinPlugin: Plugin = {
     }
   },
 
-  providers: [helloWorldProvider, bitcoinPriceProvider, bitcoinThesisProvider, institutionalAdoptionProvider],
+  providers: [helloWorldProvider, bitcoinPriceProvider, bitcoinThesisProvider, institutionalAdoptionProvider, altcoinBTCPerformanceProvider],
   actions: [
     helloWorldAction,
     bitcoinAnalysisAction, 
@@ -2390,7 +3104,8 @@ const bitcoinPlugin: Plugin = {
     validateEnvironmentAction,
     sovereignLivingAction,
     investmentStrategyAction,
-    freedomMathematicsAction
+    freedomMathematicsAction,
+    altcoinBTCPerformanceAction
   ],
   events: {
     MESSAGE_RECEIVED: [

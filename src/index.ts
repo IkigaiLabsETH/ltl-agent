@@ -45,6 +45,7 @@ export const character: Character = {
     // External service integrations (only if real API keys)
     ...(process.env.THIRDWEB_SECRET_KEY && !process.env.THIRDWEB_SECRET_KEY.includes('your_') ? ['@elizaos/plugin-thirdweb'] : []),
     ...(process.env.LUMA_API_KEY && !process.env.LUMA_API_KEY.includes('your_') ? ['@elizaos/plugin-video-generation'] : []),
+
     
     // Custom plugin for Bitcoin functionality - loaded via projectAgent.plugins
     // bitcoinPlugin loaded separately below

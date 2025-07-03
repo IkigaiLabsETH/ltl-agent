@@ -219,11 +219,13 @@ Our AI agent embodies the spirit of Satoshi Nakamoto - a cypherpunk visionary wh
 ### Real-Time Data Providers
 - **Bitcoin Price Provider**: Live CoinGecko API integration with market analysis
 - **Thesis Tracker**: Progress monitoring toward $1M BTC target and wealth creation metrics
+- **Altcoin BTC Performance Provider**: Tracks which altcoins are outperforming Bitcoin with market context
 - **Market Intelligence**: Comprehensive catalyst and adoption tracking
 
 ### Intelligent Actions
 - **Bitcoin Market Analysis**: Generate detailed market reports with thesis correlation
 - **Thesis Status Updates**: Track wealth creation hypothesis progress with mathematical precision
+- **Bitcoin-First Crypto Analysis**: Live Bitcoin price tracking and altcoin performance analysis with BTC-denominated perspective
 - **Sovereign Living Guidance**: Personalized biohacking and lifestyle optimization protocols
 - **Lightning Network Education**: Technical explanations of Bitcoin's second-layer sovereignty
 
@@ -278,6 +280,34 @@ const bitcoinThesisProvider: Provider = {
              Need ${(targetPrice/currentPrice)}x appreciation requiring 
              ${(Math.pow(targetPrice/currentPrice, 1/10) - 1 * 100).toFixed(1)}% CAGR over 10 years.`,
       values: { currentPrice, targetPrice, progressPercentage }
+    };
+  }
+};
+```
+
+### Altcoin BTC Performance Tracking
+```typescript
+const altcoinBTCPerformanceProvider: Provider = {
+  name: 'ALTCOIN_BTC_PERFORMANCE_PROVIDER',
+  description: 'Tracks altcoin performance denominated in Bitcoin to identify outperformers',
+  
+  get: async (runtime: IAgentRuntime): Promise<ProviderResult> => {
+    // Fetch Bitcoin price and top 50 altcoins
+    const bitcoinPrice = await getBitcoinPrice();
+    const altcoinsData = await getTopAltcoins(50);
+    
+    // Calculate BTC-denominated performance
+    const outperformers = altcoinsData
+      .filter(coin => coin.btcPerformance24h > 0)
+      .sort((a, b) => b.btcPerformance24h - a.btcPerformance24h)
+      .slice(0, 10);
+    
+    const isAltseason = outperformers.length > altcoinsData.length / 2;
+    
+    return {
+      text: `${outperformers.length}/${altcoinsData.length} coins outperforming Bitcoin (24h). 
+             Analysis: ${isAltseason ? 'Altseason momentum building' : 'Bitcoin dominance continues'}`,
+      values: { bitcoinPrice, outperformers, isAltseason }
     };
   }
 };
@@ -344,8 +374,8 @@ ANTHROPIC_API_KEY=your_anthropic_api_key
 # Knowledge System
 LOAD_DOCS_ON_STARTUP=true
 
-# Bitcoin Data Sources
-COINGECKO_API_KEY=your_coingecko_api_key
+# Bitcoin Data Sources (now using free public API)
+# COINGECKO_API_KEY=your_coingecko_api_key  # Optional - public API used by default
 
 # Database & Storage
 SUPABASE_URL=your_supabase_url
@@ -425,6 +455,20 @@ User: "Tell me about MSTY and Bitcoin strategies"
 Satoshi: "MSTY extracts yield from MicroStrategy's volatility through options overlays. Your on-chain 
 paycheck—eighty percent Bitcoin cold storage, twenty percent MSTY for monthly income. Live life off MSTY, 
 stack BTC and MSTR, never touch principal."
+```
+
+**Altcoin Performance Analysis:**
+```
+User: "What's the current price of ETH?"
+Satoshi: "ETH: $5,872. 24h Change: +2.3%. Market Cap: $420B. 
+But price is vanity, protocol fundamentals are sanity. Focus on sound money principles."
+```
+
+**Trending Coins Analysis:**
+```
+User: "What's trending in crypto today?"
+Satoshi: "Top trending: ETH (+3.2%), SOL (+5.1%), ADA (+2.8%). 
+Digital casinos masquerading as innovation. Bitcoin had immaculate conception—no founder to pay, no pre-mine."
 ```
 
 **Philosophy:**
@@ -509,6 +553,7 @@ The "100K BTC Holders" economic hypothesis suggests Bitcoin could reach $1M with
 ### ✅ **Current Implementation**
 - **Comprehensive Knowledge Base**: 10 specialized knowledge files covering Bitcoin, finance, lifestyle, and culture
 - **Real-Time Market Data**: Live Bitcoin price monitoring and thesis progress tracking
+- **Public CoinGecko Integration**: Real-time crypto prices and market analysis via free public API (no API key required)
 - **Intelligent Analysis**: Mathematical framework validation and catalyst monitoring
 - **Character-Driven Responses**: Authentic Satoshi personality with cypherpunk precision
 - **Multi-Domain Expertise**: Bitcoin, sovereign living, biohacking, luxury curation, AI architecture
@@ -577,9 +622,10 @@ MIT License - Built for the Bitcoin community and sovereign individuals worldwid
 
 1. **Real-Time Intelligence**: Monitoring adoption catalysts with deadpan clarity
 2. **Educational Excellence**: Generating thesis-driven analysis with mathematical precision
-3. **Sovereign Integration**: Biohacking protocols, luxury curation, AI-powered culture
-4. **Community Architecture**: Facilitating discussions around Bitcoin wealth creation
-5. **Decision Support**: Data-driven guidance for complete lifestyle optimization
+3. **Market Context**: Tracking altcoin performance to reinforce Bitcoin-first investment strategy
+4. **Sovereign Integration**: Biohacking protocols, luxury curation, AI-powered culture
+5. **Community Architecture**: Facilitating discussions around Bitcoin wealth creation
+6. **Decision Support**: Data-driven guidance for complete lifestyle optimization
 
 As Bitcoin progresses toward $1M, this agent evolves to support the emerging class of Bitcoin-wealthy individuals in their journey from speculation to complete sovereignty - financial, biological, and cultural.
 
