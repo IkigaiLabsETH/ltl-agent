@@ -5,6 +5,7 @@ import {
 
 // src/plugin.ts
 import {
+  ModelType,
   Service,
   logger
 } from "@elizaos/core";
@@ -12,9 +13,72 @@ import { z } from "zod";
 
 // src/tests.ts
 var BitcoinTestSuite = class {
-  name = "bitcoin";
-  description = "Comprehensive test suite for Bitcoin-focused AI agent with ElizaOS optimizations";
+  name = "starter";
+  description = "Tests for the starter project";
   tests = [
+    {
+      name: "Character configuration test",
+      fn: async (runtime) => {
+        console.log("\u{1F9EA} Testing character configuration...");
+        const character2 = runtime.character;
+        if (!character2) {
+          throw new Error("Character not found");
+        }
+        console.log("\u2705 Character configuration test passed");
+      }
+    },
+    {
+      name: "Plugin initialization test",
+      fn: async (runtime) => {
+        console.log("\u{1F9EA} Testing plugin initialization...");
+        const plugin = runtime.plugins.find((p) => p.name === "starter");
+        if (!plugin) {
+          throw new Error("Starter plugin not found");
+        }
+        console.log("\u2705 Plugin initialization test passed");
+      }
+    },
+    {
+      name: "Hello world action test",
+      fn: async (runtime) => {
+        console.log("\u{1F9EA} Testing hello world action...");
+        const plugin = runtime.plugins.find((p) => p.name === "starter");
+        if (!plugin || !plugin.actions) {
+          throw new Error("Plugin or actions not found");
+        }
+        const helloAction = plugin.actions.find((a) => a.name === "HELLO_WORLD");
+        if (!helloAction) {
+          throw new Error("HELLO_WORLD action not found");
+        }
+        console.log("\u2705 Hello world action test passed");
+      }
+    },
+    {
+      name: "Hello world provider test",
+      fn: async (runtime) => {
+        console.log("\u{1F9EA} Testing hello world provider...");
+        const plugin = runtime.plugins.find((p) => p.name === "starter");
+        if (!plugin || !plugin.providers) {
+          throw new Error("Plugin or providers not found");
+        }
+        const helloProvider = plugin.providers.find((p) => p.name === "HELLO_WORLD_PROVIDER");
+        if (!helloProvider) {
+          throw new Error("HELLO_WORLD_PROVIDER not found");
+        }
+        console.log("\u2705 Hello world provider test passed");
+      }
+    },
+    {
+      name: "Starter service test",
+      fn: async (runtime) => {
+        console.log("\u{1F9EA} Testing starter service...");
+        const service = runtime.getService("starter");
+        if (!service) {
+          throw new Error("Starter service not found");
+        }
+        console.log("\u2705 Starter service test passed");
+      }
+    },
     {
       name: "Character configuration validation",
       fn: async (runtime) => {
@@ -45,18 +109,18 @@ var BitcoinTestSuite = class {
       name: "Plugin initialization and dependencies",
       fn: async (runtime) => {
         console.log("\u{1F9EA} Testing plugin initialization...");
-        const bitcoinPlugin2 = runtime.plugins.find((p) => p.name === "bitcoin");
+        const bitcoinPlugin2 = runtime.plugins.find((p) => p.name === "starter");
         if (!bitcoinPlugin2) {
-          throw new Error("Bitcoin plugin not found in runtime");
+          throw new Error("Starter plugin not found in runtime");
         }
         if (!bitcoinPlugin2.providers || bitcoinPlugin2.providers.length === 0) {
-          throw new Error("Bitcoin plugin has no providers");
+          throw new Error("Starter plugin has no providers");
         }
         if (!bitcoinPlugin2.actions || bitcoinPlugin2.actions.length === 0) {
-          throw new Error("Bitcoin plugin has no actions");
+          throw new Error("Starter plugin has no actions");
         }
         if (!bitcoinPlugin2.services || bitcoinPlugin2.services.length === 0) {
-          throw new Error("Bitcoin plugin has no services");
+          throw new Error("Starter plugin has no services");
         }
         const requiredActions = [
           "BITCOIN_MARKET_ANALYSIS",
@@ -118,9 +182,9 @@ var BitcoinTestSuite = class {
       name: "Bitcoin data providers functionality",
       fn: async (runtime) => {
         console.log("\u{1F9EA} Testing Bitcoin data providers...");
-        const bitcoinPlugin2 = runtime.plugins.find((p) => p.name === "bitcoin");
+        const bitcoinPlugin2 = runtime.plugins.find((p) => p.name === "starter");
         if (!bitcoinPlugin2 || !bitcoinPlugin2.providers) {
-          throw new Error("Bitcoin plugin or providers not found");
+          throw new Error("Starter plugin or providers not found");
         }
         const priceProvider = bitcoinPlugin2.providers.find((p) => p.name === "BITCOIN_PRICE_PROVIDER");
         if (!priceProvider) {
@@ -220,7 +284,7 @@ var BitcoinTestSuite = class {
           // RAG capabilities
           "@elizaos/plugin-bootstrap",
           // Essential actions
-          "bitcoin"
+          "starter"
           // Our custom plugin
         ];
         for (const requiredPlugin of requiredPlugins) {
@@ -280,6 +344,7 @@ var tests_default = new BitcoinTestSuite();
 
 // src/plugin.ts
 var configSchema = z.object({
+  EXAMPLE_PLUGIN_VARIABLE: z.string().min(1, "Example plugin variable cannot be empty").optional().describe("Example plugin variable for testing and demonstration"),
   COINGECKO_API_KEY: z.string().optional().describe("CoinGecko API key for premium Bitcoin data"),
   THIRDWEB_SECRET_KEY: z.string().optional().describe("Thirdweb secret key for blockchain data access"),
   LUMA_API_KEY: z.string().optional().describe("Luma AI API key for video generation"),
@@ -462,6 +527,24 @@ async function fetchWithTimeout(url, options = {}) {
     clearTimeout(timeoutId);
   }
 }
+var helloWorldProvider = {
+  name: "HELLO_WORLD_PROVIDER",
+  description: "Provides hello world content for testing and demonstration purposes",
+  get: async (runtime, _message, _state) => {
+    return {
+      text: "Hello world from provider!",
+      values: {
+        greeting: "Hello world!",
+        timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+        provider: "HELLO_WORLD_PROVIDER"
+      },
+      data: {
+        source: "hello-world-provider",
+        timestamp: (/* @__PURE__ */ new Date()).toISOString()
+      }
+    };
+  }
+};
 var bitcoinPriceProvider = {
   name: "BITCOIN_PRICE_PROVIDER",
   description: "Provides real-time Bitcoin price data, market cap, and trading volume",
@@ -768,6 +851,40 @@ ${institutionalData.sovereignActivity.slice(0, 3).map((item) => `\u2022 ${item}`
       };
     }
   }
+};
+var helloWorldAction = {
+  name: "HELLO_WORLD",
+  similes: ["GREET", "SAY_HELLO"],
+  description: "A simple greeting action for testing and demonstration purposes",
+  validate: async (runtime, message, state) => {
+    return true;
+  },
+  handler: async (runtime, message, state, _options, callback, _responses) => {
+    const responseContent = {
+      text: "hello world!",
+      actions: ["HELLO_WORLD"],
+      source: message.content.source || "test"
+    };
+    await callback(responseContent);
+    return responseContent;
+  },
+  examples: [
+    [
+      {
+        name: "{{user}}",
+        content: {
+          text: "hello!"
+        }
+      },
+      {
+        name: "Assistant",
+        content: {
+          text: "hello world!",
+          actions: ["HELLO_WORLD"]
+        }
+      }
+    ]
+  ]
 };
 var bitcoinAnalysisAction = {
   name: "BITCOIN_MARKET_ANALYSIS",
@@ -1609,7 +1726,7 @@ var BitcoinDataService = class _BitcoinDataService extends Service {
     super();
     this.runtime = runtime;
   }
-  static serviceType = "bitcoin-data";
+  static serviceType = "starter";
   capabilityDescription = "Provides Bitcoin market data, analysis, and thesis tracking capabilities";
   static async start(runtime) {
     const validation = validateElizaOSEnvironment();
@@ -1627,6 +1744,13 @@ var BitcoinDataService = class _BitcoinDataService extends Service {
   }
   static async stop(runtime) {
     logger.info("BitcoinDataService stopping...");
+    const service = runtime.getService("starter");
+    if (!service) {
+      throw new Error("Starter service not found");
+    }
+    if (service.stop && typeof service.stop === "function") {
+      await service.stop();
+    }
   }
   async init() {
     logger.info("BitcoinDataService initialized");
@@ -2013,9 +2137,10 @@ function generateCorrelationId() {
   return `btc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 var bitcoinPlugin = {
-  name: "bitcoin",
-  description: "Bitcoin-focused AI agent plugin for market analysis and thesis tracking",
+  name: "starter",
+  description: "A starter plugin for Eliza",
   config: {
+    EXAMPLE_PLUGIN_VARIABLE: process.env.EXAMPLE_PLUGIN_VARIABLE,
     COINGECKO_API_KEY: process.env.COINGECKO_API_KEY,
     THIRDWEB_SECRET_KEY: process.env.THIRDWEB_SECRET_KEY,
     LUMA_API_KEY: process.env.LUMA_API_KEY,
@@ -2040,8 +2165,9 @@ var bitcoinPlugin = {
       throw error;
     }
   },
-  providers: [bitcoinPriceProvider, bitcoinThesisProvider, institutionalAdoptionProvider],
+  providers: [helloWorldProvider, bitcoinPriceProvider, bitcoinThesisProvider, institutionalAdoptionProvider],
   actions: [
+    helloWorldAction,
     bitcoinAnalysisAction,
     bitcoinThesisStatusAction,
     resetMemoryAction,
@@ -2050,6 +2176,51 @@ var bitcoinPlugin = {
     sovereignLivingAction,
     investmentStrategyAction,
     freedomMathematicsAction
+  ],
+  events: {
+    MESSAGE_RECEIVED: [
+      async (params) => {
+        logger.info("MESSAGE_RECEIVED event received");
+        logger.info([params]);
+      }
+    ],
+    VOICE_MESSAGE_RECEIVED: [
+      async (params) => {
+        logger.info("VOICE_MESSAGE_RECEIVED event received");
+        logger.info([params]);
+      }
+    ],
+    WORLD_CONNECTED: [
+      async (params) => {
+        logger.info("WORLD_CONNECTED event received");
+        logger.info([params]);
+      }
+    ],
+    WORLD_JOINED: [
+      async (params) => {
+        logger.info("WORLD_JOINED event received");
+        logger.info([params]);
+      }
+    ]
+  },
+  models: {
+    [ModelType.TEXT_SMALL]: async (runtime, params) => {
+      return `Small model response to: ${params.prompt}`;
+    },
+    [ModelType.TEXT_LARGE]: async (runtime, params) => {
+      return `Large model response to: ${params.prompt}`;
+    }
+  },
+  routes: [
+    {
+      path: "/helloworld",
+      type: "GET",
+      handler: async (req, res, runtime) => {
+        res.json({
+          message: "Hello World!"
+        });
+      }
+    }
   ],
   services: [BitcoinDataService],
   tests: [tests_default]
@@ -2067,8 +2238,8 @@ var character = {
     // Supports all model types (text, embeddings, objects)
     ...process.env.ANTHROPIC_API_KEY ? ["@elizaos/plugin-anthropic"] : [],
     // Text generation only, needs OpenAI fallback for embeddings
-    // Knowledge and memory systems - needs embeddings support
-    "@elizaos/plugin-knowledge",
+    // Knowledge and memory systems - needs embeddings support (requires OpenAI API key)
+    ...process.env.OPENAI_API_KEY ? ["@elizaos/plugin-knowledge"] : [],
     // Local AI fallback if no cloud providers available
     ...!process.env.OPENAI_API_KEY && !process.env.ANTHROPIC_API_KEY ? ["@elizaos/plugin-local-ai"] : [],
     // Platform integrations - order doesn't matter much
@@ -2079,8 +2250,8 @@ var character = {
     // External service integrations
     ...process.env.THIRDWEB_SECRET_KEY ? ["@elizaos/plugin-thirdweb"] : [],
     ...process.env.LUMA_API_KEY ? ["@elizaos/plugin-video-generation"] : [],
-    // Custom plugin for Bitcoin functionality
-    "bitcoinPlugin",
+    // Custom plugin for Bitcoin functionality - loaded via projectAgent.plugins
+    // bitcoinPlugin loaded separately below
     // Bootstrap plugin - provides essential actions and capabilities, should be last
     "@elizaos/plugin-bootstrap"
   ],
