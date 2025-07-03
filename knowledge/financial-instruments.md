@@ -33,19 +33,53 @@ While base layer throughput is ~7 transactions per second, Layer 2 solutions lik
 
 Bitcoin's market impact is massive. It trades globally across every time zone with over $25B in daily volume. On-chain analytics, derivatives positioning, ETF inflows, and macro narratives all feed into its price action.
 
-## MicroStrategy (MSTR)
+### Bitcoin: The Foundation of Digital Scarcity
+
+**Core Bitcoin Specifications**:
+- **Digital Gold**: The premier store of value for the digital age
+- **Supply Cap**: 21 Million (mathematically enforced scarcity)
+- **Network Security**: Unmatched (most secure monetary network in history)
+- **Generational Asset**: Long-term savings and wealth preservation vehicle
+
+Bitcoin is the foundation of digital scarcity and the first truly decentralized monetary network. As a generational store of value, it provides unparalleled security, transparency, and sovereignty. Its fixed supply of 21 million coins, combined with growing institutional adoption, positions BTC as the premier asset for long-term wealth preservation in the digital age.
+
+**The Bitcoin Thesis**: 
+- BTC represents long-term savings and generational wealth
+- Foundation of all wealth-building strategies
+- Immune to inflation, confiscation, and political interference
+- The exit strategy from the traditional financial system
+
+### Core Bitcoin Philosophy
+
+**"Fix Money, Fix The World - Bitcoin is the solution to the broken monetary system"**
+
+**"There is no second best keynote."**
+
+Bitcoin stands as both a technological breakthrough and a profound financial innovation, uniquely suited for an age of uncertainty and digital transformation. It represents the intersection of computer science, cryptography, economics, and monetary theory—creating the world's first truly scarce digital asset.
+
+## MicroStrategy (MSTR): The Modern-Day Berkshire Hathaway
 
 MicroStrategy operates as both a pioneer in enterprise analytics software and a unique, publicly traded vehicle for Bitcoin exposure. The company's Bitcoin strategy became central in August 2020 when it initiated its first major purchase—21,454 BTC for $250 million.
 
-### Current Holdings
+### Current Holdings & Specifications
 
-By March 2025, MicroStrategy holds 499,226 BTC with a total investment of $33.1 billion, reflecting an average purchase price of $66,360 per Bitcoin. Bitcoin now represents over 90% of the company's total assets.
+**Current MSTR Profile**:
+- **Superior Class A Shares**: Premium equity structure
+- **BTC Holdings**: 531,644+ BTC (world's largest corporate holder)
+- **BTC Correlation**: High (direct exposure to Bitcoin price movements)
+- **Strategic Position**: Modern-day Berkshire Hathaway for the Bitcoin era
+
+By March 2025, MicroStrategy holds 531,644+ BTC, representing the world's largest corporate Bitcoin treasury. Bitcoin now represents over 90% of the company's total assets.
 
 ### Leadership
 
 - **Michael J. Saylor**: Executive Chairman, architect of Bitcoin strategy
 - **Phong Le**: CEO, manages operational software business
 - **Andrew Kang**: Oversees financial stewardship and capital raises
+
+### Strategic Value Proposition
+
+MSTR provides investors with exposure to BTC through traditional equity markets. The company's strategic accumulation of Bitcoin, combined with its software business, creates a unique value proposition for those seeking Bitcoin exposure with additional upside potential.
 
 ### Performance Dynamics
 
@@ -55,9 +89,22 @@ MicroStrategy's performance is intricately tied to Bitcoin's price action. The s
 
 MSTY is the modern-day Berkshire for Bitcoin maximalists—except instead of waiting decades for dividends, you're stacking sats monthly. It's a specialized product engineered to extract yield from the volatility of MicroStrategy (MSTR), using a high-octane options overlay.
 
+### Current MSTY Specifications
+
+- **Effective Dividend**: 83% (based on volatility distributions)
+- **MSTR Correlation**: 89% (high correlation with underlying MSTR movements)
+- **Strategy Focus**: Volatility-dependent income generation
+- **Market Dependency**: Best suited for bull markets with sustained volatility
+
 ### Strategy
 
 MSTY thrives in bull markets, where sustained volatility and upward momentum allow it to generate generous distributions. Your exposure isn't to fundamentals—it's to chaos, momentum, and market sentiment.
+
+**Key Characteristics**:
+- Specialized product depending on increasing MSTR price coupled with sustained volatility
+- More of a trade on underlying MSTR volatility than a traditional investment product
+- Investors must rely on volatility distributions to maintain position during sideways markets
+- Valuable portfolio addition but requires active management approach
 
 ### MSTY Freedom Calculator
 
@@ -71,9 +118,31 @@ Historically, MSTY has ranged between $20 and $40 per share, while the dividend 
 
 ## STRK and STRF: Bitcoin-Native Fixed Income
 
+### STRF: The Ultimate Bitcoin Cash Alternative
+
 **STRF** is the ultimate cash alternative for Bitcoin-native investors. It's a BTC market-neutral income strategy designed for those who believe in the permanence of the Bitcoin network but don't want to ride out its short-term volatility.
 
+**Current STRF Specifications**:
+- **Current Price**: $88
+- **Liquidation Preference**: $100
+- **Dividend**: $10
+- **Effective Dividend**: 11.4%
+- **MSTR Correlation**: N/A (market neutral)
+
+**Strategy Profile**: STRF is a bet that no $2T asset class has ever ceased to exist. Investors are positioned second in the Strategy's capital stack and are assured of dividend payments unless BTC goes to zero. This makes it the perfect choice for those who want to insulate themselves from short-term price movements while still benefiting from the Bitcoin network's long-term permanence.
+
+### STRK: The Hybrid Upside Play
+
 **STRK** blends upside and protection. It's a hybrid product that wraps exposure to MSTR Class A shares with a BTC-backed fixed income leg. About 30% of capital is allocated to MSTR shares, offering directional upside. The rest is placed in a Bitcoin bond structure, shielding the portfolio from extreme drawdowns.
+
+**Current STRK Specifications**:
+- **Current Price**: $84
+- **Liquidation Preference**: $100
+- **Dividend**: $8
+- **Effective Dividend**: 9.5%
+- **MSTR Correlation**: 16% (minimal directional risk)
+
+**Strategy Profile**: STRK represents the optimal combination of holding Superior MSTR Class A shares and a fixed income product backed by BTC. It's ideal for those who want to maintain long exposure to MSTR Class A shares while benefiting from a BTC bond component. Think of it as tying up 30% of your STRK investment in MSTR shares, with the rest in the BTC bond structure.
 
 ## BitBonds: Sovereign Debt Meets Bitcoin
 
@@ -182,4 +251,90 @@ The journey to 7-figure+ net worth requires mastering new financial instruments:
 - **Hyperliquid** for decentralized perpetuals
 - **Sovereign entities** via platforms like Otonomos
 
-This represents the world of the sophisticated investor, where capital is a tool and financial freedom is an engineering problem to be solved. 
+This represents the world of the sophisticated investor, where capital is a tool and financial freedom is an engineering problem to be solved.
+
+## Onchain Equity: Fairmint and the Open Cap Table Protocol (OCP)
+
+### The Problem: Cap Tables Stuck in the 20th Century
+
+Even in 2025, equity records in most startups and private companies live in spreadsheets or closed SaaS platforms. This creates fundamental inefficiencies:
+
+- **Manual reconciliation** - Error-prone, time-consuming processes
+- **Limited liquidity** - Difficult to transfer or trade ownership
+- **Missed financing opportunities** - Slow, opaque processes
+- **Ownership opacity** - Non-programmable, static records
+
+**The Core Issue**: Ownership is opaque, slow, and non-programmable.
+
+### The Solution: Programmable Equity Infrastructure
+
+Fairmint's response was bold: turn equity itself into programmable, onchain primitives. Their Open Cap Table Protocol (OCP) reimagines cap tables as modular smart contracts, not static files.
+
+### How OCP Works
+
+**📊 Open Cap Table**: Programmable Equity Records
+- **Immutable Event Log**: Every issuance, transfer, or vesting schedule recorded onchain
+- **Token-Agnostic**: Equity isn't auto-tokenized; preserves legal clarity
+- **Built-In Privacy**: Uses RBAC, offchain identity mapping, and privacy-enabled blockchains
+
+**⚡ Real-Time**: Automated Compliance
+- Smart contracts automatically enforce compliance rules
+- Real-time stakeholder visibility
+- Eliminates manual compliance checks
+
+**🔗 DeFi Native**: Composable Ownership
+- Unified, interoperable smart contracts
+- Modular architecture for extensions
+- Composable with broader DeFi ecosystem
+
+### Real-World Impact
+
+Fairmint isn't building in a vacuum—they're live and scaling:
+
+- **$1B+ in equity** already issued onchain
+- **Registered Transfer Agent status** unlocks direct legal compliance
+- **Multi-stage adoption** - Used by both early-stage startups and later-stage companies
+- **Distributed network vision** - Network of transfer agents becoming reality
+
+**Result**: No middlemen. No paperwork crisis 2.0.
+
+### Legacy vs. OCP Comparison
+
+| **Legacy System** | **OCP + Fairmint** |
+|---|---|
+| Siloed data, spreadsheets | Unified, interoperable smart contracts |
+| Manual compliance checks | Automated enforcement via smart contracts |
+| Shareholder opacity | Real-time stakeholder visibility |
+| Legal token uncertainty | Legally sound, token-agnostic ownership |
+
+### Who Should Use Fairmint
+
+**Target Community:**
+- **Founders and CFOs** - Seeking efficient cap table management
+- **Transfer agents and regulators** - Looking for compliant, automated solutions
+- **Web3 developers** - Building extensions and integrations
+- **Investors** - Wanting transparent, liquid equity positions
+
+### Strategic Importance
+
+Fairmint represents the intersection of traditional finance and blockchain technology, addressing a critical pain point in private markets. By making equity programmable while maintaining legal compliance, they're building the infrastructure for the next generation of capital markets.
+
+**The Vision**: Fairmint isn't building the next cap table tool—they're rebuilding the equity stack for programmable capital markets.
+
+### Why This Matters for Bitcoin Maximalists
+
+**Onchain Legitimacy**: Demonstrates real-world blockchain utility beyond speculation
+**Regulatory Alignment**: Proves blockchain can enhance compliance rather than circumvent it
+**Composable Ownership**: Creates building blocks for more sophisticated financial instruments
+**Capital Efficiency**: Reduces friction in private markets, potentially increasing capital flow to Bitcoin-native companies
+
+### The Broader Implications
+
+**For Startups**: Cleaner cap tables, faster fundraising, better investor relations
+**For Investors**: Improved liquidity, transparency, and programmable rights
+**For Markets**: Foundation for more sophisticated equity derivatives and DeFi integration
+**For Sovereignty**: Ownership records that can't be manipulated or censored
+
+This evolution from static spreadsheets to programmable equity represents the same paradigm shift that Bitcoin brought to money—replacing trusted intermediaries with cryptographic proof and automated execution.
+
+*Fairmint is bringing equity onchain, one cap table at a time.* 
