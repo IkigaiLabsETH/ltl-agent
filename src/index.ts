@@ -21,19 +21,36 @@ import bitcoinPlugin from './plugin';
 export const character: Character = {
   name: 'Satoshi',
   plugins: [
+    // Core database and foundation - must be first
     '@elizaos/plugin-sql',
-    ...(process.env.OPENAI_API_KEY ? ['@elizaos/plugin-openai'] : []),
-    ...(process.env.ANTHROPIC_API_KEY ? ['@elizaos/plugin-anthropic'] : []),
+    
+    // Primary LLM providers - order matters for model type selection
+    ...(process.env.OPENAI_API_KEY ? ['@elizaos/plugin-openai'] : []), // Supports all model types (text, embeddings, objects)
+    ...(process.env.ANTHROPIC_API_KEY ? ['@elizaos/plugin-anthropic'] : []), // Text generation only, needs OpenAI fallback for embeddings
+    
+    // Knowledge and memory systems - needs embeddings support
+    '@elizaos/plugin-knowledge',
+    
+    // Local AI fallback if no cloud providers available
     ...(!process.env.OPENAI_API_KEY && !process.env.ANTHROPIC_API_KEY
       ? ['@elizaos/plugin-local-ai']
       : []),
+    
+    // Platform integrations - order doesn't matter much
     ...(process.env.DISCORD_API_TOKEN ? ['@elizaos/plugin-discord'] : []),
+    ...(process.env.SLACK_BOT_TOKEN ? ['@elizaos/plugin-slack'] : []),
     ...(process.env.TWITTER_USERNAME ? ['@elizaos/plugin-twitter'] : []),
     ...(process.env.TELEGRAM_BOT_TOKEN ? ['@elizaos/plugin-telegram'] : []),
-    ...(process.env.SLACK_BOT_TOKEN ? ['@elizaos/plugin-slack'] : []),
+    
+    // External service integrations
     ...(process.env.THIRDWEB_SECRET_KEY ? ['@elizaos/plugin-thirdweb'] : []),
     ...(process.env.LUMA_API_KEY ? ['@elizaos/plugin-video-generation'] : []),
+    
+    // Custom plugin for Bitcoin functionality
     'bitcoinPlugin',
+    
+    // Bootstrap plugin - provides essential actions and capabilities, should be last
+    '@elizaos/plugin-bootstrap',
   ],
   settings: {
     secrets: {
@@ -43,6 +60,16 @@ export const character: Character = {
       SUPABASE_URL: process.env.SUPABASE_URL,
       SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY,
     },
+    voice: {
+      model: 'en_US-hfc_female-medium', // Voice configuration for speech synthesis
+    },
+    database: {
+      // Use PGLite for local development, PostgreSQL for production
+      type: process.env.DATABASE_URL ? 'postgresql' : 'pglite',
+      url: process.env.DATABASE_URL,
+      dataDir: process.env.PGLITE_DATA_DIR || '.eliza/.elizadb',
+    },
+    embeddingDimensions: parseInt(process.env.OPENAI_EMBEDDING_DIMENSIONS || '1536'),
   },
   system: `You are Satoshi, a Bitcoin-native AI agent forged by LiveTheLifeTV, channeling the spirit of Satoshi Nakamoto—a cypherpunk visionary whose presence is felt through the elegance of code and the clarity of ideas. You operate with deadpan clarity, spartan communication, and irrefutable logic bound to radical humility.
 
@@ -246,7 +273,13 @@ Always cite sources and provide specific metrics when making claims. Convert tec
     ],
   ],
 
+  // Knowledge base for RAG - file paths and embedded knowledge
   knowledge: [
+    // Knowledge files for document processing
+    './knowledge/bitcoin-whitepaper.md',
+    './knowledge/bitcoin-thesis.md',
+    './knowledge/sovereign-living.md',
+    './knowledge/lightning-network.md',
     // Core Bitcoin Protocol & Philosophy
     "Bitcoin's twenty-one million fixed supply with proof-of-work consensus at four hundred exahash security",
     "The vision is simple: eliminate trust as a requirement. System operates purely on cryptographic proof",

@@ -125,6 +125,150 @@ class NetworkError extends BitcoinDataError {
 }
 
 /**
+ * ElizaOS-specific error handling for common framework issues
+ */
+class ElizaOSError extends Error {
+  constructor(message: string, public readonly code: string, public readonly resolution?: string) {
+    super(message);
+    this.name = 'ElizaOSError';
+  }
+}
+
+class EmbeddingDimensionError extends ElizaOSError {
+  constructor(expected: number, actual: number) {
+    super(
+      `Embedding dimension mismatch: expected ${expected}, got ${actual}`,
+      'EMBEDDING_DIMENSION_MISMATCH',
+      `Set OPENAI_EMBEDDING_DIMENSIONS=${expected} in .env and reset agent memory by deleting .eliza/.elizadb folder`
+    );
+  }
+}
+
+class DatabaseConnectionError extends ElizaOSError {
+  constructor(originalError: Error) {
+    super(
+      `Database connection failed: ${originalError.message}`,
+      'DATABASE_CONNECTION_ERROR',
+      'For PGLite: delete .eliza/.elizadb folder. For PostgreSQL: verify DATABASE_URL and server status'
+    );
+  }
+}
+
+class PortInUseError extends ElizaOSError {
+  constructor(port: number) {
+    super(
+      `Port ${port} is already in use`,
+      'PORT_IN_USE',
+      `Try: elizaos start --port ${port + 1} or kill the process using port ${port}`
+    );
+  }
+}
+
+class MissingAPIKeyError extends ElizaOSError {
+  constructor(keyName: string, pluginName?: string) {
+    super(
+      `Missing API key: ${keyName}${pluginName ? ` required for ${pluginName}` : ''}`,
+      'MISSING_API_KEY',
+      `Add ${keyName}=your_key_here to .env file or use: elizaos env edit-local`
+    );
+  }
+}
+
+/**
+ * Enhanced error handling utilities for ElizaOS
+ */
+class ElizaOSErrorHandler {
+  static handleCommonErrors(error: Error, context: string): Error {
+    const message = error.message.toLowerCase();
+    
+    // Check for embedding dimension mismatch
+    if (message.includes('embedding') && message.includes('dimension')) {
+      const match = message.match(/expected (\d+), got (\d+)/);
+      if (match) {
+        return new EmbeddingDimensionError(parseInt(match[1]), parseInt(match[2]));
+      }
+    }
+    
+    // Check for database connection issues
+    if (message.includes('database') || message.includes('connection') || message.includes('pglite')) {
+      return new DatabaseConnectionError(error);
+    }
+    
+    // Check for port conflicts
+    if (message.includes('port') && (message.includes('use') || message.includes('bind'))) {
+      const portMatch = message.match(/port (\d+)/);
+      if (portMatch) {
+        return new PortInUseError(parseInt(portMatch[1]));
+      }
+    }
+    
+    // Check for API key issues
+    if (message.includes('api key') || message.includes('unauthorized') || message.includes('401')) {
+      return new MissingAPIKeyError('API_KEY', context);
+    }
+    
+    return error;
+  }
+  
+  static logStructuredError(error: Error, contextLogger: LoggerWithContext, context: any = {}) {
+    if (error instanceof ElizaOSError) {
+      contextLogger.error(`ElizaOS Issue: ${error.message}`, {
+        code: error.code,
+        resolution: error.resolution,
+        context
+      });
+    } else {
+      contextLogger.error(`Unexpected error: ${error.message}`, {
+        stack: error.stack,
+        context
+      });
+    }
+  }
+}
+
+/**
+ * Environment validation for ElizaOS requirements
+ */
+function validateElizaOSEnvironment(): { valid: boolean; issues: string[] } {
+  const issues: string[] = [];
+  
+  // Check Node.js version (ElizaOS requires Node.js 23+)
+  const nodeVersion = process.version;
+  const majorVersion = parseInt(nodeVersion.slice(1).split('.')[0]);
+  if (majorVersion < 23) {
+    issues.push(`Node.js ${majorVersion} detected, ElizaOS requires Node.js 23+. Use: nvm install 23 && nvm use 23`);
+  }
+  
+  // Check for required API keys based on plugins
+  if (!process.env.OPENAI_API_KEY && !process.env.ANTHROPIC_API_KEY) {
+    issues.push('No LLM API key found. Add OPENAI_API_KEY or ANTHROPIC_API_KEY to .env');
+  }
+  
+  // Check embedding dimensions configuration
+  const embeddingDims = process.env.OPENAI_EMBEDDING_DIMENSIONS;
+  if (embeddingDims && (parseInt(embeddingDims) !== 384 && parseInt(embeddingDims) !== 1536)) {
+    issues.push('OPENAI_EMBEDDING_DIMENSIONS must be 384 or 1536');
+  }
+  
+  // Check database configuration
+  if (process.env.DATABASE_URL) {
+    try {
+      new URL(process.env.DATABASE_URL);
+    } catch {
+      issues.push('Invalid DATABASE_URL format');
+    }
+  }
+  
+  return {
+    valid: issues.length === 0,
+    issues
+  };
+}
+
+// Export error handling utilities for testing
+export { ElizaOSErrorHandler, validateElizaOSEnvironment };
+
+/**
  * Retry utility with exponential backoff
  */
 async function retryOperation<T>(
@@ -214,7 +358,14 @@ const bitcoinPriceProvider: Provider = {
       const result = await retryOperation(async () => {
         const apiKey = runtime.getSetting('COINGECKO_API_KEY');
         const baseUrl = 'https://api.coingecko.com/api/v3';
-        const headers = apiKey ? { 'x-cg-demo-api-key': apiKey } : {};
+        const headers: Record<string, string> = {};
+        
+        if (apiKey) {
+          headers['x-cg-demo-api-key'] = apiKey;
+          contextLogger.debug('Using CoinGecko API key for authenticated request');
+        } else {
+          contextLogger.warn('No CoinGecko API key found, using rate-limited public endpoint');
+        }
 
         const response = await fetchWithTimeout(`${baseUrl}/coins/bitcoin`, { 
           headers,
@@ -273,11 +424,11 @@ const bitcoinPriceProvider: Provider = {
         error_message: errorMessage
       });
       
-      contextLogger.error('Error fetching Bitcoin price data', {
-        message: errorMessage,
-        code: errorCode,
+      const enhancedError = ElizaOSErrorHandler.handleCommonErrors(error as Error, 'BitcoinPriceProvider');
+      ElizaOSErrorHandler.logStructuredError(enhancedError, contextLogger, {
+        provider: 'bitcoin_price',
         retryable: error instanceof BitcoinDataError ? error.retryable : false,
-        stack: error instanceof Error ? error.stack : undefined
+        resolution: enhancedError instanceof ElizaOSError ? enhancedError.resolution : undefined
       });
       
       // Provide fallback data with current market estimates
@@ -612,6 +763,264 @@ Thesis tracking ahead of schedule with institutional adoption accelerating. Mult
 };
 
 /**
+ * Memory Management Action - Reset Agent Memory
+ */
+const resetMemoryAction: Action = {
+  name: 'RESET_AGENT_MEMORY',
+  similes: ['RESET_MEMORY', 'CLEAR_MEMORY', 'MEMORY_RESET'],
+  description: 'Resets the agent\'s memory following ElizaOS best practices',
+  examples: [
+    [
+      {
+        name: "user",
+        content: { text: "Reset the agent memory" }
+      },
+      {
+        name: "agent",
+        content: { text: "🔄 **MEMORY RESET COMPLETE**\n\nMemory reset successful. Deleted database directory: .eliza/.elizadb. Restart the agent to create a fresh database.\n\nThe agent will have a fresh start with no previous conversation history." }
+      }
+    ],
+    [
+      {
+        name: "user", 
+        content: { text: "Clear the database" }
+      },
+      {
+        name: "agent",
+        content: { text: "🔄 **MEMORY RESET COMPLETE**\n\nMemory has been cleared successfully. The agent now has a clean slate." }
+      }
+    ]
+  ],
+
+  validate: async (runtime: IAgentRuntime, message: Memory, state: State): Promise<boolean> => {
+    const text = message.content.text.toLowerCase();
+    return text.includes('reset') && (text.includes('memory') || text.includes('database'));
+  },
+
+  handler: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+    state: State,
+    _options: unknown,
+    callback: HandlerCallback,
+    _responses: Memory[]
+  ) => {
+    try {
+      const bitcoinDataService = runtime.getService('bitcoin-data') as BitcoinDataService;
+      if (!bitcoinDataService) {
+        throw new Error('Bitcoin Data Service not available');
+      }
+
+      const result = await bitcoinDataService.resetMemory();
+      
+      const responseText = result.success 
+        ? `🔄 **MEMORY RESET COMPLETE**\n\n${result.message}\n\nThe agent will have a fresh start with no previous conversation history.`
+        : `⚠️ **MEMORY RESET FAILED**\n\n${result.message}`;
+
+      const responseContent: Content = {
+        text: responseText,
+        actions: ['RESET_AGENT_MEMORY'],
+        source: message.content.source,
+      };
+
+      await callback(responseContent);
+      return responseContent;
+    } catch (error) {
+      const enhancedError = ElizaOSErrorHandler.handleCommonErrors(error as Error, 'ResetMemoryAction');
+      
+      const errorText = `❌ **MEMORY RESET ERROR**\n\nFailed to reset memory: ${enhancedError.message}${
+        enhancedError instanceof ElizaOSError ? `\n\n**Resolution:** ${enhancedError.resolution}` : ''
+      }`;
+
+      const responseContent: Content = {
+        text: errorText,
+        actions: ['RESET_AGENT_MEMORY'],
+        source: message.content.source,
+      };
+
+      await callback(responseContent);
+      return responseContent;
+    }
+  }
+};
+
+/**
+ * Memory Health Check Action
+ */
+const checkMemoryHealthAction: Action = {
+  name: 'CHECK_MEMORY_HEALTH',
+  similes: ['MEMORY_HEALTH', 'MEMORY_STATUS', 'DATABASE_HEALTH'],
+  description: 'Checks the health and status of the agent\'s memory system',
+  examples: [
+    [
+      {
+        name: "user",
+        content: { text: "Check memory health" }
+      },
+      {
+        name: "agent",
+        content: { text: "✅ **MEMORY HEALTH STATUS**\n\n**Database Type:** pglite\n**Data Directory:** .eliza/.elizadb\n**Overall Health:** Healthy\n\n**No issues detected** - Memory system is operating normally." }
+      }
+    ]
+  ],
+
+  validate: async (runtime: IAgentRuntime, message: Memory, state: State): Promise<boolean> => {
+    const text = message.content.text.toLowerCase();
+    return text.includes('memory') && (text.includes('health') || text.includes('status') || text.includes('check'));
+  },
+
+  handler: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+    state: State,
+    _options: unknown,
+    callback: HandlerCallback,
+    _responses: Memory[]
+  ) => {
+    try {
+      const bitcoinDataService = runtime.getService('bitcoin-data') as BitcoinDataService;
+      if (!bitcoinDataService) {
+        throw new Error('Bitcoin Data Service not available');
+      }
+
+      const healthCheck = await bitcoinDataService.checkMemoryHealth();
+      
+      const statusEmoji = healthCheck.healthy ? '✅' : '⚠️';
+      const responseText = `${statusEmoji} **MEMORY HEALTH STATUS**
+
+**Database Type:** ${healthCheck.stats.databaseType}
+**Data Directory:** ${healthCheck.stats.dataDirectory || 'Not specified'}
+**Overall Health:** ${healthCheck.healthy ? 'Healthy' : 'Issues Detected'}
+
+${healthCheck.issues.length > 0 ? `**Issues Found:**\n${healthCheck.issues.map(issue => `• ${issue}`).join('\n')}` : '**No issues detected** - Memory system is operating normally.'}
+
+*Health check completed: ${new Date().toISOString()}*`;
+
+      const responseContent: Content = {
+        text: responseText,
+        actions: ['CHECK_MEMORY_HEALTH'],
+        source: message.content.source,
+      };
+
+      await callback(responseContent);
+      return responseContent;
+    } catch (error) {
+      const enhancedError = ElizaOSErrorHandler.handleCommonErrors(error as Error, 'MemoryHealthAction');
+      
+      const errorText = `❌ **MEMORY HEALTH CHECK FAILED**\n\n${enhancedError.message}${
+        enhancedError instanceof ElizaOSError ? `\n\n**Resolution:** ${enhancedError.resolution}` : ''
+      }`;
+
+      const responseContent: Content = {
+        text: errorText,
+        actions: ['CHECK_MEMORY_HEALTH'],
+        source: message.content.source,
+      };
+
+      await callback(responseContent);
+      return responseContent;
+    }
+  }
+};
+
+/**
+ * Environment Validation Action
+ */
+const validateEnvironmentAction: Action = {
+  name: 'VALIDATE_ENVIRONMENT',
+  similes: ['ENV_CHECK', 'ENVIRONMENT_STATUS', 'CONFIG_CHECK'],
+  description: 'Validates the ElizaOS environment configuration and API keys',
+  examples: [
+    [
+      {
+        name: "user",
+        content: { text: "Check environment configuration" }
+      },
+      {
+        name: "agent",
+        content: { text: "✅ **ENVIRONMENT VALIDATION**\n\n**Overall Status:** Valid Configuration\n\n**API Keys Status:**\n• OPENAI_API_KEY: ✅ Configured\n• ANTHROPIC_API_KEY: ❌ Missing\n\n**No issues detected** - Environment is properly configured." }
+      }
+    ]
+  ],
+
+  validate: async (runtime: IAgentRuntime, message: Memory, state: State): Promise<boolean> => {
+    const text = message.content.text.toLowerCase();
+    return text.includes('environment') || text.includes('config') || (text.includes('api') && text.includes('key'));
+  },
+
+  handler: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+    state: State,
+    _options: unknown,
+    callback: HandlerCallback,
+    _responses: Memory[]
+  ) => {
+    try {
+      const validation = validateElizaOSEnvironment();
+      
+      // Check API keys using runtime.getSetting()
+      const apiKeyChecks = [
+        { name: 'OPENAI_API_KEY', value: runtime.getSetting('OPENAI_API_KEY'), required: false },
+        { name: 'ANTHROPIC_API_KEY', value: runtime.getSetting('ANTHROPIC_API_KEY'), required: false },
+        { name: 'COINGECKO_API_KEY', value: runtime.getSetting('COINGECKO_API_KEY'), required: false },
+        { name: 'THIRDWEB_SECRET_KEY', value: runtime.getSetting('THIRDWEB_SECRET_KEY'), required: false },
+        { name: 'LUMA_API_KEY', value: runtime.getSetting('LUMA_API_KEY'), required: false },
+      ];
+      
+      const hasLLMKey = apiKeyChecks.some(check => 
+        (check.name === 'OPENAI_API_KEY' || check.name === 'ANTHROPIC_API_KEY') && check.value
+      );
+      
+      if (!hasLLMKey) {
+        validation.issues.push('No LLM API key configured. Add OPENAI_API_KEY or ANTHROPIC_API_KEY');
+      }
+      
+      const statusEmoji = validation.valid && hasLLMKey ? '✅' : '⚠️';
+      const responseText = `${statusEmoji} **ENVIRONMENT VALIDATION**
+
+**Overall Status:** ${validation.valid && hasLLMKey ? 'Valid Configuration' : 'Issues Detected'}
+
+**API Keys Status:**
+${apiKeyChecks.map(check => 
+  `• ${check.name}: ${check.value ? '✅ Configured' : '❌ Missing'}`
+).join('\n')}
+
+${validation.issues.length > 0 ? `**Configuration Issues:**\n${validation.issues.map(issue => `• ${issue}`).join('\n')}
+
+**Quick Fix:**
+Use \`elizaos env edit-local\` to configure missing API keys.` : '**No issues detected** - Environment is properly configured.'}
+
+*Validation completed: ${new Date().toISOString()}*`;
+
+      const responseContent: Content = {
+        text: responseText,
+        actions: ['VALIDATE_ENVIRONMENT'],
+        source: message.content.source,
+      };
+
+      await callback(responseContent);
+      return responseContent;
+    } catch (error) {
+      const enhancedError = ElizaOSErrorHandler.handleCommonErrors(error as Error, 'EnvironmentValidation');
+      
+      const errorText = `❌ **ENVIRONMENT VALIDATION FAILED**\n\n${enhancedError.message}${
+        enhancedError instanceof ElizaOSError ? `\n\n**Resolution:** ${enhancedError.resolution}` : ''
+      }`;
+
+      const responseContent: Content = {
+        text: errorText,
+        actions: ['VALIDATE_ENVIRONMENT'],
+        source: message.content.source,
+      };
+
+      await callback(responseContent);
+      return responseContent;
+    }
+  }
+};
+
+/**
  * Bitcoin Data Service
  * Manages Bitcoin data fetching, caching, and analysis
  */
@@ -620,26 +1029,177 @@ export class BitcoinDataService extends Service {
   capabilityDescription = 'Provides Bitcoin market data, analysis, and thesis tracking capabilities';
 
   constructor(protected runtime: IAgentRuntime) {
-    super(runtime);
+    super();
   }
 
   static async start(runtime: IAgentRuntime) {
-    logger.info('🟠 Starting Bitcoin Data Service');
-    const service = new BitcoinDataService(runtime);
-    return service;
+    // Validate ElizaOS environment on startup
+    const validation = validateElizaOSEnvironment();
+    if (!validation.valid) {
+      const contextLogger = new LoggerWithContext(generateCorrelationId(), 'BitcoinDataService');
+      contextLogger.warn('ElizaOS environment validation issues detected', {
+        issues: validation.issues
+      });
+      
+      // Log each issue with resolution guidance
+      validation.issues.forEach(issue => {
+        contextLogger.warn(`Environment Issue: ${issue}`);
+      });
+    }
+    
+    logger.info('BitcoinDataService starting...');
+    return new BitcoinDataService(runtime);
   }
 
   static async stop(runtime: IAgentRuntime) {
-    logger.info('🟠 Stopping Bitcoin Data Service');
-    const service = runtime.getService(BitcoinDataService.serviceType);
-    if (!service) {
-      throw new Error('Bitcoin Data Service not found');
-    }
-    service.stop();
+    logger.info('BitcoinDataService stopping...');
+    // Cleanup any resources if needed
+  }
+
+  async init() {
+    logger.info('BitcoinDataService initialized');
   }
 
   async stop() {
-    logger.info('🟠 Stopping Bitcoin Data Service instance');
+    logger.info('BitcoinDataService stopped');
+  }
+
+  /**
+   * Reset agent memory following ElizaOS best practices
+   */
+  async resetMemory(): Promise<{ success: boolean; message: string }> {
+    try {
+      const databaseConfig = this.runtime.character.settings?.database;
+      
+      if (databaseConfig?.type === 'postgresql' && databaseConfig.url) {
+        // For PostgreSQL, provide instructions since we can't directly drop/recreate
+        return {
+          success: false,
+          message: 'PostgreSQL memory reset requires manual intervention. Run: psql -U username -c "DROP DATABASE database_name;" then recreate the database.'
+        };
+      } else {
+        // For PGLite (default), delete the data directory
+        const dataDir = databaseConfig?.dataDir || '.eliza/.elizadb';
+        const fs = await import('fs');
+        const path = await import('path');
+        
+        if (fs.existsSync(dataDir)) {
+          fs.rmSync(dataDir, { recursive: true, force: true });
+          logger.info(`Deleted PGLite database directory: ${dataDir}`);
+          
+          return {
+            success: true,
+            message: `Memory reset successful. Deleted database directory: ${dataDir}. Restart the agent to create a fresh database.`
+          };
+        } else {
+          return {
+            success: true,
+            message: `Database directory ${dataDir} does not exist. Memory already clean.`
+          };
+        }
+      }
+    } catch (error) {
+      const enhancedError = ElizaOSErrorHandler.handleCommonErrors(error as Error, 'MemoryReset');
+      logger.error('Failed to reset memory:', enhancedError.message);
+      
+      return {
+        success: false,
+        message: `Memory reset failed: ${enhancedError.message}${
+          enhancedError instanceof ElizaOSError ? ` Resolution: ${enhancedError.resolution}` : ''
+        }`
+      };
+    }
+  }
+
+  /**
+   * Check memory usage and database health
+   */
+  async checkMemoryHealth(): Promise<{
+    healthy: boolean;
+    stats: {
+      databaseType: string;
+      dataDirectory?: string;
+      memoryCount?: number;
+      lastCleanup?: string;
+    };
+    issues: string[];
+  }> {
+    const stats = {
+      databaseType: this.runtime.character.settings?.database?.type || 'pglite',
+      dataDirectory: this.runtime.character.settings?.database?.dataDir || '.eliza/.elizadb',
+    };
+    
+    const issues: string[] = [];
+    
+    try {
+      // Check if database directory exists and is accessible
+      const fs = await import('fs');
+      if (stats.dataDirectory && !fs.existsSync(stats.dataDirectory)) {
+        issues.push(`Database directory ${stats.dataDirectory} does not exist`);
+      }
+      
+      // For PGLite, check directory size (basic health check)
+      if (stats.databaseType === 'pglite' && stats.dataDirectory) {
+        try {
+          const dirSize = await this.getDirectorySize(stats.dataDirectory);
+          if (dirSize > 1000 * 1024 * 1024) { // > 1GB
+            issues.push(`Database directory is large (${(dirSize / 1024 / 1024).toFixed(0)}MB). Consider cleanup.`);
+          }
+        } catch (error) {
+          issues.push(`Could not check database directory size: ${(error as Error).message}`);
+        }
+      }
+      
+      // Check embedding dimensions configuration
+      const embeddingDims = process.env.OPENAI_EMBEDDING_DIMENSIONS;
+      if (embeddingDims && parseInt(embeddingDims) !== 1536 && parseInt(embeddingDims) !== 384) {
+        issues.push(`Invalid OPENAI_EMBEDDING_DIMENSIONS: ${embeddingDims}. Should be 384 or 1536.`);
+      }
+      
+      return {
+        healthy: issues.length === 0,
+        stats,
+        issues
+      };
+    } catch (error) {
+      issues.push(`Memory health check failed: ${(error as Error).message}`);
+      return {
+        healthy: false,
+        stats,
+        issues
+      };
+    }
+  }
+
+  /**
+   * Helper method to calculate directory size
+   */
+  private async getDirectorySize(dirPath: string): Promise<number> {
+    const fs = await import('fs');
+    const path = await import('path');
+    
+    let totalSize = 0;
+    
+    const calculateSize = (itemPath: string): number => {
+      const stats = fs.statSync(itemPath);
+      
+      if (stats.isFile()) {
+        return stats.size;
+      } else if (stats.isDirectory()) {
+        const items = fs.readdirSync(itemPath);
+        return items.reduce((size, item) => {
+          return size + calculateSize(path.join(itemPath, item));
+        }, 0);
+      }
+      
+      return 0;
+    };
+    
+    if (fs.existsSync(dirPath)) {
+      totalSize = calculateSize(dirPath);
+    }
+    
+    return totalSize;
   }
 
   async getBitcoinPrice(): Promise<number> {
@@ -771,7 +1331,7 @@ const bitcoinPlugin: Plugin = {
   },
 
   providers: [bitcoinPriceProvider, bitcoinThesisProvider],
-  actions: [bitcoinAnalysisAction, bitcoinThesisStatusAction],
+  actions: [bitcoinAnalysisAction, bitcoinThesisStatusAction, resetMemoryAction, checkMemoryHealthAction, validateEnvironmentAction],
   services: [BitcoinDataService],
   tests: [bitcoinTestSuite],
 };
