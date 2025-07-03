@@ -626,7 +626,7 @@ const institutionalAdoptionProvider: Provider = {
       contextLogger.info('Analyzing institutional Bitcoin adoption trends');
       
       // Get Bitcoin data service for institutional analysis
-      const bitcoinDataService = runtime.getService('bitcoin-data') as BitcoinDataService;
+      const bitcoinDataService = runtime.getService('starter') as StarterService;
       let institutionalData;
       
       if (bitcoinDataService) {
@@ -1035,9 +1035,9 @@ const resetMemoryAction: Action = {
     _responses: Memory[]
   ) => {
     try {
-      const bitcoinDataService = runtime.getService('bitcoin-data') as BitcoinDataService;
+      const bitcoinDataService = runtime.getService('starter') as StarterService;
       if (!bitcoinDataService) {
-        throw new Error('Bitcoin Data Service not available');
+        throw new Error('Starter Service not available');
       }
 
       const result = await bitcoinDataService.resetMemory();
@@ -1107,9 +1107,9 @@ const checkMemoryHealthAction: Action = {
     _responses: Memory[]
   ) => {
     try {
-      const bitcoinDataService = runtime.getService('bitcoin-data') as BitcoinDataService;
+      const bitcoinDataService = runtime.getService('starter') as StarterService;
       if (!bitcoinDataService) {
-        throw new Error('Bitcoin Data Service not available');
+        throw new Error('Starter Service not available');
       }
 
       const healthCheck = await bitcoinDataService.checkMemoryHealth();
@@ -1808,7 +1808,7 @@ These calculations assume thesis progression occurs. Bitcoin volatility means tw
  * Bitcoin Data Service
  * Manages Bitcoin data fetching, caching, and analysis
  */
-export class BitcoinDataService extends Service {
+export class StarterService extends Service {
   static serviceType = 'starter';
   capabilityDescription = 'Provides Bitcoin market data, analysis, and thesis tracking capabilities';
 
@@ -2427,11 +2427,8 @@ const bitcoinPlugin: Plugin = {
       },
     },
   ],
-  services: [BitcoinDataService],
+  services: [StarterService],
   tests: [bitcoinTestSuite],
 };
-
-// Export aliases for test compatibility
-export const StarterService = BitcoinDataService;
 
 export default bitcoinPlugin;

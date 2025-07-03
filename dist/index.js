@@ -751,7 +751,7 @@ var institutionalAdoptionProvider = {
     const contextLogger = new LoggerWithContext(correlationId, "InstitutionalAdoptionProvider");
     try {
       contextLogger.info("Analyzing institutional Bitcoin adoption trends");
-      const bitcoinDataService = runtime.getService("bitcoin-data");
+      const bitcoinDataService = runtime.getService("starter");
       let institutionalData;
       if (bitcoinDataService) {
         institutionalData = await bitcoinDataService.analyzeInstitutionalTrends();
@@ -1074,9 +1074,9 @@ var resetMemoryAction = {
   },
   handler: async (runtime, message, state, _options, callback, _responses) => {
     try {
-      const bitcoinDataService = runtime.getService("bitcoin-data");
+      const bitcoinDataService = runtime.getService("starter");
       if (!bitcoinDataService) {
-        throw new Error("Bitcoin Data Service not available");
+        throw new Error("Starter Service not available");
       }
       const result = await bitcoinDataService.resetMemory();
       const responseText = result.success ? `\u{1F504} **MEMORY RESET COMPLETE**
@@ -1132,9 +1132,9 @@ var checkMemoryHealthAction = {
   },
   handler: async (runtime, message, state, _options, callback, _responses) => {
     try {
-      const bitcoinDataService = runtime.getService("bitcoin-data");
+      const bitcoinDataService = runtime.getService("starter");
       if (!bitcoinDataService) {
-        throw new Error("Bitcoin Data Service not available");
+        throw new Error("Starter Service not available");
       }
       const healthCheck = await bitcoinDataService.checkMemoryHealth();
       const statusEmoji = healthCheck.healthy ? "\u2705" : "\u26A0\uFE0F";
@@ -1721,7 +1721,7 @@ These calculations assume thesis progression occurs. Bitcoin volatility means tw
     ]
   ]
 };
-var BitcoinDataService = class _BitcoinDataService extends Service {
+var StarterService = class extends Service {
   constructor(runtime) {
     super();
     this.runtime = runtime;
@@ -1740,7 +1740,7 @@ var BitcoinDataService = class _BitcoinDataService extends Service {
       });
     }
     logger.info("BitcoinDataService starting...");
-    return new _BitcoinDataService(runtime);
+    return new BitcoinDataService(runtime);
   }
   static async stop(runtime) {
     logger.info("BitcoinDataService stopping...");
@@ -2222,7 +2222,7 @@ var bitcoinPlugin = {
       }
     }
   ],
-  services: [BitcoinDataService],
+  services: [StarterService],
   tests: [tests_default]
 };
 var plugin_default = bitcoinPlugin;
