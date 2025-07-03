@@ -2,19 +2,6 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import plugin from '../src/plugin';
 import { z } from 'zod';
 
-// Mock logger
-vi.mock('@elizaos/core', async () => {
-  const actual = await vi.importActual('@elizaos/core');
-  return {
-    ...actual,
-    logger: {
-      info: vi.fn(),
-      error: vi.fn(),
-      warn: vi.fn(),
-    },
-  };
-});
-
 // Access the plugin's init function
 const initPlugin = plugin.init;
 
@@ -23,7 +10,6 @@ describe('Plugin Configuration Schema', () => {
   const originalEnv = { ...process.env };
 
   beforeEach(() => {
-    vi.clearAllMocks();
     // Reset environment variables before each test
     process.env = { ...originalEnv };
   });
@@ -38,10 +24,12 @@ describe('Plugin Configuration Schema', () => {
       EXAMPLE_PLUGIN_VARIABLE: 'valid-value',
     };
 
+    const mockRuntime = {} as any;
+
     if (initPlugin) {
       let error = null;
       try {
-        await initPlugin(validConfig);
+        await initPlugin(validConfig, mockRuntime);
       } catch (e) {
         error = e;
       }
@@ -51,11 +39,12 @@ describe('Plugin Configuration Schema', () => {
 
   it('should accept empty configuration', async () => {
     const emptyConfig = {};
+    const mockRuntime = {} as any;
 
     if (initPlugin) {
       let error = null;
       try {
-        await initPlugin(emptyConfig);
+        await initPlugin(emptyConfig, mockRuntime);
       } catch (e) {
         error = e;
       }
@@ -68,11 +57,12 @@ describe('Plugin Configuration Schema', () => {
       EXAMPLE_PLUGIN_VARIABLE: 'valid-value',
       EXTRA_PROPERTY: 'should be ignored',
     };
+    const mockRuntime = {} as any;
 
     if (initPlugin) {
       let error = null;
       try {
-        await initPlugin(configWithExtra);
+        await initPlugin(configWithExtra, mockRuntime);
       } catch (e) {
         error = e;
       }
@@ -84,11 +74,12 @@ describe('Plugin Configuration Schema', () => {
     const invalidConfig = {
       EXAMPLE_PLUGIN_VARIABLE: '', // Empty string violates min length
     };
+    const mockRuntime = {} as any;
 
     if (initPlugin) {
       let error = null;
       try {
-        await initPlugin(invalidConfig);
+        await initPlugin(invalidConfig, mockRuntime);
       } catch (e) {
         error = e;
       }
@@ -100,13 +91,14 @@ describe('Plugin Configuration Schema', () => {
     const testConfig = {
       EXAMPLE_PLUGIN_VARIABLE: 'test-value',
     };
+    const mockRuntime = {} as any;
 
     if (initPlugin) {
       // Ensure env variable doesn't exist beforehand
       delete process.env.EXAMPLE_PLUGIN_VARIABLE;
 
       // Initialize with config
-      await initPlugin(testConfig);
+      await initPlugin(testConfig, mockRuntime);
 
       // Verify environment variable was set
       expect(process.env.EXAMPLE_PLUGIN_VARIABLE).toBe('test-value');
@@ -117,12 +109,11 @@ describe('Plugin Configuration Schema', () => {
     // Set environment variable before initialization
     process.env.EXAMPLE_PLUGIN_VARIABLE = 'pre-existing-value';
 
-    const testConfig = {
-      EXAMPLE_PLUGIN_VARIABLE: undefined,
-    };
+    const testConfig = {};
+    const mockRuntime = {} as any;
 
     if (initPlugin) {
-      await initPlugin(testConfig);
+      await initPlugin(testConfig, mockRuntime);
 
       // Verify environment variable was not changed
       expect(process.env.EXAMPLE_PLUGIN_VARIABLE).toBe('pre-existing-value');

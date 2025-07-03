@@ -6,10 +6,14 @@ export default defineConfig({
     environment: 'node',
     globals: true,
     testTimeout: 60000,
+    setupFiles: [],
   },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+  },
+  define: {
+    global: 'globalThis',
   },
 });
