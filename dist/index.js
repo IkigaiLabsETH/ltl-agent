@@ -1467,7 +1467,7 @@ At current yields, one million dollars in MSTY generates approximately eight to 
 *Your on-chain paycheck - designed for Bitcoiners who want to preserve long-term upside while generating current income.*
         `;
       } else if (text.includes("freedom") || text.includes("how much")) {
-        const bitcoinDataService = runtime.getService("bitcoin-data");
+        const bitcoinDataService = runtime.getService("starter");
         if (bitcoinDataService) {
           const freedomMath = await bitcoinDataService.calculateFreedomMathematics();
           strategy = `
@@ -1641,9 +1641,9 @@ var freedomMathematicsAction = {
   },
   handler: async (runtime, message, state, _options, callback) => {
     try {
-      const bitcoinDataService = runtime.getService("bitcoin-data");
+      const bitcoinDataService = runtime.getService("starter");
       if (!bitcoinDataService) {
-        throw new Error("BitcoinDataService not available");
+        throw new Error("StarterService not available");
       }
       const text = message.content.text;
       const millionMatch = text.match(/(\d+)\s*million/i);
@@ -1721,7 +1721,7 @@ These calculations assume thesis progression occurs. Bitcoin volatility means tw
     ]
   ]
 };
-var StarterService = class extends Service {
+var StarterService = class _StarterService extends Service {
   constructor(runtime) {
     super();
     this.runtime = runtime;
@@ -1740,7 +1740,7 @@ var StarterService = class extends Service {
       });
     }
     logger.info("BitcoinDataService starting...");
-    return new BitcoinDataService(runtime);
+    return new _StarterService(runtime);
   }
   static async stop(runtime) {
     logger.info("BitcoinDataService stopping...");
@@ -2234,22 +2234,22 @@ var character = {
     // Core database and foundation - must be first
     "@elizaos/plugin-sql",
     // Primary LLM providers - order matters for model type selection
-    ...process.env.OPENAI_API_KEY ? ["@elizaos/plugin-openai"] : [],
+    ...process.env.OPENAI_API_KEY && !process.env.OPENAI_API_KEY.includes("REPLACE_WITH_YOUR_ACTUAL") && !process.env.OPENAI_API_KEY.includes("your_") ? ["@elizaos/plugin-openai"] : [],
     // Supports all model types (text, embeddings, objects)
-    ...process.env.ANTHROPIC_API_KEY ? ["@elizaos/plugin-anthropic"] : [],
+    ...process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_API_KEY.includes("your_") ? ["@elizaos/plugin-anthropic"] : [],
     // Text generation only, needs OpenAI fallback for embeddings
     // Knowledge and memory systems - needs embeddings support (requires OpenAI API key)
-    ...process.env.OPENAI_API_KEY ? ["@elizaos/plugin-knowledge"] : [],
+    ...process.env.OPENAI_API_KEY && !process.env.OPENAI_API_KEY.includes("REPLACE_WITH_YOUR_ACTUAL") && !process.env.OPENAI_API_KEY.includes("your_") ? ["@elizaos/plugin-knowledge"] : [],
     // Local AI fallback if no cloud providers available
-    ...!process.env.OPENAI_API_KEY && !process.env.ANTHROPIC_API_KEY ? ["@elizaos/plugin-local-ai"] : [],
+    ...!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY.includes("REPLACE_WITH_YOUR_ACTUAL") || process.env.OPENAI_API_KEY.includes("your_") ? ["@elizaos/plugin-local-ai"] : [],
     // Platform integrations - order doesn't matter much
     ...process.env.DISCORD_API_TOKEN ? ["@elizaos/plugin-discord"] : [],
     ...process.env.SLACK_BOT_TOKEN ? ["@elizaos/plugin-slack"] : [],
     ...process.env.TWITTER_USERNAME ? ["@elizaos/plugin-twitter"] : [],
     ...process.env.TELEGRAM_BOT_TOKEN ? ["@elizaos/plugin-telegram"] : [],
-    // External service integrations
-    ...process.env.THIRDWEB_SECRET_KEY ? ["@elizaos/plugin-thirdweb"] : [],
-    ...process.env.LUMA_API_KEY ? ["@elizaos/plugin-video-generation"] : [],
+    // External service integrations (only if real API keys)
+    ...process.env.THIRDWEB_SECRET_KEY && !process.env.THIRDWEB_SECRET_KEY.includes("your_") ? ["@elizaos/plugin-thirdweb"] : [],
+    ...process.env.LUMA_API_KEY && !process.env.LUMA_API_KEY.includes("your_") ? ["@elizaos/plugin-video-generation"] : [],
     // Custom plugin for Bitcoin functionality - loaded via projectAgent.plugins
     // bitcoinPlugin loaded separately below
     // Bootstrap plugin - provides essential actions and capabilities, should be last
