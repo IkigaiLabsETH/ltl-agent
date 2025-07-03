@@ -898,7 +898,7 @@ fleek deploy --project bitcoin-thesis-agent
 export default {
   name: 'bitcoin-thesis-agent',
   distDir: 'dist',
-  buildCommand: 'npm run build',
+  buildCommand: 'bun run build',
   environment: 'production',
   tee: true, // Enable Trusted Execution Environment
   env: {
@@ -921,20 +921,20 @@ export default {
 
 **Local Development:**
 ```bash
-npm run dev  # Development server
-npm run build && npm start  # Production build
+bun run dev  # Development server
+bun run build && bun start  # Production build
 ```
 
 **Docker Deployment:**
 ```dockerfile
-FROM node:18-alpine
+FROM oven/bun:1-alpine
 WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
+COPY package.json bun.lock ./
+RUN bun install --production
 COPY . .
-RUN npm run build
+RUN bun run build
 EXPOSE 3000
-CMD ["npm", "start"]
+CMD ["bun", "start"]
 ```
 
 **Vercel/Netlify Deployment:**
@@ -974,6 +974,7 @@ Satoshi operates with the philosophical depth of a cypherpunk visionary, the ana
 
 ### Prerequisites
 - Node.js 18+
+- Bun package manager
 - TypeScript knowledge
 - Basic understanding of Bitcoin markets
 - ElizaOS framework familiarity
@@ -984,7 +985,7 @@ Satoshi operates with the philosophical depth of a cypherpunk visionary, the ana
 ```bash
 git clone <your-repo>
 cd ltl-agent
-npm install
+bun install
 ```
 
 2. **Environment Setup**
@@ -1022,17 +1023,17 @@ BITCOIN_MODEL_VERSION=your_fine_tuned_model_version
 
 3. **Build the Project**
 ```bash
-npm run build
+bun run build
 ```
 
 4. **Run Tests**
 ```bash
-npm test
+bun test
 ```
 
 5. **Start the Agent**
 ```bash
-npm start
+bun start
 ```
 
 ### 🔧 **Configuration**
@@ -1153,7 +1154,7 @@ This project represents the convergence of economic thesis and technological imp
 1. Fork the repository
 2. Create a feature branch
 3. Implement changes with tests
-4. Run the test suite: `npm test`
+4. Run the test suite: `bun test`
 5. Submit a pull request
 
 ---
