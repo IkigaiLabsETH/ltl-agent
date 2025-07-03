@@ -301,29 +301,12 @@ Like the prisoner turning toward the light, it demands not only courage but **di
 
 **The hardest part isn't seeing the truth, it's leaving behind the version of yourself who stayed so long, who believed so fiercely, who paid the costs of the cage.**
 
-### A Personal Journey: From Poker to Crypto
-
-#### The Poker Cage (10 Years)
-
-During teens, fell in love with poker. Quickly rose from $0.01/$0.02 to high stakes within 2 years. As time wore on, enjoyed playing less and less and just viewed it as a means to an end.
-
-**The Trap**: Always viewed "getting out" in 2-3 years. But 10 years in, nothing had changed. Still playing, still winning, but still didn't feel like had enough to "do something else."
-
-**The Rationalization**: "I should just keep playing because I had spent so much time getting good at it, it provided more than alternatives, and I didn't really have any other viable alternative."
-
-**The Reality**: Poker was a dying game where had to work increasingly hard to keep up. But the sunk cost kept him trapped.
-
-#### The Crypto Transition
-
-**2012**: First read about BTC on poker forum TwoPlusTwo. Early reply: "They are trading at a ridiculous 70 cents USD which is hilarious for a currency that no one uses."
-
-**The Logic**: If it was only ever good for black/grey markets, it could justify $2B FDV. If it ever became mainstream, it would be worth a stupid multiple more.
 
 **2016-17**: Started spending increasing time on crypto (ICOs) as investments became significant. Splitting time was the beginning of escaping The Cage.
 
 **2020**: Actually took the plunge when DeFi became a thing where you could make money.
 
-**The Skills Transfer**: Poker proved excellent breeding ground for learning trading:
+**The Skills Transfer**: excellent breeding ground for learning trading:
 - Ruthless real-time feedback on decision-making
 - Correct risk management
 - Pricing things correctly and formulating proper strategies
