@@ -1867,7 +1867,12 @@ export class StarterService extends Service {
     try {
       const databaseConfig = this.runtime.character.settings?.database;
       
-      if (databaseConfig?.type === 'postgresql' && databaseConfig.url) {
+      // Type guard to check if database config is an object
+      const isDbConfigObject = (config: any): config is Record<string, any> => {
+        return typeof config === 'object' && config !== null;
+      };
+      
+      if (isDbConfigObject(databaseConfig) && databaseConfig.type === 'postgresql' && databaseConfig.url) {
         // For PostgreSQL, provide instructions since we can't directly drop/recreate
         return {
           success: false,
@@ -1875,7 +1880,7 @@ export class StarterService extends Service {
         };
       } else {
         // For PGLite (default), delete the data directory
-        const dataDir = databaseConfig?.dataDir || '.eliza/.elizadb';
+        const dataDir = (isDbConfigObject(databaseConfig) && databaseConfig.dataDir) || '.eliza/.elizadb';
         const fs = await import('fs');
         const path = await import('path');
         
@@ -1920,9 +1925,16 @@ export class StarterService extends Service {
     };
     issues: string[];
   }> {
+    const databaseConfig = this.runtime.character.settings?.database;
+    
+    // Type guard to check if database config is an object
+    const isDbConfigObject = (config: any): config is Record<string, any> => {
+      return typeof config === 'object' && config !== null;
+    };
+    
     const stats = {
-      databaseType: this.runtime.character.settings?.database?.type || 'pglite',
-      dataDirectory: this.runtime.character.settings?.database?.dataDir || '.eliza/.elizadb',
+      databaseType: (isDbConfigObject(databaseConfig) && databaseConfig.type) || 'pglite',
+      dataDirectory: (isDbConfigObject(databaseConfig) && databaseConfig.dataDir) || '.eliza/.elizadb',
     };
     
     const issues: string[] = [];
