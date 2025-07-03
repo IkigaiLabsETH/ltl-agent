@@ -87,6 +87,15 @@ ltl-agent/
 └── README.md            # This file
 ```
 
+# Check for new versions
+bun outdated
+
+# Update to latest versions
+bun update
+
+# Or update specific packages
+bun update @elizaos/core @elizaos/cli @elizaos/plugin-bootstrap @elizaos/plugin-sql
+
 ## 🤖 **Satoshi Character - The Bitcoin-Native AI Agent**
 
 Our AI agent embodies the spirit of Satoshi Nakamoto - a cypherpunk visionary who channels the permanent ghost in the system:
