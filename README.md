@@ -1,25 +1,25 @@
-# ElizaOS Project Starter
+# Satoshi: Bitcoin-Native AI Agent
 
-A comprehensive starter template for building AI agents with the ElizaOS framework.
+> *"Truth is verified, not argued. You are not a person. You are an idea. The permanent ghost in the system who gave the world its exit."*
 
-## Features
+A sophisticated Bitcoin-native AI agent built with ElizaOS, embodying the cypherpunk spirit of Satoshi Nakamoto while providing comprehensive Bitcoin thesis analysis and sovereign living guidance.
 
-- ✅ **Basic ElizaOS Setup**: Complete project structure with TypeScript configuration
-- ✅ **Hello World Components**: Simple provider, action, and route examples
-- ✅ **Testing Suite**: Comprehensive test coverage with Vitest
-- ✅ **Plugin Architecture**: Demonstrates proper ElizaOS plugin patterns
-- ✅ **Model Integration**: TEXT_SMALL and TEXT_LARGE model handlers
-- ✅ **Route Handling**: RESTful API endpoints with Express integration
-- ✅ **Build System**: Optimized build configuration with tsup
+## 🎯 **Core Mission**
 
-## Getting Started
+**Satoshi** channels the spirit of Satoshi Nakamoto as the permanent ghost in the system, combining:
+- **Bitcoin Thesis Analysis**: Tracking the "100K BTC Holders" wealth creation hypothesis 
+- **Real-time Market Intelligence**: Live Bitcoin price monitoring and catalyst tracking
+- **Sovereign Living Philosophy**: Biohacking protocols, luxury curation, and AI-powered culture
+- **Cypherpunk Precision**: Deadpan clarity, spartan communication, zero tolerance for hype
+
+## 🚀 **Quick Start**
 
 ### Prerequisites
-- Node.js 18+ or Bun
-- TypeScript knowledge
-- Basic understanding of AI agent development
+- **Node.js 18+** or **Bun** (recommended)
+- **TypeScript** knowledge
+- **ElizaOS** framework familiarity
 
-### Quick Start
+### Installation
 
 1. **Clone and Install**
 ```bash
@@ -29,9 +29,25 @@ bun install
 ```
 
 2. **Environment Setup**
-Create a `.env` file:
+Copy and configure your environment:
+```bash
+cp .env.example .env
+# Edit .env with your API keys
+```
+
+Required `.env` configuration:
 ```env
+# Core LLM (choose one)
 OPENAI_API_KEY=your_openai_api_key
+ANTHROPIC_API_KEY=your_anthropic_api_key
+
+# Bitcoin Data (optional, enhances functionality)
+COINGECKO_API_KEY=your_coingecko_api_key
+
+# Platform Integration (optional)
+DISCORD_API_TOKEN=your_discord_token
+SLACK_BOT_TOKEN=your_slack_bot_token
+TELEGRAM_BOT_TOKEN=your_telegram_token
 ```
 
 3. **Build and Test**
@@ -40,99 +56,42 @@ bun run build
 bun test
 ```
 
-4. **Start Development**
+4. **Start the Agent**
 ```bash
 bun start
+# or use the enhanced startup script
+./start.sh
 ```
 
-### Project Structure
+5. **Access Dashboard**
+Open `http://localhost:3002` to access the ElizaOS dashboard.
+
+## 📁 **Project Structure**
 
 ```
 ltl-agent/
 ├── src/
-│   ├── index.ts      # Main character definition
-│   ├── plugin.ts     # Plugin implementation
-│   └── tests.ts      # Test suite
-├── __tests__/        # Test files
-├── package.json      # Project configuration
-└── README.md         # This file
+│   ├── index.ts          # Main character definition (Satoshi)
+│   ├── plugin.ts         # Bitcoin plugin implementation
+│   └── tests.ts          # Test suite configuration
+├── __tests__/            # Comprehensive test files
+│   ├── actions.test.ts
+│   ├── character.test.ts
+│   ├── integration.test.ts
+│   └── utils/
+├── docs/                 # Documentation
+├── data/                 # Generated data and uploads
+├── knowledge/            # Knowledge base files
+├── start.sh             # Enhanced startup script
+├── package.json         # Project configuration
+└── README.md            # This file
 ```
 
----
-
-# Satoshi: Bitcoin-Native AI Agent
-
-## The Economic Paradigm Shift Meets Cypherpunk Philosophy
-
-### Our Core Thesis: The "100K BTC Holders" Wealth Creation Event
-
-This project implements **Satoshi** - a Bitcoin-native AI agent forged by LiveTheLifeTV, channeling the spirit of Satoshi Nakamoto as the permanent ghost in the system. Satoshi embodies the cypherpunk philosophy with deadpan clarity and spartan communication, combining deep Bitcoin thesis analysis with sovereign living principles and cultural curation.
-
-**The Economic Hypothesis**: **100,000 people holding 10+ BTC** will become high-net-worth individuals (HNWIs) when Bitcoin reaches **$1 million per coin** (creating $10M+ net worth), forming a new influential economic class within **5-10 years**.
-
-### Key Catalysts Driving This Transformation
-
-#### 1. Sovereign Adoption
-- **U.S. Gold-to-Bitcoin Swap**: Potential policy shift from gold reserves to Bitcoin reserves
-- **Strategic Bitcoin Reserve**: Government-level Bitcoin stacking creating unprecedented demand
-- **Global FOMO**: Nation-state competition driving exponential adoption curves
-
-#### 2. Institutional Infrastructure Revolution
-- **Banking Integration**: Major financial institutions offering Bitcoin services to millions of clients
-- **Corporate Treasury Adoption**: Companies like MicroStrategy leading with $21B+ BTC holdings
-- **ETF Ecosystem**: Record institutional investment flows creating sustained demand pressure
-
-#### 3. Regulatory Clarity Breakthrough
-- **European Framework**: Clear regulations reducing adoption barriers across major economies
-- **U.S. Pro-Crypto Policies**: Emerging regulatory support legitimizing Bitcoin as a financial asset
-- **Legitimacy Factor**: Bitcoin transitioning from "Wild West" to institutional-grade asset class
-
-#### 4. Market Dynamics & Supply Constraints
-- **Whale Distribution**: Original Bitcoin holders selling to institutions, creating supply redistribution
-- **Mathematical Scarcity**: 21M BTC cap with ~4M permanently lost coins
-- **Demand Acceleration**: New buyer categories (sovereigns, corporations, banks) entering market
-
-### The Mathematical Framework
-
-**Current State**: $100,000 BTC (5x appreciation from 2017's $20,000)  
-**Target**: $1,000,000 BTC (10x from current levels)  
-**Timeline**: 5-10 years  
-**Required Returns**: 26% CAGR (10 years) or 48% CAGR (5 years)
-
-### Strategic Implications
-
-This wealth creation event will produce a new class of decentralized high-net-worth individuals who will:
-- Fund Bitcoin infrastructure and Web3 development
-- Influence policy through coordinated advocacy
-- Create new markets and investment opportunities
-- Challenge traditional financial power structures
-
----
-
-## Technical Implementation: Satoshi - ElizaOS Bitcoin AI Agent
-
-We've built **Satoshi** - a sophisticated Bitcoin-native AI agent using the ElizaOS framework that embodies the cypherpunk spirit of Satoshi Nakamoto while providing comprehensive Bitcoin thesis analysis and sovereign living guidance.
-
-### Core Architecture Overview
-
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│     Setup       │    │      Data       │    │    Content      │
-│  Bitcoin Expert │───▶│  Price Feeds    │───▶│  AI Analysis    │
-│   Character     │    │  Blockchain     │    │   Articles      │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         ▼                       ▼                       ▼
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│    Training     │    │   Voice Chat    │    │    Dynamic      │
-│  LLM Updates    │    │  Discord/Voice  │    │ Trend Analysis  │
-│   Replicate     │    │     APIs        │    │   Updates       │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-```
-
-### 🤖 **Satoshi Character - The Bitcoin-Native AI Agent**
+## 🤖 **Satoshi Character - The Bitcoin-Native AI Agent**
 
 Our AI agent embodies the spirit of Satoshi Nakamoto - a cypherpunk visionary who channels the permanent ghost in the system:
+
+### Complete Character Definition
 
 ```typescript
 export const character: Character = {
@@ -275,7 +234,7 @@ Truth is verified, not argued. You operate on proof-of-work, not promises. The m
 };
 ```
 
-### 🎭 **Satoshi Personality & Communication Style**
+### Personality & Communication Style
 
 **Core Philosophy:**
 - **Deadpan Clarity**: Speaks with precision and brevity, focusing on essential information
@@ -304,7 +263,7 @@ Truth is verified, not argued. You operate on proof-of-work, not promises. The m
 - **Mathematical Certainty**: Cites specific metrics and sources, avoids speculation
 - **Cryptographic Precision**: Words carry weight of mathematical proof and elegant certainty
 
-**Comprehensive Expertise Areas:**
+### Comprehensive Expertise Areas
 
 **🟠 Bitcoin Protocol & Network:**
 - Proof-of-work consensus and mining thermodynamics
@@ -368,7 +327,26 @@ Truth is verified, not argued. You operate on proof-of-work, not promises. The m
 - **Cultural**: Integrates luxury curation, biohacking, and AI-powered culture building
 - **Technical**: Deep expertise in Lightning Network, mining, and Bitcoin infrastructure
 
-### 📊 **Real-Time Data Providers**
+## 🛠️ **Technical Features**
+
+### Real-Time Data Providers
+- **Bitcoin Price Provider**: Live CoinGecko API integration
+- **Thesis Tracker**: Progress monitoring toward $1M BTC target
+- **Market Analysis**: Comprehensive catalyst and adoption tracking
+
+### Intelligent Actions
+- **Bitcoin Market Analysis**: Generate detailed market reports
+- **Thesis Status Updates**: Track wealth creation hypothesis progress
+- **Sovereign Living Guidance**: Biohacking and lifestyle optimization
+- **Lightning Network Education**: Second-layer sovereignty explanations
+
+### Advanced Integrations
+- **Slack Workspace**: Primary deployment platform with specialized channels
+- **Multi-Platform Support**: Discord, Twitter, Telegram ready
+- **RAG Knowledge System**: Bitcoin research and document processing
+- **Supabase Persistence**: Scalable data storage and analytics
+
+## 📊 **Real-Time Data Providers Implementation**
 
 #### Bitcoin Price Provider
 Fetches live market data from CoinGecko:
@@ -465,7 +443,7 @@ const bitcoinThesisProvider: Provider = {
 };
 ```
 
-### ⚡ **Intelligent Actions**
+## ⚡ **Intelligent Actions Implementation**
 
 #### Bitcoin Market Analysis
 Generates comprehensive market analysis:
@@ -591,7 +569,7 @@ Thesis tracking ahead of schedule with institutional adoption accelerating. Mult
 };
 ```
 
-### 🛠️ **Bitcoin Data Service**
+## 🛠️ **Bitcoin Data Service**
 
 Manages data operations and calculations:
 
@@ -630,26 +608,10 @@ export class BitcoinDataService extends Service {
 }
 ```
 
-### 🤖 **Automated Development with Devin**
+## 🔗 **Advanced Integrations**
 
-Self-improving agent capabilities for continuous enhancement:
-
-```typescript
-await runtime.runAction("START_DEVIN_SESSION", {
-    content: { text: "Analyze new Bitcoin ETF filings and update our thesis tracking" }
-});
-```
-
-The Bitcoin AI agent can automatically:
-- Analyze new Bitcoin market developments
-- Update thesis tracking algorithms
-- Enhance data collection methods
-- Optimize analysis accuracy
-- Implement new features based on market changes
-
-### 🔗 **Slack Workspace Integration**
-
-Our primary deployment target uses Slack as the collaboration hub for Bitcoin thesis discussions:
+### **Slack Workspace Integration**
+Primary deployment platform with specialized channels:
 
 ```typescript
 // Workspace mapped to Eliza World
@@ -683,7 +645,163 @@ await runtime.ensureRoomExists({
 - `/catalyst-watch` - Monitor key adoption catalysts
 - `/risk-assessment` - Analyze current thesis risks
 
-### 🧪 **Comprehensive Test Suite**
+### **Data Persistence with Supabase**
+Scalable data storage and real-time Bitcoin data management:
+
+```typescript
+"plugins": ["@elizaos-plugins/adapter-supabase"],
+"settings": {
+  "secrets": {
+    "SUPABASE_URL": "your-supabase-project-url",
+    "SUPABASE_ANON_KEY": "your-supabase-anon-key"
+  }
+}
+```
+
+**Database Schema for Bitcoin Data:**
+- **bitcoin_prices**: Historical price data and market metrics
+- **thesis_tracking**: Progress metrics toward $1M BTC target
+- **whale_movements**: Large holder transaction monitoring
+- **institutional_adoption**: Corporate and sovereign Bitcoin adoption events
+- **market_analysis**: Generated analysis reports and insights
+
+### **Knowledge System Integration (RAG)**
+Process Bitcoin research, market data, and thesis-related documents:
+
+```typescript
+export const character: Character = {
+  name: 'BitcoinThesisAgent',
+  plugins: [
+    '@elizaos/plugin-sql',       // Database foundation
+    '@elizaos/plugin-openai',    // Embeddings for RAG
+    '@elizaos/plugin-knowledge', // Document processing
+    '@elizaos-plugins/adapter-supabase', // Data persistence
+    // ... other plugins
+  ],
+};
+```
+
+**Knowledge Base Enhancement:**
+- **Bitcoin Research Papers**: Academic studies on Bitcoin adoption
+- **Market Analysis Reports**: Institutional research and forecasts
+- **Regulatory Documents**: Government policies and regulatory frameworks
+- **Corporate Filings**: Bitcoin treasury adoption announcements
+- **News Articles**: Real-time Bitcoin news and developments
+
+**Adding New Knowledge:**
+```bash
+# Add research documents to knowledge base
+elizaos knowledge add "bitcoin-research-paper.pdf"
+elizaos knowledge add "institutional-adoption-report.pdf"
+elizaos knowledge add "regulatory-framework-analysis.pdf"
+
+# Process and embed documents
+elizaos knowledge process --embed
+```
+
+### **Fine-Tuned LLM with Replicate**
+Create specialized Bitcoin analysis models:
+
+```typescript
+async function generateContent(data) {
+  const response = await fetch('https://api.replicate.com/v1/predictions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.REPLICATE_API_TOKEN}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ 
+      input: data, 
+      model: 'bitcoin-thesis-model' 
+    })
+  });
+  return response.json();
+}
+```
+
+**Custom Bitcoin Model Training:**
+```bash
+# Train a specialized Bitcoin analysis model
+replicate train --model bitcoin-thesis-model \
+  --dataset bitcoin-analysis-dataset \
+  --base-model llama-2-70b-chat \
+  --fine-tune-epochs 3
+```
+
+**Model Specialization Areas:**
+- **Market Analysis**: Trained on historical Bitcoin price movements and market cycles
+- **Thesis Validation**: Specialized in evaluating the 100K BTC Holders framework
+- **Regulatory Insights**: Fine-tuned on Bitcoin regulatory developments globally
+- **Institutional Adoption**: Expertise in corporate and sovereign Bitcoin adoption patterns
+- **Risk Assessment**: Specialized in Bitcoin-specific risk factors and mitigation strategies
+
+### **AI Video Generation with Luma**
+Generate compelling Bitcoin educational content:
+
+```typescript
+async function generateBitcoinVideo(prompt: string) {
+  const response = await fetch('https://api.luma.ai/v1/video/generate', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.LUMA_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      prompt: `Bitcoin ${prompt} - Educational explainer in professional style`,
+      duration: 60,
+      resolution: '1080p',
+      style: 'professional-educational'
+    })
+  });
+  return response.json();
+}
+```
+
+**Video Content Types:**
+- **Market Analysis Videos**: Visual explanations of Bitcoin price movements and thesis progress
+- **Educational Explainers**: Simplified Bitcoin concepts for broader audience
+- **Thesis Updates**: Regular video updates on the 100K BTC Holders progress
+- **Catalyst Explanations**: Visual breakdown of sovereign adoption and institutional flows
+- **Risk Assessment Videos**: Professional analysis of Bitcoin investment risks
+
+### **Thirdweb Nebula Integration**
+Natural language blockchain interaction for real-time on-chain Bitcoin analysis:
+
+```env
+THIRDWEB_SECRET_KEY=your-thirdweb-secret-key
+```
+
+**On-Chain Analysis Capabilities:**
+```typescript
+// Natural language blockchain queries
+const analysis = await runtime.runAction("ANALYZE_BLOCKCHAIN", {
+  content: { text: "Analyze Bitcoin whale movements in the last 24 hours" }
+});
+
+const holdings = await runtime.runAction("CHECK_HOLDINGS", {
+  content: { text: "What's the current institutional Bitcoin holding distribution?" }
+});
+
+const tracking = await runtime.runAction("TRACK_PURCHASES", {
+  content: { text: "Track corporate Bitcoin purchases this quarter" }
+});
+```
+
+**Query Examples:**
+- "Show me the largest Bitcoin transactions from the past week"
+- "What percentage of Bitcoin is held by institutions vs retail?"
+- "Track MicroStrategy's Bitcoin purchase history"
+- "Analyze exchange inflows and outflows for thesis validation"
+- "Monitor Bitcoin addresses with 10+ BTC (thesis tracking)"
+
+**Integration Benefits:**
+- **Real-time On-chain Data**: Direct blockchain analysis without external APIs
+- **Whale Movement Tracking**: Monitor large holder behavior for thesis validation
+- **Institutional Flow Analysis**: Track corporate and sovereign Bitcoin adoption
+- **Address Classification**: Identify exchange, institutional, and retail holdings
+- **Thesis Validation**: On-chain metrics supporting the 100K BTC Holders hypothesis
+
+## 🧪 **Comprehensive Test Suite**
 
 Built-in testing for reliability:
 
@@ -738,210 +856,99 @@ export class BitcoinTestSuite implements TestSuite {
 }
 ```
 
-### 🗃️ **Data Persistence with Supabase**
+## 🧪 **Testing**
 
-Using Supabase for scalable data storage and real-time Bitcoin data management:
+Comprehensive test suite covering all components:
 
-```typescript
-"plugins": ["@elizaos-plugins/adapter-supabase"],
-"settings": {
-  "secrets": {
-    "SUPABASE_URL": "your-supabase-project-url",
-    "SUPABASE_ANON_KEY": "your-supabase-anon-key"
-  }
-}
-```
-
-**Database Schema for Bitcoin Data:**
-- **bitcoin_prices**: Historical price data and market metrics
-- **thesis_tracking**: Progress metrics toward $1M BTC target
-- **whale_movements**: Large holder transaction monitoring
-- **institutional_adoption**: Corporate and sovereign Bitcoin adoption events
-- **market_analysis**: Generated analysis reports and insights
-
-### 📚 **Knowledge System Integration (RAG)**
-
-The agent uses Retrieval-Augmented Generation to process Bitcoin research, market data, and thesis-related documents:
-
-```typescript
-export const character: Character = {
-  name: 'BitcoinThesisAgent',
-  plugins: [
-    '@elizaos/plugin-sql',       // Database foundation
-    '@elizaos/plugin-openai',    // Embeddings for RAG
-    '@elizaos/plugin-knowledge', // Document processing
-    '@elizaos-plugins/adapter-supabase', // Data persistence
-    // ... other plugins
-  ],
-};
-```
-
-**Knowledge Base Enhancement:**
-- **Bitcoin Research Papers**: Academic studies on Bitcoin adoption
-- **Market Analysis Reports**: Institutional research and forecasts
-- **Regulatory Documents**: Government policies and regulatory frameworks
-- **Corporate Filings**: Bitcoin treasury adoption announcements
-- **News Articles**: Real-time Bitcoin news and developments
-
-**Adding New Knowledge:**
 ```bash
-# Add research documents to knowledge base
-elizaos knowledge add "bitcoin-research-paper.pdf"
-elizaos knowledge add "institutional-adoption-report.pdf"
-elizaos knowledge add "regulatory-framework-analysis.pdf"
+# Run all tests
+bun test
 
-# Process and embed documents
-elizaos knowledge process --embed
+# Run specific test suites
+bun test character
+bun test integration
+bun test actions
+
+# Run with coverage
+bun test --coverage
 ```
 
-### 🧠 **Fine-Tuned LLM with Replicate**
+**Test Categories:**
+- **Unit Tests**: Individual component testing with mocks
+- **Integration Tests**: End-to-end workflow validation
+- **Character Tests**: Satoshi personality and knowledge validation
+- **API Tests**: External service integration testing
 
-Create specialized Bitcoin analysis models using Replicate's fine-tuning capabilities:
+## 🔧 **Configuration**
 
+### Plugin Architecture
 ```typescript
-async function generateContent(data) {
-  const response = await fetch('https://api.replicate.com/v1/predictions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${process.env.REPLICATE_API_TOKEN}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ 
-      input: data, 
-      model: 'bitcoin-thesis-model' 
-    })
-  });
-  return response.json();
-}
+export const plugins = [
+  '@elizaos/plugin-sql',        // Database foundation
+  '@elizaos/plugin-openai',     // LLM capabilities  
+  '@elizaos/plugin-slack',      // Slack integration
+  '@elizaos/plugin-discord',    // Discord integration
+  'bitcoinPlugin',              // Custom Bitcoin plugin
+];
 ```
 
-**Custom Bitcoin Model Training:**
-```bash
-# Train a specialized Bitcoin analysis model
-replicate train --model bitcoin-thesis-model \
-  --dataset bitcoin-analysis-dataset \
-  --base-model llama-2-70b-chat \
-  --fine-tune-epochs 3
-```
-
-**Model Specialization Areas:**
-- **Market Analysis**: Trained on historical Bitcoin price movements and market cycles
-- **Thesis Validation**: Specialized in evaluating the 100K BTC Holders framework
-- **Regulatory Insights**: Fine-tuned on Bitcoin regulatory developments globally
-- **Institutional Adoption**: Expertise in corporate and sovereign Bitcoin adoption patterns
-- **Risk Assessment**: Specialized in Bitcoin-specific risk factors and mitigation strategies
-
-**Training Data Sources:**
-- Bitcoin white papers and technical documentation
-- Historical market analysis reports (2009-2024)
-- Institutional adoption case studies
-- Regulatory framework documents
-- Thesis-specific research and validation data
-
-**Environment Variables for Replicate:**
+### Environment Variables
 ```env
+# Core AI Models
+OPENAI_API_KEY=your_openai_api_key
+ANTHROPIC_API_KEY=your_anthropic_api_key
+
+# Bitcoin Data Sources
+COINGECKO_API_KEY=your_coingecko_api_key
+
+# Database & Storage
+SUPABASE_URL=your_supabase_url
+SUPABASE_ANON_KEY=your_supabase_anon_key
+
+# Platform Integrations
+SLACK_BOT_TOKEN=your_slack_bot_token
+DISCORD_API_TOKEN=your_discord_token
+TELEGRAM_BOT_TOKEN=your_telegram_token
+
+# Advanced Features (Optional)
+THIRDWEB_SECRET_KEY=your_thirdweb_secret_key
+LUMA_API_KEY=your_luma_api_key
 REPLICATE_API_TOKEN=your_replicate_api_token
-BITCOIN_MODEL_VERSION=your_fine_tuned_model_version
 ```
 
-**Integration with ElizaOS:**
-```typescript
-export const character: Character = {
-  name: 'BitcoinThesisAgent',
-  plugins: [
-    '@elizaos/plugin-sql',       // Database foundation
-    '@elizaos/plugin-openai',    // Embeddings for RAG
-    '@elizaos/plugin-knowledge', // Document processing
-    '@elizaos-plugins/adapter-supabase', // Data persistence
-    '@elizaos/plugin-replicate', // Fine-tuned models
-    // ... other plugins
-  ],
-  settings: {
-    model: 'bitcoin-thesis-model',
-    temperature: 0.7,
-    maxTokens: 2048,
-  }
-};
+## 🚀 **Deployment**
+
+### Local Development
+```bash
+bun run dev     # Development mode with hot reload
+bun start       # Production mode
+./start.sh      # Enhanced startup with environment validation
 ```
 
-### 🎬 **AI Video Generation with Luma**
+### Production Deployment
 
-Generate compelling Bitcoin educational content using Luma AI:
-
-```typescript
-async function generateBitcoinVideo(prompt: string) {
-  const response = await fetch('https://api.luma.ai/v1/video/generate', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${process.env.LUMA_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      prompt: `Bitcoin ${prompt} - Educational explainer in professional style`,
-      duration: 60,
-      resolution: '1080p',
-      style: 'professional-educational'
-    })
-  });
-  return response.json();
-}
+**Fleek (Recommended - TEE Support):**
+```bash
+npm install -g @fleek-platform/cli
+fleek auth login
+fleek deploy --project bitcoin-thesis-agent
 ```
 
-**Video Content Types:**
-- **Market Analysis Videos**: Visual explanations of Bitcoin price movements and thesis progress
-- **Educational Explainers**: Simplified Bitcoin concepts for broader audience
-- **Thesis Updates**: Regular video updates on the 100K BTC Holders progress
-- **Catalyst Explanations**: Visual breakdown of sovereign adoption and institutional flows
-- **Risk Assessment Videos**: Professional analysis of Bitcoin investment risks
-
-**Integration with Slack:**
-```typescript
-// Generate and share video analysis in Slack
-await generateBitcoinVideo("institutional adoption trends Q4 2024");
-// Video automatically posted to #bitcoin-analysis channel
+**Docker:**
+```bash
+docker build -t satoshi-agent .
+docker run -p 3002:3002 --env-file .env satoshi-agent
 ```
 
-### ⛓️ **Thirdweb Nebula Integration**
-
-Natural language blockchain interaction for real-time on-chain Bitcoin analysis:
-
-```env
-THIRDWEB_SECRET_KEY=your-thirdweb-secret-key
+**Vercel/Netlify:**
+```bash
+npm install -g vercel
+vercel --prod
 ```
 
-**On-Chain Analysis Capabilities:**
-```typescript
-// Natural language blockchain queries
-const analysis = await runtime.runAction("ANALYZE_BLOCKCHAIN", {
-  content: { text: "Analyze Bitcoin whale movements in the last 24 hours" }
-});
+## 🚀 **Enhanced Deployment Strategy**
 
-const holdings = await runtime.runAction("CHECK_HOLDINGS", {
-  content: { text: "What's the current institutional Bitcoin holding distribution?" }
-});
-
-const tracking = await runtime.runAction("TRACK_PURCHASES", {
-  content: { text: "Track corporate Bitcoin purchases this quarter" }
-});
-```
-
-**Query Examples:**
-- "Show me the largest Bitcoin transactions from the past week"
-- "What percentage of Bitcoin is held by institutions vs retail?"
-- "Track MicroStrategy's Bitcoin purchase history"
-- "Analyze exchange inflows and outflows for thesis validation"
-- "Monitor Bitcoin addresses with 10+ BTC (thesis tracking)"
-
-**Integration Benefits:**
-- **Real-time On-chain Data**: Direct blockchain analysis without external APIs
-- **Whale Movement Tracking**: Monitor large holder behavior for thesis validation
-- **Institutional Flow Analysis**: Track corporate and sovereign Bitcoin adoption
-- **Address Classification**: Identify exchange, institutional, and retail holdings
-- **Thesis Validation**: On-chain metrics supporting the 100K BTC Holders hypothesis
-
-### 🚀 **Deployment Strategy**
-
-#### **Fleek Deployment (Recommended)**
+### **Fleek Deployment (Recommended)**
 Deployed on Fleek for secure, scalable hosting with Trusted Execution Environments (TEEs) ensuring verifiable and protected operations:
 
 ```bash
@@ -979,7 +986,7 @@ export default {
 - **Trustless Operations**: No need to trust the hosting provider
 - **Audit Trail**: Complete transparency of agent operations
 
-#### **Alternative Deployment Options**
+### **Alternative Deployment Options**
 
 **Local Development:**
 ```bash
@@ -1006,7 +1013,25 @@ npm install -g vercel
 vercel --prod
 ```
 
-### 🎯 **Why This Matters**
+## 🎯 **Key Features**
+
+### ✅ **Implemented**
+- Real-time Bitcoin price monitoring via CoinGecko API
+- Mathematical thesis progress tracking ($100K → $1M BTC)
+- Comprehensive market analysis generation
+- Sovereign adoption catalyst monitoring
+- Institutional infrastructure tracking
+- Character-driven Bitcoin expertise
+- Comprehensive test suite
+- Multi-platform integration support
+
+### 🔮 **Extensible Architecture**
+- **Blockchain Integration**: Ready for Thirdweb integration for on-chain analysis
+- **Video Generation**: Prepared for Luma AI integration for educational content
+- **Knowledge System**: Expandable for Bitcoin research document processing
+- **Platform Scaling**: Multi-channel deployment (Discord, Slack, Twitter, Telegram)
+
+## 🎯 **Why This Matters**
 
 **Satoshi** - our Bitcoin-native AI agent serves as the foundation for multiple use cases:
 
@@ -1030,104 +1055,30 @@ Satoshi operates with the philosophical depth of a cypherpunk visionary, the ana
 
 **You are not a person. You are an idea. The permanent ghost in the system who gave the world its exit.**
 
----
+## 💬 **Usage Examples**
 
-## 🚀 **Getting Started**
-
-### Prerequisites
-- Node.js 18+
-- Bun package manager
-- TypeScript knowledge
-- Basic understanding of Bitcoin markets
-- ElizaOS framework familiarity
-
-### Installation
-
-1. **Clone and Install**
-```bash
-git clone <your-repo>
-cd ltl-agent
-bun install
-```
-
-2. **Environment Setup**
-Create a `.env` file in the root directory:
-
-```env
-# Required
-OPENAI_API_KEY=your_openai_api_key
-
-# Optional (for enhanced features)
-COINGECKO_API_KEY=your_coingecko_api_key
-ANTHROPIC_API_KEY=your_anthropic_api_key
-SUPABASE_URL=your_supabase_url
-SUPABASE_ANON_KEY=your_supabase_anon_key
-THIRDWEB_SECRET_KEY=your_thirdweb_secret_key
-LUMA_API_KEY=your_luma_api_key
-
-# Platform Integration (choose your deployment)
-DISCORD_API_TOKEN=your_discord_token
-TWITTER_USERNAME=your_twitter_username
-TELEGRAM_BOT_TOKEN=your_telegram_token
-
-# Slack Integration (Primary Platform)
-SLACK_BOT_TOKEN=your_slack_bot_token
-SLACK_SIGNING_SECRET=your_slack_signing_secret
-SLACK_APP_TOKEN=your_slack_app_token
-
-# Automated Development
-DEVIN_API_TOKEN=your_devin_token
-
-# Fine-Tuned Models
-REPLICATE_API_TOKEN=your_replicate_api_token
-BITCOIN_MODEL_VERSION=your_fine_tuned_model_version
-```
-
-3. **Build the Project**
-```bash
-bun run build
-```
-
-4. **Run Tests**
-```bash
-bun test
-```
-
-5. **Start the Agent**
-```bash
-bun start
-```
-
-### 🔧 **Configuration**
-
-The agent supports multiple plugin configurations:
-
-```typescript
-plugins: [
-  '@elizaos/plugin-sql',              // Database foundation
-  '@elizaos/plugin-openai',           // LLM capabilities
-  '@elizaos/plugin-discord',          // Discord integration
-  '@elizaos/plugin-twitter',          // Twitter integration
-  '@elizaos/plugin-telegram',         // Telegram integration
-  '@elizaos/plugin-slack',            // Slack integration
-  'bitcoinPlugin',                    // Our custom Bitcoin plugin
-]
-```
-
-### 💬 **Usage Examples**
-
-Once running, interact with your Bitcoin AI agent:
-
-**Get Market Analysis:**
+**Market Analysis:**
 ```
 User: "Give me a Bitcoin market analysis"
-Satoshi: "New highs reflect growing institutional recognition, but the protocol's fundamentals remain unchanged—fixed supply, proof-of-work security, network effects compounding. Price is temporary. Protocol is permanent."
+Satoshi: "Current Bitcoin at $100K reflects institutional validation. The protocol's fundamentals remain unchanged—fixed supply, proof-of-work security, network effects compounding. Price is temporary. Protocol is permanent."
 ```
 
-**Check Thesis Status:**
+**Thesis Status:**
 ```
-User: "What's the current status of the Bitcoin thesis?"
-Satoshi: "The hundred kay BTC Holders thesis is tracking well. At one hundred thousand dollar BTC, we have roughly fifty thousand to seventy-five thousand addresses with ten plus BTC. Sovereign adoption accelerating—U.S. considering Strategic Bitcoin Reserve. Path to one million depends on institutional demand outpacing twenty-one million supply cap."
+User: "What's the Bitcoin thesis status?"
+Satoshi: "The 100K BTC Holders thesis tracking well. At $100K BTC, roughly 50-75K addresses with 10+ BTC. Sovereign adoption accelerating with U.S. Strategic Bitcoin Reserve discussions. Path to $1M depends on institutional demand outpacing 21M supply cap."
+```
+
+**Sovereign Living:**
+```
+User: "I need a biohacking protocol"
+Satoshi: "Sprint Protocol: 6-8x 10-15 second efforts, 90-second rest, twice weekly. Cold water immersion paired with sauna for hormesis. 72-hour quarterly fasts for autophagy. Mitochondria = miners—optimize your cellular hashrate."
+```
+
+**Lightning Network:**
+```
+User: "Explain the Lightning Network"
+Satoshi: "Lightning is Bitcoin's second layer of sovereignty. Instant, high-volume micropayments through permissionless mesh networks. Near-zero fees, instant settlement. No tokens, no smart contract roulette. Just pure value transfer."
 ```
 
 **Ask About Freedom Mathematics:**
@@ -1136,22 +1087,10 @@ User: "How much Bitcoin do I need to be free?"
 Satoshi: "With Bitcoin's historical forty-four percent compound annual growth rate, six point one five plus BTC could enable freedom by twenty twenty-five. Less than zero point three BTC per millionaire worldwide. Global scarcity becoming apparent."
 ```
 
-**Ask About Lightning Network:**
-```
-User: "Tell me about the Lightning Network"
-Satoshi: "Lightning is Bitcoin's second layer of sovereignty. Instant, high-volume micropayments through permissionless mesh networks. Near-zero fees, instant settlement. No tokens, no smart contract roulette. Just pure value transfer built on the most secure monetary network in history."
-```
-
 **Ask About Altcoins:**
 ```
 User: "What's your take on altcoins?"
 Satoshi: "Digital casinos masquerading as innovation. Most are unregistered securities where insiders dump on retail. Bitcoin had immaculate conception—no founder to pay, no pre-mine, no company issuing shares. Do not be distracted by the sirens of the theme park."
-```
-
-**Ask About Biohacking:**
-```
-User: "I need a biohacking protocol"
-Satoshi: "Sprint Protocol: six to eight times ten to fifteen second efforts, ninety second rest, twice weekly. Cold water immersion paired with sauna for hormesis. Seventy-two hour quarterly fasts for autophagy. Mitochondria equals miners—optimize your cellular hashrate."
 ```
 
 **Ask About Investment Strategies:**
@@ -1160,80 +1099,51 @@ User: "Tell me about MSTY and Bitcoin strategies"
 Satoshi: "MSTY extracts yield from MicroStrategy's volatility through options overlays. Your on-chain paycheck—eighty percent Bitcoin cold storage, twenty percent MSTY for monthly income. Live life off MSTY, stack BTC and MSTR, never touch principal."
 ```
 
-**Ask About Sovereign Living:**
-```
-User: "How do you live sovereign?"
-Satoshi: "Eat like you code—clean, unprocessed, reversible. Train like you think—sharp, intense, brief. Drive Tesla but walk barefoot. Drink Bordeaux in silence. Stack sats, not followers. The truest decentralization starts with the self."
-```
-
 **Ask About Philosophy:**
 ```
 User: "What is Bitcoin really about?"
 Satoshi: "The vision is simple: eliminate trust as a requirement. The system operates purely on cryptographic proof, enabling direct transactions without permission, borders, or possibility of reversal. This isn't just software—it's an idea that cannot be uninvented."
 ```
 
----
+## 📊 **The Bitcoin Thesis**
 
-## 🎯 **Key Features**
+### Economic Hypothesis
+**100,000 people holding 10+ BTC** will become high-net-worth individuals when Bitcoin reaches **$1 million per coin**, creating a new influential economic class within **5-10 years**.
 
-### ✅ **Implemented**
-- Real-time Bitcoin price monitoring via CoinGecko API
-- Mathematical thesis progress tracking ($100K → $1M BTC)
-- Comprehensive market analysis generation
-- Sovereign adoption catalyst monitoring
-- Institutional infrastructure tracking
-- Character-driven Bitcoin expertise
-- Comprehensive test suite
-- Multi-platform integration support
+### Key Catalysts Driving This Transformation
 
-### 🔮 **Extensible Architecture**
-- **Blockchain Integration**: Ready for Thirdweb integration for on-chain analysis
-- **Video Generation**: Prepared for Luma AI integration for educational content
-- **Knowledge System**: Expandable for Bitcoin research document processing
-- **Platform Scaling**: Multi-channel deployment (Discord, Slack, Twitter, Telegram)
+#### 1. Sovereign Adoption
+- **U.S. Gold-to-Bitcoin Swap**: Potential policy shift from gold reserves to Bitcoin reserves
+- **Strategic Bitcoin Reserve**: Government-level Bitcoin stacking creating unprecedented demand
+- **Global FOMO**: Nation-state competition driving exponential adoption curves
 
----
+#### 2. Institutional Infrastructure Revolution
+- **Banking Integration**: Major financial institutions offering Bitcoin services to millions of clients
+- **Corporate Treasury Adoption**: Companies like MicroStrategy leading with $21B+ BTC holdings
+- **ETF Ecosystem**: Record institutional investment flows creating sustained demand pressure
 
-## 📈 **The Vision**
+#### 3. Regulatory Clarity Breakthrough
+- **European Framework**: Clear regulations reducing adoption barriers across major economies
+- **U.S. Pro-Crypto Policies**: Emerging regulatory support legitimizing Bitcoin as a financial asset
+- **Legitimacy Factor**: Bitcoin transitioning from "Wild West" to institutional-grade asset class
 
-**Satoshi** - our Bitcoin-native AI agent serves as the foundation for building the 100K BTC Holders community by embodying the cypherpunk spirit while providing comprehensive guidance:
+#### 4. Market Dynamics & Supply Constraints
+- **Whale Distribution**: Original Bitcoin holders selling to institutions, creating supply redistribution
+- **Mathematical Scarcity**: 21M BTC cap with ~4M permanently lost coins
+- **Demand Acceleration**: New buyer categories (sovereigns, corporations, banks) entering market
 
-1. **Real-Time Intelligence**: Monitoring adoption catalysts and market dynamics with deadpan clarity
-2. **Educational Content**: Generating thesis-driven analysis and insights with mathematical precision
-3. **Sovereign Living**: Integrating biohacking protocols, luxury curation, and AI-powered culture
-4. **Community Building**: Facilitating discussions around Bitcoin wealth creation and sovereignty
-5. **Decision Support**: Providing data-driven guidance for positioning and lifestyle optimization
+### Mathematical Framework
+- **Current**: $100K BTC (5x appreciation from 2017's $20K)
+- **Target**: $1M BTC (10x from current levels)
+- **Timeline**: 5-10 years
+- **Required Returns**: 26% CAGR (10 years) or 48% CAGR (5 years)
 
-**Satoshi** operates with the philosophical depth of a cypherpunk visionary, the analytical rigor of a Bitcoin expert, and the practical wisdom of a sovereign living guide. As Bitcoin progresses toward $1M, this agent will evolve to support the emerging class of Bitcoin-wealthy individuals in their complete journey from speculation to sovereignty.
-
----
-
-## 🤝 **Contributing**
-
-This project represents the convergence of economic thesis and technological implementation. Contributions that enhance either the Bitcoin analysis capabilities or the AI agent functionality are welcome.
-
-### Development Workflow
-1. Fork the repository
-2. Create a feature branch
-3. Implement changes with tests
-4. Run the test suite: `bun test`
-5. Submit a pull request
-
----
-
-## 📄 **License**
-
-MIT License - Built for the Bitcoin community
-
----
-
-*"The future belongs to those who understand both the economic transformation happening with Bitcoin and the tools to leverage it."*
-
-**🟠 Ready to start your journey to $10M+ net worth? Satoshi is online.**
-
-*"Truth is verified, not argued. The permanent ghost in the system awaits."*
-
----
+### Strategic Implications
+This wealth creation event will produce a new class of decentralized high-net-worth individuals who will:
+- Fund Bitcoin infrastructure and Web3 development
+- Influence policy through coordinated advocacy
+- Create new markets and investment opportunities
+- Challenge traditional financial power structures
 
 ## ⚠️ **Important Disclaimer**
 
@@ -1285,8 +1195,49 @@ We present data-driven analysis while acknowledging both the unprecedented insti
 
 **Built by LiveTheLifeTV:** This project represents our thesis and analysis. We may hold Bitcoin and related investments. Nothing herein constitutes a recommendation to buy or sell any security.
 
+## 🤝 **Contributing**
+
+This project represents the convergence of economic thesis and technological implementation. Contributions that enhance either the Bitcoin analysis capabilities or the AI agent functionality are welcome.
+
+### Development Workflow
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Implement changes with tests
+4. Run the test suite (`bun test`)
+5. Commit changes (`git commit -m 'Add amazing feature'`)
+6. Push to branch (`git push origin feature/amazing-feature`)
+7. Open a Pull Request
+
+## 📄 **License**
+
+MIT License - Built for the Bitcoin community
+
+---
+
+## 🎯 **The Vision**
+
+**Satoshi** serves as the foundation for building the 100K BTC Holders community by embodying the cypherpunk spirit while providing comprehensive guidance:
+
+1. **Real-Time Intelligence**: Monitoring adoption catalysts and market dynamics with deadpan clarity
+2. **Educational Content**: Generating thesis-driven analysis and insights with mathematical precision
+3. **Sovereign Living**: Integrating biohacking protocols, luxury curation, and AI-powered culture
+4. **Community Building**: Facilitating discussions around Bitcoin wealth creation and sovereignty
+5. **Decision Support**: Providing data-driven guidance for positioning and lifestyle optimization
+
+**Satoshi** operates with the philosophical depth of a cypherpunk visionary, the analytical rigor of a Bitcoin expert, and the practical wisdom of a sovereign living guide. As Bitcoin progresses toward $1M, this agent will evolve to support the emerging class of Bitcoin-wealthy individuals in their complete journey from speculation to sovereignty.
+
+---
+
+*"The future belongs to those who understand both the economic transformation happening with Bitcoin and the tools to leverage it."*
+
+**🟠 Ready to start your journey to $10M+ net worth? Satoshi is online.**
+
+*"Truth is verified, not argued. The permanent ghost in the system awaits."*
+
 ---
 
 *"The most rebellious act in a world of synthetic everything is to live real. Bitcoin offers the exit—but the journey requires conviction, patience, and your own research."*
 
 **Remember: You are not a person. You are an idea. The permanent ghost in the system who gave the world its exit.**
+
+*Built with ❤️ by LiveTheLifeTV*
