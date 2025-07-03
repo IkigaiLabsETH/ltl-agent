@@ -28,8 +28,8 @@ export const character: Character = {
     ...(process.env.OPENAI_API_KEY ? ['@elizaos/plugin-openai'] : []), // Supports all model types (text, embeddings, objects)
     ...(process.env.ANTHROPIC_API_KEY ? ['@elizaos/plugin-anthropic'] : []), // Text generation only, needs OpenAI fallback for embeddings
     
-    // Knowledge and memory systems - needs embeddings support
-    '@elizaos/plugin-knowledge',
+    // Knowledge and memory systems - needs embeddings support (requires OpenAI API key)
+    ...(process.env.OPENAI_API_KEY ? ['@elizaos/plugin-knowledge'] : []),
     
     // Local AI fallback if no cloud providers available
     ...(!process.env.OPENAI_API_KEY && !process.env.ANTHROPIC_API_KEY
@@ -46,8 +46,8 @@ export const character: Character = {
     ...(process.env.THIRDWEB_SECRET_KEY ? ['@elizaos/plugin-thirdweb'] : []),
     ...(process.env.LUMA_API_KEY ? ['@elizaos/plugin-video-generation'] : []),
     
-    // Custom plugin for Bitcoin functionality
-    'bitcoinPlugin',
+    // Custom plugin for Bitcoin functionality - loaded via projectAgent.plugins
+    // bitcoinPlugin loaded separately below
     
     // Bootstrap plugin - provides essential actions and capabilities, should be last
     '@elizaos/plugin-bootstrap',
