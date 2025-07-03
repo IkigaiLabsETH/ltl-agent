@@ -1516,7 +1516,7 @@ At current yields, one million dollars in MSTY generates approximately eight to 
 *Your on-chain paycheck - designed for Bitcoiners who want to preserve long-term upside while generating current income.*
         `;
       } else if (text.includes('freedom') || text.includes('how much')) {
-        const bitcoinDataService = runtime.getService('bitcoin-data') as BitcoinDataService;
+        const bitcoinDataService = runtime.getService('starter') as StarterService;
         if (bitcoinDataService) {
           const freedomMath = await bitcoinDataService.calculateFreedomMathematics();
           
@@ -1713,10 +1713,10 @@ const freedomMathematicsAction: Action = {
 
   handler: async (runtime, message, state, _options, callback) => {
     try {
-      const bitcoinDataService = runtime.getService('bitcoin-data') as BitcoinDataService;
+      const bitcoinDataService = runtime.getService('starter') as StarterService;
       
       if (!bitcoinDataService) {
-        throw new Error('BitcoinDataService not available');
+        throw new Error('StarterService not available');
       }
 
       // Extract target freedom amount from message if specified
@@ -1832,7 +1832,7 @@ export class StarterService extends Service {
     }
     
     logger.info('BitcoinDataService starting...');
-    return new BitcoinDataService(runtime);
+    return new StarterService(runtime);
   }
 
   static async stop(runtime: IAgentRuntime) {
