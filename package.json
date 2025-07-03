@@ -1,5 +1,5 @@
 {
-  "name": "ltl-agent",
+  "name": "@elizaos/project-starter",
   "description": "Project starter for elizaOS",
   "version": "0.1.0",
   "type": "module",

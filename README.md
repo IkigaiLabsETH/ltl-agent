@@ -1,3 +1,65 @@
+# ElizaOS Project Starter
+
+A comprehensive starter template for building AI agents with the ElizaOS framework.
+
+## Features
+
+- ✅ **Basic ElizaOS Setup**: Complete project structure with TypeScript configuration
+- ✅ **Hello World Components**: Simple provider, action, and route examples
+- ✅ **Testing Suite**: Comprehensive test coverage with Vitest
+- ✅ **Plugin Architecture**: Demonstrates proper ElizaOS plugin patterns
+- ✅ **Model Integration**: TEXT_SMALL and TEXT_LARGE model handlers
+- ✅ **Route Handling**: RESTful API endpoints with Express integration
+- ✅ **Build System**: Optimized build configuration with tsup
+
+## Getting Started
+
+### Prerequisites
+- Node.js 18+ or Bun
+- TypeScript knowledge
+- Basic understanding of AI agent development
+
+### Quick Start
+
+1. **Clone and Install**
+```bash
+git clone <your-repo>
+cd ltl-agent
+bun install
+```
+
+2. **Environment Setup**
+Create a `.env` file:
+```env
+OPENAI_API_KEY=your_openai_api_key
+```
+
+3. **Build and Test**
+```bash
+bun run build
+bun test
+```
+
+4. **Start Development**
+```bash
+bun start
+```
+
+### Project Structure
+
+```
+ltl-agent/
+├── src/
+│   ├── index.ts      # Main character definition
+│   ├── plugin.ts     # Plugin implementation
+│   └── tests.ts      # Test suite
+├── __tests__/        # Test files
+├── package.json      # Project configuration
+└── README.md         # This file
+```
+
+---
+
 # Satoshi: Bitcoin-Native AI Agent
 
 ## The Economic Paradigm Shift Meets Cypherpunk Philosophy

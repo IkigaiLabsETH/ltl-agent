@@ -35,7 +35,7 @@ describe('Environment Setup', () => {
     expect(fs.existsSync(packageJsonPath)).toBe(true);
 
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-    expect(packageJson).toHaveProperty('name', 'ltl-agent');
+    expect(packageJson).toHaveProperty('name', '@elizaos/project-starter');
     expect(packageJson).toHaveProperty('version');
     expect(packageJson).toHaveProperty('type', 'module');
     expect(packageJson).toHaveProperty('main');
@@ -82,7 +82,7 @@ describe('Environment Setup', () => {
     expect(fs.existsSync(readmePath)).toBe(true);
 
     const readme = fs.readFileSync(readmePath, 'utf8');
-    expect(readme).toContain('# Satoshi: Bitcoin-Native AI Agent');
+    expect(readme).toContain('# ElizaOS Project Starter');
   });
 
   it('should have a valid README-TESTS.md file with test documentation', () => {

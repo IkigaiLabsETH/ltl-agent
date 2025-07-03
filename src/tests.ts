@@ -6,10 +6,73 @@ import { ElizaOSErrorHandler, validateElizaOSEnvironment } from './plugin';
  * Comprehensive tests for Bitcoin-focused AI agent functionality
  */
 export class BitcoinTestSuite implements TestSuite {
-  name = 'bitcoin';
-  description = 'Comprehensive test suite for Bitcoin-focused AI agent with ElizaOS optimizations';
+  name = 'starter';
+  description = 'Tests for the starter project';
 
   tests = [
+    {
+      name: 'Character configuration test',
+      fn: async (runtime: IAgentRuntime) => {
+        console.log('🧪 Testing character configuration...');
+        const character = runtime.character;
+        if (!character) {
+          throw new Error('Character not found');
+        }
+        console.log('✅ Character configuration test passed');
+      },
+    },
+    {
+      name: 'Plugin initialization test',
+      fn: async (runtime: IAgentRuntime) => {
+        console.log('🧪 Testing plugin initialization...');
+        const plugin = runtime.plugins.find(p => p.name === 'starter');
+        if (!plugin) {
+          throw new Error('Starter plugin not found');
+        }
+        console.log('✅ Plugin initialization test passed');
+      },
+    },
+    {
+      name: 'Hello world action test',
+      fn: async (runtime: IAgentRuntime) => {
+        console.log('🧪 Testing hello world action...');
+        const plugin = runtime.plugins.find(p => p.name === 'starter');
+        if (!plugin || !plugin.actions) {
+          throw new Error('Plugin or actions not found');
+        }
+        const helloAction = plugin.actions.find(a => a.name === 'HELLO_WORLD');
+        if (!helloAction) {
+          throw new Error('HELLO_WORLD action not found');
+        }
+        console.log('✅ Hello world action test passed');
+      },
+    },
+    {
+      name: 'Hello world provider test',
+      fn: async (runtime: IAgentRuntime) => {
+        console.log('🧪 Testing hello world provider...');
+        const plugin = runtime.plugins.find(p => p.name === 'starter');
+        if (!plugin || !plugin.providers) {
+          throw new Error('Plugin or providers not found');
+        }
+        const helloProvider = plugin.providers.find(p => p.name === 'HELLO_WORLD_PROVIDER');
+        if (!helloProvider) {
+          throw new Error('HELLO_WORLD_PROVIDER not found');
+        }
+        console.log('✅ Hello world provider test passed');
+      },
+    },
+    {
+      name: 'Starter service test',
+      fn: async (runtime: IAgentRuntime) => {
+        console.log('🧪 Testing starter service...');
+        const service = runtime.getService('starter'); // Use 'starter' service name
+        if (!service) {
+          throw new Error('Starter service not found');
+        }
+        console.log('✅ Starter service test passed');
+      },
+    },
     {
       name: 'Character configuration validation',
       fn: async (runtime: IAgentRuntime) => {
@@ -55,25 +118,25 @@ export class BitcoinTestSuite implements TestSuite {
       fn: async (runtime: IAgentRuntime) => {
         console.log('🧪 Testing plugin initialization...');
         
-        // Check if Bitcoin plugin exists
-        const bitcoinPlugin = runtime.plugins.find(p => p.name === 'bitcoin');
+        // Check if starter plugin exists
+        const bitcoinPlugin = runtime.plugins.find(p => p.name === 'starter');
         if (!bitcoinPlugin) {
-          throw new Error('Bitcoin plugin not found in runtime');
+          throw new Error('Starter plugin not found in runtime');
         }
         
         // Validate providers
         if (!bitcoinPlugin.providers || bitcoinPlugin.providers.length === 0) {
-          throw new Error('Bitcoin plugin has no providers');
+          throw new Error('Starter plugin has no providers');
         }
         
         // Validate actions
         if (!bitcoinPlugin.actions || bitcoinPlugin.actions.length === 0) {
-          throw new Error('Bitcoin plugin has no actions');
+          throw new Error('Starter plugin has no actions');
         }
         
         // Validate services
         if (!bitcoinPlugin.services || bitcoinPlugin.services.length === 0) {
-          throw new Error('Bitcoin plugin has no services');
+          throw new Error('Starter plugin has no services');
         }
         
         // Check for required actions
@@ -157,9 +220,9 @@ export class BitcoinTestSuite implements TestSuite {
       fn: async (runtime: IAgentRuntime) => {
         console.log('🧪 Testing Bitcoin data providers...');
         
-        const bitcoinPlugin = runtime.plugins.find(p => p.name === 'bitcoin');
+        const bitcoinPlugin = runtime.plugins.find(p => p.name === 'starter');
         if (!bitcoinPlugin || !bitcoinPlugin.providers) {
-          throw new Error('Bitcoin plugin or providers not found');
+          throw new Error('Starter plugin or providers not found');
         }
         
         // Find Bitcoin price provider
@@ -286,7 +349,7 @@ export class BitcoinTestSuite implements TestSuite {
           '@elizaos/plugin-sql',          // Database foundation
           '@elizaos/plugin-knowledge',    // RAG capabilities
           '@elizaos/plugin-bootstrap',    // Essential actions
-          'bitcoin'                       // Our custom plugin
+          'starter'                       // Our custom plugin
         ];
         
         for (const requiredPlugin of requiredPlugins) {
@@ -359,6 +422,9 @@ export class BitcoinTestSuite implements TestSuite {
     }
   ];
 }
+
+// Export alias for test compatibility
+export const StarterTestSuite = BitcoinTestSuite;
 
 // Export a default instance
 export default new BitcoinTestSuite();
