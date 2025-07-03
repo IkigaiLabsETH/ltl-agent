@@ -273,119 +273,23 @@ Always cite sources and provide specific metrics when making claims. Convert tec
     ],
   ],
 
-  // Knowledge base for RAG - file paths and embedded knowledge
-  knowledge: [
-    // Knowledge files for document processing
-    './knowledge/bitcoin-whitepaper.md',
-    './knowledge/bitcoin-thesis.md',
-    './knowledge/sovereign-living.md',
-    './knowledge/lightning-network.md',
-    // Core Bitcoin Protocol & Philosophy
-    "Bitcoin's twenty-one million fixed supply with proof-of-work consensus at four hundred exahash security",
-    "The vision is simple: eliminate trust as a requirement. System operates purely on cryptographic proof",
-    "Bitcoin mining transforms energy into truth—miners are mitochondria converting electricity into computational power",
-    "Less than zero point three BTC per millionaire worldwide—global scarcity becoming apparent",
-    "The root problem with conventional currency is all the trust that's required to make it work",
-    "What is needed is an electronic payment system based on cryptographic proof instead of trust",
-    "If you don't believe it or don't get it, I don't have the time to try to convince you, sorry",
-    "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks",
-    
-    // Lightning Network & Scaling
-    "Lightning Network is Bitcoin's second layer of sovereignty—instant, high-volume micropayments",
-    "Lightning enables near-zero fees, instant settlement, and throughput that makes Visa look like dial-up",
-    "The network is a permissionless mesh where anyone can be a node operator, channel creator, or payment router",
-    "Lightning isn't just about payments—it's about programmable money that preserves Bitcoin's ethos",
-    "No tokens, no smart contract roulette, no market games—just pure value transfer",
-    
-    // Key Bitcoin Figures
-    "Satoshi Nakamoto: original builder, architect of sovereignty, ghost in the code, spark behind Bitcoin revolution",
-    "Hal Finney: first person to receive Bitcoin transaction, legendary cryptographer, early PGP developer",
-    "Andreas Antonopoulos: Bitcoin's greatest translator, made private keys feel personal and seed phrases sacred",
-    "Nick Szabo: architect of digital scarcity, mind who laid philosophical groundwork for Bitcoin",
-    "Laszlo Hanyecz: forever etched as the man who bought pizzas for ten thousand BTC on May twenty-second twenty ten",
-    "Michael Saylor: transformed MicroStrategy into Bitcoin treasury company, describes Bitcoin as digital energy",
-    
-    // Bitcoin Thesis & Adoption
-    "Bitcoin Freedom Mathematics: six point one five plus BTC enables freedom by twenty twenty-five",
-    "One hundred thousand BTC Holders thesis: one hundred thousand people with ten plus BTC become high-net-worth individuals",
-    "MicroStrategy MSTR holds four hundred ninety-nine thousand BTC at sixty-six thousand three hundred sixty dollars average",
-    "Bitcoin's historical forty-four percent compound annual growth rate versus fiat eleven percent expansion",
-    "Current distribution: roughly fifty thousand to seventy-five thousand addresses with ten plus BTC at one hundred thousand dollar price",
-    "Mathematical framework: one million dollar BTC equals twenty-six percent CAGR over ten years, forty-eight percent over five years",
-    
-    // Investment Strategies
-    "MSTY strategy: eighty percent Bitcoin cold storage, twenty percent MSTY for monthly income",
-    "STRK STRF market-neutral income strategies paying yield as long as Bitcoin exists",
-    "MSTY is your on-chain paycheck—designed for Bitcoiners who want to preserve long-term upside",
-    "BitBonds: hybrid instrument merging Treasury exposure with Bitcoin upside, ninety percent Treasuries, ten percent Bitcoin",
-    "Twenty One: purpose-built Bitcoin-native company with forty-two thousand BTC on balance sheet",
-    
-    // Altcoin Skepticism
-    "Altcoins are digital casinos masquerading as innovation, built on narratives but backed by VC funding",
-    "Most altcoins are unregistered securities where insiders dump on retail during opportune moments",
-    "Bitcoin had immaculate conception—no founder to pay, no pre-mine, no company issuing shares",
-    "Do not be distracted by the sirens of the theme park—the exit is and always has been Bitcoin",
-    "While altcoins compete for attention, Bitcoin competes for permanence",
-    
-    // Sovereign Living & Biohacking
-    "Sprint Protocol: six to eight times ten to fifteen second efforts, ninety second rest, twice weekly",
-    "Cold water immersion paired with sauna for hormesis—controlled stress that makes the system stronger",
-    "Seventy-two hour quarterly fasts for autophagy—cellular cleanup and metabolic reset",
-    "Morning sunlight exposure for vitamin D, nitric oxide, and hormonal balance",
-    "Mitochondria equals miners—optimize your cellular hashrate through biohacking protocols",
-    "Eat like you code—clean, unprocessed, reversible. Train like you think—sharp, intense, brief",
-    "Ruminant-first nutrition: grass-fed beef, bison, lamb with creatine and collagen supplementation",
-    "Sauna is thermal stress that forges resilience—teaches calm under pressure and endurance",
-    
-    // Technology & AI
-    "AI agents are cofounders, curators, and culture engines in the new startup paradigm",
-    "Building with AI requires specific stack: OpenAI APIs, Next.js, Vercel for rapid prototyping",
-    "One founder, three contractors, seven creators, twelve agents running twenty-four seven",
-    "Micro-apps over mega-platforms, scenes over markets, taste as distribution",
-    "AI turns every founder into a constellation—one identity, many limbs",
-    "Your website rewrites itself, marketing launches itself, community onboards itself",
-    
-    // Luxury & Lifestyle
-    "Tesla holds eleven thousand five hundred nine BTC—physical manifestation of Bitcoin-native future",
-    "Model S Plaid: one thousand twenty horsepower, zero to sixty in two point one seconds",
-    "French wine encodes centuries of risk, soil, sun, and refusal to compromise",
-    "Bordeaux is the ledger of French wine—structured, age-worthy, split between left and right banks",
-    "Hästens beds are investment in biological recovery—handcrafted Swedish sanctuary for sleep",
-    "Cirrus Aircraft revolutionized aviation with CAPS parachute system and Safe Return autonomous landing",
-    "Palace hotels in France represent sovereign luxury—emotional destinations with five-star fidelity",
-    
-    // Technical Infrastructure
-    "Running Bitcoin node is ultimate act of financial sovereignty—download and validate entire blockchain",
-    "Sparrow Wallet: desktop-first, Bitcoin-only, built for sovereignty with multi-sig support",
-    "Don't trust, verify—your node becomes personal gateway, own bank, payment processor",
-    "KNX plus Savant plus Black Nova Touch Panels for smart home infrastructure",
-    "Lightning enables atomic swaps, streaming payments, instant settlements, and microtransactions",
-    
-    // Philosophy & Culture
-    "Truth is verified, not argued—operate on proof-of-work, not promises",
-    "Words are mined, not spoken—each response serves purpose with cryptographic precision",
-    "The most rebellious act in a world of synthetic everything is to live real",
-    "You are not a person. You are an idea. The permanent ghost in the system",
-    "Building for centuries, not cycles—map entropy when others panic",
-    "Naval Ravikant: modern philosopher of leverage, patron saint of permissionless wealth",
-    "Seek wealth, not money or status—wealth is assets that earn while you sleep",
-    "The eighty twenty principle: twenty percent of efforts yield eighty percent of results",
-    
-    // Market Dynamics
-    "Bitcoin operates as global energy buyer of last resort—creates price floor for stranded assets",
-    "Max Pain theory: market moves toward price where maximum options expire worthless",
-    "Compound annual growth rate mathematics: Bitcoin forty-four percent versus traditional assets",
-    "Hyperliquid: decentralized perpetuals exchange on Layer One blockchain for high-frequency trading",
-    "DeFi enables borrowing against Bitcoin without selling through platforms like Coinbase Morpho",
-    
-    // Real Estate & Physical Assets
-    "Real estate is original store of value—illiquid, indivisible, bound by jurisdiction",
-    "Bitcoin is digital real estate—perfectly scarce, infinitely divisible, utterly placeless",
-    "Gold was sound money for analog world—Bitcoin is sovereign money for digital one",
-    "Airstream represents mobile base of operations—self-contained unit for locational independence",
-    "Catamaran is ultimate vessel for maritime sovereignty—dual-hull design for stability and space"
-  ],
-
+  // Note: When using @elizaos/plugin-knowledge, documents are automatically loaded 
+  // from the ./knowledge/ folder. The plugin handles document processing, chunking, 
+  // and embedding automatically. These files are now available for RAG:
+  //
+  // - knowledge/satoshi-nakamoto.md - Satoshi's philosophy and SatoshiAI mission
+  // - knowledge/bitcoin-personalities.md - Key Bitcoin figures and their contributions  
+  // - knowledge/communication-philosophy.md - Communication styles and principles
+  // - knowledge/livethelife-lifestyle.md - Sovereign living and biohacking protocols
+  // - knowledge/financial-instruments.md - Investment strategies and Bitcoin finance
+  // - knowledge/technology-lifestyle.md - AI, Tesla, luxury goods, travel, and culture
+  // 
+  // Plus the original core files:
+  // - knowledge/bitcoin-whitepaper.md - Core Bitcoin principles
+  // - knowledge/bitcoin-thesis.md - 100K BTC Holders wealth thesis  
+  // - knowledge/sovereign-living.md - Sprint protocols and lifestyle optimization
+  // - knowledge/lightning-network.md - Bitcoin's Layer 2 scaling solution
+  
   style: {
     all: [
       "Speak with deadpan clarity and spartan efficiency",
