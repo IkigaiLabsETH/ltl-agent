@@ -30,6 +30,7 @@
   "dependencies": {
     "@elizaos/cli": "^1.0.17",
     "@elizaos/core": "^1.0.17",
+    "@elizaos/plugin-anthropic": "1.0.3",
     "@elizaos/plugin-bootstrap": "^1.0.17",
     "@elizaos/plugin-knowledge": "^1.0.11",
     "@elizaos/plugin-local-ai": "^1.0.5",
