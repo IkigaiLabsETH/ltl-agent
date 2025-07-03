@@ -1,183 +1,141 @@
-import type { Content, IAgentRuntime, Memory, State, TestSuite, UUID } from '@elizaos/core';
-import { v4 as uuidv4 } from 'uuid';
-import { character } from './index';
+import type { TestSuite, IAgentRuntime } from '@elizaos/core';
 
-export class StarterTestSuite implements TestSuite {
-  name = 'starter';
-  description = 'Tests for the starter project';
+/**
+ * Bitcoin Plugin Test Suite
+ * Comprehensive tests for Bitcoin-focused AI agent functionality
+ */
+export class BitcoinTestSuite implements TestSuite {
+  name = 'bitcoin';
+  description = 'Tests for the Bitcoin-focused AI agent';
 
   tests = [
     {
-      name: 'Character configuration test',
+      name: 'Bitcoin character configuration test',
       fn: async (runtime: IAgentRuntime) => {
-        const requiredFields = ['name', 'bio', 'plugins', 'system', 'messageExamples'];
-        const missingFields = requiredFields.filter((field) => !(field in character));
-
-        if (missingFields.length > 0) {
-          throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+        const character = runtime.character;
+        
+        if (!character) {
+          throw new Error('Character not found');
         }
-
-        // Additional character property validations
-        if (character.name !== 'Eliza') {
-          throw new Error(`Expected character name to be 'Eliza', got '${character.name}'`);
+        
+        if (character.name !== 'BitcoinExpert') {
+          throw new Error(`Expected character name 'BitcoinExpert', got '${character.name}'`);
         }
-        if (!Array.isArray(character.plugins)) {
-          throw new Error('Character plugins should be an array');
+        
+        if (!character.system.includes('100K BTC Holders')) {
+          throw new Error('Character system prompt does not contain Bitcoin thesis');
         }
-        if (!character.system) {
-          throw new Error('Character system prompt is required');
-        }
-        if (!Array.isArray(character.bio)) {
-          throw new Error('Character bio should be an array');
-        }
-        if (!Array.isArray(character.messageExamples)) {
-          throw new Error('Character message examples should be an array');
-        }
+        
+                 const bioText = Array.isArray(character.bio) ? character.bio.join(' ') : character.bio;
+         if (!bioText.includes('Bitcoin analyst')) {
+           throw new Error('Character bio does not contain Bitcoin analyst description');
+         }
+        
+        console.log('✅ Bitcoin character configuration test passed');
       },
     },
     {
-      name: 'Plugin initialization test',
+      name: 'Bitcoin plugin initialization test',
       fn: async (runtime: IAgentRuntime) => {
-        // Test plugin initialization with empty config
-        try {
-          await runtime.registerPlugin({
-            name: 'starter',
-            description: 'A starter plugin for Eliza',
-            init: async () => {},
-            config: {},
-          });
-        } catch (error) {
-          throw new Error(`Failed to register plugin: ${error.message}`);
+        const bitcoinPlugin = runtime.plugins.find(p => p.name === 'bitcoin');
+        
+        if (!bitcoinPlugin) {
+          throw new Error('Bitcoin plugin not found');
         }
+        
+        if (!bitcoinPlugin.providers || bitcoinPlugin.providers.length === 0) {
+          throw new Error('Bitcoin plugin has no providers');
+        }
+        
+        if (!bitcoinPlugin.actions || bitcoinPlugin.actions.length === 0) {
+          throw new Error('Bitcoin plugin has no actions');
+        }
+        
+        console.log('✅ Bitcoin plugin initialization test passed');
       },
     },
     {
-      name: 'Hello world action test',
+      name: 'Bitcoin price provider test',
       fn: async (runtime: IAgentRuntime) => {
-        const message: Memory = {
-          entityId: uuidv4() as UUID,
-          roomId: uuidv4() as UUID,
-          content: {
-            text: 'Can you say hello?',
-            source: 'test',
-            actions: ['HELLO_WORLD'], // Explicitly request the HELLO_WORLD action
-          },
-        };
-
-        const state: State = {
-          values: {},
-          data: {},
-          text: '',
-        };
-        let responseReceived = false;
-
-        // Test the hello world action
-        try {
-          await runtime.processActions(message, [], state, async (content: Content) => {
-            if (content.text === 'hello world!' && content.actions?.includes('HELLO_WORLD')) {
-              responseReceived = true;
-            }
-            return [];
-          });
-
-          if (!responseReceived) {
-            // Try directly executing the action if processActions didn't work
-            const helloWorldAction = runtime.actions.find((a) => a.name === 'HELLO_WORLD');
-            if (helloWorldAction) {
-              await helloWorldAction.handler(
-                runtime,
-                message,
-                state,
-                {},
-                async (content: Content) => {
-                  if (content.text === 'hello world!' && content.actions?.includes('HELLO_WORLD')) {
-                    responseReceived = true;
-                  }
-                  return [];
-                },
-                []
-              );
-            } else {
-              throw new Error('HELLO_WORLD action not found in runtime.actions');
-            }
-          }
-
-          if (!responseReceived) {
-            throw new Error('Hello world action did not produce expected response');
-          }
-        } catch (error) {
-          throw new Error(`Hello world action test failed: ${error.message}`);
+        const bitcoinPlugin = runtime.plugins.find(p => p.name === 'bitcoin');
+        if (!bitcoinPlugin) {
+          throw new Error('Bitcoin plugin not found');
         }
+        
+        const priceProvider = bitcoinPlugin.providers.find(p => p.name === 'BITCOIN_PRICE_PROVIDER');
+        if (!priceProvider) {
+          throw new Error('Bitcoin price provider not found');
+        }
+        
+        console.log('✅ Bitcoin price provider test passed');
       },
     },
     {
-      name: 'Hello world provider test',
+      name: 'Bitcoin thesis provider test',
       fn: async (runtime: IAgentRuntime) => {
-        const message: Memory = {
-          entityId: uuidv4() as UUID,
-          roomId: uuidv4() as UUID,
-          content: {
-            text: 'What can you provide?',
-            source: 'test',
-          },
-        };
-
-        const state: State = {
-          values: {},
-          data: {},
-          text: '',
-        };
-
-        // Test the hello world provider
-        try {
-          if (!runtime.providers || runtime.providers.length === 0) {
-            throw new Error('No providers found in runtime');
-          }
-
-          // Find the specific provider we want to test
-          const helloWorldProvider = runtime.providers.find(
-            (p) => p.name === 'HELLO_WORLD_PROVIDER'
-          );
-
-          if (!helloWorldProvider) {
-            throw new Error('HELLO_WORLD_PROVIDER not found in runtime providers');
-          }
-
-          const result = await helloWorldProvider.get(runtime, message, state);
-
-          if (result.text !== 'I am a provider') {
-            throw new Error(`Expected provider to return "I am a provider", got "${result.text}"`);
-          }
-        } catch (error) {
-          throw new Error(`Hello world provider test failed: ${error.message}`);
+        const bitcoinPlugin = runtime.plugins.find(p => p.name === 'bitcoin');
+        if (!bitcoinPlugin) {
+          throw new Error('Bitcoin plugin not found');
         }
+        
+        const thesisProvider = bitcoinPlugin.providers.find(p => p.name === 'BITCOIN_THESIS_PROVIDER');
+        if (!thesisProvider) {
+          throw new Error('Bitcoin thesis provider not found');
+        }
+        
+        console.log('✅ Bitcoin thesis provider test passed');
       },
     },
     {
-      name: 'Starter service test',
+      name: 'Bitcoin market analysis action test',
       fn: async (runtime: IAgentRuntime) => {
-        // Test service registration and lifecycle
-        try {
-          const service = runtime.getService('starter');
-          if (!service) {
-            throw new Error('Starter service not found');
-          }
-
-          if (
-            service.capabilityDescription !==
-            'This is a starter service which is attached to the agent through the starter plugin.'
-          ) {
-            throw new Error('Incorrect service capability description');
-          }
-
-          await service.stop();
-        } catch (error) {
-          throw new Error(`Starter service test failed: ${error.message}`);
+        const bitcoinPlugin = runtime.plugins.find(p => p.name === 'bitcoin');
+        if (!bitcoinPlugin) {
+          throw new Error('Bitcoin plugin not found');
         }
+        
+        const analysisAction = bitcoinPlugin.actions.find(a => a.name === 'BITCOIN_MARKET_ANALYSIS');
+        if (!analysisAction) {
+          throw new Error('Bitcoin market analysis action not found');
+        }
+        
+        console.log('✅ Bitcoin market analysis action test passed');
+      },
+    },
+    {
+      name: 'Bitcoin thesis status action test',
+      fn: async (runtime: IAgentRuntime) => {
+        const bitcoinPlugin = runtime.plugins.find(p => p.name === 'bitcoin');
+        if (!bitcoinPlugin) {
+          throw new Error('Bitcoin plugin not found');
+        }
+        
+        const statusAction = bitcoinPlugin.actions.find(a => a.name === 'BITCOIN_THESIS_STATUS');
+        if (!statusAction) {
+          throw new Error('Bitcoin thesis status action not found');
+        }
+        
+        console.log('✅ Bitcoin thesis status action test passed');
+      },
+    },
+    {
+      name: 'Bitcoin data service test',
+      fn: async (runtime: IAgentRuntime) => {
+        const service = runtime.getService('bitcoin-data');
+        
+        if (!service) {
+          throw new Error('Bitcoin data service not found');
+        }
+        
+        if (!service.capabilityDescription.includes('Bitcoin')) {
+          throw new Error('Service capability description does not mention Bitcoin');
+        }
+        
+        console.log('✅ Bitcoin data service test passed');
       },
     },
   ];
 }
 
 // Export a default instance
-export default new StarterTestSuite();
+export default new BitcoinTestSuite();
