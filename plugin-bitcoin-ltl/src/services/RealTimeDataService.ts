@@ -1900,14 +1900,14 @@ export class RealTimeDataService extends Service {
       // Parse enhanced stats
       const stats = this.parseCollectionStats(statsData);
 
-      // Fetch floor items (3 cheapest listings)
-      const floorItems = await this.fetchFloorItems(collectionInfo.slug, headers);
+      // Get contract address for this collection
+      const contractAddress = collectionData?.contracts?.[0]?.address || '';
+
+      // Fetch floor items (3 cheapest listings) - pass contract address
+      const floorItems = await this.fetchFloorItems(collectionInfo.slug, headers, contractAddress);
 
       // Fetch recent sales (3 most recent)
       const recentSales = await this.fetchRecentSales(collectionInfo.slug, headers);
-
-      // Get contract address for this collection
-      const contractAddress = collectionData?.contracts?.[0]?.address || '';
 
       return {
         slug: collectionInfo.slug,
@@ -1969,6 +1969,12 @@ export class RealTimeDataService extends Service {
 
   private parseCollectionStats(statsData: any): NFTCollectionStats {
     const stats = statsData?.total || {};
+    const intervals = statsData?.intervals || [];
+    
+    // Find interval data
+    const oneDayInterval = intervals.find(i => i.interval === 'one_day');
+    const sevenDayInterval = intervals.find(i => i.interval === 'seven_day');
+    const thirtyDayInterval = intervals.find(i => i.interval === 'thirty_day');
     
     return {
       total_supply: stats.total_supply || 0,
@@ -1976,15 +1982,15 @@ export class RealTimeDataService extends Service {
       average_price: stats.average_price || 0,
       floor_price: stats.floor_price || 0,
       market_cap: stats.market_cap || 0,
-      one_day_volume: stats.one_day_volume || 0,
-      one_day_change: stats.one_day_change || 0,
-      one_day_sales: stats.one_day_sales || 0,
-      seven_day_volume: stats.seven_day_volume || 0,
-      seven_day_change: stats.seven_day_change || 0,
-      seven_day_sales: stats.seven_day_sales || 0,
-      thirty_day_volume: stats.thirty_day_volume || 0,
-      thirty_day_change: stats.thirty_day_change || 0,
-      thirty_day_sales: stats.thirty_day_sales || 0
+      one_day_volume: oneDayInterval?.volume || 0,
+      one_day_change: oneDayInterval?.volume_change || 0,
+      one_day_sales: oneDayInterval?.sales || 0,
+      seven_day_volume: sevenDayInterval?.volume || 0,
+      seven_day_change: sevenDayInterval?.volume_change || 0,
+      seven_day_sales: sevenDayInterval?.sales || 0,
+      thirty_day_volume: thirtyDayInterval?.volume || 0,
+      thirty_day_change: thirtyDayInterval?.volume_change || 0,
+      thirty_day_sales: thirtyDayInterval?.sales || 0
     };
   }
 
@@ -2025,17 +2031,39 @@ export class RealTimeDataService extends Service {
     };
   }
 
-  private async fetchFloorItems(slug: string, headers: any): Promise<NFTFloorItem[]> {
+  private async fetchFloorItems(slug: string, headers: any, contractAddress?: string): Promise<NFTFloorItem[]> {
     try {
+      // If no contract address provided, return empty array
+      if (!contractAddress) {
+        console.warn(`No contract address available for ${slug}, skipping floor items`);
+        return [];
+      }
+
+      // Use contract-based endpoint which works for the new API
       const response = await fetch(
-        `https://api.opensea.io/api/v2/collection/${slug}/nfts?limit=5&order_by=price&order_direction=asc`,
+        `https://api.opensea.io/api/v2/chain/ethereum/contract/${contractAddress}/nfts?limit=10`,
         { headers, signal: AbortSignal.timeout(5000) }
       );
       
-      if (!response.ok) return [];
+      if (!response.ok) {
+        console.warn(`Failed to fetch floor items for ${slug} (${response.status})`);
+        return [];
+      }
       
       const data = await response.json();
-      return (data.nfts || []).slice(0, 3).map((nft: any) => ({
+      const nfts = data.nfts || [];
+      
+      // Filter for NFTs with listings/prices and sort by price
+      const nftsWithPrices = nfts
+        .filter((nft: any) => nft.listings && nft.listings.length > 0)
+        .sort((a: any, b: any) => {
+          const priceA = this.extractPriceFromNFT(a);
+          const priceB = this.extractPriceFromNFT(b);
+          return priceA - priceB;
+        })
+        .slice(0, 3);
+
+      return nftsWithPrices.map((nft: any) => ({
         token_id: nft.identifier || '',
         name: nft.name || `#${nft.identifier}`,
         image_url: nft.image_url || '',
@@ -2043,7 +2071,7 @@ export class RealTimeDataService extends Service {
         price_usd: this.extractPriceFromNFT(nft) * 3500, // Approximate ETH to USD
         rarity_rank: nft.rarity?.rank || null,
         listing_time: nft.updated_at || new Date().toISOString(),
-        opensea_url: `https://opensea.io/assets/ethereum/${nft.contract}/${nft.identifier}`
+        opensea_url: `https://opensea.io/assets/ethereum/${contractAddress}/${nft.identifier}`
       }));
     } catch (error) {
       console.warn(`Failed to fetch floor items for ${slug}:`, error);
