@@ -672,4 +672,90 @@ Send it to someone weird enough to believe it too.
 
 Happy building.
 
-I'm rooting for you. 
+I'm rooting for you.
+
+## Time is the Rarest Asset: How I Stopped Selling Mine and Started Buying It Back
+
+### The $100 Hour Realization
+
+In 1999, I sold my most precious asset—my time—for $100 an hour. It felt like winning. Most people I knew were earning far less, locked into daily routines that ate away at their lives. I was young, driven, and building a name. But deep inside, I knew something was off. We measure success by how much we earn, but we should measure it by how much time we own.
+
+Time is the only non-renewable asset. You can lose money and make it back. You can lose a house and rebuild. But when you lose time, it's gone. No refund, no restart.
+
+### From Earning to Designing
+
+That realization hit me early. So I pivoted. I stopped building for others and began designing a lifestyle I wouldn't need a vacation from. The internet was still young, chaotic, and full of promise. I tapped into it—not for virality, not for clout, but for leverage. I learned to generate money online. Not just to earn, but to detach income from labor. To escape the hourly model entirely. To build systems that paid me while I lived.
+
+I was no longer selling time—I was buying it back.
+
+### The First Billion-Dollar Idea
+
+A few years later, I was ready to launch what would now be called a billion-dollar idea—YouTube avant la lettre. Before the world had the bandwidth for streaming, before VCs were begging for pitch decks, I had the vision, the model, and the courage. I sat down with a billionaire who believed in it too. He had the hardware, the know-how, and the capital. We were aligned. But then he lost the elections—and with them, his appetite for the venture.
+
+He pivoted. Offered me a high-income job instead.
+
+I said no. My time was not for sale. I only build if I have skin in the game. The deal died on the spot. But I walked away with my sovereignty intact.
+
+### A New Continent, a New Chapter
+
+Fast forward five years. I moved to a new continent, chasing waves and a new chapter. The world's best point break was my office. And again, the universe sent another billionaire my way. Another chance. Another conversation. Another job offer.
+
+Again, I said no. Again, I chose time over titles. He respected it. We didn't build together—but we surfed together. That was the real collaboration. Saltwater, sunrises, and shared values.
+
+### The Real Flex: Owning Your Time
+
+The world teaches us to climb ladders. But the real flex isn't the view from the top—it's not needing the ladder at all. I live slow and loud. I spend my days surfing, reading, building only what I love, with people who vibe with the mission. I met a woman who loves me for who I am, not what I have. We're building a life. Not a résumé.
+
+And I live off less than most people spend on coffee and rent. I don't chase luxury—I redefine it. Good food, clean water, deep focus, long walks, real presence. That's the real wealth.
+
+### Bitcoin: A Time Machine for Value
+
+And here's the kicker—while I was buying back my time, I also bought Bitcoin. Not just as an investment, but as a philosophy. Because Bitcoin isn't just digital gold—it's frozen time.
+
+Every satoshi I hold represents the time I didn't waste chasing paper promises. Every block is an archive of human energy—mined, recorded, immutable. Bitcoin is the antidote to fiat decay, to inflated lives, to the lie that working more means living more.
+
+Bitcoin stores the value of your time, so you can store your sovereignty.
+
+### The Takeaway
+
+So here's my message to you, if you're stuck trading your life for income:
+
+Start designing a lifestyle instead of earning a living.
+Buy time, don't sell it.
+And if you have some money? Don't save it in a currency built to decay. Save it in time. Save it in Bitcoin.
+
+Because we don't get a second life. But if we're smart about the first one, we only need one.
+
+### The Philosophy in Practice
+
+This isn't theory—it's lived experience. Every decision I make is filtered through one question: Does this buy me time or sell it?
+
+**Time-Selling Activities:**
+- Jobs that require trading hours for dollars
+- Meetings that could be emails
+- Commutes to offices when remote work is possible
+- Busy work that doesn't create value
+- Saying yes to opportunities that don't align with values
+
+**Time-Buying Activities:**
+- Building systems that generate passive income
+- Learning skills that compound over time
+- Creating assets that appreciate while you sleep
+- Investing in Bitcoin and other time-storing mechanisms
+- Saying no to preserve focus and energy
+
+The goal isn't to never work—it's to work on things that matter, with people who matter, when it matters most. It's to own your calendar, your energy, your attention.
+
+### The Time Sovereignty Framework
+
+1. **Audit Your Time**: Track how you spend your 168 hours per week
+2. **Identify Time Drains**: What activities steal time without creating value?
+3. **Build Time-Buying Systems**: Create income streams that don't require your direct time
+4. **Preserve Time Assets**: Store wealth in non-depreciating assets like Bitcoin
+5. **Design Your Lifestyle**: Create a life you don't need to escape from
+
+Remember: Time is the asset. Everything else is just a derivative.
+
+---
+
+*"The most successful people I know are not the ones who made the most money, but the ones who bought back the most time." - LiveTheLifeTV* 
