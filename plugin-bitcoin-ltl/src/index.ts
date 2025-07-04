@@ -31,20 +31,18 @@ export const character: Character = {
     // Core database and foundation - must be first
     '@elizaos/plugin-sql',
     
+    // Always include local AI as fallback/primary (works without API keys)
+    '@elizaos/plugin-local-ai',
+    
     // Primary LLM providers - order matters for model type selection
     ...(process.env.OPENAI_API_KEY && !process.env.OPENAI_API_KEY.includes('REPLACE_WITH_YOUR_ACTUAL') && !process.env.OPENAI_API_KEY.includes('your_') ? ['@elizaos/plugin-openai'] : []), // Supports all model types (text, embeddings, objects)
-    ...(process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_API_KEY.includes('your_') ? ['@elizaos/plugin-anthropic'] : []), // Text generation only, needs OpenAI fallback for embeddings
+    ...(process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_API_KEY.includes('your_') && !process.env.ANTHROPIC_API_KEY.includes('REPLACE_WITH_YOUR_ACTUAL') ? ['@elizaos/plugin-anthropic'] : []), // Text generation only, needs OpenAI fallback for embeddings
     
     // Knowledge and memory systems - needs embeddings support (requires OpenAI API key)
     ...(process.env.OPENAI_API_KEY && !process.env.OPENAI_API_KEY.includes('REPLACE_WITH_YOUR_ACTUAL') && !process.env.OPENAI_API_KEY.includes('your_') ? ['@elizaos/plugin-knowledge'] : []),
     
     // Optional: Advanced RAG Knowledge system with contextual embeddings
     ...(process.env.USE_ADVANCED_KNOWLEDGE === 'true' && process.env.OPENAI_API_KEY && !process.env.OPENAI_API_KEY.includes('REPLACE_WITH_YOUR_ACTUAL') && !process.env.OPENAI_API_KEY.includes('your_') ? ['@elizaos-plugins/plugin-knowledge'] : []),
-    
-    // Local AI fallback if no cloud providers available
-    ...(!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY.includes('REPLACE_WITH_YOUR_ACTUAL') || process.env.OPENAI_API_KEY.includes('your_')
-      ? ['@elizaos/plugin-local-ai']
-      : []),
     
     // Platform integrations - order doesn't matter much
     ...(process.env.DISCORD_API_TOKEN ? ['@elizaos/plugin-discord'] : []),
