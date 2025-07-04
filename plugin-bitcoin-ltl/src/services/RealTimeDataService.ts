@@ -354,115 +354,12 @@ export interface CuratedNFTsCache {
   timestamp: number;
 }
 
-export interface WeatherData {
-  latitude: number;
-  longitude: number;
-  generationtime_ms: number;
-  utc_offset_seconds: number;
-  timezone: string;
-  timezone_abbreviation: string;
-  elevation: number;
-  hourly_units: {
-    time: string;
-    temperature_2m: string;
-    wind_speed_10m?: string;
-    wind_direction_10m?: string;
-  };
-  hourly: {
-    time: string[];
-    temperature_2m: (number | null)[];
-    wind_speed_10m?: (number | null)[];
-    wind_direction_10m?: (number | null)[];
-  };
-  current?: {
-    time: string;
-    interval: number;
-    temperature_2m?: number;
-    wind_speed_10m?: number;
-    wind_direction_10m?: number;
-  };
-}
-
-export interface MarineData {
-  latitude: number;
-  longitude: number;
-  generationtime_ms: number;
-  utc_offset_seconds: number;
-  timezone: string;
-  timezone_abbreviation: string;
-  current_units: {
-    time: string;
-    wave_height: string;
-    wave_direction: string;
-    wave_period: string;
-    sea_surface_temperature: string;
-  };
-  current: {
-    time: string;
-    wave_height: number;
-    wave_direction: number;
-    wave_period: number;
-    sea_surface_temperature: number;
-  };
-}
-
-export interface AirQualityData {
-  latitude: number;
-  longitude: number;
-  generationtime_ms: number;
-  utc_offset_seconds: number;
-  timezone: string;
-  timezone_abbreviation: string;
-  elevation: number;
-  current_units: {
-    time: string;
-    pm10: string;
-    pm2_5: string;
-    uv_index: string;
-    uv_index_clear_sky: string;
-  };
-  current: {
-    time: string;
-    pm10: number;
-    pm2_5: number;
-    uv_index: number;
-    uv_index_clear_sky: number;
-  };
-}
-
-export interface CityWeatherData {
-  city: string;
-  displayName: string;
-  weather: WeatherData;
-  marine?: MarineData;
-  airQuality?: AirQualityData;
-  lastUpdated: Date;
-}
-
-export interface ComprehensiveWeatherData {
-  cities: CityWeatherData[];
-  summary: {
-    bestWeatherCity: string;
-    bestSurfConditions: string | null;
-    averageTemp: number;
-    windConditions: 'calm' | 'breezy' | 'windy' | 'stormy';
-    uvRisk: 'low' | 'moderate' | 'high' | 'very-high';
-    airQuality: 'excellent' | 'good' | 'moderate' | 'poor';
-  };
-  lastUpdated: Date;
-}
-
-export interface WeatherCache {
-  data: ComprehensiveWeatherData;
-  timestamp: number;
-}
-
 export class RealTimeDataService extends Service {
   static serviceType = 'real-time-data';
   capabilityDescription = 'Provides real-time market data, news feeds, and social sentiment analysis';
   
   private updateInterval: NodeJS.Timeout | null = null;
-  private readonly UPDATE_INTERVAL = 300000; // 5 minutes (increased from 1 minute)
+  private readonly UPDATE_INTERVAL = 180000; // 3 minutes - prioritize Bitcoin data freshness
   private readonly symbols = ['BTC', 'ETH', 'SOL', 'MATIC', 'ADA', '4337', '8958']; // Include MetaPlanet (4337) and Hyperliquid (8958)
   
   // Rate limiting properties
@@ -524,30 +421,6 @@ export class RealTimeDataService extends Service {
   private readonly TRENDING_COINS_CACHE_DURATION = 60 * 1000; // 1 minute (matches website)
   private curatedNFTsCache: CuratedNFTsCache | null = null;
   private readonly CURATED_NFTS_CACHE_DURATION = 60 * 1000; // 1 minute (matches website caching)
-  private weatherCache: WeatherCache | null = null;
-  private readonly WEATHER_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes (matches website)
-
-  // Curated European lifestyle cities
-  private readonly weatherCities = {
-    biarritz: { 
-      lat: 43.4833, 
-      lon: -1.5586, 
-      displayName: 'Biarritz',
-      description: 'French Basque coast, surfing paradise'
-    },
-    bordeaux: { 
-      lat: 44.8378, 
-      lon: -0.5792, 
-      displayName: 'Bordeaux',
-      description: 'Wine capital, luxury living'
-    },
-    monaco: { 
-      lat: 43.7384, 
-      lon: 7.4246, 
-      displayName: 'Monaco',
-      description: 'Tax haven, Mediterranean luxury'
-    }
-  };
 
   // Curated NFT collections (high-end digital art and OG collections)
   private readonly curatedNFTCollections = [
@@ -671,12 +544,15 @@ export class RealTimeDataService extends Service {
 
   private async updateAllData(): Promise<void> {
     try {
-      console.log('[RealTimeDataService] Starting data update cycle...');
+      console.log('[RealTimeDataService] ⚡ Starting data update cycle...');
       
-      // Stagger the updates to avoid overwhelming APIs
+      // 🟠 BITCOIN DATA FIRST - ALWAYS PRIORITIZE BITCOIN
+      console.log('[RealTimeDataService] 🟠 Prioritizing Bitcoin data update...');
+      await this.updateBitcoinData();
+      
+      // Then stagger other updates to avoid overwhelming APIs
       const updateTasks = [
         () => this.updateMarketData(),
-        () => this.updateBitcoinData(),
         () => this.updateNews(),
         () => this.updateSocialSentiment(),
         () => this.updateEconomicIndicators(),
@@ -685,8 +561,7 @@ export class RealTimeDataService extends Service {
         () => this.updateDexScreenerData(),
         () => this.updateTopMoversData(),
         () => this.updateTrendingCoinsData(),
-        () => this.updateCuratedNFTsData(),
-        () => this.updateWeatherData()
+        () => this.updateCuratedNFTsData()
       ];
 
       // Execute updates with delays between them
@@ -695,16 +570,16 @@ export class RealTimeDataService extends Service {
           await updateTasks[i]();
           // Add delay between different types of updates
           if (i < updateTasks.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 3000)); // 3 second delay between update types
+            await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay between update types
           }
         } catch (error) {
           console.error(`Update task ${i} failed:`, error);
         }
       }
 
-      console.log('[RealTimeDataService] Data update cycle completed');
+      console.log('[RealTimeDataService] ✅ Data update cycle completed');
     } catch (error) {
-      console.error('[RealTimeDataService] Error updating data:', error);
+      console.error('[RealTimeDataService] ❌ Error updating data:', error);
     }
   }
 
@@ -718,9 +593,34 @@ export class RealTimeDataService extends Service {
 
   private async updateBitcoinData(): Promise<void> {
     try {
+      console.log('[RealTimeDataService] 🟠 Fetching comprehensive Bitcoin data...');
       this.comprehensiveBitcoinData = await this.fetchComprehensiveBitcoinData();
+      
+      if (this.comprehensiveBitcoinData) {
+        const price = this.comprehensiveBitcoinData.price.usd;
+        const change24h = this.comprehensiveBitcoinData.price.change24h;
+        const blockHeight = this.comprehensiveBitcoinData.network.blockHeight;
+        const hashRate = this.comprehensiveBitcoinData.network.hashRate;
+        const difficulty = this.comprehensiveBitcoinData.network.difficulty;
+        const fearGreed = this.comprehensiveBitcoinData.sentiment.fearGreedIndex;
+        const mempoolSize = this.comprehensiveBitcoinData.network.mempoolSize;
+        const fastestFee = this.comprehensiveBitcoinData.network.mempoolFees?.fastestFee;
+        const nextHalvingBlocks = this.comprehensiveBitcoinData.network.nextHalving?.blocks;
+        
+        console.log(`[RealTimeDataService] 🟠 Bitcoin Price: $${price?.toLocaleString()} (${change24h && change24h > 0 ? '+' : ''}${change24h?.toFixed(2)}%)`);
+        console.log(`[RealTimeDataService] 🟠 Network Hash Rate: ${hashRate ? (hashRate / 1e18).toFixed(2) + ' EH/s' : 'N/A'}`);
+        console.log(`[RealTimeDataService] 🟠 Block Height: ${blockHeight?.toLocaleString()}`);
+        console.log(`[RealTimeDataService] 🟠 Network Difficulty: ${difficulty ? (difficulty / 1e12).toFixed(2) + 'T' : 'N/A'}`);
+        console.log(`[RealTimeDataService] 🟠 Mempool Size: ${mempoolSize ? (mempoolSize / 1e6).toFixed(2) + 'MB' : 'N/A'}`);
+        console.log(`[RealTimeDataService] 🟠 Fastest Fee: ${fastestFee ? fastestFee + ' sat/vB' : 'N/A'}`);
+        console.log(`[RealTimeDataService] 🟠 Fear & Greed Index: ${fearGreed} (${this.comprehensiveBitcoinData.sentiment.fearGreedValue})`);
+        console.log(`[RealTimeDataService] 🟠 Next Halving: ${nextHalvingBlocks ? nextHalvingBlocks.toLocaleString() + ' blocks' : 'N/A'}`);
+        console.log(`[RealTimeDataService] 🟠 Bitcoin data update complete`);
+      } else {
+        console.warn('[RealTimeDataService] ⚠️ Failed to fetch Bitcoin data - APIs may be down');
+      }
     } catch (error) {
-      console.error('Error updating Bitcoin data:', error);
+      console.error('[RealTimeDataService] ❌ Error updating Bitcoin data:', error);
     }
   }
 
@@ -1197,12 +1097,7 @@ export class RealTimeDataService extends Service {
     return this.curatedNFTsCache.data;
   }
 
-  public getWeatherData(): ComprehensiveWeatherData | null {
-    if (!this.weatherCache || !this.isWeatherCacheValid()) {
-      return null;
-    }
-    return this.weatherCache.data;
-  }
+
 
   public async forceUpdate(): Promise<void> {
     await this.updateAllData();
@@ -1232,9 +1127,7 @@ export class RealTimeDataService extends Service {
     return await this.fetchCuratedNFTsData();
   }
 
-  public async forceWeatherUpdate(): Promise<ComprehensiveWeatherData | null> {
-    return await this.fetchWeatherData();
-  }
+
 
   // Comprehensive Bitcoin data fetcher
   private async fetchComprehensiveBitcoinData(): Promise<ComprehensiveBitcoinData | null> {
@@ -2236,223 +2129,6 @@ export class RealTimeDataService extends Service {
       },
       lastUpdated: new Date()
     };
-  }
-
-  // Weather data management
-  private isWeatherCacheValid(): boolean {
-    if (!this.weatherCache) return false;
-    return Date.now() - this.weatherCache.timestamp < this.WEATHER_CACHE_DURATION;
-  }
-
-  private async updateWeatherData(): Promise<void> {
-    // Only fetch if cache is invalid
-    if (!this.isWeatherCacheValid()) {
-      const data = await this.fetchWeatherData();
-      if (data) {
-        this.weatherCache = {
-          data,
-          timestamp: Date.now()
-        };
-      }
-    }
-  }
-
-  private async fetchWeatherData(): Promise<ComprehensiveWeatherData | null> {
-    try {
-      console.log('[RealTimeDataService] Fetching weather data for European lifestyle cities...');
-      
-      const cities = Object.entries(this.weatherCities);
-      const cityWeatherPromises = cities.map(async ([cityKey, cityConfig]) => {
-        try {
-                     // Fetch weather data
-           const weatherResponse = await fetch(
-             `https://api.open-meteo.com/v1/forecast?latitude=${cityConfig.lat}&longitude=${cityConfig.lon}&current=temperature_2m,wind_speed_10m,wind_direction_10m&hourly=temperature_2m,wind_speed_10m,wind_direction_10m`,
-             { signal: AbortSignal.timeout(5000) }
-           );
-
-          if (!weatherResponse.ok) {
-            console.warn(`Failed to fetch weather for ${cityKey}: ${weatherResponse.status}`);
-            return null;
-          }
-
-                     const weatherData = await weatherResponse.json();
-
-           // If no current data, use latest hourly data as fallback
-           if (!weatherData.current && weatherData.hourly) {
-             const latestIndex = weatherData.hourly.time.length - 1;
-             if (latestIndex >= 0) {
-               weatherData.current = {
-                 time: weatherData.hourly.time[latestIndex],
-                 interval: 3600, // 1 hour in seconds
-                 temperature_2m: weatherData.hourly.temperature_2m[latestIndex],
-                 wind_speed_10m: weatherData.hourly.wind_speed_10m?.[latestIndex],
-                 wind_direction_10m: weatherData.hourly.wind_direction_10m?.[latestIndex]
-               };
-             }
-           }
-
-           // Fetch marine data (for coastal cities)
-          let marineData = null;
-          if (cityKey === 'biarritz' || cityKey === 'monaco') {
-            try {
-              const marineResponse = await fetch(
-                `https://marine-api.open-meteo.com/v1/marine?latitude=${cityConfig.lat}&longitude=${cityConfig.lon}&current=wave_height,wave_direction,wave_period,sea_surface_temperature`,
-                { signal: AbortSignal.timeout(5000) }
-              );
-              if (marineResponse.ok) {
-                marineData = await marineResponse.json();
-              }
-            } catch (error) {
-              console.warn(`Failed to fetch marine data for ${cityKey}:`, error);
-            }
-          }
-
-          // Fetch air quality data
-          let airQualityData = null;
-          try {
-            const airQualityResponse = await fetch(
-              `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${cityConfig.lat}&longitude=${cityConfig.lon}&current=pm10,pm2_5,uv_index,uv_index_clear_sky`,
-              { signal: AbortSignal.timeout(5000) }
-            );
-            if (airQualityResponse.ok) {
-              airQualityData = await airQualityResponse.json();
-            }
-          } catch (error) {
-            console.warn(`Failed to fetch air quality data for ${cityKey}:`, error);
-          }
-
-          return {
-            city: cityKey,
-            displayName: cityConfig.displayName,
-            weather: weatherData,
-            marine: marineData,
-            airQuality: airQualityData,
-            lastUpdated: new Date()
-          } as CityWeatherData;
-
-        } catch (error) {
-          console.error(`Error fetching weather for ${cityKey}:`, error);
-          return null;
-        }
-      });
-
-      // Add delays between requests to avoid rate limits
-      const cityWeatherData: CityWeatherData[] = [];
-      for (let i = 0; i < cityWeatherPromises.length; i++) {
-        if (i > 0) {
-          await new Promise(resolve => setTimeout(resolve, 300)); // 300ms delay
-        }
-        try {
-          const result = await cityWeatherPromises[i];
-          if (result) {
-            cityWeatherData.push(result);
-          }
-        } catch (error) {
-          console.error(`Error processing weather for city ${i}:`, error);
-        }
-      }
-
-      // Calculate summary statistics
-      if (cityWeatherData.length === 0) {
-        console.warn('No weather data retrieved for any city');
-        return null;
-      }
-
-      // Get valid temperatures (handle optional/null values)
-      const temperatures = cityWeatherData
-        .map(city => city.weather.current?.temperature_2m)
-        .filter((temp): temp is number => temp !== undefined && temp !== null);
-      
-      if (temperatures.length === 0) {
-        console.warn('No valid temperature data available');
-        return null;
-      }
-
-      const averageTemp = temperatures.reduce((sum, temp) => sum + temp, 0) / temperatures.length;
-
-      // Find best weather city (highest temp, lowest wind) - handle optional values
-      const bestWeatherCity = cityWeatherData.reduce((best, current) => {
-        const bestTemp = best.weather.current?.temperature_2m || 0;
-        const bestWind = best.weather.current?.wind_speed_10m || 0;
-        const currentTemp = current.weather.current?.temperature_2m || 0;
-        const currentWind = current.weather.current?.wind_speed_10m || 0;
-        
-        const bestScore = bestTemp - (bestWind * 0.5);
-        const currentScore = currentTemp - (currentWind * 0.5);
-        return currentScore > bestScore ? current : best;
-      }).displayName;
-
-      // Find best surf conditions (coastal cities only)
-      const coastalCities = cityWeatherData.filter(city => city.marine);
-      let bestSurfConditions = null;
-      if (coastalCities.length > 0) {
-        const bestSurf = coastalCities.reduce((best, current) => {
-          if (!best.marine || !current.marine) return best;
-          const bestWaves = best.marine.current.wave_height * best.marine.current.wave_period;
-          const currentWaves = current.marine.current.wave_height * current.marine.current.wave_period;
-          return currentWaves > bestWaves ? current : best;
-        });
-        bestSurfConditions = bestSurf.displayName;
-      }
-
-      // Wind conditions assessment - handle optional values
-      const windSpeeds = cityWeatherData
-        .map(city => city.weather.current?.wind_speed_10m)
-        .filter((speed): speed is number => speed !== undefined && speed !== null);
-      
-      const maxWindSpeed = windSpeeds.length > 0 ? Math.max(...windSpeeds) : 0;
-      let windConditions: 'calm' | 'breezy' | 'windy' | 'stormy';
-      if (maxWindSpeed < 10) windConditions = 'calm';
-      else if (maxWindSpeed < 20) windConditions = 'breezy';
-      else if (maxWindSpeed < 35) windConditions = 'windy';
-      else windConditions = 'stormy';
-
-      // UV risk assessment
-      const uvIndices = cityWeatherData
-        .filter(city => city.airQuality?.current.uv_index !== undefined)
-        .map(city => city.airQuality!.current.uv_index);
-      
-      let uvRisk: 'low' | 'moderate' | 'high' | 'very-high' = 'low';
-      if (uvIndices.length > 0) {
-        const maxUV = Math.max(...uvIndices);
-        if (maxUV >= 8) uvRisk = 'very-high';
-        else if (maxUV >= 6) uvRisk = 'high';
-        else if (maxUV >= 3) uvRisk = 'moderate';
-      }
-
-      // Air quality assessment
-      const pm25Values = cityWeatherData
-        .filter(city => city.airQuality?.current.pm2_5 !== undefined)
-        .map(city => city.airQuality!.current.pm2_5);
-      
-      let airQuality: 'excellent' | 'good' | 'moderate' | 'poor' = 'excellent';
-      if (pm25Values.length > 0) {
-        const maxPM25 = Math.max(...pm25Values);
-        if (maxPM25 > 35) airQuality = 'poor';
-        else if (maxPM25 > 15) airQuality = 'moderate';
-        else if (maxPM25 > 5) airQuality = 'good';
-      }
-
-      const result: ComprehensiveWeatherData = {
-        cities: cityWeatherData,
-        summary: {
-          bestWeatherCity,
-          bestSurfConditions,
-          averageTemp,
-          windConditions,
-          uvRisk,
-          airQuality
-        },
-        lastUpdated: new Date()
-      };
-
-      console.log(`[RealTimeDataService] Fetched weather data: ${cityWeatherData.length} cities, avg temp: ${averageTemp.toFixed(1)}°C, best weather: ${bestWeatherCity}`);
-      return result;
-
-    } catch (error) {
-      console.error('Error in fetchWeatherData:', error);
-      return null;
-    }
   }
 
   private async makeQueuedRequest<T>(requestFn: () => Promise<T>): Promise<T> {

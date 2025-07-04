@@ -23,9 +23,10 @@ import {
   OpportunityAlertService,
   PerformanceTrackingService,
   SchedulerService,
-  RealTimeDataService
+  RealTimeDataService,
+  StockDataService
 } from './services';
-import { morningBriefingAction, curatedAltcoinsAction, top100VsBtcAction, dexScreenerAction, topMoversAction, trendingCoinsAction, curatedNFTsAction, weatherAction } from './actions';
+import { morningBriefingAction, curatedAltcoinsAction, top100VsBtcAction, dexScreenerAction, topMoversAction, trendingCoinsAction, curatedNFTsAction, weatherAction, stockMarketAction, hotelSearchAction, hotelDealAlertAction, bookingOptimizationAction, travelInsightsAction } from './actions';
 
 /**
  * Bitcoin Plugin Configuration Schema
@@ -3137,7 +3138,13 @@ const bitcoinPlugin: Plugin = {
     topMoversAction,
     trendingCoinsAction,
     curatedNFTsAction,
-    weatherAction
+    weatherAction,
+    stockMarketAction,
+    // Travel & Booking Actions
+    hotelSearchAction,
+    hotelDealAlertAction,
+    bookingOptimizationAction,
+    travelInsightsAction
   ],
   events: {
     MESSAGE_RECEIVED: [
@@ -4115,7 +4122,8 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
     OpportunityAlertService,
     PerformanceTrackingService,
     SchedulerService,
-    RealTimeDataService
+    RealTimeDataService,
+    StockDataService
   ],
   tests: [bitcoinTestSuite],
 };

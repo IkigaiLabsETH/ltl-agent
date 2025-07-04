@@ -308,12 +308,89 @@ export class MorningBriefingService extends Service {
       const bitcoinPrice = await bitcoinService.getBitcoinPrice();
       const thesisMetrics = await bitcoinService.calculateThesisMetrics(bitcoinPrice);
       
-      // Mock altcoin and stock data - in real implementation, fetch from APIs
+      // Get real stock data from StockDataService
+      const stockDataService = this.runtime.getService('stock-data') as any;
+      let stockData = null;
+      if (stockDataService && stockDataService.getStockData) {
+        try {
+          stockData = stockDataService.getStockData();
+          this.contextLogger.info('Stock data loaded for morning briefing');
+        } catch (error) {
+          this.contextLogger.warn('Failed to get stock data:', (error as Error).message);
+        }
+      }
+
+      // Build stocks section with real data or fallback
+      let stocksSection = {
+        watchlist: [
+          { symbol: 'TSLA', change: 3.2, signal: 'Breakout above resistance', price: 350 },
+          { symbol: 'MSTR', change: 7.8, signal: 'Bitcoin correlation play', price: 420 }
+        ],
+        opportunities: ['Tech sector rotation', 'AI infrastructure plays'],
+        sectorRotation: ['Technology', 'Energy']
+      };
+
+      if (stockData && stockData.performance) {
+        const { performance, stocks, mag7 } = stockData;
+        
+        // Get top performers for watchlist
+        const topPerformers = performance.topPerformers.slice(0, 5).map(comp => {
+          let signal = 'Market neutral';
+          if (comp.vsMag7.outperforming && comp.vsSp500.outperforming) {
+            signal = 'Outperforming both MAG7 and S&P 500';
+          } else if (comp.vsMag7.outperforming) {
+            signal = 'Outperforming MAG7';
+          } else if (comp.vsSp500.outperforming) {
+            signal = 'Outperforming S&P 500';
+          } else {
+            signal = 'Underperforming market';
+          }
+
+          return {
+            symbol: comp.stock.symbol,
+            change: comp.stock.changePercent,
+            signal,
+            price: comp.stock.price
+          };
+        });
+
+        // Generate opportunities based on performance
+        const opportunities = [];
+        if (performance.bitcoinRelatedAverage > performance.mag7Average) {
+          opportunities.push('Bitcoin proxy stocks outperforming tech');
+        }
+        if (performance.techStocksAverage > performance.sp500Performance) {
+          opportunities.push('Tech sector leading broader market');
+        }
+        if (performance.topPerformers.some(p => p.stock.sector === 'bitcoin-related')) {
+          opportunities.push('Bitcoin treasury strategies gaining momentum');
+        }
+
+        // Determine sector rotation
+        const sectorRotation = [];
+        if (performance.bitcoinRelatedAverage > performance.techStocksAverage) {
+          sectorRotation.push('Bitcoin-related equities');
+        }
+        if (performance.techStocksAverage > 0) {
+          sectorRotation.push('Technology');
+        }
+        if (performance.mag7Average > performance.sp500Performance) {
+          sectorRotation.push('Large-cap tech concentration');
+        }
+
+        stocksSection = {
+          watchlist: topPerformers,
+          opportunities: opportunities.length > 0 ? opportunities : ['Monitor market consolidation'],
+          sectorRotation: sectorRotation.length > 0 ? sectorRotation : ['Broad market participation']
+        };
+      }
+      
+      // Mock altcoin data - could be replaced with real data from RealTimeDataService
       const marketPulse: MarketPulse = {
         bitcoin: {
           price: bitcoinPrice,
-          change24h: 2.5, // Mock data
-          change7d: 8.2, // Mock data
+          change24h: 2.5, // Could get from RealTimeDataService
+          change7d: 8.2, // Could get from RealTimeDataService
           trend: 'bullish',
           thesisProgress: thesisMetrics.progressPercentage,
           nextResistance: bitcoinPrice * 1.05,
@@ -330,18 +407,13 @@ export class MorningBriefingService extends Service {
           totalOutperforming: 15,
           isAltseason: false
         },
-        stocks: {
-          watchlist: [
-            { symbol: 'TSLA', change: 3.2, signal: 'Breakout above resistance', price: 350 },
-            { symbol: 'MSTR', change: 7.8, signal: 'Bitcoin correlation play', price: 420 }
-          ],
-          opportunities: ['Tech sector rotation', 'AI infrastructure plays'],
-          sectorRotation: ['Technology', 'Energy']
-        },
+        stocks: stocksSection,
         overall: {
-          sentiment: 'risk-on',
+          sentiment: stockData && stockData.performance.mag7Average > 0 ? 'risk-on' : 'risk-off',
           majorEvents: ['Fed decision pending', 'Bitcoin ETF flows'],
-          catalysts: ['Institutional adoption', 'Regulatory clarity']
+          catalysts: stockData && stockData.performance.bitcoinRelatedAverage > 0 
+            ? ['Institutional Bitcoin adoption', 'Corporate treasury diversification', 'Regulatory clarity']
+            : ['Institutional adoption', 'Regulatory clarity']
         }
       };
 

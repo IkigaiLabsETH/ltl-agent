@@ -1,5 +1,6 @@
 import { Action, ActionExample, IAgentRuntime, Memory, State, HandlerCallback } from '@elizaos/core';
 import { RealTimeDataService } from '../services/RealTimeDataService';
+import { LifestyleDataService } from '../services/LifestyleDataService';
 
 export const weatherAction: Action = {
   name: 'WEATHER_ANALYSIS',
@@ -24,9 +25,9 @@ export const weatherAction: Action = {
   },
   handler: async (runtime: IAgentRuntime, message: Memory, state: State, options: any, callback: HandlerCallback) => {
     try {
-      const realTimeDataService = runtime.getService('RealTimeDataService') as RealTimeDataService;
+      const lifestyleDataService = runtime.getService('lifestyle-data') as LifestyleDataService;
       
-      if (!realTimeDataService) {
+      if (!lifestyleDataService) {
         callback({
           text: "Weather data temporarily unavailable. Like Bitcoin's network, sometimes we need patience for the next block.",
           action: 'WEATHER_ANALYSIS'
@@ -41,9 +42,9 @@ export const weatherAction: Action = {
 
       let weatherData;
       if (forceRefresh) {
-        weatherData = await realTimeDataService.forceWeatherUpdate();
+        weatherData = await lifestyleDataService.forceWeatherUpdate();
       } else {
-        weatherData = realTimeDataService.getWeatherData();
+        weatherData = lifestyleDataService.getWeatherData();
       }
 
       if (!weatherData) {
