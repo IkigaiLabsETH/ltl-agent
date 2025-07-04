@@ -3400,36 +3400,8 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
         prompt: enhancedPrompt
       });
     },
-    [ModelType.TEXT_EMBEDDING]: async (runtime: IAgentRuntime, params: GenerateTextParams): Promise<string> => {
-      // Enhanced embeddings for Bitcoin-related content
-      const bitcoinTerms = [
-        'bitcoin', 'btc', 'satoshi', 'blockchain', 'cryptocurrency',
-        'halving', 'mining', 'hodl', 'lightning', 'decentralized',
-        'sound money', 'store of value', 'digital gold', 'peer to peer',
-        'trustless', 'permissionless', 'censorship resistant', 'sovereign',
-        'self custody', 'not your keys', 'austrian economics', 'fiat',
-        'monetary policy', 'inflation hedge', 'scarce asset', 'deflation',
-        'network effect', 'lindy effect', 'orange pill', 'toxic maximalist'
-      ];
-      
-      let enhancedText = params.prompt;
-      
-      // Check if this is Bitcoin-related content
-      const isBitcoinContent = bitcoinTerms.some(term => 
-        params.prompt.toLowerCase().includes(term)
-      );
-      
-      if (isBitcoinContent) {
-        // Add Bitcoin semantic context for better embeddings
-        enhancedText = `Bitcoin cryptocurrency digital money ${params.prompt}`;
-      }
-      
-      // Use the default runtime embedding model
-      return await runtime.useModel(ModelType.TEXT_EMBEDDING, {
-        ...params,
-        prompt: enhancedText
-      });
-    },
+    // Remove the custom TEXT_EMBEDDING handler to avoid circular dependency
+    // The OpenAI plugin will handle embeddings properly
   },
   routes: [
     {
