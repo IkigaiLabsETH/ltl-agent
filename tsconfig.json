@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "src",
+    "rootDir": "plugin-bitcoin-ltl/src",
     "lib": ["ESNext"],
     "target": "ESNext",
     "module": "Preserve",
@@ -26,5 +26,5 @@
       "@elizaos/core/*": ["../core/src/*"]
     }
   },
-  "include": ["src/**/*.ts"]
+  "include": ["plugin-bitcoin-ltl/src/**/*.ts"]
 }

@@ -1,5 +1,5 @@
 {
-  "name": "plugin-bitcoin-ltl",
+  "name": "@livethelifetv/plugin-bitcoin-ltl",
   "description": "Bitcoin-native AI agent plugin for LiveTheLifeTV - provides Bitcoin market data, thesis tracking, and sovereign living insights",
   "version": "1.0.0",
   "type": "module",
@@ -71,19 +71,60 @@
   },
   "agentConfig": {
     "pluginType": "elizaos:plugin:1.0.0",
+    "category": "finance",
+    "tags": ["bitcoin", "cryptocurrency", "market-data", "investment", "thesis-tracking"],
     "capabilities": [
       "bitcoin-market-data",
-      "thesis-tracking",
+      "thesis-tracking", 
       "price-analysis",
       "institutional-adoption",
-      "sovereign-living"
+      "sovereign-living",
+      "freedom-mathematics",
+      "memory-management",
+      "error-handling"
+    ],
+    "providers": [
+      "BITCOIN_PRICE_PROVIDER",
+      "BITCOIN_THESIS_PROVIDER",
+      "INSTITUTIONAL_ADOPTION_PROVIDER",
+      "ALTCOIN_BTC_PERFORMANCE_PROVIDER"
+    ],
+    "actions": [
+      "BITCOIN_MARKET_ANALYSIS",
+      "BITCOIN_THESIS_STATUS",
+      "RESET_AGENT_MEMORY",
+      "CHECK_MEMORY_HEALTH",
+      "VALIDATE_ENVIRONMENT"
+    ],
+    "services": [
+      "bitcoin-data"
+    ],
+    "routes": [
+      "/bitcoin/price",
+      "/bitcoin/thesis", 
+      "/bitcoin/freedom-math",
+      "/bitcoin/institutional",
+      "/bitcoin/health"
     ],
     "requirements": {
+      "required": [
+        "NODE_ENV"
+      ],
       "optional": [
         "COINGECKO_API_KEY",
         "THIRDWEB_SECRET_KEY",
-        "LUMA_API_KEY"
+        "LUMA_API_KEY",
+        "SUPABASE_URL",
+        "SUPABASE_ANON_KEY"
       ]
+    },
+    "compatibility": {
+      "elizaos": ">=1.0.17",
+      "node": ">=18.0.0"
+    },
+    "documentation": {
+      "readme": "https://github.com/LiveTheLifeTV/plugin-bitcoin-ltl/blob/main/README.md",
+      "docs": "https://github.com/LiveTheLifeTV/plugin-bitcoin-ltl/tree/main/docs"
     }
   }
 }

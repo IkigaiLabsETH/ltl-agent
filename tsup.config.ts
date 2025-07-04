@@ -1,7 +1,7 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
-  entry: ['src/index.ts'],
+  entry: ['plugin-bitcoin-ltl/src/index.ts'],
   outDir: 'dist',
   tsconfig: './tsconfig.build.json', // Use build-specific tsconfig
   sourcemap: true,
