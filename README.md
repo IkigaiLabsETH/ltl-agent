@@ -112,7 +112,7 @@ bun start
 ```
 
 5. **Access Dashboard**
-Open `http://localhost:3002` to access the ElizaOS dashboard.
+Open `http://localhost:3000` to access the ElizaOS dashboard.
 
 ## 📁 **Project Structure**
 

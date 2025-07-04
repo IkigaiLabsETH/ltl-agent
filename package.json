@@ -1,6 +1,6 @@
 {
-  "name": "@elizaos/project-starter",
-  "description": "Project starter for elizaOS",
+  "name": "@elizaos/satoshi-agent",
+  "description": "Satoshi - Bitcoin-native AI agent channeling Satoshi Nakamoto",
   "version": "0.1.0",
   "type": "module",
   "private": true,
@@ -30,7 +30,7 @@
   "dependencies": {
     "@elizaos/cli": "^1.0.17",
     "@elizaos/core": "^1.0.17",
-    "@elizaos/plugin-anthropic": "1.0.3",
+    "@elizaos/plugin-anthropic": "^1.0.3",
     "@elizaos/plugin-bootstrap": "^1.0.17",
     "@elizaos/plugin-knowledge": "^1.0.11",
     "@elizaos/plugin-local-ai": "^1.0.5",
@@ -60,12 +60,8 @@
     "access": "public"
   },
   "gitHead": "b165ad83e5f7a21bc1edbd83374ca087e3cd6b33",
-  "packageType": "project",
-  "agentConfig": {
-    "pluginType": "elizaos:project:1.0.0",
-    "projectConfig": {
-      "name": "ltl-agent",
-      "description": "Project starter for elizaOS"
-    }
+  "elizaos": {
+    "type": "project",
+    "version": "1.0.0"
   }
 }

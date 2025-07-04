@@ -1,13 +1,13 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "rootDir": "./plugin-bitcoin-ltl/src",
+    "rootDir": "./",
     "outDir": "./dist",
     "sourceMap": true,
     "inlineSources": true,
     "declaration": true,
     "emitDeclarationOnly": true
   },
-  "include": ["plugin-bitcoin-ltl/src/**/*.ts"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts"]
+  "include": ["src/**/*.ts", "plugin-bitcoin-ltl/src/**/*.ts"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts", "__tests__/**/*"]
 }
