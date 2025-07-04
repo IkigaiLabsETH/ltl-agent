@@ -24,7 +24,8 @@ import {
   PerformanceTrackingService,
   SchedulerService,
   RealTimeDataService,
-  StockDataService
+  StockDataService,
+  LifestyleDataService
 } from './services';
 import { morningBriefingAction, curatedAltcoinsAction, top100VsBtcAction, dexScreenerAction, topMoversAction, trendingCoinsAction, curatedNFTsAction, weatherAction, stockMarketAction, hotelSearchAction, hotelDealAlertAction, bookingOptimizationAction, travelInsightsAction } from './actions';
 
@@ -4123,7 +4124,8 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
     PerformanceTrackingService,
     SchedulerService,
     RealTimeDataService,
-    StockDataService
+    StockDataService,
+    LifestyleDataService
   ],
   tests: [bitcoinTestSuite],
 };
