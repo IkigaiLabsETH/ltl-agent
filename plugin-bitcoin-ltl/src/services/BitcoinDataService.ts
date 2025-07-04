@@ -204,10 +204,55 @@ export class BitcoinDataService extends Service {
     return 0;
   }
 
+  /**
+   * Fetch with retry logic for API calls with rate limit handling
+   */
+  private async fetchWithRetry(
+    url: string, 
+    options: any = {}, 
+    maxRetries = 3
+  ): Promise<any> {
+    let lastError;
+    
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        const response = await fetch(url, {
+          ...options,
+          signal: AbortSignal.timeout(10000) // 10 second timeout
+        });
+        
+        if (response.status === 429) {
+          // Rate limited - exponential backoff
+          const waitTime = Math.min(Math.pow(2, i) * 1000, 10000);
+          logger.warn(`Rate limited, waiting ${waitTime}ms before retry ${i + 1}`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          continue;
+        }
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        return await response.json();
+      } catch (error) {
+        lastError = error;
+        if (i < maxRetries - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+        }
+      }
+    }
+    
+    throw lastError;
+  }
+
   async getBitcoinPrice(): Promise<number> {
     try {
-      const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');
-      const data = await response.json() as any;
+      const data = await this.fetchWithRetry(
+        'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd',
+        {
+          headers: { 'Accept': 'application/json' }
+        }
+      );
       return data.bitcoin?.usd || 100000;
     } catch (error) {
       logger.error('Error fetching Bitcoin price:', error);
@@ -260,11 +305,10 @@ export class BitcoinDataService extends Service {
    */
   async getEnhancedMarketData(): Promise<BitcoinPriceData> {
     try {
-      const response = await fetch(
+      const data = await this.fetchWithRetry(
         'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin&order=market_cap_desc&per_page=1&page=1&sparkline=false&price_change_percentage=24h%2C7d',
         { headers: { 'Accept': 'application/json' } }
-      );
-      const data = await response.json() as CoinMarketData[];
+      ) as CoinMarketData[];
       const bitcoin = data[0];
 
       return {
