@@ -57,7 +57,7 @@ var BitcoinTestSuite = class {
       name: "Hello world provider test",
       fn: async (runtime) => {
         console.log("\u{1F9EA} Testing hello world provider...");
-        const plugin = runtime.plugins.find((p) => p.name === "starter");
+        const plugin = runtime.plugins.find((p) => p.name === "bitcoin-ltl");
         if (!plugin || !plugin.providers) {
           throw new Error("Plugin or providers not found");
         }
@@ -4659,9 +4659,9 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
         3
       );
       const stats = this.parseCollectionStats(statsData);
-      const floorItems = await this.fetchFloorItems(collectionInfo.slug, headers);
-      const recentSales = await this.fetchRecentSales(collectionInfo.slug, headers);
       const contractAddress = collectionData?.contracts?.[0]?.address || "";
+      const floorItems = await this.fetchFloorItems(collectionInfo.slug, headers, contractAddress);
+      const recentSales = await this.fetchRecentSales(collectionInfo.slug, headers);
       return {
         slug: collectionInfo.slug,
         collection: this.parseCollectionData(collectionData, collectionInfo),
@@ -4710,21 +4710,25 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
   }
   parseCollectionStats(statsData) {
     const stats = statsData?.total || {};
+    const intervals = statsData?.intervals || [];
+    const oneDayInterval = intervals.find((i) => i.interval === "one_day");
+    const sevenDayInterval = intervals.find((i) => i.interval === "seven_day");
+    const thirtyDayInterval = intervals.find((i) => i.interval === "thirty_day");
     return {
       total_supply: stats.total_supply || 0,
       num_owners: stats.num_owners || 0,
       average_price: stats.average_price || 0,
       floor_price: stats.floor_price || 0,
       market_cap: stats.market_cap || 0,
-      one_day_volume: stats.one_day_volume || 0,
-      one_day_change: stats.one_day_change || 0,
-      one_day_sales: stats.one_day_sales || 0,
-      seven_day_volume: stats.seven_day_volume || 0,
-      seven_day_change: stats.seven_day_change || 0,
-      seven_day_sales: stats.seven_day_sales || 0,
-      thirty_day_volume: stats.thirty_day_volume || 0,
-      thirty_day_change: stats.thirty_day_change || 0,
-      thirty_day_sales: stats.thirty_day_sales || 0
+      one_day_volume: oneDayInterval?.volume || 0,
+      one_day_change: oneDayInterval?.volume_change || 0,
+      one_day_sales: oneDayInterval?.sales || 0,
+      seven_day_volume: sevenDayInterval?.volume || 0,
+      seven_day_change: sevenDayInterval?.volume_change || 0,
+      seven_day_sales: sevenDayInterval?.sales || 0,
+      thirty_day_volume: thirtyDayInterval?.volume || 0,
+      thirty_day_change: thirtyDayInterval?.volume_change || 0,
+      thirty_day_sales: thirtyDayInterval?.sales || 0
     };
   }
   parseCollectionData(collectionData, collectionInfo) {
@@ -4762,15 +4766,28 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
       created_date: collection.created_date || ""
     };
   }
-  async fetchFloorItems(slug, headers) {
+  async fetchFloorItems(slug, headers, contractAddress) {
     try {
+      if (!contractAddress) {
+        console.warn(`No contract address available for ${slug}, skipping floor items`);
+        return [];
+      }
       const response = await fetch(
-        `https://api.opensea.io/api/v2/collection/${slug}/nfts?limit=5&order_by=price&order_direction=asc`,
+        `https://api.opensea.io/api/v2/chain/ethereum/contract/${contractAddress}/nfts?limit=10`,
         { headers, signal: AbortSignal.timeout(5e3) }
       );
-      if (!response.ok) return [];
+      if (!response.ok) {
+        console.warn(`Failed to fetch floor items for ${slug} (${response.status})`);
+        return [];
+      }
       const data = await response.json();
-      return (data.nfts || []).slice(0, 3).map((nft) => ({
+      const nfts = data.nfts || [];
+      const nftsWithPrices = nfts.filter((nft) => nft.listings && nft.listings.length > 0).sort((a, b) => {
+        const priceA = this.extractPriceFromNFT(a);
+        const priceB = this.extractPriceFromNFT(b);
+        return priceA - priceB;
+      }).slice(0, 3);
+      return nftsWithPrices.map((nft) => ({
         token_id: nft.identifier || "",
         name: nft.name || `#${nft.identifier}`,
         image_url: nft.image_url || "",
@@ -4779,7 +4796,7 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
         // Approximate ETH to USD
         rarity_rank: nft.rarity?.rank || null,
         listing_time: nft.updated_at || (/* @__PURE__ */ new Date()).toISOString(),
-        opensea_url: `https://opensea.io/assets/ethereum/${nft.contract}/${nft.identifier}`
+        opensea_url: `https://opensea.io/assets/ethereum/${contractAddress}/${nft.identifier}`
       }));
     } catch (error) {
       console.warn(`Failed to fetch floor items for ${slug}:`, error);
@@ -5139,6 +5156,7 @@ import {
 var morningBriefingAction = {
   name: "MORNING_BRIEFING",
   description: "Generate and deliver a proactive morning intelligence briefing with market data, weather, and curated insights",
+  similes: ["GM", "MORNING_BRIEF", "DAILY_INTEL", "MARKET_UPDATE"],
   examples: [
     [
       {
@@ -8424,360 +8442,6 @@ Altcoins are venture capital plays on crypto infrastructure and applications. Bi
     ]
   ]
 };
-var StarterService = class _StarterService extends Service9 {
-  constructor(runtime) {
-    super();
-    this.runtime = runtime;
-  }
-  static serviceType = "bitcoin-data";
-  capabilityDescription = "Provides Bitcoin market data, analysis, and thesis tracking capabilities";
-  static async start(runtime) {
-    const validation = validateElizaOSEnvironment();
-    if (!validation.valid) {
-      const contextLogger = new LoggerWithContext2(generateCorrelationId2(), "BitcoinDataService");
-      contextLogger.warn("ElizaOS environment validation issues detected", {
-        issues: validation.issues
-      });
-      validation.issues.forEach((issue) => {
-        contextLogger.warn(`Environment Issue: ${issue}`);
-      });
-    }
-    logger17.info("BitcoinDataService starting...");
-    return new _StarterService(runtime);
-  }
-  static async stop(runtime) {
-    logger17.info("BitcoinDataService stopping...");
-    const service = runtime.getService("starter");
-    if (!service) {
-      throw new Error("Starter service not found");
-    }
-    if (service.stop && typeof service.stop === "function") {
-      await service.stop();
-    }
-  }
-  async init() {
-    logger17.info("BitcoinDataService initialized");
-  }
-  async stop() {
-    logger17.info("BitcoinDataService stopped");
-  }
-  /**
-   * Reset agent memory following ElizaOS best practices
-   */
-  async resetMemory() {
-    try {
-      const databaseConfig = this.runtime.character.settings?.database;
-      const isDbConfigObject = (config) => {
-        return typeof config === "object" && config !== null;
-      };
-      if (isDbConfigObject(databaseConfig) && databaseConfig.type === "postgresql" && databaseConfig.url) {
-        return {
-          success: false,
-          message: 'PostgreSQL memory reset requires manual intervention. Run: psql -U username -c "DROP DATABASE database_name;" then recreate the database.'
-        };
-      } else {
-        const dataDir = isDbConfigObject(databaseConfig) && databaseConfig.dataDir || ".eliza/.elizadb";
-        const fs = await import("fs");
-        const path = await import("path");
-        if (fs.existsSync(dataDir)) {
-          fs.rmSync(dataDir, { recursive: true, force: true });
-          logger17.info(`Deleted PGLite database directory: ${dataDir}`);
-          return {
-            success: true,
-            message: `Memory reset successful. Deleted database directory: ${dataDir}. Restart the agent to create a fresh database.`
-          };
-        } else {
-          return {
-            success: true,
-            message: `Database directory ${dataDir} does not exist. Memory already clean.`
-          };
-        }
-      }
-    } catch (error) {
-      const enhancedError = ElizaOSErrorHandler.handleCommonErrors(error, "MemoryReset");
-      logger17.error("Failed to reset memory:", enhancedError.message);
-      return {
-        success: false,
-        message: `Memory reset failed: ${enhancedError.message}${enhancedError instanceof ElizaOSError2 ? ` Resolution: ${enhancedError.resolution}` : ""}`
-      };
-    }
-  }
-  /**
-   * Check memory usage and database health
-   */
-  async checkMemoryHealth() {
-    const databaseConfig = this.runtime.character.settings?.database;
-    const isDbConfigObject = (config) => {
-      return typeof config === "object" && config !== null;
-    };
-    const stats = {
-      databaseType: isDbConfigObject(databaseConfig) && databaseConfig.type || "pglite",
-      dataDirectory: isDbConfigObject(databaseConfig) && databaseConfig.dataDir || ".eliza/.elizadb"
-    };
-    const issues = [];
-    try {
-      const fs = await import("fs");
-      if (stats.dataDirectory && !fs.existsSync(stats.dataDirectory)) {
-        issues.push(`Database directory ${stats.dataDirectory} does not exist`);
-      }
-      if (stats.databaseType === "pglite" && stats.dataDirectory) {
-        try {
-          const dirSize = await this.getDirectorySize(stats.dataDirectory);
-          if (dirSize > 1e3 * 1024 * 1024) {
-            issues.push(`Database directory is large (${(dirSize / 1024 / 1024).toFixed(0)}MB). Consider cleanup.`);
-          }
-        } catch (error) {
-          issues.push(`Could not check database directory size: ${error.message}`);
-        }
-      }
-      const embeddingDims = process.env.OPENAI_EMBEDDING_DIMENSIONS;
-      if (embeddingDims && parseInt(embeddingDims) !== 1536 && parseInt(embeddingDims) !== 384) {
-        issues.push(`Invalid OPENAI_EMBEDDING_DIMENSIONS: ${embeddingDims}. Should be 384 or 1536.`);
-      }
-      return {
-        healthy: issues.length === 0,
-        stats,
-        issues
-      };
-    } catch (error) {
-      issues.push(`Memory health check failed: ${error.message}`);
-      return {
-        healthy: false,
-        stats,
-        issues
-      };
-    }
-  }
-  /**
-   * Helper method to calculate directory size
-   */
-  async getDirectorySize(dirPath) {
-    const fs = await import("fs");
-    const path = await import("path");
-    let totalSize = 0;
-    const calculateSize = (itemPath) => {
-      const stats = fs.statSync(itemPath);
-      if (stats.isFile()) {
-        return stats.size;
-      } else if (stats.isDirectory()) {
-        const items = fs.readdirSync(itemPath);
-        return items.reduce((size, item) => {
-          return size + calculateSize(path.join(itemPath, item));
-        }, 0);
-      }
-      return 0;
-    };
-    if (fs.existsSync(dirPath)) {
-      totalSize = calculateSize(dirPath);
-    }
-    return totalSize;
-  }
-  async getBitcoinPrice() {
-    try {
-      const response = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd");
-      const data = await response.json();
-      return data.bitcoin?.usd || 1e5;
-    } catch (error) {
-      logger17.error("Error fetching Bitcoin price:", error);
-      return 1e5;
-    }
-  }
-  async calculateThesisMetrics(currentPrice) {
-    const targetPrice = 1e6;
-    const progressPercentage = currentPrice / targetPrice * 100;
-    const multiplierNeeded = targetPrice / currentPrice;
-    const fiveYearCAGR = (Math.pow(targetPrice / currentPrice, 1 / 5) - 1) * 100;
-    const tenYearCAGR = (Math.pow(targetPrice / currentPrice, 1 / 10) - 1) * 100;
-    const baseHolders = 5e4;
-    const priceAdjustment = Math.max(0, (15e4 - currentPrice) / 5e4);
-    const estimatedHolders = Math.floor(baseHolders + priceAdjustment * 25e3);
-    const targetHolders = 1e5;
-    const holdersProgress = estimatedHolders / targetHolders * 100;
-    const historicalCAGR = 44;
-    const yearsAtHistoricalRate = Math.log(targetPrice / currentPrice) / Math.log(1 + historicalCAGR / 100);
-    const scenarios = {
-      conservative: Math.log(targetPrice / currentPrice) / Math.log(1 + 0.2),
-      // 20% CAGR
-      moderate: Math.log(targetPrice / currentPrice) / Math.log(1 + 0.3),
-      // 30% CAGR
-      aggressive: Math.log(targetPrice / currentPrice) / Math.log(1 + 0.5),
-      // 50% CAGR
-      historical: yearsAtHistoricalRate
-    };
-    return {
-      currentPrice,
-      targetPrice,
-      progressPercentage,
-      multiplierNeeded,
-      estimatedHolders,
-      targetHolders,
-      holdersProgress,
-      timeToTarget: scenarios,
-      requiredCAGR: {
-        fiveYear: fiveYearCAGR,
-        tenYear: tenYearCAGR
-      },
-      catalysts: [
-        "U.S. Strategic Bitcoin Reserve",
-        "Banking Bitcoin services expansion",
-        "Corporate treasury adoption (MicroStrategy model)",
-        "EU MiCA regulatory framework",
-        "Institutional ETF demand acceleration",
-        "Nation-state competition for reserves"
-      ],
-      riskFactors: [
-        "Political gridlock on Bitcoin policy",
-        "Market volatility and 20-30% corrections",
-        "Regulatory uncertainty in emerging markets",
-        "Macro economic recession pressures",
-        "Institutional whale selling pressure"
-      ],
-      adoptionMetrics: {
-        institutionalHolding: "MicroStrategy: $21B+ position",
-        etfFlows: "Record institutional investment",
-        bankingIntegration: "Major banks launching services",
-        sovereignAdoption: "Multiple nations considering reserves"
-      }
-    };
-  }
-  /**
-   * Enhanced Bitcoin market data with comprehensive metrics
-   */
-  async getEnhancedMarketData() {
-    try {
-      const response = await fetch(
-        "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin&order=market_cap_desc&per_page=1&page=1&sparkline=false&price_change_percentage=24h%2C7d",
-        { headers: { "Accept": "application/json" } }
-      );
-      const data = await response.json();
-      const bitcoin = data[0];
-      return {
-        price: bitcoin.current_price || 1e5,
-        marketCap: bitcoin.market_cap || 2e12,
-        volume24h: bitcoin.total_volume || 5e10,
-        priceChange24h: bitcoin.price_change_percentage_24h || 0,
-        priceChange7d: bitcoin.price_change_percentage_7d || 0,
-        priceChange30d: 0,
-        // Not available in markets endpoint
-        allTimeHigh: bitcoin.high_24h || 1e5,
-        allTimeLow: bitcoin.low_24h || 100,
-        circulatingSupply: 197e5,
-        // Static for Bitcoin
-        totalSupply: 197e5,
-        // Static for Bitcoin
-        maxSupply: 21e6,
-        // Static for Bitcoin
-        lastUpdated: (/* @__PURE__ */ new Date()).toISOString()
-      };
-    } catch (error) {
-      logger17.error("Error fetching enhanced market data:", error);
-      return {
-        price: 1e5,
-        marketCap: 2e12,
-        volume24h: 5e10,
-        priceChange24h: 0,
-        priceChange7d: 0,
-        priceChange30d: 0,
-        allTimeHigh: 1e5,
-        allTimeLow: 100,
-        circulatingSupply: 197e5,
-        totalSupply: 197e5,
-        maxSupply: 21e6,
-        lastUpdated: (/* @__PURE__ */ new Date()).toISOString()
-      };
-    }
-  }
-  /**
-   * Calculate Bitcoin Freedom Mathematics
-   * Determines BTC needed for financial freedom at different price points
-   */
-  async calculateFreedomMathematics(targetFreedom = 1e7) {
-    const currentPrice = await this.getBitcoinPrice();
-    const btcNeeded = targetFreedom / currentPrice;
-    const scenarios = {
-      current: {
-        price: currentPrice,
-        btc: btcNeeded,
-        timeline: "Today"
-      },
-      thesis250k: {
-        price: 25e4,
-        btc: targetFreedom / 25e4,
-        timeline: "2-3 years"
-      },
-      thesis500k: {
-        price: 5e5,
-        btc: targetFreedom / 5e5,
-        timeline: "3-5 years"
-      },
-      thesis1m: {
-        price: 1e6,
-        btc: targetFreedom / 1e6,
-        timeline: "5-10 years"
-      }
-    };
-    const safeLevels = {
-      conservative: btcNeeded * 1.5,
-      // 50% buffer
-      moderate: btcNeeded * 1.25,
-      // 25% buffer
-      aggressive: btcNeeded
-      // Exact target
-    };
-    logger17.info(`Freedom Mathematics calculated for $${targetFreedom.toLocaleString()}`, {
-      currentBTCNeeded: `${btcNeeded.toFixed(2)} BTC`,
-      conservativeTarget: `${safeLevels.conservative.toFixed(2)} BTC`
-    });
-    return {
-      currentPrice,
-      btcNeeded,
-      scenarios,
-      safeLevels
-    };
-  }
-  /**
-   * Analyze institutional adoption trends
-   */
-  async analyzeInstitutionalTrends() {
-    const analysis = {
-      corporateAdoption: [
-        "MicroStrategy: $21B+ BTC treasury position",
-        "Tesla: 11,509 BTC corporate holding",
-        "Block (Square): Bitcoin-focused business model",
-        "Marathon Digital: Mining infrastructure",
-        "Tesla payments integration pilot programs"
-      ],
-      bankingIntegration: [
-        "JPMorgan: Bitcoin exposure through ETFs",
-        "Goldman Sachs: Bitcoin derivatives trading",
-        "Bank of New York Mellon: Crypto custody",
-        "Morgan Stanley: Bitcoin investment access",
-        "Wells Fargo: Crypto research and analysis"
-      ],
-      etfMetrics: {
-        totalAUM: "$50B+ across Bitcoin ETFs",
-        dailyVolume: "$2B+ average trading volume",
-        institutionalShare: "70%+ of ETF holdings",
-        flowTrend: "Consistent net inflows 2024"
-      },
-      sovereignActivity: [
-        "El Salvador: 2,500+ BTC national reserve",
-        "U.S.: Strategic Bitcoin Reserve discussions",
-        "Germany: Bitcoin legal tender consideration",
-        "Singapore: Crypto-friendly regulatory framework",
-        "Switzerland: Bitcoin tax optimization laws"
-      ],
-      adoptionScore: 75
-      // Based on current institutional momentum
-    };
-    logger17.info("Institutional adoption analysis complete", {
-      adoptionScore: `${analysis.adoptionScore}/100`,
-      corporateCount: analysis.corporateAdoption.length,
-      bankingCount: analysis.bankingIntegration.length
-    });
-    return analysis;
-  }
-};
 var ProviderCache2 = class {
   cache = /* @__PURE__ */ new Map();
   set(key, data, ttlMs = 6e4) {
@@ -9793,7 +9457,6 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
 var plugin_default = bitcoinPlugin;
 
 // plugin-bitcoin-ltl/src/index.ts
-var starterPlugin = plugin_default;
 var character = {
   name: "Satoshi",
   plugins: [
@@ -10319,13 +9982,14 @@ var projectAgent = {
 var project = {
   agents: [projectAgent]
 };
-var index_default = project;
+var src_default = project;
+
+// src/index.ts
+var satoshiProject = src_default;
+var index_default = satoshiProject;
 export {
-  StarterService,
-  plugin_default as bitcoinPlugin,
   character,
   index_default as default,
-  projectAgent,
-  starterPlugin
+  projectAgent
 };
 //# sourceMappingURL=index.js.map

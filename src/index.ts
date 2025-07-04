@@ -1,5 +1,14 @@
 /**
- * Root index.ts - Re-exports from plugin for compatibility
+ * Satoshi Agent Project - ElizaOS Project Configuration
  */
-export { character } from '../plugin-bitcoin-ltl/src/index';
-export { default as plugin } from '../plugin-bitcoin-ltl/src/plugin'; 
+import type { Project } from '@elizaos/core';
+import project, { character, projectAgent } from '../plugin-bitcoin-ltl/src/index';
+
+// Re-export individual components
+export { character, projectAgent };
+
+// Export the project with proper typing
+const satoshiProject: Project = project;
+
+// Default export for ElizaOS project detection
+export default satoshiProject; 

@@ -4,8 +4,8 @@ import * as path from 'path';
 import { execSync } from 'child_process';
 import { logger } from '@elizaos/core';
 
-// Skip in CI environments or when running automated tests without interaction
-const isCI = process.env.CI === 'true' || process.env.NODE_ENV === 'test';
+// Skip in CI environments where we might not have permissions to create temp directories
+const isCI = process.env.CI === 'true';
 
 // Create a temp directory for testing the scaffolding
 const TEST_DIR = path.join(process.cwd(), 'test-project');
