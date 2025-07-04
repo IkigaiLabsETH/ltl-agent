@@ -43,6 +43,9 @@
     "@elizaos/core": "^1.0.17",
     "zod": "3.24.2"
   },
+  "optionalDependencies": {
+    "@elizaos-plugins/plugin-knowledge": "^1.0.11"
+  },
   "devDependencies": {
     "@elizaos/cli": "^1.0.17",
     "@tailwindcss/vite": "^4.1.11",
