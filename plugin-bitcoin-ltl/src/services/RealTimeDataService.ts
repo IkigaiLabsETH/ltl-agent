@@ -1205,39 +1205,176 @@ export class RealTimeDataService extends Service {
 
   private async fetchBitcoinNetworkData(): Promise<Partial<BitcoinNetworkData> | null> {
     try {
+      // Fetch from multiple sources in parallel for better accuracy
+      const [blockchainData, mempoolStats, blockstreamData, btcComData] = await Promise.all([
+        this.fetchBlockchainInfoData(),
+        this.fetchMempoolNetworkData(),
+        this.fetchBlockstreamNetworkData(),
+        this.fetchBtcComNetworkData()
+      ]);
+
+      // Use the most recent and accurate data sources
+      // Priority: BTC.com (most reliable) > Mempool.space > Blockstream > Blockchain.info
+      const hashRate = btcComData?.hashRate || mempoolStats?.hashRate || blockstreamData?.hashRate || blockchainData?.hashRate;
+      const difficulty = btcComData?.difficulty || mempoolStats?.difficulty || blockstreamData?.difficulty || blockchainData?.difficulty;
+      const blockHeight = btcComData?.blockHeight || mempoolStats?.blockHeight || blockstreamData?.blockHeight || blockchainData?.blockHeight;
+      
+      console.log(`[RealTimeDataService] 🔍 Hashrate sources - BTC.com: ${btcComData?.hashRate ? (btcComData.hashRate / 1e18).toFixed(2) + ' EH/s' : 'N/A'}, Mempool: ${mempoolStats?.hashRate ? (mempoolStats.hashRate / 1e18).toFixed(2) + ' EH/s' : 'N/A'}, Blockstream: ${blockstreamData?.hashRate ? (blockstreamData.hashRate / 1e18).toFixed(2) + ' EH/s' : 'N/A'}, Blockchain: ${blockchainData?.hashRate ? (blockchainData.hashRate / 1e18).toFixed(2) + ' EH/s' : 'N/A'}`);
+      console.log(`[RealTimeDataService] 🎯 Selected hashrate: ${hashRate ? (hashRate / 1e18).toFixed(2) + ' EH/s' : 'N/A'}`);
+
+      // Calculate next halving using most reliable block height
+      const currentBlock = blockHeight || 0;
+      const currentHalvingEpoch = Math.floor(currentBlock / 210000);
+      const nextHalvingBlock = (currentHalvingEpoch + 1) * 210000;
+      const blocksUntilHalving = nextHalvingBlock - currentBlock;
+      
+      // Estimate halving date based on average block time (10 minutes target)
+      const avgBlockTime = blockchainData?.avgBlockTime || 10;
+      const minutesUntilHalving = blocksUntilHalving * avgBlockTime;
+      const halvingDate = new Date(Date.now() + minutesUntilHalving * 60 * 1000);
+
+      return {
+        hashRate: hashRate,
+        difficulty: difficulty,
+        blockHeight: blockHeight,
+        avgBlockTime: blockchainData?.avgBlockTime || avgBlockTime,
+        avgBlockSize: blockchainData?.avgBlockSize || null,
+        totalBTC: blockchainData?.totalBTC || null,
+        marketCap: blockchainData?.marketCap || null,
+        nextHalving: {
+          blocks: blocksUntilHalving,
+          estimatedDate: halvingDate.toISOString()
+        }
+      };
+    } catch (error) {
+      console.error('Error fetching Bitcoin network data:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Fetch from Blockchain.info API
+   */
+  private async fetchBlockchainInfoData(): Promise<Partial<BitcoinNetworkData> | null> {
+    try {
       const response = await fetch(`${this.BLOCKCHAIN_API}/stats`);
       
       if (response.ok) {
         const data = await response.json();
         
-        // Calculate next halving
-        const currentBlock = Number(data.n_blocks_total);
-        const currentHalvingEpoch = Math.floor(currentBlock / 210000);
-        const nextHalvingBlock = (currentHalvingEpoch + 1) * 210000;
-        const blocksUntilHalving = nextHalvingBlock - currentBlock;
-        
-        // Estimate halving date based on average block time
-        const avgBlockTime = Number(data.minutes_between_blocks);
-        const minutesUntilHalving = blocksUntilHalving * avgBlockTime;
-        const halvingDate = new Date(Date.now() + minutesUntilHalving * 60 * 1000);
-
         return {
-          hashRate: Number(data.hash_rate),
+          hashRate: Number(data.hash_rate) * 1e9, // Convert from GH/s to H/s
           difficulty: Number(data.difficulty),
           blockHeight: Number(data.n_blocks_total),
           avgBlockTime: Number(data.minutes_between_blocks),
           avgBlockSize: Number(data.blocks_size),
           totalBTC: Number(data.totalbc) / 1e8,
-          marketCap: Number(data.market_price_usd) * (Number(data.totalbc) / 1e8),
-          nextHalving: {
-            blocks: blocksUntilHalving,
-            estimatedDate: halvingDate.toISOString()
-          }
+          marketCap: Number(data.market_price_usd) * (Number(data.totalbc) / 1e8)
         };
       }
       return null;
     } catch (error) {
-      console.error('Error fetching Bitcoin network data:', error);
+      console.error('Error fetching Blockchain.info data:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Fetch network data from Mempool.space API (most accurate)
+   */
+  private async fetchMempoolNetworkData(): Promise<Partial<BitcoinNetworkData> | null> {
+    try {
+      const [hashRateResponse, difficultyResponse, blockHeightResponse] = await Promise.all([
+        fetch(`${this.MEMPOOL_API}/v1/mining/hashrate/1m`),
+        fetch(`${this.MEMPOOL_API}/v1/difficulty-adjustment`),
+        fetch(`${this.MEMPOOL_API}/blocks/tip/height`)
+      ]);
+
+      const results: Partial<BitcoinNetworkData> = {};
+
+      // Get current hashrate (most recent data point from 1-month history)
+      if (hashRateResponse.ok) {
+        const hashRateData = await hashRateResponse.json();
+        if (hashRateData.currentHashrate) {
+          results.hashRate = Number(hashRateData.currentHashrate);
+        } else if (hashRateData.hashrates && hashRateData.hashrates.length > 0) {
+          // Get the most recent hashrate from the array
+          const latestHashrate = hashRateData.hashrates[hashRateData.hashrates.length - 1];
+          if (latestHashrate && latestHashrate.hashrateAvg) {
+            results.hashRate = Number(latestHashrate.hashrateAvg);
+          }
+        }
+      }
+
+      // Get current difficulty
+      if (difficultyResponse.ok) {
+        const difficultyData = await difficultyResponse.json();
+        if (difficultyData.currentDifficulty) {
+          results.difficulty = Number(difficultyData.currentDifficulty);
+        } else if (difficultyData.difficulty) {
+          results.difficulty = Number(difficultyData.difficulty);
+        }
+      }
+
+      // Get current block height
+      if (blockHeightResponse.ok) {
+        const blockHeight = await blockHeightResponse.json();
+        if (typeof blockHeight === 'number') {
+          results.blockHeight = blockHeight;
+        }
+      }
+
+      return Object.keys(results).length > 0 ? results : null;
+    } catch (error) {
+      console.error('Error fetching Mempool.space network data:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Fetch network data from Blockstream API
+   */
+  private async fetchBlockstreamNetworkData(): Promise<Partial<BitcoinNetworkData> | null> {
+    try {
+      const response = await fetch('https://blockstream.info/api/stats');
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        return {
+          hashRate: data.hashrate_24h ? Number(data.hashrate_24h) : null,
+          difficulty: data.difficulty ? Number(data.difficulty) : null,
+          blockHeight: data.chain_stats?.funded_txo_count ? Number(data.chain_stats.funded_txo_count) : null
+        };
+      }
+      return null;
+    } catch (error) {
+      console.error('Error fetching Blockstream data:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Fetch network data from BTC.com API (most reliable)
+   */
+  private async fetchBtcComNetworkData(): Promise<Partial<BitcoinNetworkData> | null> {
+    try {
+      const response = await fetch('https://chain.api.btc.com/v3/stats');
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.data) {
+          return {
+            hashRate: data.data.hash_rate ? Number(data.data.hash_rate) : null,
+            difficulty: data.data.difficulty ? Number(data.data.difficulty) : null,
+            blockHeight: data.data.best_block_height ? Number(data.data.best_block_height) : null
+          };
+        }
+      }
+      return null;
+    } catch (error) {
+      console.error('Error fetching BTC.com data:', error);
       return null;
     }
   }
