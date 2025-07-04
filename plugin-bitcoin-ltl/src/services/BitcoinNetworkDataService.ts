@@ -223,20 +223,19 @@ export class BitcoinNetworkDataService extends BaseDataService {
   private async fetchBitcoinNetworkData(): Promise<Partial<BitcoinNetworkData> | null> {
     try {
       // Fetch from multiple sources in parallel for better accuracy
-      const [blockchainData, mempoolStats, blockstreamData, btcComData] = await Promise.all([
+      const [blockchainData, mempoolStats, blockstreamData] = await Promise.all([
         this.fetchBlockchainInfoData(),
         this.fetchMempoolNetworkData(),
-        this.fetchBlockstreamNetworkData(),
-        this.fetchBtcComNetworkData()
+        this.fetchBlockstreamNetworkData()
       ]);
 
       // Use the most recent and accurate data sources
-      // Priority: BTC.com (most reliable) > Mempool.space > Blockstream > Blockchain.info
-      const hashRate = btcComData?.hashRate || mempoolStats?.hashRate || blockstreamData?.hashRate || blockchainData?.hashRate;
-      const difficulty = btcComData?.difficulty || mempoolStats?.difficulty || blockstreamData?.difficulty || blockchainData?.difficulty;
-      const blockHeight = btcComData?.blockHeight || mempoolStats?.blockHeight || blockstreamData?.blockHeight || blockchainData?.blockHeight;
+      // Priority: Mempool.space (most reliable) > Blockstream > Blockchain.info
+      const hashRate = mempoolStats?.hashRate || blockstreamData?.hashRate || blockchainData?.hashRate;
+      const difficulty = mempoolStats?.difficulty || blockstreamData?.difficulty || blockchainData?.difficulty;
+      const blockHeight = mempoolStats?.blockHeight || blockstreamData?.blockHeight || blockchainData?.blockHeight;
       
-      console.log(`[BitcoinNetworkDataService] 🔍 Hashrate sources - BTC.com: ${btcComData?.hashRate ? (btcComData.hashRate / 1e18).toFixed(2) + ' EH/s' : 'N/A'}, Mempool: ${mempoolStats?.hashRate ? (mempoolStats.hashRate / 1e18).toFixed(2) + ' EH/s' : 'N/A'}, Blockstream: ${blockstreamData?.hashRate ? (blockstreamData.hashRate / 1e18).toFixed(2) + ' EH/s' : 'N/A'}, Blockchain: ${blockchainData?.hashRate ? (blockchainData.hashRate / 1e18).toFixed(2) + ' EH/s' : 'N/A'}`);
+      console.log(`[BitcoinNetworkDataService] 🔍 Hashrate sources - Mempool: ${mempoolStats?.hashRate ? (mempoolStats.hashRate / 1e18).toFixed(2) + ' EH/s' : 'N/A'}, Blockstream: ${blockstreamData?.hashRate ? (blockstreamData.hashRate / 1e18).toFixed(2) + ' EH/s' : 'N/A'}, Blockchain: ${blockchainData?.hashRate ? (blockchainData.hashRate / 1e18).toFixed(2) + ' EH/s' : 'N/A'}`);
       console.log(`[BitcoinNetworkDataService] 🎯 Selected hashrate: ${hashRate ? (hashRate / 1e18).toFixed(2) + ' EH/s' : 'N/A'}`);
 
       // Calculate next halving using most reliable block height
@@ -371,30 +370,7 @@ export class BitcoinNetworkDataService extends BaseDataService {
     }
   }
 
-  /**
-   * Fetch network data from BTC.com API (most reliable)
-   */
-  private async fetchBtcComNetworkData(): Promise<Partial<BitcoinNetworkData> | null> {
-    try {
-      const response = await fetch('https://chain.api.btc.com/v3/stats');
-      
-      if (response.ok) {
-        const data = await response.json();
-        
-        if (data.data) {
-          return {
-            hashRate: data.data.hash_rate ? Number(data.data.hash_rate) : null,
-            difficulty: data.data.difficulty ? Number(data.data.difficulty) : null,
-            blockHeight: data.data.best_block_height ? Number(data.data.best_block_height) : null
-          };
-        }
-      }
-      return null;
-    } catch (error) {
-      console.error('Error fetching BTC.com data:', error);
-      return null;
-    }
-  }
+
 
   /**
    * Fetch Bitcoin sentiment data (Fear & Greed Index)

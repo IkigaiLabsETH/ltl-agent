@@ -364,7 +364,7 @@ export class RealTimeDataService extends Service {
   
   // Rate limiting properties
   private lastRequestTime = 0;
-  private readonly MIN_REQUEST_INTERVAL = 2000; // 2 seconds between requests
+  private readonly MIN_REQUEST_INTERVAL = 3000; // 3 seconds between requests to avoid rate limits
   private requestQueue: Array<() => Promise<any>> = [];
   private isProcessingQueue = false;
   private consecutiveFailures = 0;
@@ -416,9 +416,9 @@ export class RealTimeDataService extends Service {
   private dexScreenerCache: DexScreenerCache | null = null;
   private readonly DEXSCREENER_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes for trending data
   private topMoversCache: TopMoversCache | null = null;
-  private readonly TOP_MOVERS_CACHE_DURATION = 60 * 1000; // 1 minute (matches website)
+  private readonly TOP_MOVERS_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes - reduce API calls
   private trendingCoinsCache: TrendingCoinsCache | null = null;
-  private readonly TRENDING_COINS_CACHE_DURATION = 60 * 1000; // 1 minute (matches website)
+  private readonly TRENDING_COINS_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes - reduce API calls
   private curatedNFTsCache: CuratedNFTsCache | null = null;
   private readonly CURATED_NFTS_CACHE_DURATION = 60 * 1000; // 1 minute (matches website caching)
 
@@ -563,9 +563,9 @@ export class RealTimeDataService extends Service {
       for (let i = 0; i < updateTasks.length; i++) {
         try {
           await updateTasks[i]();
-          // Add delay between different types of updates
+          // Add delay between different types of updates to avoid overwhelming APIs
           if (i < updateTasks.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay between update types
+            await new Promise(resolve => setTimeout(resolve, 4000)); // 4 second delay between update types
           }
         } catch (error) {
           console.error(`Update task ${i} failed:`, error);
@@ -1201,20 +1201,19 @@ export class RealTimeDataService extends Service {
   private async fetchBitcoinNetworkData(): Promise<Partial<BitcoinNetworkData> | null> {
     try {
       // Fetch from multiple sources in parallel for better accuracy
-      const [blockchainData, mempoolStats, blockstreamData, btcComData] = await Promise.all([
+      const [blockchainData, mempoolStats, blockstreamData] = await Promise.all([
         this.fetchBlockchainInfoData(),
         this.fetchMempoolNetworkData(),
-        this.fetchBlockstreamNetworkData(),
-        this.fetchBtcComNetworkData()
+        this.fetchBlockstreamNetworkData()
       ]);
 
       // Use the most recent and accurate data sources
-      // Priority: BTC.com (most reliable) > Mempool.space > Blockstream > Blockchain.info
-      const hashRate = btcComData?.hashRate || mempoolStats?.hashRate || blockstreamData?.hashRate || blockchainData?.hashRate;
-      const difficulty = btcComData?.difficulty || mempoolStats?.difficulty || blockstreamData?.difficulty || blockchainData?.difficulty;
-      const blockHeight = btcComData?.blockHeight || mempoolStats?.blockHeight || blockstreamData?.blockHeight || blockchainData?.blockHeight;
+      // Priority: Mempool.space (most reliable) > Blockstream > Blockchain.info
+      const hashRate = mempoolStats?.hashRate || blockstreamData?.hashRate || blockchainData?.hashRate;
+      const difficulty = mempoolStats?.difficulty || blockstreamData?.difficulty || blockchainData?.difficulty;
+      const blockHeight = mempoolStats?.blockHeight || blockstreamData?.blockHeight || blockchainData?.blockHeight;
       
-      console.log(`[RealTimeDataService] 🔍 Hashrate sources - BTC.com: ${btcComData?.hashRate ? (btcComData.hashRate / 1e18).toFixed(2) + ' EH/s' : 'N/A'}, Mempool: ${mempoolStats?.hashRate ? (mempoolStats.hashRate / 1e18).toFixed(2) + ' EH/s' : 'N/A'}, Blockstream: ${blockstreamData?.hashRate ? (blockstreamData.hashRate / 1e18).toFixed(2) + ' EH/s' : 'N/A'}, Blockchain: ${blockchainData?.hashRate ? (blockchainData.hashRate / 1e18).toFixed(2) + ' EH/s' : 'N/A'}`);
+      console.log(`[RealTimeDataService] 🔍 Hashrate sources - Mempool: ${mempoolStats?.hashRate ? (mempoolStats.hashRate / 1e18).toFixed(2) + ' EH/s' : 'N/A'}, Blockstream: ${blockstreamData?.hashRate ? (blockstreamData.hashRate / 1e18).toFixed(2) + ' EH/s' : 'N/A'}, Blockchain: ${blockchainData?.hashRate ? (blockchainData.hashRate / 1e18).toFixed(2) + ' EH/s' : 'N/A'}`);
       console.log(`[RealTimeDataService] 🎯 Selected hashrate: ${hashRate ? (hashRate / 1e18).toFixed(2) + ' EH/s' : 'N/A'}`);
 
       // Calculate next halving using most reliable block height
@@ -1349,30 +1348,7 @@ export class RealTimeDataService extends Service {
     }
   }
 
-  /**
-   * Fetch network data from BTC.com API (most reliable)
-   */
-  private async fetchBtcComNetworkData(): Promise<Partial<BitcoinNetworkData> | null> {
-    try {
-      const response = await fetch('https://chain.api.btc.com/v3/stats');
-      
-      if (response.ok) {
-        const data = await response.json();
-        
-        if (data.data) {
-          return {
-            hashRate: data.data.hash_rate ? Number(data.data.hash_rate) : null,
-            difficulty: data.data.difficulty ? Number(data.data.difficulty) : null,
-            blockHeight: data.data.best_block_height ? Number(data.data.best_block_height) : null
-          };
-        }
-      }
-      return null;
-    } catch (error) {
-      console.error('Error fetching BTC.com data:', error);
-      return null;
-    }
-  }
+
 
   private async fetchBitcoinSentimentData(): Promise<BitcoinSentimentData | null> {
     try {
@@ -2018,13 +1994,15 @@ export class RealTimeDataService extends Service {
       try {
         const response = await fetch(url, {
           ...options,
-          signal: AbortSignal.timeout(15000) // Increased timeout to 15 seconds
+          signal: AbortSignal.timeout(15000) // 15 second timeout
         });
         
         if (response.status === 429) {
-          // Rate limited - more aggressive exponential backoff
-          const waitTime = Math.min(Math.pow(2, i) * 5000, 60000); // 5s, 10s, 20s, up to 60s
-          console.warn(`Rate limited, waiting ${waitTime}ms before retry ${i + 1}`);
+          // Rate limited - more conservative exponential backoff with jitter
+          const baseWaitTime = Math.min(Math.pow(2, i) * 10000, 120000); // 10s, 20s, 40s, up to 120s
+          const jitter = Math.random() * 5000; // Add 0-5s jitter to avoid thundering herd
+          const waitTime = baseWaitTime + jitter;
+          console.warn(`[RealTimeDataService] Rate limited on ${url}, waiting ${Math.round(waitTime)}ms before retry ${i + 1}`);
           await new Promise(resolve => setTimeout(resolve, waitTime));
           continue;
         }
@@ -2037,8 +2015,10 @@ export class RealTimeDataService extends Service {
       } catch (error) {
         lastError = error;
         if (i < maxRetries - 1) {
-          const waitTime = Math.min(Math.pow(2, i) * 3000, 30000); // 3s, 6s, 12s, up to 30s
-          console.warn(`Request failed, waiting ${waitTime}ms before retry ${i + 1}:`, error);
+          const baseWaitTime = Math.min(Math.pow(2, i) * 5000, 45000); // 5s, 10s, 20s, up to 45s
+          const jitter = Math.random() * 2000; // Add 0-2s jitter
+          const waitTime = baseWaitTime + jitter;
+          console.warn(`[RealTimeDataService] Request failed for ${url}, waiting ${Math.round(waitTime)}ms before retry ${i + 1}:`, error);
           await new Promise(resolve => setTimeout(resolve, waitTime));
         }
       }
