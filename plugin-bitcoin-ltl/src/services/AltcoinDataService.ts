@@ -492,12 +492,25 @@ export class AltcoinDataService extends BaseDataService {
           });
 
           const quote = response.data['Global Quote'];
+          if (!quote) return null;
+
+          const price = parseFloat(quote['05. price']);
+          const change = parseFloat(quote['09. change']);
+          const changePercent = parseFloat(quote['10. change percent'].replace('%', ''));
+          const volume = parseInt(quote['06. volume']);
+
+          // Validate parsed values
+          if (!isFinite(price) || !isFinite(change) || !isFinite(changePercent)) {
+            logger.warn(`[AltcoinDataService] Invalid Alpha Vantage data for ${symbol}: price=${price}, change=${change}, changePercent=${changePercent}`);
+            return null;
+          }
+
           return {
             symbol: symbol,
-            price: parseFloat(quote['05. price']) || 0,
-            change24h: parseFloat(quote['09. change']) || 0,
-            changePercent24h: parseFloat(quote['10. change percent'].replace('%', '')) || 0,
-            volume24h: parseInt(quote['06. volume']) || 0,
+            price: price,
+            change24h: change,
+            changePercent24h: changePercent,
+            volume24h: volume || 0,
             marketCap: 0, // Not available in basic quote
             lastUpdate: new Date(),
             source: 'Alpha Vantage'

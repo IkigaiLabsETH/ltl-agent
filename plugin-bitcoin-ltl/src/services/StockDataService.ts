@@ -362,8 +362,21 @@ export class StockDataService extends BaseDataService {
       const meta = result.meta;
       const currentPrice = meta.regularMarketPrice;
       const previousClose = meta.previousClose;
+      
+      // Validate required data
+      if (!currentPrice || !previousClose || previousClose === 0) {
+        logger.warn(`[StockDataService] Invalid price data for ${symbol}: current=${currentPrice}, previous=${previousClose}`);
+        return null;
+      }
+
       const change = currentPrice - previousClose;
       const changePercent = (change / previousClose) * 100;
+
+      // Validate calculated values
+      if (!isFinite(changePercent)) {
+        logger.warn(`[StockDataService] Invalid changePercent for ${symbol}: ${changePercent}`);
+        return null;
+      }
 
       return {
         price: currentPrice,
@@ -388,10 +401,20 @@ export class StockDataService extends BaseDataService {
       const quote = response['Global Quote'];
       if (!quote) return null;
 
+      const price = parseFloat(quote['05. price']);
+      const change = parseFloat(quote['09. change']);
+      const changePercent = parseFloat(quote['10. change percent'].replace('%', ''));
+
+      // Validate parsed values
+      if (!isFinite(price) || !isFinite(change) || !isFinite(changePercent)) {
+        logger.warn(`[StockDataService] Invalid Alpha Vantage data for ${symbol}: price=${price}, change=${change}, changePercent=${changePercent}`);
+        return null;
+      }
+
       return {
-        price: parseFloat(quote['05. price']),
-        change: parseFloat(quote['09. change']),
-        changePercent: parseFloat(quote['10. change percent'].replace('%', '')),
+        price: price,
+        change: change,
+        changePercent: changePercent,
         volume: parseInt(quote['06. volume']) || 0
       };
     } catch (error) {
@@ -411,8 +434,21 @@ export class StockDataService extends BaseDataService {
 
       const currentPrice = response.c;
       const previousClose = response.pc;
+      
+      // Validate required data
+      if (!currentPrice || !previousClose || previousClose === 0) {
+        logger.warn(`[StockDataService] Invalid Finnhub data for ${symbol}: current=${currentPrice}, previous=${previousClose}`);
+        return null;
+      }
+
       const change = currentPrice - previousClose;
       const changePercent = (change / previousClose) * 100;
+
+      // Validate calculated values
+      if (!isFinite(changePercent)) {
+        logger.warn(`[StockDataService] Invalid changePercent for ${symbol}: ${changePercent}`);
+        return null;
+      }
 
       return {
         price: currentPrice,
@@ -454,41 +490,47 @@ export class StockDataService extends BaseDataService {
     mag7: StockData[], 
     indices: IndexData[]
   ): CuratedStocksData['performance'] {
-    // Calculate averages
-    const mag7Average = mag7.reduce((sum, stock) => sum + stock.changePercent, 0) / mag7.length;
+    // Helper function to safely calculate averages
+    const safeAverage = (arr: StockData[]): number => {
+      if (arr.length === 0) return 0;
+      const validPercentages = arr.filter(stock => isFinite(stock.changePercent));
+      if (validPercentages.length === 0) return 0;
+      return validPercentages.reduce((sum, stock) => sum + stock.changePercent, 0) / validPercentages.length;
+    };
+
+    // Calculate averages with validation
+    const mag7Average = safeAverage(mag7);
     const sp500Performance = indices.find(i => i.symbol === 'SPY')?.changePercent || 0;
     
     const bitcoinRelatedStocks = stocks.filter(s => s.sector === 'bitcoin-related');
-    const bitcoinRelatedAverage = bitcoinRelatedStocks.length > 0 
-      ? bitcoinRelatedStocks.reduce((sum, stock) => sum + stock.changePercent, 0) / bitcoinRelatedStocks.length 
-      : 0;
+    const bitcoinRelatedAverage = safeAverage(bitcoinRelatedStocks);
     
     const techStocks = stocks.filter(s => s.sector === 'tech');
-    const techStocksAverage = techStocks.length > 0
-      ? techStocks.reduce((sum, stock) => sum + stock.changePercent, 0) / techStocks.length
-      : 0;
+    const techStocksAverage = safeAverage(techStocks);
 
     // Calculate comparisons for all stocks
-    const comparisons: StockPerformanceComparison[] = stocks.map(stock => {
-      const categoryAverage = stock.sector === 'bitcoin-related' ? bitcoinRelatedAverage : techStocksAverage;
-      
-      return {
-        stock,
-        vsMag7: {
-          outperforming: stock.changePercent > mag7Average,
-          difference: stock.changePercent - mag7Average
-        },
-        vsSp500: {
-          outperforming: stock.changePercent > sp500Performance,
-          difference: stock.changePercent - sp500Performance
-        },
-        vsCategory: {
-          categoryAverage,
-          outperforming: stock.changePercent > categoryAverage,
-          difference: stock.changePercent - categoryAverage
-        }
-      };
-    });
+    const comparisons: StockPerformanceComparison[] = stocks
+      .filter(stock => isFinite(stock.changePercent)) // Only include stocks with valid data
+      .map(stock => {
+        const categoryAverage = stock.sector === 'bitcoin-related' ? bitcoinRelatedAverage : techStocksAverage;
+        
+        return {
+          stock,
+          vsMag7: {
+            outperforming: stock.changePercent > mag7Average,
+            difference: stock.changePercent - mag7Average
+          },
+          vsSp500: {
+            outperforming: stock.changePercent > sp500Performance,
+            difference: stock.changePercent - sp500Performance
+          },
+          vsCategory: {
+            categoryAverage,
+            outperforming: stock.changePercent > categoryAverage,
+            difference: stock.changePercent - categoryAverage
+          }
+        };
+      });
 
     // Sort by performance
     const sortedComparisons = [...comparisons].sort((a, b) => b.stock.changePercent - a.stock.changePercent);

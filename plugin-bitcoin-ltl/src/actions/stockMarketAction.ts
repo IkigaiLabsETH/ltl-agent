@@ -1,6 +1,18 @@
 import { Action, HandlerCallback, IAgentRuntime, Memory, State } from '@elizaos/core';
 import { StockDataService } from '../services/StockDataService';
 
+// Helper function to safely format percentage values
+const formatPercentage = (value: number): string => {
+  if (!isFinite(value)) return '0.00';
+  return value.toFixed(2);
+};
+
+// Helper function to safely format currency values
+const formatCurrency = (value: number): string => {
+  if (!isFinite(value)) return '0.00';
+  return value.toFixed(2);
+};
+
 export const stockMarketAction: Action = {
   name: 'STOCK_MARKET_ANALYSIS',
   similes: [
@@ -58,21 +70,21 @@ export const stockMarketAction: Action = {
       // Generate comprehensive stock analysis
       let analysis = "**🏛️ SOVEREIGN EQUITY PORTFOLIO STATUS**\n\n";
 
-      // Market overview
+      // Market overview with safe formatting
       analysis += `**📊 Market Performance:**\n`;
-      analysis += `• MAG7 Average: ${performance.mag7Average > 0 ? '+' : ''}${performance.mag7Average.toFixed(2)}%\n`;
-      analysis += `• S&P 500: ${performance.sp500Performance > 0 ? '+' : ''}${performance.sp500Performance.toFixed(2)}%\n`;
-      analysis += `• Bitcoin Stocks: ${performance.bitcoinRelatedAverage > 0 ? '+' : ''}${performance.bitcoinRelatedAverage.toFixed(2)}%\n`;
-      analysis += `• Tech Stocks: ${performance.techStocksAverage > 0 ? '+' : ''}${performance.techStocksAverage.toFixed(2)}%\n\n`;
+      analysis += `• MAG7 Average: ${performance.mag7Average > 0 ? '+' : ''}${formatPercentage(performance.mag7Average)}%\n`;
+      analysis += `• S&P 500: ${performance.sp500Performance > 0 ? '+' : ''}${formatPercentage(performance.sp500Performance)}%\n`;
+      analysis += `• Bitcoin Stocks: ${performance.bitcoinRelatedAverage > 0 ? '+' : ''}${formatPercentage(performance.bitcoinRelatedAverage)}%\n`;
+      analysis += `• Tech Stocks: ${performance.techStocksAverage > 0 ? '+' : ''}${formatPercentage(performance.techStocksAverage)}%\n\n`;
 
       // Top performers analysis
       analysis += `**🚀 TOP PERFORMERS:**\n`;
       performance.topPerformers.slice(0, 3).forEach((comp, index) => {
         const { stock, vsMag7, vsSp500 } = comp;
         analysis += `${index + 1}. **${stock.symbol}** (${stock.name})\n`;
-        analysis += `   Price: $${stock.price.toFixed(2)} (${stock.changePercent > 0 ? '+' : ''}${stock.changePercent.toFixed(2)}%)\n`;
-        analysis += `   vs MAG7: ${vsMag7.outperforming ? '🔥 +' : '❄️ '}${vsMag7.difference.toFixed(2)}pp\n`;
-        analysis += `   vs S&P: ${vsSp500.outperforming ? '🔥 +' : '❄️ '}${vsSp500.difference.toFixed(2)}pp\n\n`;
+        analysis += `   Price: $${formatCurrency(stock.price)} (${stock.changePercent > 0 ? '+' : ''}${formatPercentage(stock.changePercent)}%)\n`;
+        analysis += `   vs MAG7: ${vsMag7.outperforming ? '🔥 +' : '❄️ '}${formatPercentage(vsMag7.difference)}pp\n`;
+        analysis += `   vs S&P: ${vsSp500.outperforming ? '🔥 +' : '❄️ '}${formatPercentage(vsSp500.difference)}pp\n\n`;
       });
 
       // Bitcoin-related stocks focus
@@ -83,7 +95,7 @@ export const stockMarketAction: Action = {
           const comp = performance.topPerformers.find(p => p.stock.symbol === stock.symbol) ||
                       performance.underperformers.find(p => p.stock.symbol === stock.symbol);
           
-          analysis += `• **${stock.symbol}**: $${stock.price.toFixed(2)} (${stock.changePercent > 0 ? '+' : ''}${stock.changePercent.toFixed(2)}%)`;
+          analysis += `• **${stock.symbol}**: $${formatCurrency(stock.price)} (${stock.changePercent > 0 ? '+' : ''}${formatPercentage(stock.changePercent)}%)`;
           if (comp) {
             analysis += ` - ${comp.vsMag7.outperforming ? 'Outperforming' : 'Underperforming'} MAG7`;
           }
@@ -95,7 +107,7 @@ export const stockMarketAction: Action = {
       // MAG7 breakdown
       analysis += `**👑 MAGNIFICENT 7:**\n`;
       mag7.slice(0, 5).forEach(stock => {
-        analysis += `• **${stock.symbol}**: $${stock.price.toFixed(2)} (${stock.changePercent > 0 ? '+' : ''}${stock.changePercent.toFixed(2)}%)\n`;
+        analysis += `• **${stock.symbol}**: $${formatCurrency(stock.price)} (${stock.changePercent > 0 ? '+' : ''}${formatPercentage(stock.changePercent)}%)\n`;
       });
       analysis += `\n`;
 
