@@ -79,7 +79,9 @@ export const weatherAction: Action = {
       analysis += `**City Details:**\n`;
       
       if (biarritz) {
-        analysis += `• **Biarritz**: ${biarritz.weather.current.temperature_2m}°C, ${biarritz.weather.current.wind_speed_10m}km/h wind`;
+        const temp = biarritz.weather.current?.temperature_2m || 'N/A';
+        const wind = biarritz.weather.current?.wind_speed_10m || 'N/A';
+        analysis += `• **Biarritz**: ${temp}°C, ${wind}km/h wind`;
         if (biarritz.marine) {
           analysis += `, ${biarritz.marine.current.wave_height}m waves (${biarritz.marine.current.sea_surface_temperature}°C water)`;
         }
@@ -87,7 +89,9 @@ export const weatherAction: Action = {
       }
       
       if (bordeaux) {
-        analysis += `• **Bordeaux**: ${bordeaux.weather.current.temperature_2m}°C, ${bordeaux.weather.current.wind_speed_10m}km/h wind`;
+        const temp = bordeaux.weather.current?.temperature_2m || 'N/A';
+        const wind = bordeaux.weather.current?.wind_speed_10m || 'N/A';
+        analysis += `• **Bordeaux**: ${temp}°C, ${wind}km/h wind`;
         if (bordeaux.airQuality) {
           analysis += `, PM2.5: ${bordeaux.airQuality.current.pm2_5}μg/m³`;
         }
@@ -95,7 +99,9 @@ export const weatherAction: Action = {
       }
       
       if (monaco) {
-        analysis += `• **Monaco**: ${monaco.weather.current.temperature_2m}°C, ${monaco.weather.current.wind_speed_10m}km/h wind`;
+        const temp = monaco.weather.current?.temperature_2m || 'N/A';
+        const wind = monaco.weather.current?.wind_speed_10m || 'N/A';
+        analysis += `• **Monaco**: ${temp}°C, ${wind}km/h wind`;
         if (monaco.marine) {
           analysis += `, ${monaco.marine.current.wave_height}m waves`;
         }
