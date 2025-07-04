@@ -1501,6 +1501,8 @@ export class RealTimeDataService extends Service {
 
   private async fetchTop100VsBtcData(): Promise<Top100VsBtcData | null> {
     try {
+      console.log('[RealTimeDataService] Starting fetchTop100VsBtcData...');
+      
       // Step 1: Fetch top 100 coins against BTC to find outperformers and their performance vs BTC
       const btcMarketData = await this.makeQueuedRequest(async () => {
         return await this.fetchWithRetry(
@@ -1511,13 +1513,21 @@ export class RealTimeDataService extends Service {
         );
       });
 
+      console.log(`[RealTimeDataService] Fetched ${btcMarketData?.length || 0} coins from CoinGecko`);
+
+      // Validate the response
+      if (!Array.isArray(btcMarketData)) {
+        console.error('[RealTimeDataService] Invalid btcMarketData response:', typeof btcMarketData);
+        return null;
+      }
+
       // Step 2: Separate outperformers and underperformers
       const outperformingVsBtc = btcMarketData.filter(
-        (coin: any) => coin.price_change_percentage_24h > 0
+        (coin: any) => coin && typeof coin.price_change_percentage_24h === 'number' && coin.price_change_percentage_24h > 0
       );
       
       const underperformingVsBtc = btcMarketData.filter(
-        (coin: any) => coin.price_change_percentage_24h <= 0
+        (coin: any) => coin && typeof coin.price_change_percentage_24h === 'number' && coin.price_change_percentage_24h <= 0
       );
 
       if (outperformingVsBtc.length === 0) {
@@ -1536,47 +1546,71 @@ export class RealTimeDataService extends Service {
       }
 
       // Step 3: Get USD prices for outperforming coins
-      const outperformingIds = outperformingVsBtc.map((coin: any) => coin.id).join(',');
-      const usdPrices = await this.makeQueuedRequest(async () => {
-        return await this.fetchWithRetry(
-          `${this.COINGECKO_API}/simple/price?ids=${outperformingIds}&vs_currencies=usd`,
-          {
-            headers: { 'Accept': 'application/json' }
-          }
-        );
-      });
+      let outperformingWithUsd: Top100VsBtcCoin[] = [];
+      
+      if (outperformingVsBtc.length > 0) {
+        const outperformingIds = outperformingVsBtc
+          .filter((coin: any) => coin && coin.id)
+          .map((coin: any) => coin.id)
+          .join(',');
+          
+        console.log(`[RealTimeDataService] Fetching USD prices for ${outperformingVsBtc.length} outperforming coins`);
+        
+        if (outperformingIds) {
+          const usdPrices = await this.makeQueuedRequest(async () => {
+            return await this.fetchWithRetry(
+              `${this.COINGECKO_API}/simple/price?ids=${outperformingIds}&vs_currencies=usd`,
+              {
+                headers: { 'Accept': 'application/json' }
+              }
+            );
+          });
 
-      // Step 4: Combine BTC-denominated performance data with USD prices
-      const outperformingWithUsd = outperformingVsBtc.map((coin: any) => ({
-        id: coin.id,
-        symbol: coin.symbol,
-        name: coin.name,
-        image: coin.image,
-        current_price: usdPrices[coin.id]?.usd ?? 0,
-        market_cap_rank: coin.market_cap_rank,
-        price_change_percentage_24h: coin.price_change_percentage_24h,
-        price_change_percentage_7d_in_currency: coin.price_change_percentage_7d_in_currency,
-        price_change_percentage_30d_in_currency: coin.price_change_percentage_30d_in_currency,
-      }));
+          console.log(`[RealTimeDataService] Received USD prices for ${Object.keys(usdPrices || {}).length} coins`);
+
+          // Step 4: Combine BTC-denominated performance data with USD prices
+          outperformingWithUsd = outperformingVsBtc
+            .filter((coin: any) => coin && coin.id && coin.symbol && coin.name)
+            .map((coin: any) => ({
+              id: coin.id,
+              symbol: coin.symbol,
+              name: coin.name,
+              image: coin.image || '',
+              current_price: usdPrices?.[coin.id]?.usd ?? 0,
+              market_cap_rank: coin.market_cap_rank || 0,
+              price_change_percentage_24h: coin.price_change_percentage_24h || 0,
+              price_change_percentage_7d_in_currency: coin.price_change_percentage_7d_in_currency,
+              price_change_percentage_30d_in_currency: coin.price_change_percentage_30d_in_currency,
+            }));
+        }
+      }
 
       // Step 5: Calculate analytics
       const totalCoins = btcMarketData.length;
       const outperformingCount = outperformingWithUsd.length;
       const underperformingCount = underperformingVsBtc.length;
       
-      const averagePerformance = btcMarketData.reduce((sum: number, coin: any) => 
-        sum + coin.price_change_percentage_24h, 0) / totalCoins;
+      const validCoins = btcMarketData.filter((coin: any) => 
+        coin && typeof coin.price_change_percentage_24h === 'number'
+      );
+      
+      const averagePerformance = validCoins.length > 0 
+        ? validCoins.reduce((sum: number, coin: any) => 
+            sum + coin.price_change_percentage_24h, 0) / validCoins.length
+        : 0;
 
       // Sort for top/worst performers
       const sortedOutperformers = [...outperformingWithUsd].sort((a, b) => 
-        b.price_change_percentage_24h - a.price_change_percentage_24h);
+        (b.price_change_percentage_24h || 0) - (a.price_change_percentage_24h || 0));
       
-      const sortedUnderperformers = [...underperformingVsBtc].sort((a, b) => 
-        a.price_change_percentage_24h - b.price_change_percentage_24h);
+      const sortedUnderperformers = [...underperformingVsBtc]
+        .filter((coin: any) => coin && coin.id && coin.name)
+        .sort((a, b) => 
+          (a.price_change_percentage_24h || 0) - (b.price_change_percentage_24h || 0));
 
       const result: Top100VsBtcData = {
         outperforming: outperformingWithUsd,
-        underperforming: underperformingVsBtc.slice(0, 10), // Limit to top 10 for readability
+        underperforming: sortedUnderperformers.slice(0, 10), // Limit to top 10 for readability
         totalCoins,
         outperformingCount,
         underperformingCount,
@@ -1586,11 +1620,16 @@ export class RealTimeDataService extends Service {
         lastUpdated: new Date()
       };
 
-      console.log(`[RealTimeDataService] Fetched top 100 vs BTC data: ${outperformingCount}/${totalCoins} outperforming`);
+      console.log(`[RealTimeDataService] ✅ Fetched top 100 vs BTC data: ${outperformingCount}/${totalCoins} outperforming, avg: ${averagePerformance.toFixed(2)}%`);
       return result;
       
     } catch (error) {
-      console.error('Error in fetchTop100VsBtcData:', error);
+      console.error('[RealTimeDataService] ❌ Error in fetchTop100VsBtcData:', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        type: typeof error,
+        details: error
+      });
       return null;
     }
   }
