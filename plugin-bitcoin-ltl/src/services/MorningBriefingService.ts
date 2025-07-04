@@ -219,15 +219,73 @@ export class MorningBriefingService extends Service {
   }
 
   private async getWeatherData(): Promise<WeatherData | null> {
-    // Mock weather data - in real implementation, this would call weather API
-    return {
-      location: 'New York',
-      temperature: 22,
-      condition: 'sunny',
-      description: 'Clear skies',
-      humidity: 65,
-      windSpeed: 8
-    };
+    try {
+      // Get real weather data from RealTimeDataService
+      const realTimeDataService = this.runtime.getService('RealTimeDataService') as any;
+      if (!realTimeDataService) {
+        this.contextLogger.warn('RealTimeDataService not available for weather data');
+        return null;
+      }
+
+      const weatherData = realTimeDataService.getWeatherData();
+      if (!weatherData) {
+        this.contextLogger.warn('No weather data available');
+        return null;
+      }
+
+      // Format for morning briefing - use Monaco as primary (tax haven preference)
+      const monaco = weatherData.cities.find((c: any) => c.city === 'monaco');
+      const biarritz = weatherData.cities.find((c: any) => c.city === 'biarritz');
+      const bordeaux = weatherData.cities.find((c: any) => c.city === 'bordeaux');
+      
+      // Use best weather city or Monaco as fallback
+      const primaryCity = weatherData.cities.find((c: any) => c.displayName === weatherData.summary.bestWeatherCity) || monaco;
+      
+      if (!primaryCity) {
+        return null;
+      }
+
+      // Convert wind conditions to descriptive text
+      let condition = 'clear';
+      if (weatherData.summary.windConditions === 'stormy') condition = 'stormy';
+      else if (weatherData.summary.windConditions === 'windy') condition = 'windy';
+      else if (weatherData.summary.airQuality === 'poor') condition = 'hazy';
+      else if (primaryCity.weather.current.temperature_2m > 20) condition = 'sunny';
+      else condition = 'clear';
+
+      // Create enhanced description with all cities
+      let description = `${primaryCity.displayName}: ${primaryCity.weather.current.temperature_2m}°C`;
+      if (monaco && monaco !== primaryCity) {
+        description += `, Monaco: ${monaco.weather.current.temperature_2m}°C`;
+      }
+      if (biarritz && biarritz !== primaryCity) {
+        description += `, Biarritz: ${biarritz.weather.current.temperature_2m}°C`;
+        if (biarritz.marine) {
+          description += ` (${biarritz.marine.current.wave_height}m waves)`;
+        }
+      }
+      if (bordeaux && bordeaux !== primaryCity) {
+        description += `, Bordeaux: ${bordeaux.weather.current.temperature_2m}°C`;
+      }
+      
+      description += `. Air quality: ${weatherData.summary.airQuality}`;
+      
+      if (weatherData.summary.bestSurfConditions) {
+        description += `, best surf: ${weatherData.summary.bestSurfConditions}`;
+      }
+
+      return {
+        location: weatherData.summary.bestWeatherCity,
+        temperature: Math.round(primaryCity.weather.current.temperature_2m),
+        condition,
+        description,
+        humidity: 65, // Open-Meteo doesn't provide humidity in current endpoint
+        windSpeed: Math.round(primaryCity.weather.current.wind_speed_10m)
+      };
+    } catch (error) {
+      this.contextLogger.error('Error fetching weather data:', error);
+      return null;
+    }
   }
 
   private async getMarketPulse(): Promise<MarketPulse | null> {
