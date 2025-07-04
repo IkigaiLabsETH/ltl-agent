@@ -358,8 +358,8 @@ import { Service } from "@elizaos/core";
 var BaseDataService = class extends Service {
   // Rate limiting properties (shared across all services)
   lastRequestTime = 0;
-  MIN_REQUEST_INTERVAL = 2e3;
-  // 2 seconds between requests
+  MIN_REQUEST_INTERVAL = 3e3;
+  // 3 seconds between requests to avoid rate limits
   requestQueue = [];
   isProcessingQueue = false;
   consecutiveFailures = 0;
@@ -374,14 +374,15 @@ var BaseDataService = class extends Service {
    */
   async makeQueuedRequest(requestFn) {
     return new Promise((resolve, reject) => {
-      this.requestQueue.push(async () => {
+      const requestWrapper = async () => {
         try {
           const result = await requestFn();
           resolve(result);
         } catch (error) {
           reject(error);
         }
-      });
+      };
+      this.requestQueue.push(requestWrapper);
       if (!this.isProcessingQueue) {
         this.processRequestQueue();
       }
@@ -436,8 +437,10 @@ var BaseDataService = class extends Service {
           // 15 second timeout
         });
         if (response.status === 429) {
-          const waitTime = Math.min(Math.pow(2, i) * 5e3, 6e4);
-          console.warn(`[BaseDataService] Rate limited, waiting ${waitTime}ms before retry ${i + 1}`);
+          const baseWaitTime = Math.min(Math.pow(2, i) * 1e4, 12e4);
+          const jitter = Math.random() * 5e3;
+          const waitTime = baseWaitTime + jitter;
+          console.warn(`[BaseDataService] Rate limited on ${url}, waiting ${Math.round(waitTime)}ms before retry ${i + 1}`);
           await new Promise((resolve) => setTimeout(resolve, waitTime));
           continue;
         }
@@ -448,8 +451,10 @@ var BaseDataService = class extends Service {
       } catch (error) {
         lastError = error;
         if (i < maxRetries - 1) {
-          const waitTime = Math.min(Math.pow(2, i) * 3e3, 3e4);
-          console.warn(`[BaseDataService] Request failed, waiting ${waitTime}ms before retry ${i + 1}:`, error);
+          const baseWaitTime = Math.min(Math.pow(2, i) * 5e3, 45e3);
+          const jitter = Math.random() * 2e3;
+          const waitTime = baseWaitTime + jitter;
+          console.warn(`[BaseDataService] Request failed for ${url}, waiting ${Math.round(waitTime)}ms before retry ${i + 1}:`, error);
           await new Promise((resolve) => setTimeout(resolve, waitTime));
         }
       }
@@ -4008,8 +4013,8 @@ var RealTimeDataService = class _RealTimeDataService extends Service10 {
   // Include MetaPlanet (4337) and Hyperliquid (8958)
   // Rate limiting properties
   lastRequestTime = 0;
-  MIN_REQUEST_INTERVAL = 2e3;
-  // 2 seconds between requests
+  MIN_REQUEST_INTERVAL = 3e3;
+  // 3 seconds between requests to avoid rate limits
   requestQueue = [];
   isProcessingQueue = false;
   consecutiveFailures = 0;
@@ -4061,75 +4066,18 @@ var RealTimeDataService = class _RealTimeDataService extends Service10 {
   DEXSCREENER_CACHE_DURATION = 5 * 60 * 1e3;
   // 5 minutes for trending data
   topMoversCache = null;
-  TOP_MOVERS_CACHE_DURATION = 60 * 1e3;
-  // 1 minute (matches website)
+  TOP_MOVERS_CACHE_DURATION = 5 * 60 * 1e3;
+  // 5 minutes - reduce API calls
   trendingCoinsCache = null;
-  TRENDING_COINS_CACHE_DURATION = 60 * 1e3;
-  // 1 minute (matches website)
+  TRENDING_COINS_CACHE_DURATION = 5 * 60 * 1e3;
+  // 5 minutes - reduce API calls
   curatedNFTsCache = null;
   CURATED_NFTS_CACHE_DURATION = 60 * 1e3;
   // 1 minute (matches website caching)
-  // Curated NFT collections (high-end digital art and OG collections)
+  // Curated NFT collections (focused on high-value generative art)
   curatedNFTCollections = [
-    // Blue chip PFP collections
-    { slug: "cryptopunks", category: "blue-chip" },
-    // Generative art collections  
-    { slug: "fidenza-by-tyler-hobbs", category: "generative-art" },
-    { slug: "art-blocks-curated", category: "generative-art" },
-    { slug: "terraforms", category: "generative-art" },
-    { slug: "ackcolorstudy", category: "generative-art" },
-    { slug: "vera-molnar-themes-and-variations", category: "generative-art" },
-    { slug: "sightseers-by-norman-harman", category: "generative-art" },
-    { slug: "progression-by-jeff-davis", category: "generative-art" },
-    { slug: "risk-reward-by-kjetil-golid", category: "generative-art" },
-    { slug: "aligndraw", category: "generative-art" },
-    { slug: "archetype-by-kjetil-golid", category: "generative-art" },
     { slug: "qql", category: "generative-art" },
-    { slug: "orbifold-by-kjetil-golid", category: "generative-art" },
-    { slug: "meridian-by-matt-deslauriers", category: "generative-art" },
-    // Digital art collections
-    { slug: "0xdgb-thecameras", category: "digital-art" },
-    { slug: "the-harvest-by-per-kristian-stoveland", category: "digital-art" },
-    { slug: "xcopy-knownorigin", category: "digital-art" },
-    { slug: "winds-of-yawanawa", category: "digital-art" },
-    { slug: "brokenkeys", category: "digital-art" },
-    { slug: "ripcache", category: "digital-art" },
-    { slug: "human-unreadable-by-operator", category: "digital-art" },
-    { slug: "non-either-by-rafael-rozendaal", category: "digital-art" },
-    { slug: "pop-wonder-editions", category: "digital-art" },
-    { slug: "machine-hallucinations-coral-generative-ai-data-pa", category: "digital-art" },
-    // PFP collections
-    { slug: "jaknfthoodies", category: "pfp" },
-    { slug: "monstersoup", category: "pfp" },
-    { slug: "getijde-by-bart-simons", category: "generative-art" },
-    { slug: "24-hours-of-art", category: "digital-art" },
-    { slug: "pursuit-by-per-kristian-stoveland", category: "generative-art" },
-    { slug: "100-sunsets-by-zach-lieberman", category: "digital-art" },
-    { slug: "strands-of-solitude", category: "generative-art" },
-    { slug: "justinaversano-gabbagallery", category: "digital-art" },
-    { slug: "neural-sediments-by-eko33", category: "generative-art" },
-    { slug: "wavyscape-by-holger-lippmann", category: "generative-art" },
-    { slug: "opepen-edition", category: "pfp" },
-    { slug: "mind-the-gap-by-mountvitruvius", category: "generative-art" },
-    { slug: "urban-transportation-red-trucks", category: "digital-art" },
-    { slug: "trichro-matic-by-mountvitruvius", category: "generative-art" },
-    { slug: "sam-spratt-masks-of-luci", category: "digital-art" },
-    { slug: "pink-such-a-useless-color-by-simon-raion", category: "digital-art" },
-    { slug: "sketchbook-a-by-william-mapan-1", category: "generative-art" },
-    { slug: "life-and-love-and-nothing-by-nat-sarkissian", category: "digital-art" },
-    { slug: "highrises", category: "digital-art" },
-    { slug: "lifeguard-towers-miami", category: "digital-art" },
-    { slug: "stranger-together-by-brooke-didonato-ben-zank", category: "digital-art" },
-    { slug: "the-vault-of-wonders-chapter-1-the-abyssal-unseen", category: "digital-art" },
-    { slug: "skulptuur-by-piter-pasma", category: "generative-art" },
-    { slug: "dataland-biomelumina", category: "generative-art" },
-    { slug: "pop-wonder-superrare", category: "digital-art" },
-    { slug: "cryptodickbutts", category: "pfp" },
-    { slug: "day-gardens", category: "generative-art" },
-    { slug: "cryptoadz-by-gremplin", category: "pfp" },
-    { slug: "izanami-islands-by-richard-nadler", category: "digital-art" },
-    { slug: "yamabushi-s-horizons-by-richard-nadler", category: "digital-art" },
-    { slug: "kinoko-dreams-by-richard-nadler", category: "digital-art" }
+    { slug: "meridian-by-matt-deslauriers", category: "generative-art" }
   ];
   constructor(runtime) {
     super();
@@ -4190,7 +4138,7 @@ var RealTimeDataService = class _RealTimeDataService extends Service10 {
         try {
           await updateTasks[i]();
           if (i < updateTasks.length - 1) {
-            await new Promise((resolve) => setTimeout(resolve, 2e3));
+            await new Promise((resolve) => setTimeout(resolve, 4e3));
           }
         } catch (error) {
           console.error(`Update task ${i} failed:`, error);
@@ -4734,16 +4682,15 @@ var RealTimeDataService = class _RealTimeDataService extends Service10 {
   }
   async fetchBitcoinNetworkData() {
     try {
-      const [blockchainData, mempoolStats, blockstreamData, btcComData] = await Promise.all([
+      const [blockchainData, mempoolStats, blockstreamData] = await Promise.all([
         this.fetchBlockchainInfoData(),
         this.fetchMempoolNetworkData(),
-        this.fetchBlockstreamNetworkData(),
-        this.fetchBtcComNetworkData()
+        this.fetchBlockstreamNetworkData()
       ]);
-      const hashRate = btcComData?.hashRate || mempoolStats?.hashRate || blockstreamData?.hashRate || blockchainData?.hashRate;
-      const difficulty = btcComData?.difficulty || mempoolStats?.difficulty || blockstreamData?.difficulty || blockchainData?.difficulty;
-      const blockHeight = btcComData?.blockHeight || mempoolStats?.blockHeight || blockstreamData?.blockHeight || blockchainData?.blockHeight;
-      console.log(`[RealTimeDataService] \u{1F50D} Hashrate sources - BTC.com: ${btcComData?.hashRate ? (btcComData.hashRate / 1e18).toFixed(2) + " EH/s" : "N/A"}, Mempool: ${mempoolStats?.hashRate ? (mempoolStats.hashRate / 1e18).toFixed(2) + " EH/s" : "N/A"}, Blockstream: ${blockstreamData?.hashRate ? (blockstreamData.hashRate / 1e18).toFixed(2) + " EH/s" : "N/A"}, Blockchain: ${blockchainData?.hashRate ? (blockchainData.hashRate / 1e18).toFixed(2) + " EH/s" : "N/A"}`);
+      const hashRate = mempoolStats?.hashRate || blockstreamData?.hashRate || blockchainData?.hashRate;
+      const difficulty = mempoolStats?.difficulty || blockstreamData?.difficulty || blockchainData?.difficulty;
+      const blockHeight = mempoolStats?.blockHeight || blockstreamData?.blockHeight || blockchainData?.blockHeight;
+      console.log(`[RealTimeDataService] \u{1F50D} Hashrate sources - Mempool: ${mempoolStats?.hashRate ? (mempoolStats.hashRate / 1e18).toFixed(2) + " EH/s" : "N/A"}, Blockstream: ${blockstreamData?.hashRate ? (blockstreamData.hashRate / 1e18).toFixed(2) + " EH/s" : "N/A"}, Blockchain: ${blockchainData?.hashRate ? (blockchainData.hashRate / 1e18).toFixed(2) + " EH/s" : "N/A"}`);
       console.log(`[RealTimeDataService] \u{1F3AF} Selected hashrate: ${hashRate ? (hashRate / 1e18).toFixed(2) + " EH/s" : "N/A"}`);
       const currentBlock = blockHeight || 0;
       const currentHalvingEpoch = Math.floor(currentBlock / 21e4);
@@ -4854,28 +4801,6 @@ var RealTimeDataService = class _RealTimeDataService extends Service10 {
       return null;
     } catch (error) {
       console.error("Error fetching Blockstream data:", error);
-      return null;
-    }
-  }
-  /**
-   * Fetch network data from BTC.com API (most reliable)
-   */
-  async fetchBtcComNetworkData() {
-    try {
-      const response = await fetch("https://chain.api.btc.com/v3/stats");
-      if (response.ok) {
-        const data = await response.json();
-        if (data.data) {
-          return {
-            hashRate: data.data.hash_rate ? Number(data.data.hash_rate) : null,
-            difficulty: data.data.difficulty ? Number(data.data.difficulty) : null,
-            blockHeight: data.data.best_block_height ? Number(data.data.best_block_height) : null
-          };
-        }
-      }
-      return null;
-    } catch (error) {
-      console.error("Error fetching BTC.com data:", error);
       return null;
     }
   }
@@ -4992,90 +4917,69 @@ var RealTimeDataService = class _RealTimeDataService extends Service10 {
   async fetchTop100VsBtcData() {
     try {
       console.log("[RealTimeDataService] Starting fetchTop100VsBtcData...");
-      const btcMarketData = await this.makeQueuedRequest(async () => {
+      const usdMarketData = await this.makeQueuedRequest(async () => {
         return await this.fetchWithRetry(
-          `${this.COINGECKO_API}/coins/markets?vs_currency=btc&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h,7d,30d`,
+          `${this.COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=200&page=1&price_change_percentage=24h,7d,30d`,
           {
             headers: { "Accept": "application/json" }
           }
         );
       });
-      console.log(`[RealTimeDataService] Fetched ${btcMarketData?.length || 0} coins from CoinGecko`);
-      if (!Array.isArray(btcMarketData)) {
-        console.error("[RealTimeDataService] Invalid btcMarketData response:", typeof btcMarketData);
+      console.log(`[RealTimeDataService] Fetched ${usdMarketData?.length || 0} coins from CoinGecko`);
+      if (!Array.isArray(usdMarketData)) {
+        console.error("[RealTimeDataService] Invalid usdMarketData response:", typeof usdMarketData);
         return null;
       }
-      const outperformingVsBtc = btcMarketData.filter(
-        (coin) => coin && typeof coin.price_change_percentage_24h === "number" && coin.price_change_percentage_24h > 0
-      );
-      const underperformingVsBtc = btcMarketData.filter(
-        (coin) => coin && typeof coin.price_change_percentage_24h === "number" && coin.price_change_percentage_24h <= 0
-      );
-      if (outperformingVsBtc.length === 0) {
-        return {
-          outperforming: [],
-          underperforming: underperformingVsBtc.slice(0, 10),
-          // Show top 10 underperformers
-          totalCoins: btcMarketData.length,
-          outperformingCount: 0,
-          underperformingCount: underperformingVsBtc.length,
-          averagePerformance: 0,
-          topPerformers: [],
-          worstPerformers: underperformingVsBtc.slice(0, 5),
-          lastUpdated: /* @__PURE__ */ new Date()
-        };
+      const btc = usdMarketData.find((coin) => coin.id === "bitcoin");
+      if (!btc) {
+        console.error("[RealTimeDataService] Bitcoin data not found in response");
+        return null;
       }
-      let outperformingWithUsd = [];
-      if (outperformingVsBtc.length > 0) {
-        const outperformingIds = outperformingVsBtc.filter((coin) => coin && coin.id).map((coin) => coin.id).join(",");
-        console.log(`[RealTimeDataService] Fetching USD prices for ${outperformingVsBtc.length} outperforming coins`);
-        if (outperformingIds) {
-          const usdPrices = await this.makeQueuedRequest(async () => {
-            return await this.fetchWithRetry(
-              `${this.COINGECKO_API}/simple/price?ids=${outperformingIds}&vs_currencies=usd`,
-              {
-                headers: { "Accept": "application/json" }
-              }
-            );
-          });
-          console.log(`[RealTimeDataService] Received USD prices for ${Object.keys(usdPrices || {}).length} coins`);
-          outperformingWithUsd = outperformingVsBtc.filter((coin) => coin && coin.id && coin.symbol && coin.name).map((coin) => ({
-            id: coin.id,
-            symbol: coin.symbol,
-            name: coin.name,
-            image: coin.image || "",
-            current_price: usdPrices?.[coin.id]?.usd ?? 0,
-            market_cap_rank: coin.market_cap_rank || 0,
-            price_change_percentage_24h: coin.price_change_percentage_24h || 0,
-            price_change_percentage_7d_in_currency: coin.price_change_percentage_7d_in_currency,
-            price_change_percentage_30d_in_currency: coin.price_change_percentage_30d_in_currency
-          }));
-        }
-      }
-      const totalCoins = btcMarketData.length;
-      const outperformingCount = outperformingWithUsd.length;
+      const btcPerformance7d = btc.price_change_percentage_7d_in_currency || 0;
+      const btcPerformance24h = btc.price_change_percentage_24h || 0;
+      const btcPerformance30d = btc.price_change_percentage_30d_in_currency || 0;
+      console.log(`[RealTimeDataService] Bitcoin 7d performance: ${btcPerformance7d.toFixed(2)}%`);
+      const stablecoinSymbols = ["usdt", "usdc", "usds", "tusd", "busd", "dai", "frax", "usdp", "gusd", "lusd", "fei", "tribe"];
+      const altcoins = usdMarketData.filter(
+        (coin) => coin.id !== "bitcoin" && typeof coin.price_change_percentage_7d_in_currency === "number" && coin.market_cap_rank <= 200 && !stablecoinSymbols.includes(coin.symbol.toLowerCase())
+        // Exclude stablecoins
+      ).map((coin) => ({
+        id: coin.id,
+        symbol: coin.symbol,
+        name: coin.name,
+        image: coin.image || "",
+        current_price: coin.current_price || 0,
+        market_cap_rank: coin.market_cap_rank || 0,
+        price_change_percentage_24h: coin.price_change_percentage_24h || 0,
+        price_change_percentage_7d_in_currency: coin.price_change_percentage_7d_in_currency || 0,
+        price_change_percentage_30d_in_currency: coin.price_change_percentage_30d_in_currency || 0,
+        // Calculate relative performance vs Bitcoin (website's approach)
+        btc_relative_performance_7d: (coin.price_change_percentage_7d_in_currency || 0) - btcPerformance7d,
+        btc_relative_performance_24h: (coin.price_change_percentage_24h || 0) - btcPerformance24h,
+        btc_relative_performance_30d: (coin.price_change_percentage_30d_in_currency || 0) - btcPerformance30d
+      })).sort((a, b) => b.btc_relative_performance_7d - a.btc_relative_performance_7d);
+      const outperformingVsBtc = altcoins.filter((coin) => coin.btc_relative_performance_7d > 0);
+      const underperformingVsBtc = altcoins.filter((coin) => coin.btc_relative_performance_7d <= 0);
+      const totalCoins = altcoins.length;
+      const outperformingCount = outperformingVsBtc.length;
       const underperformingCount = underperformingVsBtc.length;
-      const validCoins = btcMarketData.filter(
-        (coin) => coin && typeof coin.price_change_percentage_24h === "number"
-      );
-      const averagePerformance = validCoins.length > 0 ? validCoins.reduce((sum, coin) => sum + coin.price_change_percentage_24h, 0) / validCoins.length : 0;
-      const sortedOutperformers = [...outperformingWithUsd].sort((a, b) => (b.price_change_percentage_24h || 0) - (a.price_change_percentage_24h || 0));
-      const sortedUnderperformers = [...underperformingVsBtc].filter((coin) => coin && coin.id && coin.name).sort((a, b) => (a.price_change_percentage_24h || 0) - (b.price_change_percentage_24h || 0));
+      const averageRelativePerformance = altcoins.length > 0 ? altcoins.reduce((sum, coin) => sum + coin.btc_relative_performance_7d, 0) / altcoins.length : 0;
       const result = {
-        outperforming: outperformingWithUsd,
-        underperforming: sortedUnderperformers.slice(0, 10),
-        // Limit to top 10 for readability
+        outperforming: outperformingVsBtc.slice(0, 20),
+        // Top 20 outperformers
+        underperforming: underperformingVsBtc.slice(-10),
+        // Bottom 10 underperformers
         totalCoins,
         outperformingCount,
         underperformingCount,
-        averagePerformance,
-        topPerformers: sortedOutperformers.slice(0, 10),
-        // Top 10 performers
-        worstPerformers: sortedUnderperformers.slice(0, 5),
+        averagePerformance: averageRelativePerformance,
+        topPerformers: outperformingVsBtc.slice(0, 8),
+        // Top 8 performers (like website)
+        worstPerformers: underperformingVsBtc.slice(-5),
         // Worst 5 performers
         lastUpdated: /* @__PURE__ */ new Date()
       };
-      console.log(`[RealTimeDataService] \u2705 Fetched top 100 vs BTC data: ${outperformingCount}/${totalCoins} outperforming, avg: ${averagePerformance.toFixed(2)}%`);
+      console.log(`[RealTimeDataService] \u2705 Fetched top 200 vs BTC data: ${outperformingCount}/${totalCoins} outperforming Bitcoin (7d), avg relative: ${averageRelativePerformance.toFixed(2)}%`);
       return result;
     } catch (error) {
       console.error("[RealTimeDataService] \u274C Error in fetchTop100VsBtcData:", {
@@ -5369,11 +5273,13 @@ var RealTimeDataService = class _RealTimeDataService extends Service10 {
         const response = await fetch(url, {
           ...options,
           signal: AbortSignal.timeout(15e3)
-          // Increased timeout to 15 seconds
+          // 15 second timeout
         });
         if (response.status === 429) {
-          const waitTime = Math.min(Math.pow(2, i) * 5e3, 6e4);
-          console.warn(`Rate limited, waiting ${waitTime}ms before retry ${i + 1}`);
+          const baseWaitTime = Math.min(Math.pow(2, i) * 1e4, 12e4);
+          const jitter = Math.random() * 5e3;
+          const waitTime = baseWaitTime + jitter;
+          console.warn(`[RealTimeDataService] Rate limited on ${url}, waiting ${Math.round(waitTime)}ms before retry ${i + 1}`);
           await new Promise((resolve) => setTimeout(resolve, waitTime));
           continue;
         }
@@ -5384,8 +5290,10 @@ var RealTimeDataService = class _RealTimeDataService extends Service10 {
       } catch (error) {
         lastError = error;
         if (i < maxRetries - 1) {
-          const waitTime = Math.min(Math.pow(2, i) * 3e3, 3e4);
-          console.warn(`Request failed, waiting ${waitTime}ms before retry ${i + 1}:`, error);
+          const baseWaitTime = Math.min(Math.pow(2, i) * 5e3, 45e3);
+          const jitter = Math.random() * 2e3;
+          const waitTime = baseWaitTime + jitter;
+          console.warn(`[RealTimeDataService] Request failed for ${url}, waiting ${Math.round(waitTime)}ms before retry ${i + 1}:`, error);
           await new Promise((resolve) => setTimeout(resolve, waitTime));
         }
       }
@@ -5616,14 +5524,15 @@ var RealTimeDataService = class _RealTimeDataService extends Service10 {
   }
   async makeQueuedRequest(requestFn) {
     return new Promise((resolve, reject) => {
-      this.requestQueue.push(async () => {
+      const requestWrapper = async () => {
         try {
           const result = await requestFn();
           resolve(result);
         } catch (error) {
           reject(error);
         }
-      });
+      };
+      this.requestQueue.push(requestWrapper);
       if (!this.isProcessingQueue) {
         this.processRequestQueue();
       }
@@ -5635,7 +5544,7 @@ var RealTimeDataService = class _RealTimeDataService extends Service10 {
     while (this.requestQueue.length > 0) {
       if (this.backoffUntil > Date.now()) {
         const backoffTime = this.backoffUntil - Date.now();
-        console.log(`In backoff period, waiting ${backoffTime}ms`);
+        console.log(`[RealTimeDataService] In backoff period, waiting ${backoffTime}ms`);
         await new Promise((resolve) => setTimeout(resolve, backoffTime));
         this.backoffUntil = 0;
       }
@@ -5651,11 +5560,11 @@ var RealTimeDataService = class _RealTimeDataService extends Service10 {
           this.consecutiveFailures = 0;
         } catch (error) {
           this.consecutiveFailures++;
-          console.error(`Request failed (${this.consecutiveFailures}/${this.MAX_CONSECUTIVE_FAILURES}):`, error);
+          console.error(`[RealTimeDataService] Request failed (${this.consecutiveFailures}/${this.MAX_CONSECUTIVE_FAILURES}):`, error);
           if (this.consecutiveFailures >= this.MAX_CONSECUTIVE_FAILURES) {
             const backoffTime = Math.min(Math.pow(2, this.consecutiveFailures - this.MAX_CONSECUTIVE_FAILURES) * 3e4, 3e5);
             this.backoffUntil = Date.now() + backoffTime;
-            console.log(`Too many consecutive failures, backing off for ${backoffTime}ms`);
+            console.log(`[RealTimeDataService] Too many consecutive failures, backing off for ${backoffTime}ms`);
           }
         }
       }
