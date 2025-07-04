@@ -600,6 +600,7 @@ export class RealTimeDataService extends Service {
 
   constructor(runtime: IAgentRuntime) {
     super();
+    this.runtime = runtime;
   }
 
   static async start(runtime: IAgentRuntime) {
