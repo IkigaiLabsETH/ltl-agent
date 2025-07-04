@@ -1,13 +1,13 @@
 // plugin-bitcoin-ltl/src/index.ts
 import {
-  logger as logger18
+  logger as logger25
 } from "@elizaos/core";
 
 // plugin-bitcoin-ltl/src/plugin.ts
 import {
   ModelType,
-  Service as Service9,
-  logger as logger17
+  Service as Service11,
+  logger as logger24
 } from "@elizaos/core";
 import { z } from "zod";
 
@@ -353,8 +353,502 @@ var BitcoinTestSuite = class {
 };
 var tests_default = new BitcoinTestSuite();
 
+// plugin-bitcoin-ltl/src/services/BaseDataService.ts
+import { Service } from "@elizaos/core";
+var BaseDataService = class extends Service {
+  // Rate limiting properties (shared across all services)
+  lastRequestTime = 0;
+  MIN_REQUEST_INTERVAL = 2e3;
+  // 2 seconds between requests
+  requestQueue = [];
+  isProcessingQueue = false;
+  consecutiveFailures = 0;
+  MAX_CONSECUTIVE_FAILURES = 5;
+  backoffUntil = 0;
+  constructor(runtime) {
+    super();
+    this.runtime = runtime;
+  }
+  /**
+   * Queue a request to be processed with rate limiting
+   */
+  async makeQueuedRequest(requestFn) {
+    return new Promise((resolve, reject) => {
+      this.requestQueue.push(async () => {
+        try {
+          const result = await requestFn();
+          resolve(result);
+        } catch (error) {
+          reject(error);
+        }
+      });
+      if (!this.isProcessingQueue) {
+        this.processRequestQueue();
+      }
+    });
+  }
+  /**
+   * Process the request queue with rate limiting and backoff
+   */
+  async processRequestQueue() {
+    if (this.isProcessingQueue) return;
+    this.isProcessingQueue = true;
+    while (this.requestQueue.length > 0) {
+      if (this.backoffUntil > Date.now()) {
+        const backoffTime = this.backoffUntil - Date.now();
+        console.log(`[BaseDataService] In backoff period, waiting ${backoffTime}ms`);
+        await new Promise((resolve) => setTimeout(resolve, backoffTime));
+        this.backoffUntil = 0;
+      }
+      const timeSinceLastRequest = Date.now() - this.lastRequestTime;
+      if (timeSinceLastRequest < this.MIN_REQUEST_INTERVAL) {
+        await new Promise((resolve) => setTimeout(resolve, this.MIN_REQUEST_INTERVAL - timeSinceLastRequest));
+      }
+      const request = this.requestQueue.shift();
+      if (request) {
+        try {
+          this.lastRequestTime = Date.now();
+          await request();
+          this.consecutiveFailures = 0;
+        } catch (error) {
+          this.consecutiveFailures++;
+          console.error(`[BaseDataService] Request failed (${this.consecutiveFailures}/${this.MAX_CONSECUTIVE_FAILURES}):`, error);
+          if (this.consecutiveFailures >= this.MAX_CONSECUTIVE_FAILURES) {
+            const backoffTime = Math.min(Math.pow(2, this.consecutiveFailures - this.MAX_CONSECUTIVE_FAILURES) * 3e4, 3e5);
+            this.backoffUntil = Date.now() + backoffTime;
+            console.log(`[BaseDataService] Too many consecutive failures, backing off for ${backoffTime}ms`);
+          }
+        }
+      }
+    }
+    this.isProcessingQueue = false;
+  }
+  /**
+   * Fetch with retry logic and exponential backoff
+   */
+  async fetchWithRetry(url, options = {}, maxRetries = 3) {
+    let lastError;
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        const response = await fetch(url, {
+          ...options,
+          signal: AbortSignal.timeout(15e3)
+          // 15 second timeout
+        });
+        if (response.status === 429) {
+          const waitTime = Math.min(Math.pow(2, i) * 5e3, 6e4);
+          console.warn(`[BaseDataService] Rate limited, waiting ${waitTime}ms before retry ${i + 1}`);
+          await new Promise((resolve) => setTimeout(resolve, waitTime));
+          continue;
+        }
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return await response.json();
+      } catch (error) {
+        lastError = error;
+        if (i < maxRetries - 1) {
+          const waitTime = Math.min(Math.pow(2, i) * 3e3, 3e4);
+          console.warn(`[BaseDataService] Request failed, waiting ${waitTime}ms before retry ${i + 1}:`, error);
+          await new Promise((resolve) => setTimeout(resolve, waitTime));
+        }
+      }
+    }
+    throw lastError;
+  }
+  /**
+   * Check if cache is still valid
+   */
+  isCacheValid(timestamp, duration) {
+    return Date.now() - timestamp < duration;
+  }
+};
+
+// plugin-bitcoin-ltl/src/services/BitcoinNetworkDataService.ts
+import { logger as logger2 } from "@elizaos/core";
+
+// plugin-bitcoin-ltl/src/services/AltcoinDataService.ts
+import { logger as logger3 } from "@elizaos/core";
+import axios from "axios";
+
+// plugin-bitcoin-ltl/src/services/NFTDataService.ts
+import { logger as logger4 } from "@elizaos/core";
+
+// plugin-bitcoin-ltl/src/services/LifestyleDataService.ts
+import { logger as logger5 } from "@elizaos/core";
+
+// plugin-bitcoin-ltl/src/services/StockDataService.ts
+import { logger as logger6 } from "@elizaos/core";
+var StockDataService = class _StockDataService extends BaseDataService {
+  static serviceType = "stock-data";
+  capabilityDescription = "Provides real-time stock market data for curated equities with performance analysis vs MAG7 and S&P 500";
+  // API configuration
+  ALPHA_VANTAGE_API = "https://www.alphavantage.co/query";
+  FINNHUB_API = "https://finnhub.io/api/v1";
+  YAHOO_FINANCE_API = "https://query1.finance.yahoo.com/v8/finance/chart";
+  // Cache management
+  stockDataCache = null;
+  STOCK_CACHE_DURATION = 5 * 60 * 1e3;
+  // 5 minutes (market hours)
+  // Curated stocks from LiveTheLifeTV website
+  curatedStocks = [
+    // Bitcoin/Crypto Related Stocks
+    { symbol: "MSTR", name: "MicroStrategy Inc", sector: "bitcoin-related" },
+    { symbol: "COIN", name: "Coinbase Global Inc", sector: "bitcoin-related" },
+    { symbol: "HOOD", name: "Robinhood Markets Inc", sector: "bitcoin-related" },
+    { symbol: "CRCL", name: "Circle Internet Financial", sector: "bitcoin-related" },
+    { symbol: "RIOT", name: "Riot Platforms Inc", sector: "bitcoin-related" },
+    { symbol: "MARA", name: "Marathon Digital Holdings", sector: "bitcoin-related" },
+    { symbol: "CLSK", name: "CleanSpark Inc", sector: "bitcoin-related" },
+    // High Growth Tech (non-MAG7)
+    { symbol: "TSLA", name: "Tesla Inc", sector: "tech" },
+    { symbol: "PLTR", name: "Palantir Technologies", sector: "tech" },
+    { symbol: "RKLB", name: "Rocket Lab USA", sector: "tech" },
+    { symbol: "NET", name: "Cloudflare Inc", sector: "tech" },
+    { symbol: "SNOW", name: "Snowflake Inc", sector: "tech" },
+    { symbol: "CRWD", name: "CrowdStrike Holdings", sector: "tech" },
+    { symbol: "ZM", name: "Zoom Video Communications", sector: "tech" }
+  ];
+  // MAG7 stocks for comparison
+  mag7Stocks = [
+    { symbol: "AAPL", name: "Apple Inc", sector: "mag7" },
+    { symbol: "MSFT", name: "Microsoft Corporation", sector: "mag7" },
+    { symbol: "GOOGL", name: "Alphabet Inc", sector: "mag7" },
+    { symbol: "AMZN", name: "Amazon.com Inc", sector: "mag7" },
+    { symbol: "NVDA", name: "NVIDIA Corporation", sector: "mag7" },
+    { symbol: "TSLA", name: "Tesla Inc", sector: "mag7" },
+    // Also in MAG7
+    { symbol: "META", name: "Meta Platforms Inc", sector: "mag7" }
+  ];
+  // Market indices for comparison
+  marketIndices = [
+    { symbol: "SPY", name: "S&P 500 ETF" },
+    { symbol: "QQQ", name: "NASDAQ 100 ETF" },
+    { symbol: "VTI", name: "Total Stock Market ETF" },
+    { symbol: "DIA", name: "Dow Jones Industrial Average ETF" }
+  ];
+  constructor(runtime) {
+    super(runtime);
+  }
+  static async start(runtime) {
+    logger6.info("StockDataService starting...");
+    const service = new _StockDataService(runtime);
+    await service.init();
+    return service;
+  }
+  static async stop(runtime) {
+    logger6.info("StockDataService stopping...");
+    const service = runtime.getService("stock-data");
+    if (service && service.stop) {
+      await service.stop();
+    }
+  }
+  async init() {
+    logger6.info("StockDataService initialized");
+    await this.updateData();
+  }
+  async stop() {
+    logger6.info("StockDataService stopped");
+    this.stockDataCache = null;
+  }
+  // Required abstract method implementations
+  async updateData() {
+    await this.updateStockData();
+  }
+  async forceUpdate() {
+    this.stockDataCache = null;
+    await this.updateData();
+  }
+  // Public API methods
+  getStockData() {
+    if (!this.stockDataCache || !this.isStockCacheValid()) {
+      return null;
+    }
+    return this.stockDataCache.data;
+  }
+  getStockBySymbol(symbol) {
+    const data = this.getStockData();
+    if (!data) return void 0;
+    return [...data.stocks, ...data.mag7].find((stock) => stock.symbol === symbol);
+  }
+  getBitcoinRelatedStocks() {
+    const data = this.getStockData();
+    if (!data) return [];
+    return data.stocks.filter((stock) => stock.sector === "bitcoin-related");
+  }
+  getPerformanceComparisons() {
+    const data = this.getStockData();
+    if (!data) return [];
+    return [...data.performance.topPerformers, ...data.performance.underperformers];
+  }
+  getMag7Performance() {
+    const data = this.getStockData();
+    if (!data) return [];
+    return data.mag7;
+  }
+  async forceStockUpdate() {
+    return await this.fetchStockData();
+  }
+  // Cache management
+  isStockCacheValid() {
+    if (!this.stockDataCache) return false;
+    return Date.now() - this.stockDataCache.timestamp < this.STOCK_CACHE_DURATION;
+  }
+  async updateStockData() {
+    if (!this.isStockCacheValid()) {
+      const data = await this.fetchStockData();
+      if (data) {
+        this.stockDataCache = {
+          data,
+          timestamp: Date.now()
+        };
+      }
+    }
+  }
+  // Core stock data fetching
+  async fetchStockData() {
+    try {
+      logger6.info("[StockDataService] Fetching comprehensive stock data...");
+      const [curatedStocksData, mag7Data, indicesData] = await Promise.all([
+        this.fetchStocksData(this.curatedStocks),
+        this.fetchStocksData(this.mag7Stocks),
+        this.fetchIndicesData()
+      ]);
+      if (!curatedStocksData || !mag7Data || !indicesData) {
+        logger6.warn("[StockDataService] Failed to fetch complete stock data");
+        return null;
+      }
+      const performance = this.calculatePerformanceMetrics(curatedStocksData, mag7Data, indicesData);
+      const result = {
+        stocks: curatedStocksData,
+        mag7: mag7Data,
+        indices: indicesData,
+        performance,
+        lastUpdated: /* @__PURE__ */ new Date()
+      };
+      logger6.info(`[StockDataService] Stock data updated: ${curatedStocksData.length} curated stocks, MAG7 avg: ${performance.mag7Average.toFixed(2)}%`);
+      return result;
+    } catch (error) {
+      logger6.error("[StockDataService] Error fetching stock data:", error);
+      return null;
+    }
+  }
+  async fetchStocksData(stockList) {
+    const stockData = [];
+    const batchSize = 5;
+    for (let i = 0; i < stockList.length; i += batchSize) {
+      const batch = stockList.slice(i, i + batchSize);
+      const batchPromises = batch.map(async (stock) => {
+        try {
+          return await this.fetchSingleStockData(stock.symbol, stock.name, stock.sector);
+        } catch (error) {
+          logger6.warn(`[StockDataService] Failed to fetch ${stock.symbol}:`, error);
+          return null;
+        }
+      });
+      const batchResults = await Promise.all(batchPromises);
+      stockData.push(...batchResults.filter(Boolean));
+      if (i + batchSize < stockList.length) {
+        await new Promise((resolve) => setTimeout(resolve, 1e3));
+      }
+    }
+    return stockData;
+  }
+  async fetchSingleStockData(symbol, name, sector) {
+    try {
+      const yahooData = await this.fetchFromYahooFinance(symbol);
+      if (yahooData) {
+        return {
+          symbol,
+          name,
+          price: yahooData.price,
+          change: yahooData.change,
+          changePercent: yahooData.changePercent,
+          volume: yahooData.volume,
+          marketCap: yahooData.marketCap,
+          lastUpdate: /* @__PURE__ */ new Date(),
+          source: "Yahoo Finance",
+          sector
+        };
+      }
+      const alphaVantageKey = this.runtime.getSetting("ALPHA_VANTAGE_API_KEY");
+      if (alphaVantageKey) {
+        const alphaData = await this.fetchFromAlphaVantage(symbol, alphaVantageKey);
+        if (alphaData) {
+          return {
+            symbol,
+            name,
+            price: alphaData.price,
+            change: alphaData.change,
+            changePercent: alphaData.changePercent,
+            volume: alphaData.volume,
+            marketCap: 0,
+            // Not available in Alpha Vantage basic
+            lastUpdate: /* @__PURE__ */ new Date(),
+            source: "Alpha Vantage",
+            sector
+          };
+        }
+      }
+      const finnhubKey = this.runtime.getSetting("FINNHUB_API_KEY");
+      if (finnhubKey) {
+        const finnhubData = await this.fetchFromFinnhub(symbol, finnhubKey);
+        if (finnhubData) {
+          return {
+            symbol,
+            name,
+            price: finnhubData.price,
+            change: finnhubData.change,
+            changePercent: finnhubData.changePercent,
+            volume: 0,
+            // Would need additional call
+            marketCap: 0,
+            // Would need additional call
+            lastUpdate: /* @__PURE__ */ new Date(),
+            source: "Finnhub",
+            sector
+          };
+        }
+      }
+      return null;
+    } catch (error) {
+      logger6.error(`[StockDataService] Error fetching ${symbol}:`, error);
+      return null;
+    }
+  }
+  async fetchFromYahooFinance(symbol) {
+    try {
+      const response = await this.fetchWithRetry(
+        `${this.YAHOO_FINANCE_API}/${symbol}?interval=1d&range=2d`,
+        {
+          headers: {
+            "User-Agent": "Mozilla/5.0 (compatible; LiveTheLifeTV-Bot/1.0)"
+          }
+        }
+      );
+      const result = response.chart?.result?.[0];
+      if (!result) return null;
+      const meta = result.meta;
+      const currentPrice = meta.regularMarketPrice;
+      const previousClose = meta.previousClose;
+      const change = currentPrice - previousClose;
+      const changePercent = change / previousClose * 100;
+      return {
+        price: currentPrice,
+        change,
+        changePercent,
+        volume: meta.regularMarketVolume || 0,
+        marketCap: meta.marketCap || 0
+      };
+    } catch (error) {
+      logger6.warn(`[StockDataService] Yahoo Finance failed for ${symbol}:`, error);
+      return null;
+    }
+  }
+  async fetchFromAlphaVantage(symbol, apiKey) {
+    try {
+      const response = await this.fetchWithRetry(
+        `${this.ALPHA_VANTAGE_API}?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${apiKey}`,
+        {}
+      );
+      const quote = response["Global Quote"];
+      if (!quote) return null;
+      return {
+        price: parseFloat(quote["05. price"]),
+        change: parseFloat(quote["09. change"]),
+        changePercent: parseFloat(quote["10. change percent"].replace("%", "")),
+        volume: parseInt(quote["06. volume"]) || 0
+      };
+    } catch (error) {
+      logger6.warn(`[StockDataService] Alpha Vantage failed for ${symbol}:`, error);
+      return null;
+    }
+  }
+  async fetchFromFinnhub(symbol, apiKey) {
+    try {
+      const response = await this.fetchWithRetry(
+        `${this.FINNHUB_API}/quote?symbol=${symbol}&token=${apiKey}`,
+        {}
+      );
+      if (!response.c) return null;
+      const currentPrice = response.c;
+      const previousClose = response.pc;
+      const change = currentPrice - previousClose;
+      const changePercent = change / previousClose * 100;
+      return {
+        price: currentPrice,
+        change,
+        changePercent
+      };
+    } catch (error) {
+      logger6.warn(`[StockDataService] Finnhub failed for ${symbol}:`, error);
+      return null;
+    }
+  }
+  async fetchIndicesData() {
+    const indices = [];
+    for (const index of this.marketIndices) {
+      try {
+        const data = await this.fetchSingleStockData(index.symbol, index.name, "index");
+        if (data) {
+          indices.push({
+            symbol: data.symbol,
+            name: data.name,
+            price: data.price,
+            change: data.change,
+            changePercent: data.changePercent,
+            lastUpdate: data.lastUpdate
+          });
+        }
+      } catch (error) {
+        logger6.warn(`[StockDataService] Failed to fetch index ${index.symbol}:`, error);
+      }
+    }
+    return indices;
+  }
+  calculatePerformanceMetrics(stocks, mag7, indices) {
+    const mag7Average = mag7.reduce((sum, stock) => sum + stock.changePercent, 0) / mag7.length;
+    const sp500Performance = indices.find((i) => i.symbol === "SPY")?.changePercent || 0;
+    const bitcoinRelatedStocks = stocks.filter((s) => s.sector === "bitcoin-related");
+    const bitcoinRelatedAverage = bitcoinRelatedStocks.length > 0 ? bitcoinRelatedStocks.reduce((sum, stock) => sum + stock.changePercent, 0) / bitcoinRelatedStocks.length : 0;
+    const techStocks = stocks.filter((s) => s.sector === "tech");
+    const techStocksAverage = techStocks.length > 0 ? techStocks.reduce((sum, stock) => sum + stock.changePercent, 0) / techStocks.length : 0;
+    const comparisons = stocks.map((stock) => {
+      const categoryAverage = stock.sector === "bitcoin-related" ? bitcoinRelatedAverage : techStocksAverage;
+      return {
+        stock,
+        vsMag7: {
+          outperforming: stock.changePercent > mag7Average,
+          difference: stock.changePercent - mag7Average
+        },
+        vsSp500: {
+          outperforming: stock.changePercent > sp500Performance,
+          difference: stock.changePercent - sp500Performance
+        },
+        vsCategory: {
+          categoryAverage,
+          outperforming: stock.changePercent > categoryAverage,
+          difference: stock.changePercent - categoryAverage
+        }
+      };
+    });
+    const sortedComparisons = [...comparisons].sort((a, b) => b.stock.changePercent - a.stock.changePercent);
+    return {
+      topPerformers: sortedComparisons.slice(0, 5),
+      underperformers: sortedComparisons.slice(-3),
+      mag7Average,
+      sp500Performance,
+      bitcoinRelatedAverage,
+      techStocksAverage
+    };
+  }
+};
+
+// plugin-bitcoin-ltl/src/services/TravelDataService.ts
+import { logger as logger7 } from "@elizaos/core";
+
 // plugin-bitcoin-ltl/src/services/BitcoinDataService.ts
-import { Service, logger as logger2 } from "@elizaos/core";
+import { Service as Service3, logger as logger9 } from "@elizaos/core";
 
 // plugin-bitcoin-ltl/src/utils/errors.ts
 var ElizaOSError = class extends Error {
@@ -403,7 +897,7 @@ var MissingAPIKeyError = class extends ElizaOSError {
 };
 
 // plugin-bitcoin-ltl/src/utils/helpers.ts
-import { logger } from "@elizaos/core";
+import { logger as logger8 } from "@elizaos/core";
 var ElizaOSErrorHandler2 = class {
   static handleCommonErrors(error, context) {
     const message = error.message.toLowerCase();
@@ -503,16 +997,16 @@ var LoggerWithContext = class {
     return `[${timestamp}] [${level}] [${this.component}] [${this.correlationId}] ${message}${logData}`;
   }
   info(message, data) {
-    logger.info(this.formatMessage("INFO", message, data));
+    logger8.info(this.formatMessage("INFO", message, data));
   }
   warn(message, data) {
-    logger.warn(this.formatMessage("WARN", message, data));
+    logger8.warn(this.formatMessage("WARN", message, data));
   }
   error(message, data) {
-    logger.error(this.formatMessage("ERROR", message, data));
+    logger8.error(this.formatMessage("ERROR", message, data));
   }
   debug(message, data) {
-    logger.debug(this.formatMessage("DEBUG", message, data));
+    logger8.debug(this.formatMessage("DEBUG", message, data));
   }
 };
 function generateCorrelationId() {
@@ -521,7 +1015,7 @@ function generateCorrelationId() {
 var providerCache = new ProviderCache();
 
 // plugin-bitcoin-ltl/src/services/BitcoinDataService.ts
-var BitcoinDataService = class _BitcoinDataService extends Service {
+var BitcoinDataService = class _BitcoinDataService extends Service3 {
   constructor(runtime) {
     super();
     this.runtime = runtime;
@@ -539,11 +1033,11 @@ var BitcoinDataService = class _BitcoinDataService extends Service {
         contextLogger.warn(`Environment Issue: ${issue}`);
       });
     }
-    logger2.info("BitcoinDataService starting...");
+    logger9.info("BitcoinDataService starting...");
     return new _BitcoinDataService(runtime);
   }
   static async stop(runtime) {
-    logger2.info("BitcoinDataService stopping...");
+    logger9.info("BitcoinDataService stopping...");
     const service = runtime.getService("bitcoin-data");
     if (!service) {
       throw new Error("BitcoinDataService not found");
@@ -553,10 +1047,10 @@ var BitcoinDataService = class _BitcoinDataService extends Service {
     }
   }
   async init() {
-    logger2.info("BitcoinDataService initialized");
+    logger9.info("BitcoinDataService initialized");
   }
   async stop() {
-    logger2.info("BitcoinDataService stopped");
+    logger9.info("BitcoinDataService stopped");
   }
   /**
    * Reset agent memory following ElizaOS best practices
@@ -577,7 +1071,7 @@ var BitcoinDataService = class _BitcoinDataService extends Service {
         const fs = await import("fs");
         if (fs.existsSync(dataDir)) {
           fs.rmSync(dataDir, { recursive: true, force: true });
-          logger2.info(`Deleted PGLite database directory: ${dataDir}`);
+          logger9.info(`Deleted PGLite database directory: ${dataDir}`);
           return {
             success: true,
             message: `Memory reset successful. Deleted database directory: ${dataDir}. Restart the agent to create a fresh database.`
@@ -591,7 +1085,7 @@ var BitcoinDataService = class _BitcoinDataService extends Service {
       }
     } catch (error) {
       const enhancedError = ElizaOSErrorHandler2.handleCommonErrors(error, "MemoryReset");
-      logger2.error("Failed to reset memory:", enhancedError.message);
+      logger9.error("Failed to reset memory:", enhancedError.message);
       return {
         success: false,
         message: `Memory reset failed: ${enhancedError.message}`
@@ -681,7 +1175,7 @@ var BitcoinDataService = class _BitcoinDataService extends Service {
         });
         if (response.status === 429) {
           const waitTime = Math.min(Math.pow(2, i) * 1e3, 1e4);
-          logger2.warn(`Rate limited, waiting ${waitTime}ms before retry ${i + 1}`);
+          logger9.warn(`Rate limited, waiting ${waitTime}ms before retry ${i + 1}`);
           await new Promise((resolve) => setTimeout(resolve, waitTime));
           continue;
         }
@@ -708,7 +1202,7 @@ var BitcoinDataService = class _BitcoinDataService extends Service {
       );
       return data.bitcoin?.usd || 1e5;
     } catch (error) {
-      logger2.error("Error fetching Bitcoin price:", error);
+      logger9.error("Error fetching Bitcoin price:", error);
       return 1e5;
     }
   }
@@ -775,7 +1269,7 @@ var BitcoinDataService = class _BitcoinDataService extends Service {
         lastUpdated: (/* @__PURE__ */ new Date()).toISOString()
       };
     } catch (error) {
-      logger2.error("Error fetching enhanced market data:", error);
+      logger9.error("Error fetching enhanced market data:", error);
       return {
         price: 1e5,
         marketCap: 2e12,
@@ -829,7 +1323,7 @@ var BitcoinDataService = class _BitcoinDataService extends Service {
       aggressive: btcNeeded
       // Exact target
     };
-    logger2.info(`Freedom Mathematics calculated for $${targetFreedom.toLocaleString()}`, {
+    logger9.info(`Freedom Mathematics calculated for $${targetFreedom.toLocaleString()}`, {
       currentBTCNeeded: `${btcNeeded.toFixed(2)} BTC`,
       conservativeTarget: `${safeLevels.conservative.toFixed(2)} BTC`
     });
@@ -875,7 +1369,7 @@ var BitcoinDataService = class _BitcoinDataService extends Service {
       adoptionScore: 75
       // Based on current institutional momentum
     };
-    logger2.info("Institutional adoption analysis complete", {
+    logger9.info("Institutional adoption analysis complete", {
       adoptionScore: `${analysis.adoptionScore}/100`,
       corporateCount: analysis.corporateAdoption.length,
       bankingCount: analysis.bankingIntegration.length
@@ -885,8 +1379,8 @@ var BitcoinDataService = class _BitcoinDataService extends Service {
 };
 
 // plugin-bitcoin-ltl/src/services/ContentIngestionService.ts
-import { Service as Service2 } from "@elizaos/core";
-var ContentIngestionService = class extends Service2 {
+import { Service as Service4 } from "@elizaos/core";
+var ContentIngestionService = class extends Service4 {
   constructor(runtime, serviceName) {
     super();
     this.runtime = runtime;
@@ -1066,7 +1560,7 @@ var ContentIngestionService = class extends Service2 {
 };
 
 // plugin-bitcoin-ltl/src/services/SlackIngestionService.ts
-import { logger as logger4 } from "@elizaos/core";
+import { logger as logger11 } from "@elizaos/core";
 var SlackIngestionService = class _SlackIngestionService extends ContentIngestionService {
   static serviceType = "slack-ingestion";
   capabilityDescription = "Monitors Slack channels for curated content and research updates";
@@ -1077,13 +1571,13 @@ var SlackIngestionService = class _SlackIngestionService extends ContentIngestio
     super(runtime, "SlackIngestionService");
   }
   static async start(runtime) {
-    logger4.info("SlackIngestionService starting...");
+    logger11.info("SlackIngestionService starting...");
     const service = new _SlackIngestionService(runtime);
     await service.init();
     return service;
   }
   static async stop(runtime) {
-    logger4.info("SlackIngestionService stopping...");
+    logger11.info("SlackIngestionService stopping...");
     const service = runtime.getService("slack-ingestion");
     if (service && service.stop) {
       await service.stop();
@@ -1343,8 +1837,8 @@ var SlackIngestionService = class _SlackIngestionService extends ContentIngestio
 };
 
 // plugin-bitcoin-ltl/src/services/MorningBriefingService.ts
-import { Service as Service3, logger as logger5 } from "@elizaos/core";
-var MorningBriefingService = class _MorningBriefingService extends Service3 {
+import { Service as Service5, logger as logger12 } from "@elizaos/core";
+var MorningBriefingService = class _MorningBriefingService extends Service5 {
   static serviceType = "morning-briefing";
   capabilityDescription = "Generates proactive morning intelligence briefings with market data and curated insights";
   contextLogger;
@@ -1360,13 +1854,13 @@ var MorningBriefingService = class _MorningBriefingService extends Service3 {
     this.briefingConfig = this.getDefaultConfig();
   }
   static async start(runtime) {
-    logger5.info("MorningBriefingService starting...");
+    logger12.info("MorningBriefingService starting...");
     const service = new _MorningBriefingService(runtime);
     await service.init();
     return service;
   }
   static async stop(runtime) {
-    logger5.info("MorningBriefingService stopping...");
+    logger12.info("MorningBriefingService stopping...");
     const service = runtime.getService("morning-briefing");
     if (service && service.stop) {
       await service.stop();
@@ -1510,13 +2004,77 @@ var MorningBriefingService = class _MorningBriefingService extends Service3 {
       }
       const bitcoinPrice = await bitcoinService.getBitcoinPrice();
       const thesisMetrics = await bitcoinService.calculateThesisMetrics(bitcoinPrice);
+      const stockDataService = this.runtime.getService("stock-data");
+      let stockData = null;
+      if (stockDataService && stockDataService.getStockData) {
+        try {
+          stockData = stockDataService.getStockData();
+          this.contextLogger.info("Stock data loaded for morning briefing");
+        } catch (error) {
+          this.contextLogger.warn("Failed to get stock data:", error.message);
+        }
+      }
+      let stocksSection = {
+        watchlist: [
+          { symbol: "TSLA", change: 3.2, signal: "Breakout above resistance", price: 350 },
+          { symbol: "MSTR", change: 7.8, signal: "Bitcoin correlation play", price: 420 }
+        ],
+        opportunities: ["Tech sector rotation", "AI infrastructure plays"],
+        sectorRotation: ["Technology", "Energy"]
+      };
+      if (stockData && stockData.performance) {
+        const { performance, stocks, mag7 } = stockData;
+        const topPerformers = performance.topPerformers.slice(0, 5).map((comp) => {
+          let signal = "Market neutral";
+          if (comp.vsMag7.outperforming && comp.vsSp500.outperforming) {
+            signal = "Outperforming both MAG7 and S&P 500";
+          } else if (comp.vsMag7.outperforming) {
+            signal = "Outperforming MAG7";
+          } else if (comp.vsSp500.outperforming) {
+            signal = "Outperforming S&P 500";
+          } else {
+            signal = "Underperforming market";
+          }
+          return {
+            symbol: comp.stock.symbol,
+            change: comp.stock.changePercent,
+            signal,
+            price: comp.stock.price
+          };
+        });
+        const opportunities = [];
+        if (performance.bitcoinRelatedAverage > performance.mag7Average) {
+          opportunities.push("Bitcoin proxy stocks outperforming tech");
+        }
+        if (performance.techStocksAverage > performance.sp500Performance) {
+          opportunities.push("Tech sector leading broader market");
+        }
+        if (performance.topPerformers.some((p) => p.stock.sector === "bitcoin-related")) {
+          opportunities.push("Bitcoin treasury strategies gaining momentum");
+        }
+        const sectorRotation = [];
+        if (performance.bitcoinRelatedAverage > performance.techStocksAverage) {
+          sectorRotation.push("Bitcoin-related equities");
+        }
+        if (performance.techStocksAverage > 0) {
+          sectorRotation.push("Technology");
+        }
+        if (performance.mag7Average > performance.sp500Performance) {
+          sectorRotation.push("Large-cap tech concentration");
+        }
+        stocksSection = {
+          watchlist: topPerformers,
+          opportunities: opportunities.length > 0 ? opportunities : ["Monitor market consolidation"],
+          sectorRotation: sectorRotation.length > 0 ? sectorRotation : ["Broad market participation"]
+        };
+      }
       const marketPulse = {
         bitcoin: {
           price: bitcoinPrice,
           change24h: 2.5,
-          // Mock data
+          // Could get from RealTimeDataService
           change7d: 8.2,
-          // Mock data
+          // Could get from RealTimeDataService
           trend: "bullish",
           thesisProgress: thesisMetrics.progressPercentage,
           nextResistance: bitcoinPrice * 1.05,
@@ -1533,18 +2091,11 @@ var MorningBriefingService = class _MorningBriefingService extends Service3 {
           totalOutperforming: 15,
           isAltseason: false
         },
-        stocks: {
-          watchlist: [
-            { symbol: "TSLA", change: 3.2, signal: "Breakout above resistance", price: 350 },
-            { symbol: "MSTR", change: 7.8, signal: "Bitcoin correlation play", price: 420 }
-          ],
-          opportunities: ["Tech sector rotation", "AI infrastructure plays"],
-          sectorRotation: ["Technology", "Energy"]
-        },
+        stocks: stocksSection,
         overall: {
-          sentiment: "risk-on",
+          sentiment: stockData && stockData.performance.mag7Average > 0 ? "risk-on" : "risk-off",
           majorEvents: ["Fed decision pending", "Bitcoin ETF flows"],
-          catalysts: ["Institutional adoption", "Regulatory clarity"]
+          catalysts: stockData && stockData.performance.bitcoinRelatedAverage > 0 ? ["Institutional Bitcoin adoption", "Corporate treasury diversification", "Regulatory clarity"] : ["Institutional adoption", "Regulatory clarity"]
         }
       };
       return marketPulse;
@@ -1728,8 +2279,8 @@ var MorningBriefingService = class _MorningBriefingService extends Service3 {
 };
 
 // plugin-bitcoin-ltl/src/services/KnowledgeDigestService.ts
-import { Service as Service4, logger as logger6 } from "@elizaos/core";
-var KnowledgeDigestService = class _KnowledgeDigestService extends Service4 {
+import { Service as Service6, logger as logger13 } from "@elizaos/core";
+var KnowledgeDigestService = class _KnowledgeDigestService extends Service6 {
   static serviceType = "knowledge-digest";
   capabilityDescription = "Generates daily knowledge digests from ingested content and research";
   contextLogger;
@@ -1743,13 +2294,13 @@ var KnowledgeDigestService = class _KnowledgeDigestService extends Service4 {
     this.contextLogger = new LoggerWithContext(this.correlationId, "KnowledgeDigestService");
   }
   static async start(runtime) {
-    logger6.info("KnowledgeDigestService starting...");
+    logger13.info("KnowledgeDigestService starting...");
     const service = new _KnowledgeDigestService(runtime);
     await service.init();
     return service;
   }
   static async stop(runtime) {
-    logger6.info("KnowledgeDigestService stopping...");
+    logger13.info("KnowledgeDigestService stopping...");
     const service = runtime.getService("knowledge-digest");
     if (service && service.stop) {
       await service.stop();
@@ -2038,8 +2589,8 @@ var KnowledgeDigestService = class _KnowledgeDigestService extends Service4 {
 };
 
 // plugin-bitcoin-ltl/src/services/OpportunityAlertService.ts
-import { Service as Service5, logger as logger7 } from "@elizaos/core";
-var OpportunityAlertService = class _OpportunityAlertService extends Service5 {
+import { Service as Service7, logger as logger14 } from "@elizaos/core";
+var OpportunityAlertService = class _OpportunityAlertService extends Service7 {
   static serviceType = "opportunity-alert";
   capabilityDescription = "Monitors for investment opportunities and generates real-time alerts";
   contextLogger;
@@ -2057,13 +2608,13 @@ var OpportunityAlertService = class _OpportunityAlertService extends Service5 {
     this.metrics = this.initializeMetrics();
   }
   static async start(runtime) {
-    logger7.info("OpportunityAlertService starting...");
+    logger14.info("OpportunityAlertService starting...");
     const service = new _OpportunityAlertService(runtime);
     await service.init();
     return service;
   }
   static async stop(runtime) {
-    logger7.info("OpportunityAlertService stopping...");
+    logger14.info("OpportunityAlertService stopping...");
     const service = runtime.getService("opportunity-alert");
     if (service && service.stop) {
       await service.stop();
@@ -2412,8 +2963,8 @@ var OpportunityAlertService = class _OpportunityAlertService extends Service5 {
 };
 
 // plugin-bitcoin-ltl/src/services/PerformanceTrackingService.ts
-import { Service as Service6, logger as logger8 } from "@elizaos/core";
-var PerformanceTrackingService = class _PerformanceTrackingService extends Service6 {
+import { Service as Service8, logger as logger15 } from "@elizaos/core";
+var PerformanceTrackingService = class _PerformanceTrackingService extends Service8 {
   static serviceType = "performance-tracking";
   capabilityDescription = "Tracks prediction accuracy and performance over time";
   contextLogger;
@@ -2430,13 +2981,13 @@ var PerformanceTrackingService = class _PerformanceTrackingService extends Servi
     this.metrics = this.initializeMetrics();
   }
   static async start(runtime) {
-    logger8.info("PerformanceTrackingService starting...");
+    logger15.info("PerformanceTrackingService starting...");
     const service = new _PerformanceTrackingService(runtime);
     await service.init();
     return service;
   }
   static async stop(runtime) {
-    logger8.info("PerformanceTrackingService stopping...");
+    logger15.info("PerformanceTrackingService stopping...");
     const service = runtime.getService("performance-tracking");
     if (service && service.stop) {
       await service.stop();
@@ -2954,8 +3505,8 @@ var PerformanceTrackingService = class _PerformanceTrackingService extends Servi
 };
 
 // plugin-bitcoin-ltl/src/services/SchedulerService.ts
-import { Service as Service7, logger as logger9 } from "@elizaos/core";
-var SchedulerService = class _SchedulerService extends Service7 {
+import { Service as Service9, logger as logger16 } from "@elizaos/core";
+var SchedulerService = class _SchedulerService extends Service9 {
   static serviceType = "scheduler";
   capabilityDescription = "Coordinates automated briefings, digests, and alerts across all services";
   contextLogger;
@@ -2975,13 +3526,13 @@ var SchedulerService = class _SchedulerService extends Service7 {
     this.metrics = this.initializeMetrics();
   }
   static async start(runtime) {
-    logger9.info("SchedulerService starting...");
+    logger16.info("SchedulerService starting...");
     const service = new _SchedulerService(runtime);
     await service.init();
     return service;
   }
   static async stop(runtime) {
-    logger9.info("SchedulerService stopping...");
+    logger16.info("SchedulerService stopping...");
     const service = runtime.getService("scheduler");
     if (service && service.stop) {
       await service.stop();
@@ -3445,14 +3996,14 @@ var SchedulerService = class _SchedulerService extends Service7 {
 };
 
 // plugin-bitcoin-ltl/src/services/RealTimeDataService.ts
-import { Service as Service8, logger as logger10 } from "@elizaos/core";
-import axios from "axios";
-var RealTimeDataService = class _RealTimeDataService extends Service8 {
+import { Service as Service10, logger as logger17 } from "@elizaos/core";
+import axios2 from "axios";
+var RealTimeDataService = class _RealTimeDataService extends Service10 {
   static serviceType = "real-time-data";
   capabilityDescription = "Provides real-time market data, news feeds, and social sentiment analysis";
   updateInterval = null;
-  UPDATE_INTERVAL = 3e5;
-  // 5 minutes (increased from 1 minute)
+  UPDATE_INTERVAL = 18e4;
+  // 3 minutes - prioritize Bitcoin data freshness
   symbols = ["BTC", "ETH", "SOL", "MATIC", "ADA", "4337", "8958"];
   // Include MetaPlanet (4337) and Hyperliquid (8958)
   // Rate limiting properties
@@ -3518,39 +4069,10 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
   curatedNFTsCache = null;
   CURATED_NFTS_CACHE_DURATION = 60 * 1e3;
   // 1 minute (matches website caching)
-  weatherCache = null;
-  WEATHER_CACHE_DURATION = 5 * 60 * 1e3;
-  // 5 minutes (matches website)
-  // Curated European lifestyle cities
-  weatherCities = {
-    biarritz: {
-      lat: 43.4833,
-      lon: -1.5586,
-      displayName: "Biarritz",
-      description: "French Basque coast, surfing paradise"
-    },
-    bordeaux: {
-      lat: 44.8378,
-      lon: -0.5792,
-      displayName: "Bordeaux",
-      description: "Wine capital, luxury living"
-    },
-    monaco: {
-      lat: 43.7384,
-      lon: 7.4246,
-      displayName: "Monaco",
-      description: "Tax haven, Mediterranean luxury"
-    }
-  };
   // Curated NFT collections (high-end digital art and OG collections)
   curatedNFTCollections = [
     // Blue chip PFP collections
-    { slug: "boredapeyachtclub", category: "blue-chip" },
-    { slug: "mutant-ape-yacht-club", category: "blue-chip" },
     { slug: "cryptopunks", category: "blue-chip" },
-    { slug: "azuki", category: "blue-chip" },
-    { slug: "clonex", category: "blue-chip" },
-    { slug: "doodles-official", category: "blue-chip" },
     // Generative art collections  
     { slug: "fidenza-by-tyler-hobbs", category: "generative-art" },
     { slug: "art-blocks-curated", category: "generative-art" },
@@ -3614,20 +4136,20 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
     this.runtime = runtime;
   }
   static async start(runtime) {
-    logger10.info("RealTimeDataService starting...");
+    logger17.info("RealTimeDataService starting...");
     const service = new _RealTimeDataService(runtime);
     await service.init();
     return service;
   }
   static async stop(runtime) {
-    logger10.info("RealTimeDataService stopping...");
+    logger17.info("RealTimeDataService stopping...");
     const service = runtime.getService("real-time-data");
     if (service && service.stop) {
       await service.stop();
     }
   }
   async init() {
-    logger10.info("RealTimeDataService initialized");
+    logger17.info("RealTimeDataService initialized");
     await this.startRealTimeUpdates();
   }
   async stop() {
@@ -3635,7 +4157,7 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
       clearInterval(this.updateInterval);
       this.updateInterval = null;
     }
-    logger10.info("RealTimeDataService stopped");
+    logger17.info("RealTimeDataService stopped");
   }
   async startRealTimeUpdates() {
     await this.updateAllData();
@@ -3649,10 +4171,11 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
   }
   async updateAllData() {
     try {
-      console.log("[RealTimeDataService] Starting data update cycle...");
+      console.log("[RealTimeDataService] \u26A1 Starting data update cycle...");
+      console.log("[RealTimeDataService] \u{1F7E0} Prioritizing Bitcoin data update...");
+      await this.updateBitcoinData();
       const updateTasks = [
         () => this.updateMarketData(),
-        () => this.updateBitcoinData(),
         () => this.updateNews(),
         () => this.updateSocialSentiment(),
         () => this.updateEconomicIndicators(),
@@ -3661,22 +4184,21 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
         () => this.updateDexScreenerData(),
         () => this.updateTopMoversData(),
         () => this.updateTrendingCoinsData(),
-        () => this.updateCuratedNFTsData(),
-        () => this.updateWeatherData()
+        () => this.updateCuratedNFTsData()
       ];
       for (let i = 0; i < updateTasks.length; i++) {
         try {
           await updateTasks[i]();
           if (i < updateTasks.length - 1) {
-            await new Promise((resolve) => setTimeout(resolve, 3e3));
+            await new Promise((resolve) => setTimeout(resolve, 2e3));
           }
         } catch (error) {
           console.error(`Update task ${i} failed:`, error);
         }
       }
-      console.log("[RealTimeDataService] Data update cycle completed");
+      console.log("[RealTimeDataService] \u2705 Data update cycle completed");
     } catch (error) {
-      console.error("[RealTimeDataService] Error updating data:", error);
+      console.error("[RealTimeDataService] \u274C Error updating data:", error);
     }
   }
   async updateMarketData() {
@@ -3688,9 +4210,32 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
   }
   async updateBitcoinData() {
     try {
+      console.log("[RealTimeDataService] \u{1F7E0} Fetching comprehensive Bitcoin data...");
       this.comprehensiveBitcoinData = await this.fetchComprehensiveBitcoinData();
+      if (this.comprehensiveBitcoinData) {
+        const price = this.comprehensiveBitcoinData.price.usd;
+        const change24h = this.comprehensiveBitcoinData.price.change24h;
+        const blockHeight = this.comprehensiveBitcoinData.network.blockHeight;
+        const hashRate = this.comprehensiveBitcoinData.network.hashRate;
+        const difficulty = this.comprehensiveBitcoinData.network.difficulty;
+        const fearGreed = this.comprehensiveBitcoinData.sentiment.fearGreedIndex;
+        const mempoolSize = this.comprehensiveBitcoinData.network.mempoolSize;
+        const fastestFee = this.comprehensiveBitcoinData.network.mempoolFees?.fastestFee;
+        const nextHalvingBlocks = this.comprehensiveBitcoinData.network.nextHalving?.blocks;
+        console.log(`[RealTimeDataService] \u{1F7E0} Bitcoin Price: $${price?.toLocaleString()} (${change24h && change24h > 0 ? "+" : ""}${change24h?.toFixed(2)}%)`);
+        console.log(`[RealTimeDataService] \u{1F7E0} Network Hash Rate: ${hashRate ? (hashRate / 1e18).toFixed(2) + " EH/s" : "N/A"}`);
+        console.log(`[RealTimeDataService] \u{1F7E0} Block Height: ${blockHeight?.toLocaleString()}`);
+        console.log(`[RealTimeDataService] \u{1F7E0} Network Difficulty: ${difficulty ? (difficulty / 1e12).toFixed(2) + "T" : "N/A"}`);
+        console.log(`[RealTimeDataService] \u{1F7E0} Mempool Size: ${mempoolSize ? (mempoolSize / 1e6).toFixed(2) + "MB" : "N/A"}`);
+        console.log(`[RealTimeDataService] \u{1F7E0} Fastest Fee: ${fastestFee ? fastestFee + " sat/vB" : "N/A"}`);
+        console.log(`[RealTimeDataService] \u{1F7E0} Fear & Greed Index: ${fearGreed} (${this.comprehensiveBitcoinData.sentiment.fearGreedValue})`);
+        console.log(`[RealTimeDataService] \u{1F7E0} Next Halving: ${nextHalvingBlocks ? nextHalvingBlocks.toLocaleString() + " blocks" : "N/A"}`);
+        console.log(`[RealTimeDataService] \u{1F7E0} Bitcoin data update complete`);
+      } else {
+        console.warn("[RealTimeDataService] \u26A0\uFE0F Failed to fetch Bitcoin data - APIs may be down");
+      }
     } catch (error) {
-      console.error("Error updating Bitcoin data:", error);
+      console.error("[RealTimeDataService] \u274C Error updating Bitcoin data:", error);
     }
   }
   async updateNews() {
@@ -3763,7 +4308,7 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
       const symbols = ["MSFT", "GOOGL", "TSLA"];
       const stockPromises = symbols.map(async (symbol) => {
         try {
-          const response = await axios.get("https://www.alphavantage.co/query", {
+          const response = await axios2.get("https://www.alphavantage.co/query", {
             params: {
               function: "GLOBAL_QUOTE",
               symbol,
@@ -3801,7 +4346,7 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
       if (!newsApiKey) {
         return this.getFallbackNewsData();
       }
-      const response = await axios.get("https://newsapi.org/v2/everything", {
+      const response = await axios2.get("https://newsapi.org/v2/everything", {
         params: {
           q: 'bitcoin OR cryptocurrency OR "strategic bitcoin reserve" OR "bitcoin ETF" OR blockchain',
           sortBy: "publishedAt",
@@ -4099,12 +4644,6 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
     }
     return this.curatedNFTsCache.data;
   }
-  getWeatherData() {
-    if (!this.weatherCache || !this.isWeatherCacheValid()) {
-      return null;
-    }
-    return this.weatherCache.data;
-  }
   async forceUpdate() {
     await this.updateAllData();
   }
@@ -4125,9 +4664,6 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
   }
   async forceCuratedNFTsUpdate() {
     return await this.fetchCuratedNFTsData();
-  }
-  async forceWeatherUpdate() {
-    return await this.fetchWeatherData();
   }
   // Comprehensive Bitcoin data fetcher
   async fetchComprehensiveBitcoinData() {
@@ -4198,33 +4734,148 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
   }
   async fetchBitcoinNetworkData() {
     try {
+      const [blockchainData, mempoolStats, blockstreamData, btcComData] = await Promise.all([
+        this.fetchBlockchainInfoData(),
+        this.fetchMempoolNetworkData(),
+        this.fetchBlockstreamNetworkData(),
+        this.fetchBtcComNetworkData()
+      ]);
+      const hashRate = btcComData?.hashRate || mempoolStats?.hashRate || blockstreamData?.hashRate || blockchainData?.hashRate;
+      const difficulty = btcComData?.difficulty || mempoolStats?.difficulty || blockstreamData?.difficulty || blockchainData?.difficulty;
+      const blockHeight = btcComData?.blockHeight || mempoolStats?.blockHeight || blockstreamData?.blockHeight || blockchainData?.blockHeight;
+      console.log(`[RealTimeDataService] \u{1F50D} Hashrate sources - BTC.com: ${btcComData?.hashRate ? (btcComData.hashRate / 1e18).toFixed(2) + " EH/s" : "N/A"}, Mempool: ${mempoolStats?.hashRate ? (mempoolStats.hashRate / 1e18).toFixed(2) + " EH/s" : "N/A"}, Blockstream: ${blockstreamData?.hashRate ? (blockstreamData.hashRate / 1e18).toFixed(2) + " EH/s" : "N/A"}, Blockchain: ${blockchainData?.hashRate ? (blockchainData.hashRate / 1e18).toFixed(2) + " EH/s" : "N/A"}`);
+      console.log(`[RealTimeDataService] \u{1F3AF} Selected hashrate: ${hashRate ? (hashRate / 1e18).toFixed(2) + " EH/s" : "N/A"}`);
+      const currentBlock = blockHeight || 0;
+      const currentHalvingEpoch = Math.floor(currentBlock / 21e4);
+      const nextHalvingBlock = (currentHalvingEpoch + 1) * 21e4;
+      const blocksUntilHalving = nextHalvingBlock - currentBlock;
+      const avgBlockTime = blockchainData?.avgBlockTime || 10;
+      const minutesUntilHalving = blocksUntilHalving * avgBlockTime;
+      const halvingDate = new Date(Date.now() + minutesUntilHalving * 60 * 1e3);
+      return {
+        hashRate,
+        difficulty,
+        blockHeight,
+        avgBlockTime: blockchainData?.avgBlockTime || avgBlockTime,
+        avgBlockSize: blockchainData?.avgBlockSize || null,
+        totalBTC: blockchainData?.totalBTC || null,
+        marketCap: blockchainData?.marketCap || null,
+        nextHalving: {
+          blocks: blocksUntilHalving,
+          estimatedDate: halvingDate.toISOString()
+        }
+      };
+    } catch (error) {
+      console.error("Error fetching Bitcoin network data:", error);
+      return null;
+    }
+  }
+  /**
+   * Fetch from Blockchain.info API
+   */
+  async fetchBlockchainInfoData() {
+    try {
       const response = await fetch(`${this.BLOCKCHAIN_API}/stats`);
       if (response.ok) {
         const data = await response.json();
-        const currentBlock = Number(data.n_blocks_total);
-        const currentHalvingEpoch = Math.floor(currentBlock / 21e4);
-        const nextHalvingBlock = (currentHalvingEpoch + 1) * 21e4;
-        const blocksUntilHalving = nextHalvingBlock - currentBlock;
-        const avgBlockTime = Number(data.minutes_between_blocks);
-        const minutesUntilHalving = blocksUntilHalving * avgBlockTime;
-        const halvingDate = new Date(Date.now() + minutesUntilHalving * 60 * 1e3);
         return {
-          hashRate: Number(data.hash_rate),
+          hashRate: Number(data.hash_rate) * 1e9,
+          // Convert from GH/s to H/s
           difficulty: Number(data.difficulty),
           blockHeight: Number(data.n_blocks_total),
           avgBlockTime: Number(data.minutes_between_blocks),
           avgBlockSize: Number(data.blocks_size),
           totalBTC: Number(data.totalbc) / 1e8,
-          marketCap: Number(data.market_price_usd) * (Number(data.totalbc) / 1e8),
-          nextHalving: {
-            blocks: blocksUntilHalving,
-            estimatedDate: halvingDate.toISOString()
-          }
+          marketCap: Number(data.market_price_usd) * (Number(data.totalbc) / 1e8)
         };
       }
       return null;
     } catch (error) {
-      console.error("Error fetching Bitcoin network data:", error);
+      console.error("Error fetching Blockchain.info data:", error);
+      return null;
+    }
+  }
+  /**
+   * Fetch network data from Mempool.space API (most accurate)
+   */
+  async fetchMempoolNetworkData() {
+    try {
+      const [hashRateResponse, difficultyResponse, blockHeightResponse] = await Promise.all([
+        fetch(`${this.MEMPOOL_API}/v1/mining/hashrate/1m`),
+        fetch(`${this.MEMPOOL_API}/v1/difficulty-adjustment`),
+        fetch(`${this.MEMPOOL_API}/blocks/tip/height`)
+      ]);
+      const results = {};
+      if (hashRateResponse.ok) {
+        const hashRateData = await hashRateResponse.json();
+        if (hashRateData.currentHashrate) {
+          results.hashRate = Number(hashRateData.currentHashrate);
+        } else if (hashRateData.hashrates && hashRateData.hashrates.length > 0) {
+          const latestHashrate = hashRateData.hashrates[hashRateData.hashrates.length - 1];
+          if (latestHashrate && latestHashrate.hashrateAvg) {
+            results.hashRate = Number(latestHashrate.hashrateAvg);
+          }
+        }
+      }
+      if (difficultyResponse.ok) {
+        const difficultyData = await difficultyResponse.json();
+        if (difficultyData.currentDifficulty) {
+          results.difficulty = Number(difficultyData.currentDifficulty);
+        } else if (difficultyData.difficulty) {
+          results.difficulty = Number(difficultyData.difficulty);
+        }
+      }
+      if (blockHeightResponse.ok) {
+        const blockHeight = await blockHeightResponse.json();
+        if (typeof blockHeight === "number") {
+          results.blockHeight = blockHeight;
+        }
+      }
+      return Object.keys(results).length > 0 ? results : null;
+    } catch (error) {
+      console.error("Error fetching Mempool.space network data:", error);
+      return null;
+    }
+  }
+  /**
+   * Fetch network data from Blockstream API
+   */
+  async fetchBlockstreamNetworkData() {
+    try {
+      const response = await fetch("https://blockstream.info/api/stats");
+      if (response.ok) {
+        const data = await response.json();
+        return {
+          hashRate: data.hashrate_24h ? Number(data.hashrate_24h) : null,
+          difficulty: data.difficulty ? Number(data.difficulty) : null,
+          blockHeight: data.chain_stats?.funded_txo_count ? Number(data.chain_stats.funded_txo_count) : null
+        };
+      }
+      return null;
+    } catch (error) {
+      console.error("Error fetching Blockstream data:", error);
+      return null;
+    }
+  }
+  /**
+   * Fetch network data from BTC.com API (most reliable)
+   */
+  async fetchBtcComNetworkData() {
+    try {
+      const response = await fetch("https://chain.api.btc.com/v3/stats");
+      if (response.ok) {
+        const data = await response.json();
+        if (data.data) {
+          return {
+            hashRate: data.data.hash_rate ? Number(data.data.hash_rate) : null,
+            difficulty: data.data.difficulty ? Number(data.data.difficulty) : null,
+            blockHeight: data.data.best_block_height ? Number(data.data.best_block_height) : null
+          };
+        }
+      }
+      return null;
+    } catch (error) {
+      console.error("Error fetching BTC.com data:", error);
       return null;
     }
   }
@@ -4340,6 +4991,7 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
   }
   async fetchTop100VsBtcData() {
     try {
+      console.log("[RealTimeDataService] Starting fetchTop100VsBtcData...");
       const btcMarketData = await this.makeQueuedRequest(async () => {
         return await this.fetchWithRetry(
           `${this.COINGECKO_API}/coins/markets?vs_currency=btc&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h,7d,30d`,
@@ -4348,11 +5000,16 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
           }
         );
       });
+      console.log(`[RealTimeDataService] Fetched ${btcMarketData?.length || 0} coins from CoinGecko`);
+      if (!Array.isArray(btcMarketData)) {
+        console.error("[RealTimeDataService] Invalid btcMarketData response:", typeof btcMarketData);
+        return null;
+      }
       const outperformingVsBtc = btcMarketData.filter(
-        (coin) => coin.price_change_percentage_24h > 0
+        (coin) => coin && typeof coin.price_change_percentage_24h === "number" && coin.price_change_percentage_24h > 0
       );
       const underperformingVsBtc = btcMarketData.filter(
-        (coin) => coin.price_change_percentage_24h <= 0
+        (coin) => coin && typeof coin.price_change_percentage_24h === "number" && coin.price_change_percentage_24h <= 0
       );
       if (outperformingVsBtc.length === 0) {
         return {
@@ -4368,35 +5025,45 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
           lastUpdated: /* @__PURE__ */ new Date()
         };
       }
-      const outperformingIds = outperformingVsBtc.map((coin) => coin.id).join(",");
-      const usdPrices = await this.makeQueuedRequest(async () => {
-        return await this.fetchWithRetry(
-          `${this.COINGECKO_API}/simple/price?ids=${outperformingIds}&vs_currencies=usd`,
-          {
-            headers: { "Accept": "application/json" }
-          }
-        );
-      });
-      const outperformingWithUsd = outperformingVsBtc.map((coin) => ({
-        id: coin.id,
-        symbol: coin.symbol,
-        name: coin.name,
-        image: coin.image,
-        current_price: usdPrices[coin.id]?.usd ?? 0,
-        market_cap_rank: coin.market_cap_rank,
-        price_change_percentage_24h: coin.price_change_percentage_24h,
-        price_change_percentage_7d_in_currency: coin.price_change_percentage_7d_in_currency,
-        price_change_percentage_30d_in_currency: coin.price_change_percentage_30d_in_currency
-      }));
+      let outperformingWithUsd = [];
+      if (outperformingVsBtc.length > 0) {
+        const outperformingIds = outperformingVsBtc.filter((coin) => coin && coin.id).map((coin) => coin.id).join(",");
+        console.log(`[RealTimeDataService] Fetching USD prices for ${outperformingVsBtc.length} outperforming coins`);
+        if (outperformingIds) {
+          const usdPrices = await this.makeQueuedRequest(async () => {
+            return await this.fetchWithRetry(
+              `${this.COINGECKO_API}/simple/price?ids=${outperformingIds}&vs_currencies=usd`,
+              {
+                headers: { "Accept": "application/json" }
+              }
+            );
+          });
+          console.log(`[RealTimeDataService] Received USD prices for ${Object.keys(usdPrices || {}).length} coins`);
+          outperformingWithUsd = outperformingVsBtc.filter((coin) => coin && coin.id && coin.symbol && coin.name).map((coin) => ({
+            id: coin.id,
+            symbol: coin.symbol,
+            name: coin.name,
+            image: coin.image || "",
+            current_price: usdPrices?.[coin.id]?.usd ?? 0,
+            market_cap_rank: coin.market_cap_rank || 0,
+            price_change_percentage_24h: coin.price_change_percentage_24h || 0,
+            price_change_percentage_7d_in_currency: coin.price_change_percentage_7d_in_currency,
+            price_change_percentage_30d_in_currency: coin.price_change_percentage_30d_in_currency
+          }));
+        }
+      }
       const totalCoins = btcMarketData.length;
       const outperformingCount = outperformingWithUsd.length;
       const underperformingCount = underperformingVsBtc.length;
-      const averagePerformance = btcMarketData.reduce((sum, coin) => sum + coin.price_change_percentage_24h, 0) / totalCoins;
-      const sortedOutperformers = [...outperformingWithUsd].sort((a, b) => b.price_change_percentage_24h - a.price_change_percentage_24h);
-      const sortedUnderperformers = [...underperformingVsBtc].sort((a, b) => a.price_change_percentage_24h - b.price_change_percentage_24h);
+      const validCoins = btcMarketData.filter(
+        (coin) => coin && typeof coin.price_change_percentage_24h === "number"
+      );
+      const averagePerformance = validCoins.length > 0 ? validCoins.reduce((sum, coin) => sum + coin.price_change_percentage_24h, 0) / validCoins.length : 0;
+      const sortedOutperformers = [...outperformingWithUsd].sort((a, b) => (b.price_change_percentage_24h || 0) - (a.price_change_percentage_24h || 0));
+      const sortedUnderperformers = [...underperformingVsBtc].filter((coin) => coin && coin.id && coin.name).sort((a, b) => (a.price_change_percentage_24h || 0) - (b.price_change_percentage_24h || 0));
       const result = {
         outperforming: outperformingWithUsd,
-        underperforming: underperformingVsBtc.slice(0, 10),
+        underperforming: sortedUnderperformers.slice(0, 10),
         // Limit to top 10 for readability
         totalCoins,
         outperformingCount,
@@ -4408,10 +5075,15 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
         // Worst 5 performers
         lastUpdated: /* @__PURE__ */ new Date()
       };
-      console.log(`[RealTimeDataService] Fetched top 100 vs BTC data: ${outperformingCount}/${totalCoins} outperforming`);
+      console.log(`[RealTimeDataService] \u2705 Fetched top 100 vs BTC data: ${outperformingCount}/${totalCoins} outperforming, avg: ${averagePerformance.toFixed(2)}%`);
       return result;
     } catch (error) {
-      console.error("Error in fetchTop100VsBtcData:", error);
+      console.error("[RealTimeDataService] \u274C Error in fetchTop100VsBtcData:", {
+        error: error instanceof Error ? error.message : "Unknown error",
+        stack: error instanceof Error ? error.stack : void 0,
+        type: typeof error,
+        details: error
+      });
       return null;
     }
   }
@@ -4942,175 +5614,6 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
       lastUpdated: /* @__PURE__ */ new Date()
     };
   }
-  // Weather data management
-  isWeatherCacheValid() {
-    if (!this.weatherCache) return false;
-    return Date.now() - this.weatherCache.timestamp < this.WEATHER_CACHE_DURATION;
-  }
-  async updateWeatherData() {
-    if (!this.isWeatherCacheValid()) {
-      const data = await this.fetchWeatherData();
-      if (data) {
-        this.weatherCache = {
-          data,
-          timestamp: Date.now()
-        };
-      }
-    }
-  }
-  async fetchWeatherData() {
-    try {
-      console.log("[RealTimeDataService] Fetching weather data for European lifestyle cities...");
-      const cities = Object.entries(this.weatherCities);
-      const cityWeatherPromises = cities.map(async ([cityKey, cityConfig]) => {
-        try {
-          const weatherResponse = await fetch(
-            `https://api.open-meteo.com/v1/forecast?latitude=${cityConfig.lat}&longitude=${cityConfig.lon}&current=temperature_2m,wind_speed_10m,wind_direction_10m&hourly=temperature_2m,wind_speed_10m,wind_direction_10m`,
-            { signal: AbortSignal.timeout(5e3) }
-          );
-          if (!weatherResponse.ok) {
-            console.warn(`Failed to fetch weather for ${cityKey}: ${weatherResponse.status}`);
-            return null;
-          }
-          const weatherData = await weatherResponse.json();
-          if (!weatherData.current && weatherData.hourly) {
-            const latestIndex = weatherData.hourly.time.length - 1;
-            if (latestIndex >= 0) {
-              weatherData.current = {
-                time: weatherData.hourly.time[latestIndex],
-                interval: 3600,
-                // 1 hour in seconds
-                temperature_2m: weatherData.hourly.temperature_2m[latestIndex],
-                wind_speed_10m: weatherData.hourly.wind_speed_10m?.[latestIndex],
-                wind_direction_10m: weatherData.hourly.wind_direction_10m?.[latestIndex]
-              };
-            }
-          }
-          let marineData = null;
-          if (cityKey === "biarritz" || cityKey === "monaco") {
-            try {
-              const marineResponse = await fetch(
-                `https://marine-api.open-meteo.com/v1/marine?latitude=${cityConfig.lat}&longitude=${cityConfig.lon}&current=wave_height,wave_direction,wave_period,sea_surface_temperature`,
-                { signal: AbortSignal.timeout(5e3) }
-              );
-              if (marineResponse.ok) {
-                marineData = await marineResponse.json();
-              }
-            } catch (error) {
-              console.warn(`Failed to fetch marine data for ${cityKey}:`, error);
-            }
-          }
-          let airQualityData = null;
-          try {
-            const airQualityResponse = await fetch(
-              `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${cityConfig.lat}&longitude=${cityConfig.lon}&current=pm10,pm2_5,uv_index,uv_index_clear_sky`,
-              { signal: AbortSignal.timeout(5e3) }
-            );
-            if (airQualityResponse.ok) {
-              airQualityData = await airQualityResponse.json();
-            }
-          } catch (error) {
-            console.warn(`Failed to fetch air quality data for ${cityKey}:`, error);
-          }
-          return {
-            city: cityKey,
-            displayName: cityConfig.displayName,
-            weather: weatherData,
-            marine: marineData,
-            airQuality: airQualityData,
-            lastUpdated: /* @__PURE__ */ new Date()
-          };
-        } catch (error) {
-          console.error(`Error fetching weather for ${cityKey}:`, error);
-          return null;
-        }
-      });
-      const cityWeatherData = [];
-      for (let i = 0; i < cityWeatherPromises.length; i++) {
-        if (i > 0) {
-          await new Promise((resolve) => setTimeout(resolve, 300));
-        }
-        try {
-          const result2 = await cityWeatherPromises[i];
-          if (result2) {
-            cityWeatherData.push(result2);
-          }
-        } catch (error) {
-          console.error(`Error processing weather for city ${i}:`, error);
-        }
-      }
-      if (cityWeatherData.length === 0) {
-        console.warn("No weather data retrieved for any city");
-        return null;
-      }
-      const temperatures = cityWeatherData.map((city) => city.weather.current?.temperature_2m).filter((temp) => temp !== void 0 && temp !== null);
-      if (temperatures.length === 0) {
-        console.warn("No valid temperature data available");
-        return null;
-      }
-      const averageTemp = temperatures.reduce((sum, temp) => sum + temp, 0) / temperatures.length;
-      const bestWeatherCity = cityWeatherData.reduce((best, current) => {
-        const bestTemp = best.weather.current?.temperature_2m || 0;
-        const bestWind = best.weather.current?.wind_speed_10m || 0;
-        const currentTemp = current.weather.current?.temperature_2m || 0;
-        const currentWind = current.weather.current?.wind_speed_10m || 0;
-        const bestScore = bestTemp - bestWind * 0.5;
-        const currentScore = currentTemp - currentWind * 0.5;
-        return currentScore > bestScore ? current : best;
-      }).displayName;
-      const coastalCities = cityWeatherData.filter((city) => city.marine);
-      let bestSurfConditions = null;
-      if (coastalCities.length > 0) {
-        const bestSurf = coastalCities.reduce((best, current) => {
-          if (!best.marine || !current.marine) return best;
-          const bestWaves = best.marine.current.wave_height * best.marine.current.wave_period;
-          const currentWaves = current.marine.current.wave_height * current.marine.current.wave_period;
-          return currentWaves > bestWaves ? current : best;
-        });
-        bestSurfConditions = bestSurf.displayName;
-      }
-      const windSpeeds = cityWeatherData.map((city) => city.weather.current?.wind_speed_10m).filter((speed) => speed !== void 0 && speed !== null);
-      const maxWindSpeed = windSpeeds.length > 0 ? Math.max(...windSpeeds) : 0;
-      let windConditions;
-      if (maxWindSpeed < 10) windConditions = "calm";
-      else if (maxWindSpeed < 20) windConditions = "breezy";
-      else if (maxWindSpeed < 35) windConditions = "windy";
-      else windConditions = "stormy";
-      const uvIndices = cityWeatherData.filter((city) => city.airQuality?.current.uv_index !== void 0).map((city) => city.airQuality.current.uv_index);
-      let uvRisk = "low";
-      if (uvIndices.length > 0) {
-        const maxUV = Math.max(...uvIndices);
-        if (maxUV >= 8) uvRisk = "very-high";
-        else if (maxUV >= 6) uvRisk = "high";
-        else if (maxUV >= 3) uvRisk = "moderate";
-      }
-      const pm25Values = cityWeatherData.filter((city) => city.airQuality?.current.pm2_5 !== void 0).map((city) => city.airQuality.current.pm2_5);
-      let airQuality = "excellent";
-      if (pm25Values.length > 0) {
-        const maxPM25 = Math.max(...pm25Values);
-        if (maxPM25 > 35) airQuality = "poor";
-        else if (maxPM25 > 15) airQuality = "moderate";
-        else if (maxPM25 > 5) airQuality = "good";
-      }
-      const result = {
-        cities: cityWeatherData,
-        summary: {
-          bestWeatherCity,
-          bestSurfConditions,
-          averageTemp,
-          windConditions,
-          uvRisk,
-          airQuality
-        },
-        lastUpdated: /* @__PURE__ */ new Date()
-      };
-      console.log(`[RealTimeDataService] Fetched weather data: ${cityWeatherData.length} cities, avg temp: ${averageTemp.toFixed(1)}\xB0C, best weather: ${bestWeatherCity}`);
-      return result;
-    } catch (error) {
-      console.error("Error in fetchWeatherData:", error);
-      return null;
-    }
-  }
   async makeQueuedRequest(requestFn) {
     return new Promise((resolve, reject) => {
       this.requestQueue.push(async () => {
@@ -5163,7 +5666,7 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
 
 // plugin-bitcoin-ltl/src/actions/morningBriefingAction.ts
 import {
-  logger as logger11
+  logger as logger18
 } from "@elizaos/core";
 var morningBriefingAction = {
   name: "MORNING_BRIEFING",
@@ -5234,10 +5737,10 @@ var morningBriefingAction = {
   },
   handler: async (runtime, message, state, options, callback) => {
     try {
-      logger11.info("Morning briefing action triggered");
+      logger18.info("Morning briefing action triggered");
       const briefingService = runtime.getService("morning-briefing");
       if (!briefingService) {
-        logger11.warn("MorningBriefingService not available");
+        logger18.warn("MorningBriefingService not available");
         if (callback) {
           callback({
             text: "Morning briefing service temporarily unavailable. Bitcoin fundamentals unchanged.",
@@ -5254,10 +5757,10 @@ var morningBriefingAction = {
           actions: ["MORNING_BRIEFING"]
         });
       }
-      logger11.info("Morning briefing delivered successfully");
+      logger18.info("Morning briefing delivered successfully");
       return true;
     } catch (error) {
-      logger11.error("Failed to generate morning briefing:", error.message);
+      logger18.error("Failed to generate morning briefing:", error.message);
       if (callback) {
         callback({
           text: "Systems operational. Bitcoin protocol unchanged. Market data temporarily unavailable.",
@@ -5322,7 +5825,7 @@ async function formatBriefingForDelivery(briefing, runtime) {
 
 // plugin-bitcoin-ltl/src/actions/curatedAltcoinsAction.ts
 import {
-  logger as logger12
+  logger as logger19
 } from "@elizaos/core";
 var curatedAltcoinsAction = {
   name: "CURATED_ALTCOINS",
@@ -5383,7 +5886,7 @@ var curatedAltcoinsAction = {
     try {
       const service = runtime.getService("real-time-data");
       if (!service) {
-        logger12.error("RealTimeDataService not available for curated altcoins action");
+        logger19.error("RealTimeDataService not available for curated altcoins action");
         return false;
       }
       const curatedData = service.getCuratedAltcoinsData();
@@ -5410,7 +5913,7 @@ var curatedAltcoinsAction = {
       }
       return true;
     } catch (error) {
-      logger12.error("Error in curated altcoins action:", error);
+      logger19.error("Error in curated altcoins action:", error);
       if (callback) {
         callback({
           text: "Error analyzing curated altcoins. Markets are volatile beasts.",
@@ -5561,7 +6064,7 @@ function getCoinSymbol(coinId) {
 }
 
 // plugin-bitcoin-ltl/src/actions/top100VsBtcAction.ts
-import { logger as logger13 } from "@elizaos/core";
+import { logger as logger20 } from "@elizaos/core";
 var top100VsBtcAction = {
   name: "TOP_100_VS_BTC_ACTION",
   description: "Displays top 100 altcoins performance vs Bitcoin with outperforming/underperforming analysis",
@@ -5616,10 +6119,10 @@ var top100VsBtcAction = {
   ],
   handler: async (runtime, message, state, options = {}, callback) => {
     try {
-      logger13.info("Top 100 vs BTC Action triggered");
+      logger20.info("Top 100 vs BTC Action triggered");
       const realTimeDataService = runtime.getService("real-time-data");
       if (!realTimeDataService) {
-        logger13.error("RealTimeDataService not found");
+        logger20.error("RealTimeDataService not found");
         if (callback) {
           callback({
             text: "Market data service unavailable. Cannot retrieve top 100 vs BTC performance.",
@@ -5642,7 +6145,7 @@ var top100VsBtcAction = {
         }
       }
       if (!top100Data) {
-        logger13.error("Failed to retrieve top 100 vs BTC data");
+        logger20.error("Failed to retrieve top 100 vs BTC data");
         if (callback) {
           callback({
             text: "Unable to retrieve top 100 vs Bitcoin performance data at this time.",
@@ -5693,7 +6196,7 @@ var top100VsBtcAction = {
       }
       return true;
     } catch (error) {
-      logger13.error("Error in top100VsBtcAction:", error);
+      logger20.error("Error in top100VsBtcAction:", error);
       if (callback) {
         callback({
           text: "Error retrieving top 100 vs Bitcoin performance data.",
@@ -5725,7 +6228,7 @@ var top100VsBtcAction = {
 };
 
 // plugin-bitcoin-ltl/src/actions/dexScreenerAction.ts
-import { logger as logger14 } from "@elizaos/core";
+import { logger as logger21 } from "@elizaos/core";
 var dexScreenerAction = {
   name: "DEX_SCREENER_ACTION",
   description: "Displays trending and top tokens from DEXScreener with liquidity analysis for Solana gems",
@@ -5795,10 +6298,10 @@ var dexScreenerAction = {
   ],
   handler: async (runtime, message, state, options = {}, callback) => {
     try {
-      logger14.info("DEXScreener Action triggered");
+      logger21.info("DEXScreener Action triggered");
       const realTimeDataService = runtime.getService("real-time-data");
       if (!realTimeDataService) {
-        logger14.error("RealTimeDataService not found");
+        logger21.error("RealTimeDataService not found");
         if (callback) {
           callback({
             text: "Market data service unavailable. Cannot retrieve DEXScreener data.",
@@ -5822,7 +6325,7 @@ var dexScreenerAction = {
         }
       }
       if (!dexData) {
-        logger14.error("Failed to retrieve DEXScreener data");
+        logger21.error("Failed to retrieve DEXScreener data");
         if (callback) {
           callback({
             text: "Unable to retrieve DEXScreener data at this time. The degen casino is temporarily offline.",
@@ -5885,7 +6388,7 @@ var dexScreenerAction = {
       }
       return true;
     } catch (error) {
-      logger14.error("Error in dexScreenerAction:", error);
+      logger21.error("Error in dexScreenerAction:", error);
       if (callback) {
         callback({
           text: "Error retrieving DEXScreener data. The degen casino servers might be down.",
@@ -5919,7 +6422,7 @@ var dexScreenerAction = {
 };
 
 // plugin-bitcoin-ltl/src/actions/topMoversAction.ts
-import { logger as logger15 } from "@elizaos/core";
+import { logger as logger22 } from "@elizaos/core";
 var topMoversAction = {
   name: "TOP_MOVERS_ACTION",
   description: "Displays top gaining and losing cryptocurrencies from the top 100 by market cap over 24 hours",
@@ -5990,10 +6493,10 @@ var topMoversAction = {
   ],
   handler: async (runtime, message, state, options = {}, callback) => {
     try {
-      logger15.info("Top Movers Action triggered");
+      logger22.info("Top Movers Action triggered");
       const realTimeDataService = runtime.getService("real-time-data");
       if (!realTimeDataService) {
-        logger15.error("RealTimeDataService not found");
+        logger22.error("RealTimeDataService not found");
         if (callback) {
           callback({
             text: "Market data service unavailable. Cannot retrieve top movers data.",
@@ -6017,7 +6520,7 @@ var topMoversAction = {
         }
       }
       if (!topMoversData) {
-        logger15.error("Failed to retrieve top movers data");
+        logger22.error("Failed to retrieve top movers data");
         if (callback) {
           callback({
             text: "Unable to retrieve top movers data at this time. Market data might be delayed.",
@@ -6085,7 +6588,7 @@ var topMoversAction = {
       }
       return true;
     } catch (error) {
-      logger15.error("Error in topMoversAction:", error);
+      logger22.error("Error in topMoversAction:", error);
       if (callback) {
         callback({
           text: "Error retrieving top movers data. CoinGecko might be rate limiting us.",
@@ -6121,7 +6624,7 @@ var topMoversAction = {
 };
 
 // plugin-bitcoin-ltl/src/actions/trendingCoinsAction.ts
-import { logger as logger16 } from "@elizaos/core";
+import { logger as logger23 } from "@elizaos/core";
 var trendingCoinsAction = {
   name: "TRENDING_COINS_ACTION",
   description: "Displays trending cryptocurrencies based on CoinGecko search activity and community interest",
@@ -6191,10 +6694,10 @@ var trendingCoinsAction = {
   ],
   handler: async (runtime, message, state, options = {}, callback) => {
     try {
-      logger16.info("Trending Coins Action triggered");
+      logger23.info("Trending Coins Action triggered");
       const realTimeDataService = runtime.getService("real-time-data");
       if (!realTimeDataService) {
-        logger16.error("RealTimeDataService not found");
+        logger23.error("RealTimeDataService not found");
         if (callback) {
           callback({
             text: "Market data service unavailable. Cannot retrieve trending coins data.",
@@ -6217,7 +6720,7 @@ var trendingCoinsAction = {
         }
       }
       if (!trendingData || !trendingData.coins || trendingData.coins.length === 0) {
-        logger16.error("Failed to retrieve trending coins data");
+        logger23.error("Failed to retrieve trending coins data");
         if (callback) {
           callback({
             text: "Unable to retrieve trending coins data at this time. CoinGecko might be experiencing issues.",
@@ -6273,7 +6776,7 @@ var trendingCoinsAction = {
       }
       return true;
     } catch (error) {
-      logger16.error("Error in trendingCoinsAction:", error);
+      logger23.error("Error in trendingCoinsAction:", error);
       if (callback) {
         callback({
           text: "Error retrieving trending coins data. CoinGecko search trending might be rate limited.",
@@ -6400,20 +6903,18 @@ var curatedNFTsAction = {
       "digital collection",
       "art collection",
       "nft market",
-      "bored ape",
-      "bayc",
-      "ape",
-      "mutant ape",
-      "mayc",
-      "azuki",
-      "clonex",
-      "doodle"
+      "archetype",
+      "terraforms",
+      "meridian",
+      "sightseers",
+      "progression",
+      "vera molnar"
     ];
     return triggers.some((trigger) => content.includes(trigger));
   },
   handler: async (runtime, message, state, options, callback) => {
     try {
-      const realTimeDataService = runtime.getService("RealTimeDataService");
+      const realTimeDataService = runtime.getService("real-time-data");
       if (!realTimeDataService) {
         callback({
           text: "NFT market analysis temporarily unavailable. Focus on Bitcoin - the only digital asset with immaculate conception.",
@@ -6577,7 +7078,7 @@ var curatedNFTsAction = {
       {
         name: "Satoshi",
         content: {
-          text: "Live NFT data: CryptoPunks: 45.2 ETH floor (+1.8%). Bored Apes: 10.5 ETH floor (-2.3%). Fidenza: 8.2 ETH floor (+3.1%). Markets consolidating after speculation peak. Collect what resonates, but remember - 21 million Bitcoin vs unlimited NFT supply.",
+          text: "Live NFT data: CryptoPunks: 45.2 ETH floor (+1.8%). Fidenza: 8.2 ETH floor (+3.1%). Art Blocks: 2.1 ETH floor (+2.4%). Markets consolidating after speculation peak. Collect what resonates, but remember - 21 million Bitcoin vs unlimited NFT supply.",
           actions: ["CURATED_NFTS_ANALYSIS"]
         }
       }
@@ -6648,8 +7149,8 @@ var weatherAction = {
   },
   handler: async (runtime, message, state, options, callback) => {
     try {
-      const realTimeDataService = runtime.getService("RealTimeDataService");
-      if (!realTimeDataService) {
+      const lifestyleDataService = runtime.getService("lifestyle-data");
+      if (!lifestyleDataService) {
         callback({
           text: "Weather data temporarily unavailable. Like Bitcoin's network, sometimes we need patience for the next block.",
           action: "WEATHER_ANALYSIS"
@@ -6659,9 +7160,9 @@ var weatherAction = {
       const forceRefresh = message.content.text?.toLowerCase().includes("refresh") || message.content.text?.toLowerCase().includes("latest") || message.content.text?.toLowerCase().includes("current");
       let weatherData;
       if (forceRefresh) {
-        weatherData = await realTimeDataService.forceWeatherUpdate();
+        weatherData = await lifestyleDataService.forceWeatherUpdate();
       } else {
-        weatherData = realTimeDataService.getWeatherData();
+        weatherData = lifestyleDataService.getWeatherData();
       }
       if (!weatherData) {
         callback({
@@ -6818,6 +7319,1564 @@ var weatherAction = {
   ]
 };
 
+// plugin-bitcoin-ltl/src/actions/stockMarketAction.ts
+var stockMarketAction = {
+  name: "STOCK_MARKET_ANALYSIS",
+  similes: [
+    "STOCK_PERFORMANCE",
+    "EQUITY_ANALYSIS",
+    "MAG7_COMPARISON",
+    "MARKET_PERFORMANCE"
+  ],
+  description: "Provides stock market analysis for curated equities including Bitcoin-related stocks, MAG7 comparison, and S&P 500 performance",
+  validate: async (runtime, message) => {
+    const content = message.content.text?.toLowerCase() || "";
+    const triggers = [
+      "stock",
+      "stocks",
+      "tsla",
+      "tesla",
+      "mstr",
+      "microstrategy",
+      "nvda",
+      "nvidia",
+      "mag7",
+      "magnificent 7",
+      "s&p 500",
+      "spy",
+      "market",
+      "equity",
+      "equities",
+      "coin",
+      "coinbase",
+      "hood",
+      "robinhood",
+      "mara",
+      "riot",
+      "mining stocks",
+      "bitcoin stocks",
+      "crypto stocks",
+      "performance",
+      "outperform"
+    ];
+    return triggers.some((trigger) => content.includes(trigger));
+  },
+  handler: async (runtime, message, state, options, callback) => {
+    try {
+      const stockDataService = runtime.getService("stock-data");
+      if (!stockDataService) {
+        callback({
+          text: "Stock data temporarily unavailable. Like Bitcoin's price discovery, equity markets require patience during consolidation.",
+          action: "STOCK_MARKET_ANALYSIS"
+        });
+        return;
+      }
+      const forceRefresh = message.content.text?.toLowerCase().includes("refresh") || message.content.text?.toLowerCase().includes("latest") || message.content.text?.toLowerCase().includes("current");
+      let stockData;
+      if (forceRefresh) {
+        stockData = await stockDataService.forceStockUpdate();
+      } else {
+        stockData = stockDataService.getStockData();
+      }
+      if (!stockData) {
+        callback({
+          text: "Stock data unavailable. Markets, like Bitcoin, operate in cycles - this too shall pass.",
+          action: "STOCK_MARKET_ANALYSIS"
+        });
+        return;
+      }
+      const { stocks, mag7, performance } = stockData;
+      let analysis = "**\u{1F3DB}\uFE0F SOVEREIGN EQUITY PORTFOLIO STATUS**\n\n";
+      analysis += `**\u{1F4CA} Market Performance:**
+`;
+      analysis += `\u2022 MAG7 Average: ${performance.mag7Average > 0 ? "+" : ""}${performance.mag7Average.toFixed(2)}%
+`;
+      analysis += `\u2022 S&P 500: ${performance.sp500Performance > 0 ? "+" : ""}${performance.sp500Performance.toFixed(2)}%
+`;
+      analysis += `\u2022 Bitcoin Stocks: ${performance.bitcoinRelatedAverage > 0 ? "+" : ""}${performance.bitcoinRelatedAverage.toFixed(2)}%
+`;
+      analysis += `\u2022 Tech Stocks: ${performance.techStocksAverage > 0 ? "+" : ""}${performance.techStocksAverage.toFixed(2)}%
+
+`;
+      analysis += `**\u{1F680} TOP PERFORMERS:**
+`;
+      performance.topPerformers.slice(0, 3).forEach((comp, index) => {
+        const { stock, vsMag7, vsSp500 } = comp;
+        analysis += `${index + 1}. **${stock.symbol}** (${stock.name})
+`;
+        analysis += `   Price: $${stock.price.toFixed(2)} (${stock.changePercent > 0 ? "+" : ""}${stock.changePercent.toFixed(2)}%)
+`;
+        analysis += `   vs MAG7: ${vsMag7.outperforming ? "\u{1F525} +" : "\u2744\uFE0F "}${vsMag7.difference.toFixed(2)}pp
+`;
+        analysis += `   vs S&P: ${vsSp500.outperforming ? "\u{1F525} +" : "\u2744\uFE0F "}${vsSp500.difference.toFixed(2)}pp
+
+`;
+      });
+      const bitcoinStocks = stocks.filter((s) => s.sector === "bitcoin-related");
+      if (bitcoinStocks.length > 0) {
+        analysis += `**\u20BF BITCOIN PROXY STOCKS:**
+`;
+        bitcoinStocks.slice(0, 4).forEach((stock) => {
+          const comp = performance.topPerformers.find((p) => p.stock.symbol === stock.symbol) || performance.underperformers.find((p) => p.stock.symbol === stock.symbol);
+          analysis += `\u2022 **${stock.symbol}**: $${stock.price.toFixed(2)} (${stock.changePercent > 0 ? "+" : ""}${stock.changePercent.toFixed(2)}%)`;
+          if (comp) {
+            analysis += ` - ${comp.vsMag7.outperforming ? "Outperforming" : "Underperforming"} MAG7`;
+          }
+          analysis += `
+`;
+        });
+        analysis += `
+`;
+      }
+      analysis += `**\u{1F451} MAGNIFICENT 7:**
+`;
+      mag7.slice(0, 5).forEach((stock) => {
+        analysis += `\u2022 **${stock.symbol}**: $${stock.price.toFixed(2)} (${stock.changePercent > 0 ? "+" : ""}${stock.changePercent.toFixed(2)}%)
+`;
+      });
+      analysis += `
+`;
+      analysis += `**\u{1F9E0} SATOSHI'S MARKET PERSPECTIVE:**
+`;
+      if (performance.bitcoinRelatedAverage > performance.mag7Average) {
+        analysis += "Bitcoin proxy stocks are outperforming traditional tech. The parallel financial system gains strength. ";
+      } else {
+        analysis += "Traditional tech still leads Bitcoin proxies. The transition to sound money continues its gradual march. ";
+      }
+      if (performance.mag7Average > performance.sp500Performance) {
+        analysis += "Tech concentration drives market performance - centralized power in decentralized times. ";
+      } else {
+        analysis += "Broader market participation suggests healthy distribution of gains. ";
+      }
+      analysis += `
+
+**\u{1F4B0} WEALTH PRESERVATION INSIGHTS:**
+`;
+      analysis += `\u2022 ${performance.topPerformers.length} positions outperforming MAG7 average
+`;
+      analysis += `\u2022 Bitcoin-related stocks ${performance.bitcoinRelatedAverage > 0 ? "gaining" : "consolidating"} - sound money thesis in action
+`;
+      analysis += `\u2022 Tech innovation continues ${performance.techStocksAverage > 0 ? "advancing" : "digesting gains"}
+`;
+      analysis += `
+**\u{1F3AF} SOVEREIGN ALLOCATION REMINDER:**
+`;
+      analysis += "Stocks are denominated in fiat. Bitcoin is the ultimate long-term store of value. ";
+      analysis += "Trade equities for yield, but stack sats for wealth preservation. ";
+      analysis += "These companies may prosper, but Bitcoin is inevitable.";
+      callback({
+        text: analysis,
+        action: "STOCK_MARKET_ANALYSIS"
+      });
+    } catch (error) {
+      console.error("Error in stockMarketAction:", error);
+      callback({
+        text: "Market analysis failed. Like network congestion, sometimes data flows require patience and retry mechanisms.",
+        action: "STOCK_MARKET_ANALYSIS"
+      });
+    }
+  },
+  examples: [
+    [
+      {
+        name: "{{user}}",
+        content: { text: "How are our stocks performing vs the market?" }
+      },
+      {
+        name: "Satoshi",
+        content: {
+          text: "TSLA: $316.36 (+2.1%) - Outperforming MAG7 by +1.2pp. MSTR: $402.15 (+8.3%) - Bitcoin proxy leading. MAG7 Average: +0.9%. S&P 500: +0.4%. Bitcoin stocks: +4.2% avg. Tech innovation and sound money thesis both advancing. Trade equities for yield, stack sats for wealth.",
+          actions: ["STOCK_MARKET_ANALYSIS"]
+        }
+      }
+    ],
+    [
+      {
+        name: "{{user}}",
+        content: { text: "What's happening with Tesla and MicroStrategy today?" }
+      },
+      {
+        name: "Satoshi",
+        content: {
+          text: "TSLA: $316.36 (+2.1%) vs MAG7 +1.2pp advantage. MSTR: $402.15 (+8.3%) vs MAG7 +7.4pp advantage. MicroStrategy's Bitcoin treasury strategy outperforming traditional corporate allocation. Tesla's innovation premium intact. Both beating S&P 500 by significant margins.",
+          actions: ["STOCK_MARKET_ANALYSIS"]
+        }
+      }
+    ],
+    [
+      {
+        name: "{{user}}",
+        content: { text: "Are Bitcoin mining stocks doing well?" }
+      },
+      {
+        name: "Satoshi",
+        content: {
+          text: "Bitcoin proxy stocks: +4.2% average. MARA: +6.1%, RIOT: +5.8%, CLSK: +3.2%. Mining stocks reflecting Bitcoin's network strength. Outperforming MAG7 (+0.9%) and S&P 500 (+0.4%). Hash rate security translates to equity performance. Sound money thesis in action.",
+          actions: ["STOCK_MARKET_ANALYSIS"]
+        }
+      }
+    ]
+  ]
+};
+
+// plugin-bitcoin-ltl/src/actions/hotelSearchAction.ts
+import {
+  elizaLogger
+} from "@elizaos/core";
+var hotelSearchAction = {
+  name: "HOTEL_SEARCH",
+  similes: [
+    "FIND_HOTELS",
+    "SEARCH_HOTELS",
+    "BOOK_HOTEL",
+    "HOTEL_RATES",
+    "LUXURY_HOTELS",
+    "TRAVEL_SEARCH"
+  ],
+  description: "Search for luxury hotels and find optimal booking windows",
+  validate: async (runtime, message) => {
+    const text = message.content.text.toLowerCase();
+    const hotelKeywords = [
+      "hotel",
+      "hotels",
+      "accommodation",
+      "booking",
+      "stay",
+      "property"
+    ];
+    const searchKeywords = [
+      "find",
+      "search",
+      "look for",
+      "show me",
+      "available",
+      "book",
+      "reserve"
+    ];
+    const locationKeywords = [
+      "biarritz",
+      "bordeaux",
+      "monaco",
+      "french riviera",
+      "southwestern france"
+    ];
+    const hasHotelKeyword = hotelKeywords.some((keyword) => text.includes(keyword));
+    const hasSearchKeyword = searchKeywords.some((keyword) => text.includes(keyword));
+    const hasLocationKeyword = locationKeywords.some((keyword) => text.includes(keyword));
+    return hasHotelKeyword && (hasSearchKeyword || hasLocationKeyword);
+  },
+  handler: async (runtime, message, state, options, callback) => {
+    try {
+      elizaLogger.info(`[HotelSearchAction] Processing hotel search: ${message.content.text}`);
+      const travelService = runtime.getService("travel-data");
+      if (!travelService) {
+        elizaLogger.error("[HotelSearchAction] TravelDataService not available");
+        await callback({
+          text: "\u274C Hotel search service is currently unavailable. Please try again later.",
+          content: { error: "TravelDataService not found" }
+        });
+        return;
+      }
+      const params = parseSearchParameters(message.content.text);
+      elizaLogger.info(`[HotelSearchAction] Parsed parameters:`, params);
+      const travelData = travelService.getTravelData();
+      if (!travelData) {
+        elizaLogger.warn("[HotelSearchAction] No travel data available, forcing update");
+        await travelService.forceUpdate();
+      }
+      const result = performHotelSearch(travelService, params);
+      const response = generateSearchResponse(params, result);
+      elizaLogger.info(`[HotelSearchAction] Found ${result.hotels.length} hotels`);
+      await callback({
+        text: response,
+        content: {
+          action: "hotel_search",
+          params,
+          results: {
+            hotelCount: result.hotels.length,
+            bestDealsCount: result.bestDeals.length,
+            hasSeasonalAdvice: !!result.seasonalAdvice.recommendation
+          }
+        }
+      });
+    } catch (error) {
+      elizaLogger.error("[HotelSearchAction] Error processing hotel search:", error);
+      await callback({
+        text: "\u274C I encountered an error while searching for hotels. Please try again.",
+        content: { error: error.message }
+      });
+    }
+  },
+  examples: []
+};
+function parseSearchParameters(text) {
+  try {
+    const text_lower = text.toLowerCase();
+    const params = {};
+    if (text_lower.includes("biarritz")) params.city = "biarritz";
+    else if (text_lower.includes("bordeaux")) params.city = "bordeaux";
+    else if (text_lower.includes("monaco")) params.city = "monaco";
+    const priceMatch = text.match(/(\d+)\s*(?:eur|€|euros?)/i);
+    if (priceMatch) {
+      params.maxPrice = parseInt(priceMatch[1]);
+    }
+    if (text_lower.includes("luxury")) params.preferredCategory = "luxury";
+    else if (text_lower.includes("boutique")) params.preferredCategory = "boutique";
+    else if (text_lower.includes("palace")) params.preferredCategory = "palace";
+    else if (text_lower.includes("resort")) params.preferredCategory = "resort";
+    elizaLogger.info("[HotelSearchAction] Extracted parameters:", params);
+    return params;
+  } catch (error) {
+    elizaLogger.error("[HotelSearchAction] Error parsing parameters:", error);
+    return {};
+  }
+}
+function performHotelSearch(travelService, params) {
+  const allHotels = travelService.getCuratedHotels();
+  const optimalWindows = travelService.getOptimalBookingWindows();
+  let filteredHotels = allHotels;
+  if (params.city) {
+    filteredHotels = filteredHotels.filter((hotel) => hotel.city === params.city);
+  }
+  if (params.preferredCategory) {
+    filteredHotels = filteredHotels.filter((hotel) => hotel.category === params.preferredCategory);
+  }
+  if (params.minStarRating) {
+    filteredHotels = filteredHotels.filter((hotel) => hotel.starRating >= params.minStarRating);
+  }
+  if (params.maxPrice) {
+    filteredHotels = filteredHotels.filter((hotel) => hotel.priceRange.min <= params.maxPrice);
+  }
+  const relevantWindows = optimalWindows.filter(
+    (window) => filteredHotels.some((hotel) => hotel.hotelId === window.hotelId)
+  );
+  const bestDeals = relevantWindows.filter((window) => window.bestDates.length > 0).map((window) => {
+    const hotel = filteredHotels.find((h) => h.hotelId === window.hotelId);
+    const bestDate = window.bestDates[0];
+    return {
+      hotel,
+      savings: bestDate.savings,
+      savingsPercentage: bestDate.savingsPercentage
+    };
+  }).sort((a, b) => b.savingsPercentage - a.savingsPercentage).slice(0, 3);
+  const currentMonth = (/* @__PURE__ */ new Date()).getMonth() + 1;
+  const seasonalAdvice = {
+    currentSeason: getCurrentSeason(currentMonth),
+    bestMonths: ["April", "May", "September", "October"],
+    worstMonths: ["July", "August", "December"],
+    recommendation: generateSeasonalRecommendation(currentMonth, params.city)
+  };
+  return {
+    hotels: filteredHotels,
+    optimalBookingWindows: relevantWindows,
+    bestDeals,
+    seasonalAdvice
+  };
+}
+function generateSearchResponse(params, result) {
+  const { hotels, bestDeals, seasonalAdvice } = result;
+  if (hotels.length === 0) {
+    return "\u274C No hotels found matching your criteria. Try adjusting your search parameters or exploring our luxury properties in Biarritz, Bordeaux, or Monaco.";
+  }
+  const cityName = params.city ? getCityDisplayName(params.city) : "Multiple Cities";
+  const hotelCount = hotels.length;
+  let response = `\u{1F3E8} **Luxury Hotels in ${cityName}**
+
+`;
+  response += `\u2728 **${hotelCount} Premium ${hotelCount === 1 ? "Property" : "Properties"} Found**
+
+`;
+  const topHotels = hotels.slice(0, 3);
+  for (const hotel of topHotels) {
+    const categoryIcon = getCategoryIcon(hotel.category);
+    const dealInfo = bestDeals.find((deal) => deal.hotel.hotelId === hotel.hotelId);
+    response += `${categoryIcon} **${hotel.name}** (${hotel.category})
+`;
+    response += `\u2022 ${hotel.description}
+`;
+    response += `\u2022 Rate: \u20AC${hotel.priceRange.min}-${hotel.priceRange.max}/night`;
+    if (dealInfo && dealInfo.savingsPercentage > 20) {
+      response += ` | **${Math.round(dealInfo.savingsPercentage)}% savings available!**`;
+    }
+    response += `
+\u2022 Amenities: ${hotel.amenities.slice(0, 4).join(", ")}
+
+`;
+  }
+  if (seasonalAdvice.recommendation) {
+    response += `\u{1F4CA} **Seasonal Insights:**
+`;
+    response += `\u2022 **Current**: ${seasonalAdvice.currentSeason} season
+`;
+    if (seasonalAdvice.bestMonths.length > 0) {
+      response += `\u2022 **Best Value**: ${seasonalAdvice.bestMonths.join(", ")}
+`;
+    }
+    if (seasonalAdvice.worstMonths.length > 0) {
+      response += `\u2022 **Avoid**: ${seasonalAdvice.worstMonths.join(", ")} (premium rates)
+`;
+    }
+    response += `
+\u{1F4A1} **Smart Booking Tip**: ${seasonalAdvice.recommendation}`;
+  }
+  return response;
+}
+function getCurrentSeason(month) {
+  if ([6, 7, 8].includes(month)) return "high";
+  if ([4, 5, 9, 10].includes(month)) return "mid";
+  return "low";
+}
+function getCityDisplayName(city) {
+  const cityMap = {
+    "biarritz": "Biarritz",
+    "bordeaux": "Bordeaux",
+    "monaco": "Monaco"
+  };
+  return cityMap[city] || city;
+}
+function getCategoryIcon(category) {
+  const iconMap = {
+    "palace": "\u{1F3F0}",
+    "luxury": "\u2728",
+    "boutique": "\u{1F31F}",
+    "resort": "\u{1F30A}"
+  };
+  return iconMap[category] || "\u{1F3E8}";
+}
+function generateSeasonalRecommendation(currentMonth, city) {
+  const season = getCurrentSeason(currentMonth);
+  if (season === "high") {
+    return "Consider booking shoulder season (April/May or September/October) for 30-50% savings.";
+  } else if (season === "mid") {
+    return "Good timing! Shoulder season offers excellent value with pleasant weather.";
+  } else {
+    return "Excellent value season! Book now for up to 60% savings vs peak summer rates.";
+  }
+}
+
+// plugin-bitcoin-ltl/src/actions/hotelDealAlertAction.ts
+import {
+  elizaLogger as elizaLogger2
+} from "@elizaos/core";
+var hotelDealAlertAction = {
+  name: "HOTEL_DEAL_ALERT",
+  similes: [
+    "HOTEL_ALERTS",
+    "DEAL_ALERTS",
+    "PRICE_ALERTS",
+    "HOTEL_DEALS",
+    "BOOKING_ALERTS",
+    "SAVINGS_ALERTS",
+    "RATE_MONITORING",
+    "HOTEL_NOTIFICATIONS",
+    "DEAL_FINDER",
+    "PRICE_DROPS"
+  ],
+  description: "Monitor hotel rates and alert on significant price drops and booking opportunities",
+  validate: async (runtime, message) => {
+    const text = message.content.text.toLowerCase();
+    const dealKeywords = [
+      "deal",
+      "deals",
+      "alert",
+      "alerts",
+      "notification",
+      "notify",
+      "monitor",
+      "watch",
+      "track",
+      "savings",
+      "discount",
+      "price drop",
+      "bargain",
+      "special"
+    ];
+    const hotelKeywords = [
+      "hotel",
+      "hotels",
+      "accommodation",
+      "booking",
+      "stay",
+      "room",
+      "suite"
+    ];
+    const priceKeywords = [
+      "price",
+      "rate",
+      "cost",
+      "cheap",
+      "cheaper",
+      "best price",
+      "lowest",
+      "when to book",
+      "optimal",
+      "timing",
+      "bargain",
+      "steal"
+    ];
+    const hasDealKeyword = dealKeywords.some((keyword) => text.includes(keyword));
+    const hasHotelKeyword = hotelKeywords.some((keyword) => text.includes(keyword));
+    const hasPriceKeyword = priceKeywords.some((keyword) => text.includes(keyword));
+    return hasDealKeyword && hasHotelKeyword || hasHotelKeyword && hasPriceKeyword;
+  },
+  handler: async (runtime, message, state, options, callback) => {
+    try {
+      elizaLogger2.info(`[HotelDealAlertAction] Processing deal alert request: ${message.content.text}`);
+      const travelService = runtime.getService("travel-data");
+      if (!travelService) {
+        elizaLogger2.error("[HotelDealAlertAction] TravelDataService not available");
+        await callback({
+          text: "\u274C Travel monitoring service is currently unavailable. Please try again later.",
+          content: { error: "TravelDataService not found" }
+        });
+        return;
+      }
+      const alertParams = await parseAlertParameters(runtime, message.content.text);
+      elizaLogger2.info(`[HotelDealAlertAction] Parsed alert params:`, alertParams);
+      const travelData = travelService.getTravelData();
+      if (!travelData) {
+        elizaLogger2.warn("[HotelDealAlertAction] No travel data available, forcing update");
+        await travelService.forceUpdate();
+      }
+      const currentDeals = await findCurrentDeals(travelService, alertParams);
+      const response = await generateAlertResponse(runtime, alertParams, currentDeals);
+      elizaLogger2.info(`[HotelDealAlertAction] Generated response with ${currentDeals.length} deals`);
+      await callback({
+        text: response,
+        content: {
+          action: "hotel_deal_alert",
+          parameters: alertParams,
+          results: {
+            dealCount: currentDeals.length,
+            highUrgencyDeals: currentDeals.filter((d) => d.urgency === "high").length,
+            totalSavings: currentDeals.reduce((sum, d) => sum + d.savings, 0)
+          }
+        }
+      });
+    } catch (error) {
+      elizaLogger2.error("[HotelDealAlertAction] Error processing deal alert:", error);
+      await callback({
+        text: "\u274C I encountered an error while checking for hotel deals. Please try again.",
+        content: { error: error.message }
+      });
+    }
+  },
+  examples: []
+};
+async function parseAlertParameters(runtime, text) {
+  try {
+    const text_lower = text.toLowerCase();
+    const params = { alertType: "immediate" };
+    const cities = [];
+    if (text_lower.includes("biarritz")) cities.push("biarritz");
+    if (text_lower.includes("bordeaux")) cities.push("bordeaux");
+    if (text_lower.includes("monaco")) cities.push("monaco");
+    if (cities.length > 0) params.cities = cities;
+    const hotels = [];
+    if (text_lower.includes("h\xF4tel du palais") || text_lower.includes("hotel du palais")) hotels.push("H\xF4tel du Palais");
+    if (text_lower.includes("hermitage")) hotels.push("H\xF4tel Hermitage");
+    if (text_lower.includes("metropole")) hotels.push("Hotel Metropole");
+    if (hotels.length > 0) params.hotels = hotels;
+    const priceMatch = text.match(/(?:below|under|max|maximum)?\s*€?(\d+(?:,\d+)?)/i);
+    if (priceMatch) {
+      params.maxPrice = parseInt(priceMatch[1].replace(",", ""));
+    }
+    const savingsMatch = text.match(/(\d+)%\s*(?:savings|off|discount)/i);
+    if (savingsMatch) {
+      params.minSavings = parseInt(savingsMatch[1]);
+    }
+    return params;
+  } catch (error) {
+    elizaLogger2.error("[HotelDealAlertAction] Error parsing parameters:", error);
+    return { alertType: "immediate" };
+  }
+}
+async function findCurrentDeals(travelService, params) {
+  const hotels = travelService.getCuratedHotels();
+  const optimalWindows = travelService.getOptimalBookingWindows();
+  const deals = [];
+  let filteredHotels = hotels;
+  if (params.cities && params.cities.length > 0) {
+    filteredHotels = hotels.filter(
+      (hotel) => params.cities.some((city) => hotel.city.toLowerCase() === city.toLowerCase())
+    );
+  }
+  if (params.hotels && params.hotels.length > 0) {
+    filteredHotels = filteredHotels.filter(
+      (hotel) => params.hotels.some((name) => hotel.name.toLowerCase().includes(name.toLowerCase()))
+    );
+  }
+  for (const hotel of filteredHotels) {
+    const optimalWindow = optimalWindows.find((w) => w.hotelId === hotel.hotelId);
+    if (optimalWindow && optimalWindow.bestDates.length > 0) {
+      for (const bestDate of optimalWindow.bestDates.slice(0, 3)) {
+        if (params.maxPrice && bestDate.totalPrice > params.maxPrice) continue;
+        if (params.minSavings && bestDate.savingsPercentage < params.minSavings) continue;
+        const savings = bestDate.savings;
+        const savingsPercentage = bestDate.savingsPercentage;
+        let urgency = "low";
+        if (savingsPercentage >= 60) urgency = "high";
+        else if (savingsPercentage >= 40) urgency = "medium";
+        const reason = generateDealReason(bestDate, hotel);
+        const actionRecommendation = generateActionRecommendation(bestDate, hotel, urgency);
+        deals.push({
+          id: `${hotel.hotelId}-${bestDate.checkIn}`,
+          hotel,
+          currentRate: bestDate.totalPrice,
+          previousRate: bestDate.totalPrice + savings,
+          savings,
+          savingsPercentage,
+          validDates: [bestDate.checkIn, bestDate.checkOut],
+          urgency,
+          reason,
+          actionRecommendation
+        });
+      }
+    }
+  }
+  return deals.sort((a, b) => b.savingsPercentage - a.savingsPercentage);
+}
+function generateDealReason(bestDate, hotel) {
+  const season = getCurrentSeason2(new Date(bestDate.checkIn));
+  const savingsPercentage = bestDate.savingsPercentage;
+  if (savingsPercentage >= 60) {
+    return `${season} season pricing - exceptional ${savingsPercentage}% savings`;
+  } else if (savingsPercentage >= 40) {
+    return `${season} season offering solid ${savingsPercentage}% value`;
+  } else {
+    return `${season} season with ${savingsPercentage}% savings vs peak`;
+  }
+}
+function generateActionRecommendation(bestDate, hotel, urgency) {
+  if (urgency === "high") {
+    return `Book immediately - exceptional savings rarely available`;
+  } else if (urgency === "medium") {
+    return `Book within 7 days - good value window`;
+  } else {
+    return `Monitor for additional savings or book for guaranteed value`;
+  }
+}
+function getCurrentSeason2(date) {
+  const month = date.getMonth() + 1;
+  if ([12, 1, 2].includes(month)) return "Winter";
+  if ([3, 4, 5].includes(month)) return "Spring";
+  if ([6, 7, 8].includes(month)) return "Summer";
+  return "Fall";
+}
+async function generateAlertResponse(runtime, params, deals) {
+  if (deals.length === 0) {
+    return "\u{1F4CA} No current deals match your criteria. I'll continue monitoring for opportunities and alert you when rates drop!";
+  }
+  const highUrgencyDeals = deals.filter((d) => d.urgency === "high");
+  const totalSavings = deals.reduce((sum, d) => sum + d.savings, 0);
+  let response = `\u{1F6A8} **Hotel Deal Alert - ${deals.length} ${deals.length === 1 ? "Opportunity" : "Opportunities"} Found**
+
+`;
+  if (highUrgencyDeals.length > 0) {
+    response += `\u{1F525} **URGENT DEALS (Book Now):**
+
+`;
+    for (const deal of highUrgencyDeals.slice(0, 2)) {
+      const categoryIcon = getCategoryIcon2(deal.hotel.category);
+      response += `${categoryIcon} **${deal.hotel.name}** (${deal.hotel.city})
+`;
+      response += `\u2022 **Rate**: \u20AC${deal.currentRate}/night (was \u20AC${deal.previousRate})
+`;
+      response += `\u2022 **Savings**: \u20AC${deal.savings}/night (${deal.savingsPercentage}% off)
+`;
+      response += `\u2022 **Dates**: ${formatDateRange(deal.validDates)}
+`;
+      response += `\u2022 **Reason**: ${deal.reason}
+`;
+      response += `\u2022 **Action**: ${deal.actionRecommendation}
+
+`;
+    }
+  }
+  const mediumDeals = deals.filter((d) => d.urgency === "medium");
+  if (mediumDeals.length > 0) {
+    response += `\u{1F48E} **GOOD VALUE OPPORTUNITIES:**
+
+`;
+    for (const deal of mediumDeals.slice(0, 2)) {
+      const categoryIcon = getCategoryIcon2(deal.hotel.category);
+      response += `${categoryIcon} **${deal.hotel.name}** (${deal.hotel.city})
+`;
+      response += `\u2022 **Rate**: \u20AC${deal.currentRate}/night (${deal.savingsPercentage}% off)
+`;
+      response += `\u2022 **Savings**: \u20AC${deal.savings}/night
+`;
+      response += `\u2022 **Dates**: ${formatDateRange(deal.validDates)}
+
+`;
+    }
+  }
+  response += `\u{1F4CA} **Summary**: ${deals.length} deals found with total savings of \u20AC${totalSavings.toLocaleString()}
+
+`;
+  response += `\u{1F4A1} **Tip**: Act quickly on high-urgency deals - these rates change frequently!`;
+  return response;
+}
+function getCategoryIcon2(category) {
+  const iconMap = {
+    "palace": "\u{1F3F0}",
+    "luxury": "\u2728",
+    "boutique": "\u{1F31F}",
+    "resort": "\u{1F30A}"
+  };
+  return iconMap[category] || "\u{1F3E8}";
+}
+function formatDateRange(dates) {
+  if (dates.length >= 2) {
+    const start = new Date(dates[0]).toLocaleDateString("en-GB", { month: "short", day: "numeric" });
+    const end = new Date(dates[1]).toLocaleDateString("en-GB", { month: "short", day: "numeric" });
+    return `${start} - ${end}`;
+  }
+  return dates[0] || "TBD";
+}
+
+// plugin-bitcoin-ltl/src/actions/bookingOptimizationAction.ts
+import {
+  elizaLogger as elizaLogger3
+} from "@elizaos/core";
+var bookingOptimizationAction = {
+  name: "BOOKING_OPTIMIZATION",
+  similes: [
+    "OPTIMIZE_BOOKING",
+    "COMPARE_HOTELS",
+    "BEST_VALUE_HOTELS",
+    "HOTEL_COMPARISON",
+    "OPTIMIZE_TRAVEL",
+    "BOOKING_STRATEGY",
+    "HOTEL_ANALYSIS",
+    "TRAVEL_OPTIMIZATION",
+    "SMART_BOOKING",
+    "BEST_DEALS"
+  ],
+  description: "Compare and optimize hotel bookings across multiple properties and cities for the best value",
+  validate: async (runtime, message) => {
+    const text = message.content.text.toLowerCase();
+    const optimizationKeywords = [
+      "optimize",
+      "compare",
+      "best",
+      "better",
+      "analysis",
+      "recommendation",
+      "versus",
+      "vs",
+      "choose",
+      "decide",
+      "which hotel",
+      "what's better",
+      "smart booking",
+      "strategy",
+      "value",
+      "worth it"
+    ];
+    const hotelKeywords = [
+      "hotel",
+      "hotels",
+      "accommodation",
+      "booking",
+      "stay",
+      "property"
+    ];
+    const comparisonKeywords = [
+      "compare",
+      "choice",
+      "options",
+      "alternatives",
+      "between",
+      "among",
+      "all hotels",
+      "different hotels",
+      "multiple",
+      "various"
+    ];
+    const hasOptimizationKeyword = optimizationKeywords.some((keyword) => text.includes(keyword));
+    const hasHotelKeyword = hotelKeywords.some((keyword) => text.includes(keyword));
+    const hasComparisonKeyword = comparisonKeywords.some((keyword) => text.includes(keyword));
+    return hasOptimizationKeyword && hasHotelKeyword || hasHotelKeyword && hasComparisonKeyword;
+  },
+  handler: async (runtime, message, state, options, callback) => {
+    try {
+      elizaLogger3.info(`[BookingOptimizationAction] Processing booking optimization request: ${message.content.text}`);
+      const travelService = runtime.getService("travel-data");
+      if (!travelService) {
+        elizaLogger3.error("[BookingOptimizationAction] TravelDataService not available");
+        await callback({
+          text: "\u274C Travel optimization service is currently unavailable. Please try again later.",
+          content: { error: "TravelDataService not found" }
+        });
+        return;
+      }
+      const criteria = await parseOptimizationCriteria(runtime, message.content.text);
+      elizaLogger3.info(`[BookingOptimizationAction] Parsed criteria:`, criteria);
+      const travelData = travelService.getTravelData();
+      if (!travelData) {
+        elizaLogger3.warn("[BookingOptimizationAction] No travel data available, forcing update");
+        await travelService.forceUpdate();
+      }
+      const optimization = await performBookingOptimization(travelService, criteria);
+      const response = await generateOptimizationResponse(criteria, optimization);
+      elizaLogger3.info(`[BookingOptimizationAction] Generated optimization with ${optimization.alternatives.length} options`);
+      await callback({
+        text: response,
+        content: {
+          action: "booking_optimization",
+          criteria,
+          results: {
+            topChoice: optimization.topChoice.hotel.name,
+            totalOptions: optimization.summary.totalHotelsCompared,
+            averageSavings: optimization.summary.averageSavings,
+            bestSavings: optimization.summary.bestSavingsPercentage
+          }
+        }
+      });
+    } catch (error) {
+      elizaLogger3.error("[BookingOptimizationAction] Error processing booking optimization:", error);
+      await callback({
+        text: "\u274C I encountered an error while optimizing your booking. Please try again.",
+        content: { error: error.message }
+      });
+    }
+  },
+  examples: []
+};
+async function parseOptimizationCriteria(runtime, text) {
+  try {
+    const text_lower = text.toLowerCase();
+    const criteria = { priority: "value" };
+    if (text_lower.includes("cheap") || text_lower.includes("budget") || text_lower.includes("lowest price")) {
+      criteria.priority = "price";
+    } else if (text_lower.includes("luxury") || text_lower.includes("best hotel") || text_lower.includes("premium")) {
+      criteria.priority = "luxury";
+    } else if (text_lower.includes("savings") || text_lower.includes("deal") || text_lower.includes("discount")) {
+      criteria.priority = "savings";
+    } else if (text_lower.includes("season") || text_lower.includes("timing") || text_lower.includes("when")) {
+      criteria.priority = "season";
+    }
+    const budgetMatch = text.match(/(?:budget|under|max|maximum)?\s*€?(\d+(?:,\d+)?)/i);
+    if (budgetMatch) {
+      criteria.budget = parseInt(budgetMatch[1].replace(",", ""));
+    }
+    const cities = [];
+    if (text_lower.includes("biarritz")) cities.push("biarritz");
+    if (text_lower.includes("bordeaux")) cities.push("bordeaux");
+    if (text_lower.includes("monaco")) cities.push("monaco");
+    if (cities.length > 0) criteria.cities = cities;
+    const flexibilityMatch = text.match(/(\d+)\s*days?\s*flexible?/i);
+    if (flexibilityMatch) {
+      criteria.flexibility = parseInt(flexibilityMatch[1]);
+    }
+    return criteria;
+  } catch (error) {
+    elizaLogger3.error("[BookingOptimizationAction] Error parsing criteria:", error);
+    return { priority: "value" };
+  }
+}
+async function performBookingOptimization(travelService, criteria) {
+  const hotels = travelService.getCuratedHotels();
+  const optimalWindows = travelService.getOptimalBookingWindows();
+  let filteredHotels = hotels;
+  if (criteria.cities && criteria.cities.length > 0) {
+    filteredHotels = hotels.filter(
+      (hotel) => criteria.cities.some((city) => hotel.city.toLowerCase() === city.toLowerCase())
+    );
+  }
+  if (criteria.budget) {
+    filteredHotels = filteredHotels.filter((hotel) => hotel.priceRange.min <= criteria.budget);
+  }
+  const comparisons = [];
+  for (const hotel of filteredHotels) {
+    const optimalWindow = optimalWindows.find((w) => w.hotelId === hotel.hotelId);
+    if (optimalWindow && optimalWindow.bestDates.length > 0) {
+      const bestDate = optimalWindow.bestDates[0];
+      const valueScore = calculateValueScore(hotel, bestDate);
+      const luxuryScore = calculateLuxuryScore(hotel);
+      const seasonScore = calculateSeasonScore(bestDate);
+      const overallScore = calculateOverallScore(criteria, valueScore, luxuryScore, seasonScore);
+      comparisons.push({
+        hotel,
+        bestRate: bestDate.totalPrice,
+        savings: bestDate.savings,
+        savingsPercentage: bestDate.savingsPercentage,
+        checkIn: bestDate.checkIn,
+        checkOut: bestDate.checkOut,
+        valueScore,
+        luxuryScore,
+        seasonScore,
+        overallScore,
+        reasoning: generateReasoning(criteria, hotel, bestDate, overallScore)
+      });
+    }
+  }
+  comparisons.sort((a, b) => b.overallScore - a.overallScore);
+  const topChoice = comparisons[0];
+  const alternatives = comparisons.slice(1, 4);
+  const budgetOption = [...comparisons].sort((a, b) => a.bestRate - b.bestRate)[0];
+  const luxuryOption = [...comparisons].sort((a, b) => b.luxuryScore - a.luxuryScore)[0];
+  const bestValue = [...comparisons].sort((a, b) => b.valueScore - a.valueScore)[0];
+  const summary = {
+    totalHotelsCompared: comparisons.length,
+    averageSavings: comparisons.reduce((sum, c) => sum + c.savingsPercentage, 0) / comparisons.length,
+    bestSavingsPercentage: Math.max(...comparisons.map((c) => c.savingsPercentage)),
+    priceRange: {
+      min: Math.min(...comparisons.map((c) => c.bestRate)),
+      max: Math.max(...comparisons.map((c) => c.bestRate))
+    }
+  };
+  return {
+    topChoice,
+    alternatives,
+    budgetOption,
+    luxuryOption,
+    bestValue,
+    summary
+  };
+}
+function calculateValueScore(hotel, bestDate) {
+  const savingsScore = Math.min(bestDate.savingsPercentage / 100, 1) * 40;
+  const ratingScore = hotel.starRating / 5 * 30;
+  const amenitiesScore = Math.min(hotel.amenities.length / 10, 1) * 30;
+  return savingsScore + ratingScore + amenitiesScore;
+}
+function calculateLuxuryScore(hotel) {
+  const ratingScore = hotel.starRating / 5 * 40;
+  const categoryWeights = { palace: 30, luxury: 25, resort: 20, boutique: 15 };
+  const categoryScore = categoryWeights[hotel.category] || 10;
+  const luxuryAmenities = ["spa", "michelin-dining", "private-beach", "golf", "thalasso-spa"];
+  const luxuryAmenitiesCount = hotel.amenities.filter((a) => luxuryAmenities.includes(a)).length;
+  const amenitiesScore = Math.min(luxuryAmenitiesCount / 5, 1) * 30;
+  return ratingScore + categoryScore + amenitiesScore;
+}
+function calculateSeasonScore(bestDate) {
+  const checkInDate = new Date(bestDate.checkIn);
+  const month = checkInDate.getMonth() + 1;
+  if ([4, 5, 9, 10].includes(month)) return 90;
+  if ([11, 12, 1, 2, 3].includes(month)) return 70;
+  if ([6, 7, 8].includes(month)) return 50;
+  return 60;
+}
+function calculateOverallScore(criteria, valueScore, luxuryScore, seasonScore) {
+  switch (criteria.priority) {
+    case "price":
+      return valueScore * 0.6 + seasonScore * 0.3 + luxuryScore * 0.1;
+    case "luxury":
+      return luxuryScore * 0.6 + valueScore * 0.3 + seasonScore * 0.1;
+    case "savings":
+      return valueScore * 0.5 + seasonScore * 0.4 + luxuryScore * 0.1;
+    case "season":
+      return seasonScore * 0.5 + valueScore * 0.3 + luxuryScore * 0.2;
+    case "value":
+    default:
+      return valueScore * 0.4 + luxuryScore * 0.3 + seasonScore * 0.3;
+  }
+}
+function generateReasoning(criteria, hotel, bestDate, score) {
+  const reasons = [];
+  if (bestDate.savingsPercentage > 50) {
+    reasons.push(`Exceptional ${bestDate.savingsPercentage}% savings`);
+  } else if (bestDate.savingsPercentage > 30) {
+    reasons.push(`Strong ${bestDate.savingsPercentage}% value`);
+  }
+  if (hotel.category === "palace") {
+    reasons.push("Palace-level luxury");
+  } else if (hotel.starRating === 5) {
+    reasons.push("5-star premium experience");
+  }
+  const month = new Date(bestDate.checkIn).getMonth() + 1;
+  if ([4, 5, 9, 10].includes(month)) {
+    reasons.push("Optimal shoulder season timing");
+  } else if ([11, 12, 1, 2, 3].includes(month)) {
+    reasons.push("Winter season value");
+  }
+  if (hotel.amenities.includes("spa")) {
+    reasons.push("Premium spa amenities");
+  }
+  return reasons.slice(0, 3).join(", ") || "Solid overall value proposition";
+}
+async function generateOptimizationResponse(criteria, optimization) {
+  const { topChoice, alternatives, budgetOption, luxuryOption, bestValue, summary } = optimization;
+  let response = `\u{1F3AF} **Smart Booking Optimization Results**
+
+`;
+  response += `\u{1F4CA} **Analysis**: Compared ${summary.totalHotelsCompared} luxury properties
+`;
+  response += `\u{1F4B0} **Savings Range**: ${summary.averageSavings.toFixed(0)}% average, up to ${summary.bestSavingsPercentage.toFixed(0)}%
+`;
+  response += `\u{1F4B5} **Price Range**: \u20AC${summary.priceRange.min}-${summary.priceRange.max}/night
+
+`;
+  const categoryIcon = getCategoryIcon3(topChoice.hotel.category);
+  response += `\u{1F3C6} **TOP RECOMMENDATION**
+
+`;
+  response += `${categoryIcon} **${topChoice.hotel.name}** (${getCityDisplayName2(topChoice.hotel.city)})
+`;
+  response += `\u2022 **Rate**: \u20AC${topChoice.bestRate}/night (${topChoice.savingsPercentage.toFixed(0)}% savings)
+`;
+  response += `\u2022 **Dates**: ${formatDateRange2([topChoice.checkIn, topChoice.checkOut])}
+`;
+  response += `\u2022 **Why**: ${topChoice.reasoning}
+`;
+  response += `\u2022 **Score**: ${topChoice.overallScore.toFixed(0)}/100 (${criteria.priority} optimized)
+
+`;
+  response += `\u{1F3AD} **CATEGORY LEADERS**
+
+`;
+  if (budgetOption.hotel.hotelId !== topChoice.hotel.hotelId) {
+    response += `\u{1F4B0} **Best Budget**: ${budgetOption.hotel.name} - \u20AC${budgetOption.bestRate}/night
+`;
+  }
+  if (luxuryOption.hotel.hotelId !== topChoice.hotel.hotelId) {
+    response += `\u{1F451} **Most Luxurious**: ${luxuryOption.hotel.name} - ${luxuryOption.hotel.category} level
+`;
+  }
+  if (bestValue.hotel.hotelId !== topChoice.hotel.hotelId) {
+    response += `\u2B50 **Best Value**: ${bestValue.hotel.name} - ${bestValue.savingsPercentage.toFixed(0)}% savings
+`;
+  }
+  response += `
+\u{1F504} **ALTERNATIVES**
+
+`;
+  for (let i = 0; i < Math.min(2, alternatives.length); i++) {
+    const alt = alternatives[i];
+    const altIcon = getCategoryIcon3(alt.hotel.category);
+    response += `${altIcon} **${alt.hotel.name}** (${getCityDisplayName2(alt.hotel.city)})
+`;
+    response += `\u2022 \u20AC${alt.bestRate}/night (${alt.savingsPercentage.toFixed(0)}% off) | ${formatDateRange2([alt.checkIn, alt.checkOut])}
+`;
+    response += `\u2022 ${alt.reasoning}
+
+`;
+  }
+  response += `\u{1F4A1} **Optimization Tip**: Based on your "${criteria.priority}" priority, the analysis weighted ${getCriteriaWeighting(criteria.priority)} most heavily.`;
+  return response;
+}
+function getCategoryIcon3(category) {
+  const iconMap = {
+    "palace": "\u{1F3F0}",
+    "luxury": "\u2728",
+    "boutique": "\u{1F31F}",
+    "resort": "\u{1F30A}"
+  };
+  return iconMap[category] || "\u{1F3E8}";
+}
+function getCityDisplayName2(city) {
+  const cityMap = {
+    "biarritz": "Biarritz",
+    "bordeaux": "Bordeaux",
+    "monaco": "Monaco"
+  };
+  return cityMap[city] || city;
+}
+function formatDateRange2(dates) {
+  if (dates.length >= 2) {
+    const start = new Date(dates[0]).toLocaleDateString("en-GB", { month: "short", day: "numeric" });
+    const end = new Date(dates[1]).toLocaleDateString("en-GB", { month: "short", day: "numeric" });
+    return `${start} - ${end}`;
+  }
+  return dates[0] || "TBD";
+}
+function getCriteriaWeighting(priority) {
+  const weightings = {
+    "price": "lowest rates and budget considerations",
+    "luxury": "premium amenities and service quality",
+    "savings": "maximum discount percentages",
+    "season": "optimal timing and weather",
+    "value": "balanced value proposition"
+  };
+  return weightings[priority] || "overall value";
+}
+
+// plugin-bitcoin-ltl/src/actions/travelInsightsAction.ts
+import {
+  elizaLogger as elizaLogger4
+} from "@elizaos/core";
+var travelInsightsAction = {
+  name: "TRAVEL_INSIGHTS",
+  similes: [
+    "TRAVEL_ANALYSIS",
+    "SEASONAL_INSIGHTS",
+    "TRAVEL_TRENDS",
+    "BOOKING_STRATEGY",
+    "TRAVEL_PLANNING",
+    "MARKET_ANALYSIS",
+    "TRAVEL_ADVICE",
+    "SEASONAL_TRAVEL",
+    "TRAVEL_PATTERNS",
+    "DESTINATION_INSIGHTS"
+  ],
+  description: "Provides comprehensive travel insights, seasonal analysis, market trends, and strategic booking advice",
+  validate: async (runtime, message) => {
+    const text = message.content.text.toLowerCase();
+    const insightKeywords = [
+      "insights",
+      "analysis",
+      "trends",
+      "patterns",
+      "advice",
+      "strategy",
+      "planning",
+      "forecast",
+      "outlook",
+      "overview",
+      "summary"
+    ];
+    const travelKeywords = [
+      "travel",
+      "seasonal",
+      "season",
+      "weather",
+      "timing",
+      "when to",
+      "best time",
+      "worst time",
+      "market",
+      "booking",
+      "vacation"
+    ];
+    const specificKeywords = [
+      "what's the best",
+      "when should i",
+      "how do prices",
+      "trends in",
+      "seasonal patterns",
+      "market conditions",
+      "booking advice",
+      "travel tips"
+    ];
+    const hasInsightKeyword = insightKeywords.some((keyword) => text.includes(keyword));
+    const hasTravelKeyword = travelKeywords.some((keyword) => text.includes(keyword));
+    const hasSpecificKeyword = specificKeywords.some((keyword) => text.includes(keyword));
+    return hasInsightKeyword && hasTravelKeyword || hasSpecificKeyword;
+  },
+  handler: async (runtime, message, state, options, callback) => {
+    try {
+      elizaLogger4.info(`[TravelInsightsAction] Processing travel insights request: ${message.content.text}`);
+      const travelService = runtime.getService("travel-data");
+      if (!travelService) {
+        elizaLogger4.error("[TravelInsightsAction] TravelDataService not available");
+        await callback({
+          text: "\u274C Travel insights service is currently unavailable. Please try again later.",
+          content: { error: "TravelDataService not found" }
+        });
+        return;
+      }
+      const insightRequest = await parseInsightRequest(runtime, message.content.text);
+      elizaLogger4.info(`[TravelInsightsAction] Parsed insight request:`, insightRequest);
+      const travelInsights = travelService.getTravelInsights();
+      if (!travelInsights) {
+        elizaLogger4.warn("[TravelInsightsAction] No travel insights available, forcing update");
+        await travelService.forceUpdate();
+      }
+      const insights = await generateTravelInsights(travelService, insightRequest);
+      const response = await generateInsightsResponse(insightRequest, insights);
+      elizaLogger4.info(`[TravelInsightsAction] Generated insights response`);
+      await callback({
+        text: response,
+        content: {
+          action: "travel_insights",
+          request: insightRequest,
+          insights: {
+            type: insights.type,
+            keyTakeaways: insights.keyTakeaways,
+            recommendationCount: insights.recommendations.length
+          }
+        }
+      });
+    } catch (error) {
+      elizaLogger4.error("[TravelInsightsAction] Error processing travel insights:", error);
+      await callback({
+        text: "\u274C I encountered an error while generating travel insights. Please try again.",
+        content: { error: error.message }
+      });
+    }
+  },
+  examples: []
+};
+async function parseInsightRequest(runtime, text) {
+  try {
+    const text_lower = text.toLowerCase();
+    const request = { type: "overview" };
+    if (text_lower.includes("seasonal") || text_lower.includes("season") || text_lower.includes("weather")) {
+      request.type = "seasonal";
+    } else if (text_lower.includes("market") || text_lower.includes("trends") || text_lower.includes("pricing")) {
+      request.type = "market";
+    } else if (text_lower.includes("events") || text_lower.includes("festivals") || text_lower.includes("grand prix")) {
+      request.type = "events";
+    } else if (text_lower.includes("strategy") || text_lower.includes("planning") || text_lower.includes("booking advice")) {
+      request.type = "strategy";
+    }
+    if (text_lower.includes("biarritz")) request.city = "biarritz";
+    else if (text_lower.includes("bordeaux")) request.city = "bordeaux";
+    else if (text_lower.includes("monaco")) request.city = "monaco";
+    if (text_lower.includes("this month") || text_lower.includes("monthly")) {
+      request.timeframe = "month";
+    } else if (text_lower.includes("quarter") || text_lower.includes("season")) {
+      request.timeframe = "quarter";
+    } else if (text_lower.includes("year") || text_lower.includes("annual")) {
+      request.timeframe = "year";
+    }
+    if (text_lower.includes("budget") || text_lower.includes("cheap") || text_lower.includes("savings")) {
+      request.interest = "budget";
+    } else if (text_lower.includes("luxury") || text_lower.includes("premium") || text_lower.includes("high-end")) {
+      request.interest = "luxury";
+    } else if (text_lower.includes("events") || text_lower.includes("festivals") || text_lower.includes("activities")) {
+      request.interest = "events";
+    } else if (text_lower.includes("weather") || text_lower.includes("climate") || text_lower.includes("temperature")) {
+      request.interest = "weather";
+    }
+    return request;
+  } catch (error) {
+    elizaLogger4.error("[TravelInsightsAction] Error parsing insight request:", error);
+    return { type: "overview" };
+  }
+}
+async function generateTravelInsights(travelService, request) {
+  const travelInsights = travelService.getTravelInsights();
+  const hotels = travelService.getCuratedHotels();
+  const optimalWindows = travelService.getOptimalBookingWindows();
+  const response = {
+    type: request.type,
+    insights: {},
+    recommendations: [],
+    keyTakeaways: []
+  };
+  if (request.type === "seasonal" || request.type === "overview") {
+    response.insights.seasonal = generateSeasonalInsights(travelInsights, request.city);
+  }
+  if (request.type === "market" || request.type === "overview") {
+    response.insights.market = generateMarketInsights(travelInsights);
+  }
+  if (request.type === "events" || request.type === "overview") {
+    response.insights.events = generateEventInsights(request.city);
+  }
+  if (request.type === "strategy" || request.type === "overview") {
+    response.insights.strategy = generateStrategyInsights(travelInsights, optimalWindows, request.interest);
+  }
+  response.recommendations = generateRecommendations(request, response.insights);
+  response.keyTakeaways = generateKeyTakeaways(request, response.insights);
+  return response;
+}
+function generateSeasonalInsights(travelInsights, city) {
+  const currentMonth = (/* @__PURE__ */ new Date()).getMonth() + 1;
+  const currentSeason = getCurrentSeasonName(currentMonth);
+  const bestMonths = [
+    { month: "April", reason: "Spring weather, pre-summer rates", savings: 25 },
+    { month: "May", reason: "Perfect weather, moderate pricing", savings: 20 },
+    { month: "September", reason: "Post-summer, warm ocean, fewer crowds", savings: 35 },
+    { month: "October", reason: "Mild weather, significant savings", savings: 40 }
+  ];
+  const worstMonths = [
+    { month: "July", reason: "Peak summer demand, highest rates", premiumPercent: 150 },
+    { month: "August", reason: "European vacation season, premium pricing", premiumPercent: 120 },
+    { month: "December", reason: "Holiday season, limited availability", premiumPercent: 80 }
+  ];
+  const weatherConsiderations = [
+    "April-May: Pleasant spring weather, blooming landscapes",
+    "June-August: Peak summer, hot temperatures, crowded beaches",
+    "September-October: Warm ocean temperatures, ideal conditions",
+    "November-March: Mild winters, perfect for spa retreats"
+  ];
+  if (city === "monaco") {
+    worstMonths.unshift({ month: "May", reason: "Monaco Grand Prix, rates spike 300%", premiumPercent: 300 });
+  } else if (city === "bordeaux") {
+    worstMonths.push({ month: "September", reason: "Wine harvest season, premium rates", premiumPercent: 90 });
+  }
+  return {
+    currentSeason,
+    bestMonths,
+    worstMonths,
+    weatherConsiderations
+  };
+}
+function generateMarketInsights(travelInsights) {
+  if (travelInsights?.marketTrends) {
+    return {
+      trend: travelInsights.marketTrends.trend,
+      confidence: travelInsights.marketTrends.confidence,
+      timeframe: travelInsights.marketTrends.timeframe,
+      priceDirection: getPriceDirection(travelInsights.marketTrends.trend),
+      demandDrivers: getDemandDrivers(travelInsights.marketTrends.trend)
+    };
+  }
+  return {
+    trend: "stable",
+    confidence: 75,
+    timeframe: "next 6 months",
+    priceDirection: "Stable with seasonal variations",
+    demandDrivers: [
+      "European travel recovery post-pandemic",
+      "Luxury segment resilience",
+      "Remote work driving longer stays",
+      "Sustainable travel preferences"
+    ]
+  };
+}
+function generateEventInsights(city) {
+  const upcomingEvents = [];
+  if (!city || city === "monaco") {
+    upcomingEvents.push({
+      event: "Monaco Grand Prix",
+      city: "Monaco",
+      month: "May",
+      impact: "high",
+      priceIncrease: 300,
+      bookingAdvice: "Book 8+ months ahead or avoid entirely"
+    });
+  }
+  if (!city || city === "bordeaux") {
+    upcomingEvents.push({
+      event: "Wine Harvest Season",
+      city: "Bordeaux",
+      month: "September",
+      impact: "high",
+      priceIncrease: 120,
+      bookingAdvice: "Book 4-6 months ahead or consider October"
+    });
+  }
+  if (!city || city === "biarritz") {
+    upcomingEvents.push({
+      event: "Biarritz Surf Festival",
+      city: "Biarritz",
+      month: "July",
+      impact: "medium",
+      priceIncrease: 60,
+      bookingAdvice: "Book 3+ months ahead for beachfront properties"
+    });
+  }
+  const avoidanceTips = [
+    "Monitor local event calendars when booking",
+    "Consider shoulder seasons for better availability",
+    "Book accommodation outside event areas for savings",
+    "Use flexible dates to avoid premium periods"
+  ];
+  return { upcomingEvents, avoidanceTips };
+}
+function generateStrategyInsights(travelInsights, optimalWindows, interest) {
+  const strategies = {
+    budget: {
+      optimalBookingWindow: "3-6 months ahead for shoulder season",
+      flexibilityBenefits: [
+        "Save 40-60% vs peak season",
+        "Better availability and room selection",
+        "Avoid crowds and premium service charges"
+      ],
+      seasonalStrategy: "Target November-March for maximum savings",
+      budgetOptimization: [
+        "Book Monday-Thursday arrivals for better rates",
+        "Consider 7+ night stays for discounts",
+        "Monitor flash sales and last-minute deals"
+      ]
+    },
+    luxury: {
+      optimalBookingWindow: "6-12 months ahead for peak experiences",
+      flexibilityBenefits: [
+        "Access to premium suites and amenities",
+        "Priority spa and dining reservations",
+        "Complimentary upgrades and services"
+      ],
+      seasonalStrategy: "Book peak season early for best luxury properties",
+      budgetOptimization: [
+        "Package deals with spa and dining credits",
+        "Extended stays for VIP recognition",
+        "Direct booking benefits and loyalty programs"
+      ]
+    }
+  };
+  const selectedStrategy = strategies[interest] || strategies.budget;
+  return {
+    optimalBookingWindow: selectedStrategy.optimalBookingWindow,
+    flexibilityBenefits: selectedStrategy.flexibilityBenefits,
+    seasonalStrategy: selectedStrategy.seasonalStrategy,
+    budgetOptimization: selectedStrategy.budgetOptimization
+  };
+}
+function generateRecommendations(request, insights) {
+  const recommendations = [];
+  if (request.type === "seasonal" || request.type === "overview") {
+    recommendations.push("Book shoulder seasons (April-May, September-October) for optimal weather and value");
+    recommendations.push("Avoid July-August peak season unless budget allows premium pricing");
+  }
+  if (request.type === "market" || request.type === "overview") {
+    recommendations.push("Monitor market trends for optimal booking timing");
+    recommendations.push("Consider flexible dates to capitalize on rate fluctuations");
+  }
+  if (request.type === "events" || request.type === "overview") {
+    recommendations.push("Check local event calendars before booking to avoid premium pricing");
+    recommendations.push("Book 4-6 months ahead for major events or consider alternative dates");
+  }
+  if (request.type === "strategy" || request.type === "overview") {
+    recommendations.push("Use 3-6 month booking window for best balance of rates and availability");
+    recommendations.push("Consider 7+ night stays for package deals and discounts");
+  }
+  return recommendations;
+}
+function generateKeyTakeaways(request, insights) {
+  const takeaways = [];
+  if (insights.seasonal) {
+    takeaways.push(`Best value months offer 25-40% savings vs peak season`);
+  }
+  if (insights.market) {
+    takeaways.push(`Market trend: ${insights.market.trend} with ${insights.market.confidence}% confidence`);
+  }
+  if (insights.events) {
+    takeaways.push(`Major events can increase rates by 60-300% - plan accordingly`);
+  }
+  if (insights.strategy) {
+    takeaways.push(`Optimal booking window: ${insights.strategy.optimalBookingWindow}`);
+  }
+  takeaways.push("Flexibility in dates is key to maximizing value and experience");
+  return takeaways;
+}
+async function generateInsightsResponse(request, insights) {
+  let response = `\u{1F4CA} **Travel Insights & Strategic Analysis**
+
+`;
+  if (insights.insights.seasonal) {
+    const seasonal = insights.insights.seasonal;
+    response += `\u{1F324}\uFE0F **SEASONAL ANALYSIS**
+
+`;
+    response += `\u{1F4C5} **Current Season**: ${seasonal.currentSeason}
+
+`;
+    response += `\u2705 **BEST VALUE MONTHS**:
+`;
+    seasonal.bestMonths.slice(0, 3).forEach((month) => {
+      response += `\u2022 **${month.month}**: ${month.reason} (${month.savings}% savings)
+`;
+    });
+    response += `
+\u274C **AVOID THESE PERIODS**:
+`;
+    seasonal.worstMonths.slice(0, 3).forEach((month) => {
+      response += `\u2022 **${month.month}**: ${month.reason} (+${month.premiumPercent}% premium)
+`;
+    });
+    response += `
+`;
+  }
+  if (insights.insights.market) {
+    const market = insights.insights.market;
+    response += `\u{1F4C8} **MARKET TRENDS**
+
+`;
+    response += `\u{1F4CA} **Trend**: ${market.trend.toUpperCase()} (${market.confidence}% confidence)
+`;
+    response += `\u{1F3AF} **Outlook**: ${market.priceDirection}
+`;
+    response += `\u23F0 **Timeframe**: ${market.timeframe}
+
+`;
+    response += `\u{1F50D} **Demand Drivers**:
+`;
+    market.demandDrivers.slice(0, 3).forEach((driver) => {
+      response += `\u2022 ${driver}
+`;
+    });
+    response += `
+`;
+  }
+  if (insights.insights.events) {
+    const events = insights.insights.events;
+    response += `\u{1F3AD} **EVENT IMPACT ANALYSIS**
+
+`;
+    if (events.upcomingEvents.length > 0) {
+      response += `\u26A0\uFE0F **HIGH-IMPACT EVENTS**:
+`;
+      events.upcomingEvents.forEach((event) => {
+        response += `\u2022 **${event.event}** (${event.city}, ${event.month})
+`;
+        response += `  Rate increase: +${event.priceIncrease}% | ${event.bookingAdvice}
+`;
+      });
+      response += `
+`;
+    }
+  }
+  if (insights.insights.strategy) {
+    const strategy = insights.insights.strategy;
+    response += `\u{1F3AF} **BOOKING STRATEGY**
+
+`;
+    response += `\u23F0 **Optimal Window**: ${strategy.optimalBookingWindow}
+`;
+    response += `\u{1F504} **Seasonal Strategy**: ${strategy.seasonalStrategy}
+
+`;
+    response += `\u{1F4A1} **Optimization Tips**:
+`;
+    strategy.budgetOptimization.slice(0, 3).forEach((tip) => {
+      response += `\u2022 ${tip}
+`;
+    });
+    response += `
+`;
+  }
+  response += `\u{1F3AF} **KEY RECOMMENDATIONS**
+
+`;
+  insights.recommendations.slice(0, 4).forEach((rec, index) => {
+    response += `${index + 1}. ${rec}
+`;
+  });
+  response += `
+\u{1F48E} **KEY TAKEAWAYS**
+
+`;
+  insights.keyTakeaways.forEach((takeaway) => {
+    response += `\u2022 ${takeaway}
+`;
+  });
+  return response;
+}
+function getCurrentSeasonName(month) {
+  if ([12, 1, 2].includes(month)) return "Winter";
+  if ([3, 4, 5].includes(month)) return "Spring";
+  if ([6, 7, 8].includes(month)) return "Summer";
+  return "Fall";
+}
+function getPriceDirection(trend) {
+  switch (trend) {
+    case "increasing":
+      return "Gradual price increases expected";
+    case "decreasing":
+      return "Favorable pricing conditions ahead";
+    case "stable":
+    default:
+      return "Stable with seasonal variations";
+  }
+}
+function getDemandDrivers(trend) {
+  const commonDrivers = [
+    "European travel recovery trends",
+    "Luxury segment resilience",
+    "Remote work driving extended stays",
+    "Sustainable travel preferences"
+  ];
+  if (trend === "increasing") {
+    return [
+      "Increased leisure travel demand",
+      "Premium accommodation shortages",
+      ...commonDrivers.slice(0, 2)
+    ];
+  } else if (trend === "decreasing") {
+    return [
+      "Economic headwinds affecting luxury travel",
+      "Increased inventory and competition",
+      ...commonDrivers.slice(0, 2)
+    ];
+  }
+  return commonDrivers;
+}
+
 // plugin-bitcoin-ltl/src/plugin.ts
 var configSchema = z.object({
   EXAMPLE_PLUGIN_VARIABLE: z.string().min(1, "Example plugin variable cannot be empty").optional().describe("Example plugin variable for testing and demonstration"),
@@ -6966,7 +9025,7 @@ async function retryOperation(operation, maxRetries = 3, baseDelay = 1e3) {
         throw error;
       }
       const delay = baseDelay * Math.pow(2, attempt - 1);
-      logger17.warn(`Operation failed (attempt ${attempt}/${maxRetries}), retrying in ${delay}ms...`, error);
+      logger24.warn(`Operation failed (attempt ${attempt}/${maxRetries}), retrying in ${delay}ms...`, error);
       await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
@@ -7184,7 +9243,7 @@ var bitcoinThesisProvider = {
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown calculation error";
-      logger17.error("Error calculating thesis metrics:", {
+      logger24.error("Error calculating thesis metrics:", {
         message: errorMessage,
         stack: error instanceof Error ? error.stack : void 0
       });
@@ -7557,7 +9616,7 @@ var bitcoinAnalysisAction = {
   },
   handler: async (runtime, message, state, _options, callback, _responses) => {
     try {
-      logger17.info("Generating Bitcoin market analysis");
+      logger24.info("Generating Bitcoin market analysis");
       const priceData = await bitcoinPriceProvider.get(runtime, message, state);
       const thesisData = await bitcoinThesisProvider.get(runtime, message, state);
       const analysis = `
@@ -7593,7 +9652,7 @@ The 100K BTC Holders thesis remains on track with institutional adoption acceler
       await callback(responseContent);
       return responseContent;
     } catch (error) {
-      logger17.error("Error in Bitcoin market analysis:", error);
+      logger24.error("Error in Bitcoin market analysis:", error);
       throw error;
     }
   },
@@ -7625,7 +9684,7 @@ var bitcoinThesisStatusAction = {
   },
   handler: async (runtime, message, state, _options, callback, _responses) => {
     try {
-      logger17.info("Generating Bitcoin thesis status update");
+      logger24.info("Generating Bitcoin thesis status update");
       const thesisData = await bitcoinThesisProvider.get(runtime, message, state);
       const statusUpdate = `
 \u{1F3AF} **BITCOIN THESIS STATUS UPDATE**
@@ -7681,7 +9740,7 @@ Thesis tracking ahead of schedule with institutional adoption accelerating. Mult
       await callback(responseContent);
       return responseContent;
     } catch (error) {
-      logger17.error("Error in Bitcoin thesis status:", error);
+      logger24.error("Error in Bitcoin thesis status:", error);
       throw error;
     }
   },
@@ -8060,7 +10119,7 @@ The truest decentralization starts with the self. Optimize your personal node be
       await callback(responseContent);
       return responseContent;
     } catch (error) {
-      logger17.error("Error in sovereign living action:", error);
+      logger24.error("Error in sovereign living action:", error);
       const errorContent = {
         text: "Unable to provide sovereign living advice at this time. Truth requires verification through lived experience.",
         actions: ["SOVEREIGN_LIVING_ADVICE"],
@@ -8264,7 +10323,7 @@ Bitcoin is transitioning from speculative asset to reserve asset. Institutional 
       await callback(responseContent);
       return responseContent;
     } catch (error) {
-      logger17.error("Error in investment strategy action:", error);
+      logger24.error("Error in investment strategy action:", error);
       const errorContent = {
         text: "Unable to provide investment strategy advice at this time. Truth requires verification through mathematical analysis and risk assessment.",
         actions: ["INVESTMENT_STRATEGY_ADVICE"],
@@ -8354,7 +10413,7 @@ These calculations assume thesis progression occurs. Bitcoin volatility means tw
       await callback(responseContent);
       return responseContent;
     } catch (error) {
-      logger17.error("Error in freedom mathematics action:", error);
+      logger24.error("Error in freedom mathematics action:", error);
       const errorContent = {
         text: "Unable to calculate freedom mathematics at this time. Mathematical certainty requires reliable data inputs.",
         actions: ["FREEDOM_MATHEMATICS"],
@@ -8392,7 +10451,7 @@ var altcoinBTCPerformanceAction = {
   },
   handler: async (runtime, message, state, _options, callback, _responses) => {
     try {
-      logger17.info("Generating altcoin BTC performance analysis");
+      logger24.info("Generating altcoin BTC performance analysis");
       const performanceData = await altcoinBTCPerformanceProvider.get(runtime, message, state);
       const analysis = `
 \u{1FA99} **ALTCOIN BTC OUTPERFORMANCE ANALYSIS**
@@ -8434,7 +10493,7 @@ Altcoins are venture capital plays on crypto infrastructure and applications. Bi
       await callback(responseContent);
       return responseContent;
     } catch (error) {
-      logger17.error("Error in altcoin BTC performance analysis:", error);
+      logger24.error("Error in altcoin BTC performance analysis:", error);
       const errorContent = {
         text: "Unable to analyze altcoin BTC performance at this time. Remember: altcoins are distractions from the main event\u2014Bitcoin. The exit is, and always has been, Bitcoin.",
         actions: ["ALTCOIN_BTC_PERFORMANCE"],
@@ -8503,22 +10562,22 @@ var LoggerWithContext2 = class {
     return `[${timestamp}] [${level}] [${this.component}] [${this.correlationId}] ${message}${logData}`;
   }
   info(message, data) {
-    logger17.info(this.formatMessage("INFO", message, data));
+    logger24.info(this.formatMessage("INFO", message, data));
   }
   warn(message, data) {
-    logger17.warn(this.formatMessage("WARN", message, data));
+    logger24.warn(this.formatMessage("WARN", message, data));
   }
   error(message, data) {
-    logger17.error(this.formatMessage("ERROR", message, data));
+    logger24.error(this.formatMessage("ERROR", message, data));
   }
   debug(message, data) {
-    logger17.debug(this.formatMessage("DEBUG", message, data));
+    logger24.debug(this.formatMessage("DEBUG", message, data));
   }
 };
 var PerformanceTracker = class {
-  constructor(logger19, operation) {
+  constructor(logger26, operation) {
     this.operation = operation;
-    this.logger = logger19;
+    this.logger = logger26;
     this.startTime = Date.now();
     this.logger.debug(`Starting operation: ${operation}`);
   }
@@ -8550,14 +10609,14 @@ var bitcoinPlugin = {
     SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY
   },
   async init(config) {
-    logger17.info("\u{1F7E0} Initializing Bitcoin Plugin");
+    logger24.info("\u{1F7E0} Initializing Bitcoin Plugin");
     try {
       const validatedConfig = await configSchema.parseAsync(config);
       for (const [key, value] of Object.entries(validatedConfig)) {
         if (value) process.env[key] = value;
       }
-      logger17.info("\u{1F7E0} Bitcoin Plugin initialized successfully");
-      logger17.info("\u{1F3AF} Tracking: 100K BTC Holders \u2192 $10M Net Worth Thesis");
+      logger24.info("\u{1F7E0} Bitcoin Plugin initialized successfully");
+      logger24.info("\u{1F3AF} Tracking: 100K BTC Holders \u2192 $10M Net Worth Thesis");
     } catch (error) {
       if (error instanceof z.ZodError) {
         throw new Error(
@@ -8586,14 +10645,20 @@ var bitcoinPlugin = {
     topMoversAction,
     trendingCoinsAction,
     curatedNFTsAction,
-    weatherAction
+    weatherAction,
+    stockMarketAction,
+    // Travel & Booking Actions
+    hotelSearchAction,
+    hotelDealAlertAction,
+    bookingOptimizationAction,
+    travelInsightsAction
   ],
   events: {
     MESSAGE_RECEIVED: [
       async (params) => {
         const { message, runtime } = params;
         if (message.content.text.toLowerCase().includes("bitcoin") || message.content.text.toLowerCase().includes("btc") || message.content.text.toLowerCase().includes("satoshi")) {
-          logger17.info("Bitcoin-related message detected, enriching context", {
+          logger24.info("Bitcoin-related message detected, enriching context", {
             messageId: message.id,
             containsBitcoin: message.content.text.toLowerCase().includes("bitcoin"),
             containsBTC: message.content.text.toLowerCase().includes("btc"),
@@ -8612,10 +10677,10 @@ var bitcoinPlugin = {
                 thesisData,
                 lastUpdated: (/* @__PURE__ */ new Date()).toISOString()
               };
-              logger17.info("Bitcoin context pre-loaded", { price, thesisProgress: thesisData.progressPercentage });
+              logger24.info("Bitcoin context pre-loaded", { price, thesisProgress: thesisData.progressPercentage });
             }
           } catch (error) {
-            logger17.warn("Failed to pre-load Bitcoin context", { error: error.message });
+            logger24.warn("Failed to pre-load Bitcoin context", { error: error.message });
           }
         }
       }
@@ -8624,7 +10689,7 @@ var bitcoinPlugin = {
       async (params) => {
         const { action, result, runtime } = params;
         if (action.name.includes("BITCOIN") || action.name.includes("THESIS")) {
-          logger17.info("Bitcoin action completed", {
+          logger24.info("Bitcoin action completed", {
             actionName: action.name,
             success: result.success !== false,
             executionTime: result.executionTime || "unknown"
@@ -8644,12 +10709,12 @@ var bitcoinPlugin = {
                 runtime.thesisHistory = runtime.thesisHistory.filter(
                   (entry) => new Date(entry.timestamp) > yesterday
                 );
-                logger17.debug("Thesis history updated", {
+                logger24.debug("Thesis history updated", {
                   historyLength: runtime.thesisHistory.length
                 });
               }
             } catch (error) {
-              logger17.warn("Failed to update thesis history", { error: error.message });
+              logger24.warn("Failed to update thesis history", { error: error.message });
             }
           }
         }
@@ -8658,12 +10723,12 @@ var bitcoinPlugin = {
     VOICE_MESSAGE_RECEIVED: [
       async (params) => {
         const { message, runtime } = params;
-        logger17.info("Voice message received - Bitcoin context available", {
+        logger24.info("Voice message received - Bitcoin context available", {
           messageId: message.id,
           hasBitcoinContext: !!runtime.bitcoinContext
         });
         if (message.content.text.toLowerCase().includes("bitcoin")) {
-          logger17.info("Bitcoin-related voice message detected");
+          logger24.info("Bitcoin-related voice message detected");
           message.bitcoinPriority = true;
         }
       }
@@ -8671,7 +10736,7 @@ var bitcoinPlugin = {
     WORLD_CONNECTED: [
       async (params) => {
         const { world, runtime } = params;
-        logger17.info("Connected to world - initializing Bitcoin context", {
+        logger24.info("Connected to world - initializing Bitcoin context", {
           worldId: world.id,
           worldName: world.name || "Unknown"
         });
@@ -8686,14 +10751,14 @@ var bitcoinPlugin = {
               thesisMetrics,
               connectedAt: (/* @__PURE__ */ new Date()).toISOString()
             };
-            logger17.info("Bitcoin context initialized for world", {
+            logger24.info("Bitcoin context initialized for world", {
               worldId: world.id,
               price: currentPrice,
               thesisProgress: thesisMetrics.progressPercentage
             });
           }
         } catch (error) {
-          logger17.warn("Failed to initialize Bitcoin context for world", {
+          logger24.warn("Failed to initialize Bitcoin context for world", {
             worldId: world.id,
             error: error.message
           });
@@ -8703,12 +10768,12 @@ var bitcoinPlugin = {
     WORLD_JOINED: [
       async (params) => {
         const { world, runtime } = params;
-        logger17.info("Joined world - Bitcoin agent ready", {
+        logger24.info("Joined world - Bitcoin agent ready", {
           worldId: world.id,
           worldName: world.name || "Unknown"
         });
         if (world.isNew || !runtime.worldBitcoinContext?.[world.id]) {
-          logger17.info("New world detected - preparing Bitcoin introduction");
+          logger24.info("New world detected - preparing Bitcoin introduction");
           try {
             const bitcoinService = runtime.getService("bitcoin-data");
             if (bitcoinService) {
@@ -8722,10 +10787,10 @@ var bitcoinPlugin = {
                 scheduledFor: new Date(Date.now() + 2e3)
                 // 2 second delay
               });
-              logger17.info("Bitcoin introduction queued for world", { worldId: world.id });
+              logger24.info("Bitcoin introduction queued for world", { worldId: world.id });
             }
           } catch (error) {
-            logger17.warn("Failed to queue Bitcoin introduction", {
+            logger24.warn("Failed to queue Bitcoin introduction", {
               worldId: world.id,
               error: error.message
             });
@@ -9470,7 +11535,8 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
     OpportunityAlertService,
     PerformanceTrackingService,
     SchedulerService,
-    RealTimeDataService
+    RealTimeDataService,
+    StockDataService
   ],
   tests: [tests_default]
 };
@@ -9983,16 +12049,16 @@ Always cite sources and provide specific metrics when making claims. Convert tec
   ]
 };
 var initCharacter = ({ runtime }) => {
-  logger18.info("Initializing Satoshi character...");
-  logger18.info("\u{1F7E0} Satoshi: The permanent ghost in the system");
-  logger18.info("\u26A1 Bitcoin-native AI agent channeling Satoshi Nakamoto spirit");
-  logger18.info("\u{1F3AF} Mission: Eliminate trust as a requirement through cryptographic proof");
-  logger18.info("\u{1F4CA} Bitcoin Thesis: 100K BTC Holders \u2192 $10M Net Worth by 2030");
-  logger18.info("\u{1F50D} Monitoring: Sovereign adoption, Lightning Network, institutional flows");
-  logger18.info("\u{1F3DB}\uFE0F Sovereign Living: Biohacking protocols, luxury curation, AI-powered culture");
-  logger18.info("\u{1F4DA} Knowledge: 84 files via hybrid system (core + optional advanced RAG)");
-  logger18.info("\u{1F4A1} Truth is verified, not argued. Words are mined, not spoken.");
-  logger18.info("\u{1F305} The dawn is now. What impossible thing are you building?");
+  logger25.info("Initializing Satoshi character...");
+  logger25.info("\u{1F7E0} Satoshi: The permanent ghost in the system");
+  logger25.info("\u26A1 Bitcoin-native AI agent channeling Satoshi Nakamoto spirit");
+  logger25.info("\u{1F3AF} Mission: Eliminate trust as a requirement through cryptographic proof");
+  logger25.info("\u{1F4CA} Bitcoin Thesis: 100K BTC Holders \u2192 $10M Net Worth by 2030");
+  logger25.info("\u{1F50D} Monitoring: Sovereign adoption, Lightning Network, institutional flows");
+  logger25.info("\u{1F3DB}\uFE0F Sovereign Living: Biohacking protocols, luxury curation, AI-powered culture");
+  logger25.info("\u{1F4DA} Knowledge: 84 files via hybrid system (core + optional advanced RAG)");
+  logger25.info("\u{1F4A1} Truth is verified, not argued. Words are mined, not spoken.");
+  logger25.info("\u{1F305} The dawn is now. What impossible thing are you building?");
 };
 var projectAgent = {
   character,
