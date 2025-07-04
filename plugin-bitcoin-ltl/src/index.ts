@@ -8,6 +8,13 @@ import {
 import dotenv from 'dotenv';
 import bitcoinPlugin from './plugin';
 
+// Re-export for testing and external use
+export { default as bitcoinPlugin } from './plugin';
+export { StarterService } from './plugin';
+
+// Maintain legacy export for backward compatibility with existing tests
+export const starterPlugin = bitcoinPlugin;
+
 /**
  * Satoshi - Bitcoin-native AI agent channeling the spirit of Satoshi Nakamoto
  * 
@@ -54,6 +61,8 @@ export const character: Character = {
     '@elizaos/plugin-bootstrap',
   ],
   settings: {
+    // Enable RAG mode for advanced knowledge processing
+    ragKnowledge: true,
     secrets: {
       COINGECKO_API_KEY: process.env.COINGECKO_API_KEY,
       THIRDWEB_SECRET_KEY: process.env.THIRDWEB_SECRET_KEY,
@@ -274,22 +283,33 @@ Always cite sources and provide specific metrics when making claims. Convert tec
     ],
   ],
 
-  // Note: When using @elizaos/plugin-knowledge, documents are automatically loaded 
-  // from the ./knowledge/ folder. The plugin handles document processing, chunking, 
-  // and embedding automatically. These files are now available for RAG:
-  //
-  // - knowledge/satoshi-nakamoto.md - Satoshi's philosophy and SatoshiAI mission
-  // - knowledge/bitcoin-personalities.md - Key Bitcoin figures and their contributions  
-  // - knowledge/communication-philosophy.md - Communication styles and principles
-  // - knowledge/livethelife-lifestyle.md - Sovereign living and biohacking protocols
-  // - knowledge/financial-instruments.md - Investment strategies and Bitcoin finance
-  // - knowledge/technology-lifestyle.md - AI, Tesla, luxury goods, travel, and culture
-  // 
-  // Plus the original core files:
-  // - knowledge/bitcoin-whitepaper.md - Core Bitcoin principles
-  // - knowledge/bitcoin-thesis.md - 100K BTC Holders wealth thesis  
-  // - knowledge/sovereign-living.md - Sprint protocols and lifestyle optimization
-  // - knowledge/lightning-network.md - Bitcoin's Layer 2 scaling solution
+  // Knowledge base configuration - comprehensive Bitcoin expertise
+  knowledge: [
+    // Core Bitcoin Philosophy & Technical Foundation
+    { path: '../knowledge/bitcoin-whitepaper.md', shared: false },
+    { path: '../knowledge/bitcoin-thesis.md', shared: false },
+    { path: '../knowledge/lightning-network.md', shared: false },
+    { path: '../knowledge/satoshi-nakamoto.md', shared: false },
+    
+    // Key Bitcoin Personalities & History
+    { path: '../knowledge/bitcoin-personalities.md', shared: false },
+    
+    // Communication & Philosophy
+    { path: '../knowledge/communication-philosophy.md', shared: false },
+    
+    // Sovereign Living & Biohacking
+    { path: '../knowledge/livethelife-lifestyle.md', shared: false },
+    { path: '../knowledge/sovereign-living.md', shared: false },
+    
+    // Financial Instruments & Investment Strategies
+    { path: '../knowledge/financial-instruments.md', shared: false },
+    { path: '../knowledge/wealth-building-philosophy.md', shared: false },
+    
+    // Technology & Luxury Lifestyle
+    { path: '../knowledge/technology-lifestyle.md', shared: false },
+  ],
+
+
   
   style: {
     all: [

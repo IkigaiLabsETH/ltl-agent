@@ -110,6 +110,18 @@ export class BitcoinTestSuite implements TestSuite {
           throw new Error('Character knowledge base is empty');
         }
         
+        // Validate RAG mode is enabled
+        if (!character.settings?.ragKnowledge) {
+          throw new Error('RAG knowledge mode is not enabled');
+        }
+        
+        // Validate knowledge file count
+        if (character.knowledge.length < 10) {
+          throw new Error(`Expected at least 10 knowledge files, got ${character.knowledge.length}`);
+        }
+        
+        console.log(`Knowledge files configured: ${character.knowledge.length}`);
+        console.log('RAG mode enabled for advanced semantic search');
         console.log('✅ Character configuration validation passed');
       },
     },
