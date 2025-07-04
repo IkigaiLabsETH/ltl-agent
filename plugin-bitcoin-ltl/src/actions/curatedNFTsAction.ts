@@ -94,7 +94,8 @@ export const curatedNFTsAction: Action = {
     const triggers = [
       'nft', 'nfts', 'digital art', 'opensea', 'cryptopunks', 'fidenza',
       'generative art', 'art blocks', 'blue chip', 'floor price', 'collection',
-      'curated nft', 'digital collection', 'art collection', 'nft market'
+      'curated nft', 'digital collection', 'art collection', 'nft market',
+      'bored ape', 'bayc', 'ape', 'mutant ape', 'mayc', 'azuki', 'clonex', 'doodle'
     ];
     
     return triggers.some(trigger => content.includes(trigger));
