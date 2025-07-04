@@ -327,31 +327,24 @@ export interface WeatherData {
   timezone: string;
   timezone_abbreviation: string;
   elevation: number;
-  current_units: {
-    time: string;
-    interval: string;
-    temperature_2m: string;
-    wind_speed_10m: string;
-    wind_direction_10m: string;
-  };
-  current: {
-    time: string;
-    interval: number;
-    temperature_2m: number;
-    wind_speed_10m: number;
-    wind_direction_10m: number;
-  };
   hourly_units: {
     time: string;
     temperature_2m: string;
-    wind_speed_10m: string;
-    wind_direction_10m: string;
+    wind_speed_10m?: string;
+    wind_direction_10m?: string;
   };
   hourly: {
     time: string[];
-    temperature_2m: number[];
-    wind_speed_10m: number[];
-    wind_direction_10m: number[];
+    temperature_2m: (number | null)[];
+    wind_speed_10m?: (number | null)[];
+    wind_direction_10m?: (number | null)[];
+  };
+  current?: {
+    time: string;
+    interval: number;
+    temperature_2m?: number;
+    wind_speed_10m?: number;
+    wind_direction_10m?: number;
   };
 }
 
@@ -1940,20 +1933,34 @@ export class RealTimeDataService extends Service {
       const cities = Object.entries(this.weatherCities);
       const cityWeatherPromises = cities.map(async ([cityKey, cityConfig]) => {
         try {
-          // Fetch weather data
-          const weatherResponse = await fetch(
-            `https://api.open-meteo.com/v1/forecast?latitude=${cityConfig.lat}&longitude=${cityConfig.lon}&current=temperature_2m,wind_speed_10m,wind_direction_10m&hourly=temperature_2m,wind_speed_10m,wind_direction_10m&models=meteofrance_seamless`,
-            { signal: AbortSignal.timeout(5000) }
-          );
+                     // Fetch weather data
+           const weatherResponse = await fetch(
+             `https://api.open-meteo.com/v1/forecast?latitude=${cityConfig.lat}&longitude=${cityConfig.lon}&current=temperature_2m,wind_speed_10m,wind_direction_10m&hourly=temperature_2m,wind_speed_10m,wind_direction_10m`,
+             { signal: AbortSignal.timeout(5000) }
+           );
 
           if (!weatherResponse.ok) {
             console.warn(`Failed to fetch weather for ${cityKey}: ${weatherResponse.status}`);
             return null;
           }
 
-          const weatherData = await weatherResponse.json();
+                     const weatherData = await weatherResponse.json();
 
-          // Fetch marine data (for coastal cities)
+           // If no current data, use latest hourly data as fallback
+           if (!weatherData.current && weatherData.hourly) {
+             const latestIndex = weatherData.hourly.time.length - 1;
+             if (latestIndex >= 0) {
+               weatherData.current = {
+                 time: weatherData.hourly.time[latestIndex],
+                 interval: 3600, // 1 hour in seconds
+                 temperature_2m: weatherData.hourly.temperature_2m[latestIndex],
+                 wind_speed_10m: weatherData.hourly.wind_speed_10m?.[latestIndex],
+                 wind_direction_10m: weatherData.hourly.wind_direction_10m?.[latestIndex]
+               };
+             }
+           }
+
+           // Fetch marine data (for coastal cities)
           let marineData = null;
           if (cityKey === 'biarritz' || cityKey === 'monaco') {
             try {
@@ -2020,13 +2027,27 @@ export class RealTimeDataService extends Service {
         return null;
       }
 
-      const temperatures = cityWeatherData.map(city => city.weather.current.temperature_2m);
+      // Get valid temperatures (handle optional/null values)
+      const temperatures = cityWeatherData
+        .map(city => city.weather.current?.temperature_2m)
+        .filter((temp): temp is number => temp !== undefined && temp !== null);
+      
+      if (temperatures.length === 0) {
+        console.warn('No valid temperature data available');
+        return null;
+      }
+
       const averageTemp = temperatures.reduce((sum, temp) => sum + temp, 0) / temperatures.length;
 
-      // Find best weather city (highest temp, lowest wind)
+      // Find best weather city (highest temp, lowest wind) - handle optional values
       const bestWeatherCity = cityWeatherData.reduce((best, current) => {
-        const bestScore = best.weather.current.temperature_2m - (best.weather.current.wind_speed_10m * 0.5);
-        const currentScore = current.weather.current.temperature_2m - (current.weather.current.wind_speed_10m * 0.5);
+        const bestTemp = best.weather.current?.temperature_2m || 0;
+        const bestWind = best.weather.current?.wind_speed_10m || 0;
+        const currentTemp = current.weather.current?.temperature_2m || 0;
+        const currentWind = current.weather.current?.wind_speed_10m || 0;
+        
+        const bestScore = bestTemp - (bestWind * 0.5);
+        const currentScore = currentTemp - (currentWind * 0.5);
         return currentScore > bestScore ? current : best;
       }).displayName;
 
@@ -2043,8 +2064,12 @@ export class RealTimeDataService extends Service {
         bestSurfConditions = bestSurf.displayName;
       }
 
-      // Wind conditions assessment
-      const maxWindSpeed = Math.max(...cityWeatherData.map(city => city.weather.current.wind_speed_10m));
+      // Wind conditions assessment - handle optional values
+      const windSpeeds = cityWeatherData
+        .map(city => city.weather.current?.wind_speed_10m)
+        .filter((speed): speed is number => speed !== undefined && speed !== null);
+      
+      const maxWindSpeed = windSpeeds.length > 0 ? Math.max(...windSpeeds) : 0;
       let windConditions: 'calm' | 'breezy' | 'windy' | 'stormy';
       if (maxWindSpeed < 10) windConditions = 'calm';
       else if (maxWindSpeed < 20) windConditions = 'breezy';

@@ -245,27 +245,33 @@ export class MorningBriefingService extends Service {
         return null;
       }
 
+      // Get primary city temperature (handle optional values)
+      const primaryTemp = primaryCity.weather.current?.temperature_2m || 15;
+      
       // Convert wind conditions to descriptive text
       let condition = 'clear';
       if (weatherData.summary.windConditions === 'stormy') condition = 'stormy';
       else if (weatherData.summary.windConditions === 'windy') condition = 'windy';
       else if (weatherData.summary.airQuality === 'poor') condition = 'hazy';
-      else if (primaryCity.weather.current.temperature_2m > 20) condition = 'sunny';
+      else if (primaryTemp > 20) condition = 'sunny';
       else condition = 'clear';
 
-      // Create enhanced description with all cities
-      let description = `${primaryCity.displayName}: ${primaryCity.weather.current.temperature_2m}°C`;
+      // Create enhanced description with all cities (handle optional values)
+      let description = `${primaryCity.displayName}: ${primaryTemp}°C`;
       if (monaco && monaco !== primaryCity) {
-        description += `, Monaco: ${monaco.weather.current.temperature_2m}°C`;
+        const monacoTemp = monaco.weather.current?.temperature_2m || 'N/A';
+        description += `, Monaco: ${monacoTemp}°C`;
       }
       if (biarritz && biarritz !== primaryCity) {
-        description += `, Biarritz: ${biarritz.weather.current.temperature_2m}°C`;
+        const biarritzTemp = biarritz.weather.current?.temperature_2m || 'N/A';
+        description += `, Biarritz: ${biarritzTemp}°C`;
         if (biarritz.marine) {
           description += ` (${biarritz.marine.current.wave_height}m waves)`;
         }
       }
       if (bordeaux && bordeaux !== primaryCity) {
-        description += `, Bordeaux: ${bordeaux.weather.current.temperature_2m}°C`;
+        const bordeauxTemp = bordeaux.weather.current?.temperature_2m || 'N/A';
+        description += `, Bordeaux: ${bordeauxTemp}°C`;
       }
       
       description += `. Air quality: ${weatherData.summary.airQuality}`;
@@ -276,11 +282,11 @@ export class MorningBriefingService extends Service {
 
       return {
         location: weatherData.summary.bestWeatherCity,
-        temperature: Math.round(primaryCity.weather.current.temperature_2m),
+        temperature: Math.round(primaryTemp),
         condition,
         description,
         humidity: 65, // Open-Meteo doesn't provide humidity in current endpoint
-        windSpeed: Math.round(primaryCity.weather.current.wind_speed_10m)
+        windSpeed: Math.round(primaryCity.weather.current?.wind_speed_10m || 0)
       };
     } catch (error) {
       this.contextLogger.error('Error fetching weather data:', error);
