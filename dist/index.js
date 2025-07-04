@@ -1320,6 +1320,7 @@ var MorningBriefingService = class _MorningBriefingService extends Service3 {
   scheduledBriefing = null;
   constructor(runtime) {
     super();
+    this.runtime = runtime;
     this.correlationId = generateCorrelationId();
     this.contextLogger = new LoggerWithContext(this.correlationId, "MorningBriefingService");
     this.briefingConfig = this.getDefaultConfig();
@@ -1703,6 +1704,7 @@ var KnowledgeDigestService = class _KnowledgeDigestService extends Service4 {
   digestCache = /* @__PURE__ */ new Map();
   constructor(runtime) {
     super();
+    this.runtime = runtime;
     this.correlationId = generateCorrelationId();
     this.contextLogger = new LoggerWithContext(this.correlationId, "KnowledgeDigestService");
   }
@@ -2015,6 +2017,7 @@ var OpportunityAlertService = class _OpportunityAlertService extends Service5 {
   monitoringInterval = null;
   constructor(runtime) {
     super();
+    this.runtime = runtime;
     this.correlationId = generateCorrelationId();
     this.contextLogger = new LoggerWithContext(this.correlationId, "OpportunityAlertService");
     this.metrics = this.initializeMetrics();
@@ -2387,6 +2390,7 @@ var PerformanceTrackingService = class _PerformanceTrackingService extends Servi
   evaluationInterval = null;
   constructor(runtime) {
     super();
+    this.runtime = runtime;
     this.correlationId = generateCorrelationId();
     this.contextLogger = new LoggerWithContext(this.correlationId, "PerformanceTrackingService");
     this.metrics = this.initializeMetrics();
@@ -2930,6 +2934,7 @@ var SchedulerService = class _SchedulerService extends Service7 {
   isRunning = false;
   constructor(runtime) {
     super();
+    this.runtime = runtime;
     this.correlationId = generateCorrelationId();
     this.contextLogger = new LoggerWithContext(this.correlationId, "SchedulerService");
     this.scheduleConfig = this.getDefaultConfig();
@@ -3553,6 +3558,7 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
   ];
   constructor(runtime) {
     super();
+    this.runtime = runtime;
   }
   static async start(runtime) {
     logger10.info("RealTimeDataService starting...");
