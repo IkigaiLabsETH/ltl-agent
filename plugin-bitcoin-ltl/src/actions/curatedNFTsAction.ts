@@ -95,14 +95,14 @@ export const curatedNFTsAction: Action = {
       'nft', 'nfts', 'digital art', 'opensea', 'cryptopunks', 'fidenza',
       'generative art', 'art blocks', 'blue chip', 'floor price', 'collection',
       'curated nft', 'digital collection', 'art collection', 'nft market',
-      'bored ape', 'bayc', 'ape', 'mutant ape', 'mayc', 'azuki', 'clonex', 'doodle'
+      'archetype', 'terraforms', 'meridian', 'sightseers', 'progression', 'vera molnar'
     ];
     
     return triggers.some(trigger => content.includes(trigger));
   },
   handler: async (runtime: IAgentRuntime, message: Memory, state: State, options: any, callback: HandlerCallback) => {
     try {
-      const realTimeDataService = runtime.getService('RealTimeDataService') as RealTimeDataService;
+      const realTimeDataService = runtime.getService('real-time-data') as RealTimeDataService;
       
       if (!realTimeDataService) {
         callback({
@@ -281,7 +281,7 @@ export const curatedNFTsAction: Action = {
       {
         name: "Satoshi",
         content: { 
-          text: "Live NFT data: CryptoPunks: 45.2 ETH floor (+1.8%). Bored Apes: 10.5 ETH floor (-2.3%). Fidenza: 8.2 ETH floor (+3.1%). Markets consolidating after speculation peak. Collect what resonates, but remember - 21 million Bitcoin vs unlimited NFT supply.",
+          text: "Live NFT data: CryptoPunks: 45.2 ETH floor (+1.8%). Fidenza: 8.2 ETH floor (+3.1%). Art Blocks: 2.1 ETH floor (+2.4%). Markets consolidating after speculation peak. Collect what resonates, but remember - 21 million Bitcoin vs unlimited NFT supply.",
           actions: ["CURATED_NFTS_ANALYSIS"]
         }
       }

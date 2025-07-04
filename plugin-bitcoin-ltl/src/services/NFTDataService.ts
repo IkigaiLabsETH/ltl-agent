@@ -131,12 +131,7 @@ export class NFTDataService extends BaseDataService {
   // Curated NFT collections (high-end digital art and OG collections)
   private readonly curatedNFTCollections = [
     // Blue chip PFP collections
-    { slug: 'boredapeyachtclub', category: 'blue-chip' as const },
-    { slug: 'mutant-ape-yacht-club', category: 'blue-chip' as const },
     { slug: 'cryptopunks', category: 'blue-chip' as const },
-    { slug: 'azuki', category: 'blue-chip' as const },
-    { slug: 'clonex', category: 'blue-chip' as const },
-    { slug: 'doodles-official', category: 'blue-chip' as const },
     
     // Generative art collections  
     { slug: 'fidenza-by-tyler-hobbs', category: 'generative-art' as const },
