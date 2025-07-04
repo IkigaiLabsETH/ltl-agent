@@ -3544,31 +3544,41 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
   };
   // Curated NFT collections (high-end digital art and OG collections)
   curatedNFTCollections = [
-    { slug: "fidenza-by-tyler-hobbs", category: "generative-art" },
+    // Blue chip PFP collections
+    { slug: "boredapeyachtclub", category: "blue-chip" },
+    { slug: "mutant-ape-yacht-club", category: "blue-chip" },
     { slug: "cryptopunks", category: "blue-chip" },
-    { slug: "0xdgb-thecameras", category: "digital-art" },
-    { slug: "the-harvest-by-per-kristian-stoveland", category: "generative-art" },
+    { slug: "azuki", category: "blue-chip" },
+    { slug: "clonex", category: "blue-chip" },
+    { slug: "doodles-official", category: "blue-chip" },
+    // Generative art collections  
+    { slug: "fidenza-by-tyler-hobbs", category: "generative-art" },
+    { slug: "art-blocks-curated", category: "generative-art" },
     { slug: "terraforms", category: "generative-art" },
-    { slug: "xcopy-knownorigin", category: "digital-art" },
-    { slug: "winds-of-yawanawa", category: "digital-art" },
-    { slug: "meridian-by-matt-deslauriers", category: "generative-art" },
     { slug: "ackcolorstudy", category: "generative-art" },
     { slug: "vera-molnar-themes-and-variations", category: "generative-art" },
     { slug: "sightseers-by-norman-harman", category: "generative-art" },
     { slug: "progression-by-jeff-davis", category: "generative-art" },
     { slug: "risk-reward-by-kjetil-golid", category: "generative-art" },
-    { slug: "brokenkeys", category: "digital-art" },
     { slug: "aligndraw", category: "generative-art" },
     { slug: "archetype-by-kjetil-golid", category: "generative-art" },
-    { slug: "ripcache", category: "digital-art" },
     { slug: "qql", category: "generative-art" },
-    { slug: "human-unreadable-by-operator", category: "digital-art" },
-    { slug: "jaknfthoodies", category: "pfp" },
-    { slug: "non-either-by-rafael-rozendaal", category: "digital-art" },
     { slug: "orbifold-by-kjetil-golid", category: "generative-art" },
+    { slug: "meridian-by-matt-deslauriers", category: "generative-art" },
+    // Digital art collections
+    { slug: "0xdgb-thecameras", category: "digital-art" },
+    { slug: "the-harvest-by-per-kristian-stoveland", category: "digital-art" },
+    { slug: "xcopy-knownorigin", category: "digital-art" },
+    { slug: "winds-of-yawanawa", category: "digital-art" },
+    { slug: "brokenkeys", category: "digital-art" },
+    { slug: "ripcache", category: "digital-art" },
+    { slug: "human-unreadable-by-operator", category: "digital-art" },
+    { slug: "non-either-by-rafael-rozendaal", category: "digital-art" },
     { slug: "pop-wonder-editions", category: "digital-art" },
-    { slug: "monstersoup", category: "pfp" },
     { slug: "machine-hallucinations-coral-generative-ai-data-pa", category: "digital-art" },
+    // PFP collections
+    { slug: "jaknfthoodies", category: "pfp" },
+    { slug: "monstersoup", category: "pfp" },
     { slug: "getijde-by-bart-simons", category: "generative-art" },
     { slug: "24-hours-of-art", category: "digital-art" },
     { slug: "pursuit-by-per-kristian-stoveland", category: "generative-art" },
@@ -4608,8 +4618,8 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
       console.log("[RealTimeDataService] Fetching enhanced curated NFTs data...");
       const openSeaApiKey = this.runtime.getSetting("OPENSEA_API_KEY");
       if (!openSeaApiKey) {
-        console.warn("OPENSEA_API_KEY not configured, using fallback data");
-        return this.getFallbackNFTsData();
+        console.warn("OPENSEA_API_KEY not configured, returning null to prevent stale data");
+        return null;
       }
       const headers = {
         "Accept": "application/json",
@@ -4643,11 +4653,12 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
       return result;
     } catch (error) {
       console.error("Error in fetchCuratedNFTsData:", error);
-      return this.getFallbackNFTsData();
+      return null;
     }
   }
   async fetchEnhancedCollectionData(collectionInfo, headers) {
     try {
+      console.log(`[RealTimeDataService] Fetching collection data for: ${collectionInfo.slug}`);
       const collectionData = await this.fetchWithRetry(
         `https://api.opensea.io/api/v2/collections/${collectionInfo.slug}`,
         { headers },
@@ -4659,6 +4670,7 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
         3
       );
       const stats = this.parseCollectionStats(statsData);
+      console.log(`[RealTimeDataService] ${collectionInfo.slug} floor price: ${stats.floor_price} ETH`);
       const contractAddress = collectionData?.contracts?.[0]?.address || "";
       const floorItems = await this.fetchFloorItems(collectionInfo.slug, headers, contractAddress);
       const recentSales = await this.fetchRecentSales(collectionInfo.slug, headers);
@@ -6387,7 +6399,15 @@ var curatedNFTsAction = {
       "curated nft",
       "digital collection",
       "art collection",
-      "nft market"
+      "nft market",
+      "bored ape",
+      "bayc",
+      "ape",
+      "mutant ape",
+      "mayc",
+      "azuki",
+      "clonex",
+      "doodle"
     ];
     return triggers.some((trigger) => content.includes(trigger));
   },
@@ -6408,9 +6428,9 @@ var curatedNFTsAction = {
       } else {
         nftData = realTimeDataService.getCuratedNFTsData();
       }
-      if (!nftData) {
+      if (!nftData || nftData.collections.length === 0) {
         callback({
-          text: "NFT data unavailable. Perhaps the market is reminding us that Bitcoin is the only digital asset with true scarcity and no central authority.",
+          text: "NFT market data temporarily unavailable - API connection failed. Cannot provide accurate floor prices without live data. Focus on Bitcoin - the only digital asset with immutable scarcity.",
           action: "CURATED_NFTS_ANALYSIS"
         });
         return;
@@ -6557,7 +6577,7 @@ var curatedNFTsAction = {
       {
         name: "Satoshi",
         content: {
-          text: "CryptoPunks: 67.8 ETH floor (+2.1%). Fidenza: 12.5 ETH floor (+5.2%). QQL: 0.75 ETH floor (+3.8%). Art markets consolidating. Temporary price discovery vs permanent value store. Collect what you love, but stack what's scarce.",
+          text: "Live NFT data: CryptoPunks: 45.2 ETH floor (+1.8%). Bored Apes: 10.5 ETH floor (-2.3%). Fidenza: 8.2 ETH floor (+3.1%). Markets consolidating after speculation peak. Collect what resonates, but remember - 21 million Bitcoin vs unlimited NFT supply.",
           actions: ["CURATED_NFTS_ANALYSIS"]
         }
       }
@@ -6570,7 +6590,7 @@ var curatedNFTsAction = {
       {
         name: "Satoshi",
         content: {
-          text: "CryptoPunks floor: 65.2 ETH (-3.4% 24h). Blue chip collections under pressure. NFT markets declining. Speculation cycles end, but sound money endures. 21 million Bitcoin cap is immutable. NFT supply is whatever the creator decides.",
+          text: "Live data: CryptoPunks floor: 44.8 ETH (-1.2% 24h). Market stabilizing after froth. NFT speculation cycles vs Bitcoin's programmed scarcity. 21 million Bitcoin cap is immutable. NFT supply is whatever the creator decides.",
           actions: ["CURATED_NFTS_ANALYSIS"]
         }
       }
@@ -6583,7 +6603,7 @@ var curatedNFTsAction = {
       {
         name: "Satoshi",
         content: {
-          text: "Generative art leading: Fidenza +7.8% (14.2 ETH), Art Blocks +5.3% (3.45 ETH), Archetype +6.1% (1.89 ETH). Digital art markets showing strength, but remember - these are collectibles, not money. Art has value, but Bitcoin has monetary properties.",
+          text: "Live generative art data: Fidenza +4.2% (8.7 ETH), Art Blocks +2.8% (2.1 ETH), Archetype +3.5% (1.2 ETH). Digital art showing resilience, but remember - these are collectibles, not money. Art has cultural value, Bitcoin has monetary properties.",
           actions: ["CURATED_NFTS_ANALYSIS"]
         }
       }
