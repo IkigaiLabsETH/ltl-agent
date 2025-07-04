@@ -191,9 +191,9 @@ export class AltcoinDataService extends BaseDataService {
   private dexScreenerCache: DexScreenerCache | null = null;
   private readonly DEXSCREENER_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes for trending data
   private topMoversCache: TopMoversCache | null = null;
-  private readonly TOP_MOVERS_CACHE_DURATION = 60 * 1000; // 1 minute (matches website)
+  private readonly TOP_MOVERS_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes - reduce API calls
   private trendingCoinsCache: TrendingCoinsCache | null = null;
-  private readonly TRENDING_COINS_CACHE_DURATION = 60 * 1000; // 1 minute (matches website)
+  private readonly TRENDING_COINS_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes - reduce API calls
 
   constructor(runtime: IAgentRuntime) {
     super(runtime);
@@ -857,9 +857,11 @@ export class AltcoinDataService extends BaseDataService {
         });
         
         if (response.status === 429) {
-          // Rate limited - exponential backoff
-          const waitTime = Math.min(Math.pow(2, i) * 5000, 60000); // 5s, 10s, 20s, up to 60s
-          logger.warn(`Rate limited, waiting ${waitTime}ms before retry ${i + 1}`);
+          // Rate limited - more conservative exponential backoff with jitter
+          const baseWaitTime = Math.min(Math.pow(2, i) * 10000, 120000); // 10s, 20s, 40s, up to 120s
+          const jitter = Math.random() * 5000; // Add 0-5s jitter to avoid thundering herd
+          const waitTime = baseWaitTime + jitter;
+          logger.warn(`[AltcoinDataService] Rate limited on ${url}, waiting ${Math.round(waitTime)}ms before retry ${i + 1}`);
           await new Promise(resolve => setTimeout(resolve, waitTime));
           continue;
         }
@@ -872,8 +874,10 @@ export class AltcoinDataService extends BaseDataService {
       } catch (error) {
         lastError = error;
         if (i < maxRetries - 1) {
-          const waitTime = Math.min(Math.pow(2, i) * 3000, 30000); // 3s, 6s, 12s, up to 30s
-          logger.warn(`Request failed, waiting ${waitTime}ms before retry ${i + 1}:`, error);
+          const baseWaitTime = Math.min(Math.pow(2, i) * 5000, 45000); // 5s, 10s, 20s, up to 45s
+          const jitter = Math.random() * 2000; // Add 0-2s jitter
+          const waitTime = baseWaitTime + jitter;
+          logger.warn(`[AltcoinDataService] Request failed for ${url}, waiting ${Math.round(waitTime)}ms before retry ${i + 1}:`, error);
           await new Promise(resolve => setTimeout(resolve, waitTime));
         }
       }
