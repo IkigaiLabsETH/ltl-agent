@@ -198,6 +198,70 @@ temp/
 *.suo
 *.ntvs*
 *.njsproj
+
+# ============================================================================
+# SECURITY: Prevent accidental commit of sensitive files
+# ============================================================================
+
+# API Keys and Secrets
+**/*key*.pem
+**/*private*.pem
+**/*secret*
+**/*token*
+**/*credential*
+**/*password*
+*.key
+*.pem
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+# Environment files with potential secrets
+.env*
+!.env.example
+!.env.template
+!.env.sample
+
+# Configuration files that might contain secrets
+config/production.json
+config/staging.json
+config/secrets.json
+secrets.json
+credentials.json
+
+# Backup files that might contain sensitive data
+*.backup
+*.bak
+*.tmp
+*.temp
+
+# Common secret file patterns
+**/secrets/
+**/credentials/
+**/keys/
+**/certs/
+**/ssl/
+
+# Cloud provider credentials
+.aws/
+.azure/
+.gcp/
+gcp-key.json
+aws-credentials
+azure-credentials
+
+# Database files that might contain sensitive data
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+
+# Common patterns for accidental secret commits
+**/test_*key*
+**/test_*secret*
+**/test_*token*
+**/test_*credential*
 *.sln
 *.sw?
 
