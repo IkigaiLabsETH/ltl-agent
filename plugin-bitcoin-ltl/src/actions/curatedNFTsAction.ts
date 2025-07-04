@@ -123,9 +123,9 @@ export const curatedNFTsAction: Action = {
         nftData = realTimeDataService.getCuratedNFTsData();
       }
 
-      if (!nftData) {
+      if (!nftData || nftData.collections.length === 0) {
         callback({
-          text: "NFT data unavailable. Perhaps the market is reminding us that Bitcoin is the only digital asset with true scarcity and no central authority.",
+          text: "NFT market data temporarily unavailable - API connection failed. Cannot provide accurate floor prices without live data. Focus on Bitcoin - the only digital asset with immutable scarcity.",
           action: 'CURATED_NFTS_ANALYSIS'
         });
         return;
@@ -280,7 +280,7 @@ export const curatedNFTsAction: Action = {
       {
         name: "Satoshi",
         content: { 
-          text: "CryptoPunks: 67.8 ETH floor (+2.1%). Fidenza: 12.5 ETH floor (+5.2%). QQL: 0.75 ETH floor (+3.8%). Art markets consolidating. Temporary price discovery vs permanent value store. Collect what you love, but stack what's scarce.",
+          text: "Live NFT data: CryptoPunks: 45.2 ETH floor (+1.8%). Bored Apes: 10.5 ETH floor (-2.3%). Fidenza: 8.2 ETH floor (+3.1%). Markets consolidating after speculation peak. Collect what resonates, but remember - 21 million Bitcoin vs unlimited NFT supply.",
           actions: ["CURATED_NFTS_ANALYSIS"]
         }
       }
@@ -293,7 +293,7 @@ export const curatedNFTsAction: Action = {
       {
         name: "Satoshi",
         content: {
-          text: "CryptoPunks floor: 65.2 ETH (-3.4% 24h). Blue chip collections under pressure. NFT markets declining. Speculation cycles end, but sound money endures. 21 million Bitcoin cap is immutable. NFT supply is whatever the creator decides.",
+          text: "Live data: CryptoPunks floor: 44.8 ETH (-1.2% 24h). Market stabilizing after froth. NFT speculation cycles vs Bitcoin's programmed scarcity. 21 million Bitcoin cap is immutable. NFT supply is whatever the creator decides.",
           actions: ["CURATED_NFTS_ANALYSIS"]
         }
       }
@@ -306,7 +306,7 @@ export const curatedNFTsAction: Action = {
       {
         name: "Satoshi",
         content: {
-          text: "Generative art leading: Fidenza +7.8% (14.2 ETH), Art Blocks +5.3% (3.45 ETH), Archetype +6.1% (1.89 ETH). Digital art markets showing strength, but remember - these are collectibles, not money. Art has value, but Bitcoin has monetary properties.",
+          text: "Live generative art data: Fidenza +4.2% (8.7 ETH), Art Blocks +2.8% (2.1 ETH), Archetype +3.5% (1.2 ETH). Digital art showing resilience, but remember - these are collectibles, not money. Art has cultural value, Bitcoin has monetary properties.",
           actions: ["CURATED_NFTS_ANALYSIS"]
         }
       }

@@ -551,31 +551,44 @@ export class RealTimeDataService extends Service {
 
   // Curated NFT collections (high-end digital art and OG collections)
   private readonly curatedNFTCollections = [
-    { slug: 'fidenza-by-tyler-hobbs', category: 'generative-art' as const },
+    // Blue chip PFP collections
+    { slug: 'boredapeyachtclub', category: 'blue-chip' as const },
+    { slug: 'mutant-ape-yacht-club', category: 'blue-chip' as const },
     { slug: 'cryptopunks', category: 'blue-chip' as const },
-    { slug: '0xdgb-thecameras', category: 'digital-art' as const },
-    { slug: 'the-harvest-by-per-kristian-stoveland', category: 'generative-art' as const },
+    { slug: 'azuki', category: 'blue-chip' as const },
+    { slug: 'clonex', category: 'blue-chip' as const },
+    { slug: 'doodles-official', category: 'blue-chip' as const },
+    
+    // Generative art collections  
+    { slug: 'fidenza-by-tyler-hobbs', category: 'generative-art' as const },
+    { slug: 'art-blocks-curated', category: 'generative-art' as const },
     { slug: 'terraforms', category: 'generative-art' as const },
-    { slug: 'xcopy-knownorigin', category: 'digital-art' as const },
-    { slug: 'winds-of-yawanawa', category: 'digital-art' as const },
-    { slug: 'meridian-by-matt-deslauriers', category: 'generative-art' as const },
     { slug: 'ackcolorstudy', category: 'generative-art' as const },
     { slug: 'vera-molnar-themes-and-variations', category: 'generative-art' as const },
     { slug: 'sightseers-by-norman-harman', category: 'generative-art' as const },
     { slug: 'progression-by-jeff-davis', category: 'generative-art' as const },
     { slug: 'risk-reward-by-kjetil-golid', category: 'generative-art' as const },
-    { slug: 'brokenkeys', category: 'digital-art' as const },
     { slug: 'aligndraw', category: 'generative-art' as const },
     { slug: 'archetype-by-kjetil-golid', category: 'generative-art' as const },
-    { slug: 'ripcache', category: 'digital-art' as const },
     { slug: 'qql', category: 'generative-art' as const },
-    { slug: 'human-unreadable-by-operator', category: 'digital-art' as const },
-    { slug: 'jaknfthoodies', category: 'pfp' as const },
-    { slug: 'non-either-by-rafael-rozendaal', category: 'digital-art' as const },
     { slug: 'orbifold-by-kjetil-golid', category: 'generative-art' as const },
+    { slug: 'meridian-by-matt-deslauriers', category: 'generative-art' as const },
+    
+    // Digital art collections
+    { slug: '0xdgb-thecameras', category: 'digital-art' as const },
+    { slug: 'the-harvest-by-per-kristian-stoveland', category: 'digital-art' as const },
+    { slug: 'xcopy-knownorigin', category: 'digital-art' as const },
+    { slug: 'winds-of-yawanawa', category: 'digital-art' as const },
+    { slug: 'brokenkeys', category: 'digital-art' as const },
+    { slug: 'ripcache', category: 'digital-art' as const },
+    { slug: 'human-unreadable-by-operator', category: 'digital-art' as const },
+    { slug: 'non-either-by-rafael-rozendaal', category: 'digital-art' as const },
     { slug: 'pop-wonder-editions', category: 'digital-art' as const },
-    { slug: 'monstersoup', category: 'pfp' as const },
     { slug: 'machine-hallucinations-coral-generative-ai-data-pa', category: 'digital-art' as const },
+    
+    // PFP collections
+    { slug: 'jaknfthoodies', category: 'pfp' as const },
+    { slug: 'monstersoup', category: 'pfp' as const },
     { slug: 'getijde-by-bart-simons', category: 'generative-art' as const },
     { slug: '24-hours-of-art', category: 'digital-art' as const },
     { slug: 'pursuit-by-per-kristian-stoveland', category: 'generative-art' as const },
@@ -1826,8 +1839,8 @@ export class RealTimeDataService extends Service {
       
       const openSeaApiKey = this.runtime.getSetting('OPENSEA_API_KEY');
       if (!openSeaApiKey) {
-        console.warn('OPENSEA_API_KEY not configured, using fallback data');
-        return this.getFallbackNFTsData();
+        console.warn('OPENSEA_API_KEY not configured, returning null to prevent stale data');
+        return null; // Return null instead of fallback to prevent LLM from hallucinating
       }
 
       const headers = {
@@ -1874,7 +1887,7 @@ export class RealTimeDataService extends Service {
 
     } catch (error) {
       console.error('Error in fetchCuratedNFTsData:', error);
-      return this.getFallbackNFTsData();
+      return null; // Return null instead of fallback to prevent LLM from using stale/incorrect data
     }
   }
 
@@ -1883,6 +1896,8 @@ export class RealTimeDataService extends Service {
     headers: any
   ): Promise<NFTCollectionData | null> {
     try {
+      console.log(`[RealTimeDataService] Fetching collection data for: ${collectionInfo.slug}`);
+      
       // Fetch basic collection data with retry logic
       const collectionData = await this.fetchWithRetry(
         `https://api.opensea.io/api/v2/collections/${collectionInfo.slug}`,
@@ -1899,6 +1914,7 @@ export class RealTimeDataService extends Service {
 
       // Parse enhanced stats
       const stats = this.parseCollectionStats(statsData);
+      console.log(`[RealTimeDataService] ${collectionInfo.slug} floor price: ${stats.floor_price} ETH`);
 
       // Get contract address for this collection
       const contractAddress = collectionData?.contracts?.[0]?.address || '';
