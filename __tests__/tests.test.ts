@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, assert } from 'vitest';
-import { StarterTestSuite } from '../src/tests';
+import { BitcoinTestSuite } from '../plugin-bitcoin-ltl/src/tests';
 import { v4 as uuidv4 } from 'uuid';
 
 // Mock runtime
@@ -12,11 +12,12 @@ const createMockRuntime = () => {
       topics: ['bitcoin', 'cryptocurrency', 'freedom'],
       adjectives: ['analytical', 'visionary', 'libertarian'],
       knowledge: ['Bitcoin fundamentals', 'Economic theory', 'Cypherpunk philosophy'],
+      settings: { ragKnowledge: true },
     },
     plugins: [
       {
-        name: 'starter',
-        description: 'A starter plugin for Eliza',
+        name: 'bitcoin-ltl',
+        description: 'Bitcoin LTL plugin for Eliza',
         actions: [
           {
             name: 'HELLO_WORLD',
@@ -44,6 +45,12 @@ const createMockRuntime = () => {
               values: {},
               data: {},
             }),
+          },
+        ],
+        services: [
+          {
+            name: 'bitcoin-data',
+            capabilityDescription: 'Bitcoin data service',
           },
         ],
       },
@@ -75,7 +82,7 @@ const createMockRuntime = () => {
     ],
     getService: vi.fn().mockReturnValue({
       capabilityDescription:
-        'This is a starter service which is attached to the agent through the starter plugin.',
+        'This is a bitcoin data service which is attached to the agent through the bitcoin-ltl plugin.',
       stop: vi.fn(),
     }),
     processActions: vi.fn().mockImplementation(async (_message, _responses, _state, callback) => {
@@ -87,16 +94,16 @@ const createMockRuntime = () => {
   };
 };
 
-describe('StarterTestSuite', () => {
-  let testSuite: InstanceType<typeof StarterTestSuite>;
+describe('BitcoinTestSuite', () => {
+  let testSuite: BitcoinTestSuite;
 
   beforeEach(() => {
-    testSuite = new StarterTestSuite();
+    testSuite = new BitcoinTestSuite();
   });
 
   it('should have name and description', () => {
-    expect(testSuite.name).toBe('starter');
-    expect(testSuite.description).toBe('Tests for the starter project');
+    expect(testSuite.name).toBe('bitcoin-ltl');
+    expect(testSuite.description).toBe('Tests for the Bitcoin LTL plugin');
   });
 
   it('should have at least one test', () => {
@@ -160,17 +167,17 @@ describe('StarterTestSuite', () => {
     }
   });
 
-  it('should run starter service test successfully', async () => {
+  it('should run bitcoin data service test successfully', async () => {
     const mockRuntime = createMockRuntime();
-    const serviceTest = testSuite.tests.find((test) => test.name === 'Starter service test');
+    const serviceTest = testSuite.tests.find((test) => test.name === 'Bitcoin data service test');
 
     if (serviceTest) {
       await expect(async () => {
         await serviceTest.fn(mockRuntime as any);
       }).not.toThrow();
-      expect(mockRuntime.getService).toHaveBeenCalledWith('starter');
+      expect(mockRuntime.getService).toHaveBeenCalledWith('bitcoin-data');
     } else {
-      assert.fail('Starter service test not found');
+      assert.fail('Bitcoin data service test not found');
     }
   });
 });

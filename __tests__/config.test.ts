@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import plugin from '../src/plugin';
+import plugin from '../plugin-bitcoin-ltl/src/plugin';
 import { z } from 'zod';
 
 // Access the plugin's init function

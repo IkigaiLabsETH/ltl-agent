@@ -1,4 +1,4 @@
-import { describe, expect, it, spyOn, beforeEach, afterEach, beforeAll, afterAll } from 'bun:test';
+import { describe, expect, it, vi, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
 import { starterPlugin, StarterService } from '../index';
 import { ModelType, logger } from '@elizaos/core';
 import dotenv from 'dotenv';
@@ -8,10 +8,10 @@ dotenv.config();
 
 // Need to spy on logger for documentation
 beforeAll(() => {
-  spyOn(logger, 'info');
-  spyOn(logger, 'error');
-  spyOn(logger, 'warn');
-  spyOn(logger, 'debug');
+  vi.spyOn(logger, 'info');
+  vi.spyOn(logger, 'error');
+  vi.spyOn(logger, 'warn');
+  vi.spyOn(logger, 'debug');
 });
 
 afterAll(() => {
@@ -66,13 +66,17 @@ function createRealRuntime() {
       logger.debug(`Registering service: ${serviceType}`);
       services.set(serviceType, service);
     },
+    useModel: async (modelType: any, params: any) => {
+      // Mock implementation that returns a simple response
+      return `Mock response for ${modelType} with prompt: ${params.prompt}`;
+    },
   };
 }
 
 describe('Plugin Configuration', () => {
   it('should have correct plugin metadata', () => {
-    expect(starterPlugin.name).toBe('plugin-starter');
-    expect(starterPlugin.description).toBe('Plugin starter for elizaOS');
+    expect(starterPlugin.name).toBe('bitcoin-ltl');
+    expect(starterPlugin.description).toBe('Bitcoin-native AI agent plugin for LiveTheLifeTV - provides Bitcoin market data, thesis tracking, and sovereign living insights');
     expect(starterPlugin.config).toBeDefined();
   });
 
@@ -157,7 +161,7 @@ describe('StarterService', () => {
     runtime.registerService(StarterService.serviceType, service);
 
     // Spy on the real service's stop method
-    const stopSpy = spyOn(service, 'stop');
+    const stopSpy = vi.spyOn(service, 'stop');
 
     // Call the static stop method
     await StarterService.stop(runtime as any);
@@ -174,7 +178,7 @@ describe('StarterService', () => {
     const originalGetService = runtime.getService;
     runtime.getService = () => null;
 
-    await expect(StarterService.stop(runtime as any)).rejects.toThrow('Starter service not found');
+    await expect(StarterService.stop(runtime as any)).rejects.toThrow('Bitcoin data service not found');
 
     // Restore original getService function
     runtime.getService = originalGetService;

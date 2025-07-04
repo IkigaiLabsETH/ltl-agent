@@ -51,7 +51,7 @@ export class BitcoinTestSuite implements TestSuite {
       name: 'Hello world provider test',
       fn: async (runtime: IAgentRuntime) => {
         console.log('🧪 Testing hello world provider...');
-        const plugin = runtime.plugins.find(p => p.name === 'starter');
+        const plugin = runtime.plugins.find(p => p.name === 'bitcoin-ltl');
         if (!plugin || !plugin.providers) {
           throw new Error('Plugin or providers not found');
         }

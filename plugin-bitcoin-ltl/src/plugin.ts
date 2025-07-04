@@ -2572,9 +2572,9 @@ export class StarterService extends Service {
     logger.info('BitcoinDataService stopping...');
     
     // Check if the service exists in the runtime
-    const service = runtime.getService('starter');
+    const service = runtime.getService('bitcoin-data');
     if (!service) {
-      throw new Error('Starter service not found');
+      throw new Error('Bitcoin data service not found');
     }
     
     // Call the service's stop method if it exists

@@ -13,6 +13,7 @@ import { SlackIngestionService } from '../services/SlackIngestionService';
 export const morningBriefingAction: Action = {
   name: 'MORNING_BRIEFING',
   description: 'Generate and deliver a proactive morning intelligence briefing with market data, weather, and curated insights',
+  similes: ['GM', 'MORNING_BRIEF', 'DAILY_INTEL', 'MARKET_UPDATE'],
   examples: [
     [
       {

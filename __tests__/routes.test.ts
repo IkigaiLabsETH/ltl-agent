@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import plugin from '../src/plugin';
+import plugin from '../plugin-bitcoin-ltl/src/plugin';
 
 describe('Plugin Routes', () => {
   it('should have routes defined', () => {
@@ -41,9 +41,12 @@ describe('Plugin Routes', () => {
 
         // Verify response
         expect(mockRes.json).toHaveBeenCalledTimes(1);
-        expect(mockRes.json).toHaveBeenCalledWith({
-          message: 'Hello World!',
-        });
+        const callArgs = mockRes.json.mock.calls[0][0];
+        expect(callArgs).toHaveProperty('message');
+        expect(callArgs.message).toContain('Hello World');
+        expect(callArgs).toHaveProperty('plugin', 'bitcoin-ltl');
+        expect(callArgs).toHaveProperty('endpoints');
+        expect(Array.isArray(callArgs.endpoints)).toBe(true);
       }
     }
   });

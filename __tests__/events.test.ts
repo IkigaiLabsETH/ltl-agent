@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import plugin from '../src/plugin';
+import plugin from '../plugin-bitcoin-ltl/src/plugin';
 
 describe('Plugin Events', () => {
 

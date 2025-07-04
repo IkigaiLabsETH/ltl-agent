@@ -3451,10 +3451,19 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
   static serviceType = "real-time-data";
   capabilityDescription = "Provides real-time market data, news feeds, and social sentiment analysis";
   updateInterval = null;
-  UPDATE_INTERVAL = 6e4;
-  // 1 minute
+  UPDATE_INTERVAL = 3e5;
+  // 5 minutes (increased from 1 minute)
   symbols = ["BTC", "ETH", "SOL", "MATIC", "ADA", "4337", "8958"];
   // Include MetaPlanet (4337) and Hyperliquid (8958)
+  // Rate limiting properties
+  lastRequestTime = 0;
+  MIN_REQUEST_INTERVAL = 2e3;
+  // 2 seconds between requests
+  requestQueue = [];
+  isProcessingQueue = false;
+  consecutiveFailures = 0;
+  MAX_CONSECUTIVE_FAILURES = 5;
+  backoffUntil = 0;
   // API endpoints
   BLOCKCHAIN_API = "https://api.blockchain.info";
   COINGECKO_API = "https://api.coingecko.com/api/v3";
@@ -3630,28 +3639,69 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
   }
   async updateAllData() {
     try {
-      const [marketData, newsItems, socialSentiment, economicIndicators, comprehensiveBitcoinData] = await Promise.all([
-        this.fetchMarketData(),
-        this.fetchNewsData(),
-        this.fetchSocialSentiment(),
-        this.fetchEconomicIndicators(),
-        this.fetchComprehensiveBitcoinData()
-      ]);
-      this.marketData = marketData;
-      this.newsItems = newsItems;
-      this.socialSentiment = socialSentiment;
-      this.economicIndicators = economicIndicators;
-      this.comprehensiveBitcoinData = comprehensiveBitcoinData;
-      await this.updateCuratedAltcoinsData();
-      await this.updateTopMoversData();
-      await this.updateTrendingCoinsData();
-      await this.updateCuratedNFTsData();
-      await this.updateWeatherData();
-      const alerts = this.generateAlerts(marketData, newsItems, socialSentiment);
-      this.alerts = alerts;
-      console.log(`[RealTimeDataService] Updated data - ${marketData.length} markets, ${newsItems.length} news items, ${alerts.length} alerts, BTC network data: ${comprehensiveBitcoinData ? "success" : "failed"}, curated altcoins: ${this.curatedAltcoinsCache ? "cached" : "updated"}, top movers: ${this.topMoversCache ? "cached" : "updated"}, trending coins: ${this.trendingCoinsCache ? "cached" : "updated"}, curated NFTs: ${this.curatedNFTsCache ? "cached" : "updated"}, weather: ${this.weatherCache ? "cached" : "updated"}`);
+      console.log("[RealTimeDataService] Starting data update cycle...");
+      const updateTasks = [
+        () => this.updateMarketData(),
+        () => this.updateBitcoinData(),
+        () => this.updateNews(),
+        () => this.updateSocialSentiment(),
+        () => this.updateEconomicIndicators(),
+        () => this.updateCuratedAltcoinsData(),
+        () => this.updateTop100VsBtcData(),
+        () => this.updateDexScreenerData(),
+        () => this.updateTopMoversData(),
+        () => this.updateTrendingCoinsData(),
+        () => this.updateCuratedNFTsData(),
+        () => this.updateWeatherData()
+      ];
+      for (let i = 0; i < updateTasks.length; i++) {
+        try {
+          await updateTasks[i]();
+          if (i < updateTasks.length - 1) {
+            await new Promise((resolve) => setTimeout(resolve, 3e3));
+          }
+        } catch (error) {
+          console.error(`Update task ${i} failed:`, error);
+        }
+      }
+      console.log("[RealTimeDataService] Data update cycle completed");
     } catch (error) {
-      console.error("Error in updateAllData:", error);
+      console.error("[RealTimeDataService] Error updating data:", error);
+    }
+  }
+  async updateMarketData() {
+    try {
+      this.marketData = await this.fetchMarketData();
+    } catch (error) {
+      console.error("Error updating market data:", error);
+    }
+  }
+  async updateBitcoinData() {
+    try {
+      this.comprehensiveBitcoinData = await this.fetchComprehensiveBitcoinData();
+    } catch (error) {
+      console.error("Error updating Bitcoin data:", error);
+    }
+  }
+  async updateNews() {
+    try {
+      this.newsItems = await this.fetchNewsData();
+    } catch (error) {
+      console.error("Error updating news data:", error);
+    }
+  }
+  async updateSocialSentiment() {
+    try {
+      this.socialSentiment = await this.fetchSocialSentiment();
+    } catch (error) {
+      console.error("Error updating social sentiment:", error);
+    }
+  }
+  async updateEconomicIndicators() {
+    try {
+      this.economicIndicators = await this.fetchEconomicIndicators();
+    } catch (error) {
+      console.error("Error updating economic indicators:", error);
     }
   }
   async fetchMarketData() {
@@ -3660,19 +3710,23 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
       const baseUrl = coingeckoApiKey ? "https://pro-api.coingecko.com/api/v3" : "https://api.coingecko.com/api/v3";
       const headers = coingeckoApiKey ? { "x-cg-pro-api-key": coingeckoApiKey } : {};
       const cryptoIds = "bitcoin,ethereum,solana,polygon,cardano";
-      const cryptoResponse = await axios.get(`${baseUrl}/simple/price`, {
-        params: {
+      const cryptoData = await this.makeQueuedRequest(async () => {
+        const params = new URLSearchParams({
           ids: cryptoIds,
           vs_currencies: "usd",
-          include_24hr_change: true,
-          include_24hr_vol: true,
-          include_market_cap: true,
-          include_last_updated_at: true
-        },
-        headers,
-        timeout: 1e4
+          include_24hr_change: "true",
+          include_24hr_vol: "true",
+          include_market_cap: "true",
+          include_last_updated_at: "true"
+        });
+        const url = `${baseUrl}/simple/price?${params.toString()}`;
+        const response = await this.fetchWithRetry(url, {
+          method: "GET",
+          headers
+        });
+        return response;
       });
-      const cryptoData = Object.entries(cryptoResponse.data).map(([id, data]) => ({
+      const marketData = Object.entries(cryptoData).map(([id, data]) => ({
         symbol: this.getSymbolFromId(id),
         price: data.usd || 0,
         change24h: data.usd_24h_change || 0,
@@ -3682,8 +3736,9 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
         lastUpdate: new Date(data.last_updated_at ? data.last_updated_at * 1e3 : Date.now()),
         source: "CoinGecko"
       }));
+      await new Promise((resolve) => setTimeout(resolve, 2e3));
       const stockData = await this.fetchStockData();
-      return [...cryptoData, ...stockData];
+      return [...marketData, ...stockData];
     } catch (error) {
       console.error("Error fetching market data:", error);
       return this.getFallbackMarketData();
@@ -4114,12 +4169,14 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
   }
   async fetchBitcoinPriceData() {
     try {
-      const data = await this.fetchWithRetry(
-        `${this.COINGECKO_API}/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true`,
-        {
-          headers: { "Accept": "application/json" }
-        }
-      );
+      const data = await this.makeQueuedRequest(async () => {
+        return await this.fetchWithRetry(
+          `${this.COINGECKO_API}/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true`,
+          {
+            headers: { "Accept": "application/json" }
+          }
+        );
+      });
       return {
         usd: Number(data.bitcoin?.usd) || null,
         change24h: Number(data.bitcoin?.usd_24h_change) || null
@@ -4229,14 +4286,16 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
   async fetchCuratedAltcoinsData() {
     try {
       const idsParam = this.curatedCoinIds.join(",");
-      const data = await this.fetchWithRetry(
-        `${this.COINGECKO_API}/simple/price?ids=${idsParam}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true&include_24hr_vol=true`,
-        {
-          headers: {
-            "Accept": "application/json"
+      const data = await this.makeQueuedRequest(async () => {
+        return await this.fetchWithRetry(
+          `${this.COINGECKO_API}/simple/price?ids=${idsParam}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true&include_24hr_vol=true`,
+          {
+            headers: {
+              "Accept": "application/json"
+            }
           }
-        }
-      );
+        );
+      });
       const result = {};
       this.curatedCoinIds.forEach((id) => {
         result[id] = data[id] ? {
@@ -4271,12 +4330,14 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
   }
   async fetchTop100VsBtcData() {
     try {
-      const btcMarketData = await this.fetchWithRetry(
-        `${this.COINGECKO_API}/coins/markets?vs_currency=btc&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h,7d,30d`,
-        {
-          headers: { "Accept": "application/json" }
-        }
-      );
+      const btcMarketData = await this.makeQueuedRequest(async () => {
+        return await this.fetchWithRetry(
+          `${this.COINGECKO_API}/coins/markets?vs_currency=btc&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h,7d,30d`,
+          {
+            headers: { "Accept": "application/json" }
+          }
+        );
+      });
       const outperformingVsBtc = btcMarketData.filter(
         (coin) => coin.price_change_percentage_24h > 0
       );
@@ -4298,12 +4359,14 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
         };
       }
       const outperformingIds = outperformingVsBtc.map((coin) => coin.id).join(",");
-      const usdPrices = await this.fetchWithRetry(
-        `${this.COINGECKO_API}/simple/price?ids=${outperformingIds}&vs_currencies=usd`,
-        {
-          headers: { "Accept": "application/json" }
-        }
-      );
+      const usdPrices = await this.makeQueuedRequest(async () => {
+        return await this.fetchWithRetry(
+          `${this.COINGECKO_API}/simple/price?ids=${outperformingIds}&vs_currencies=usd`,
+          {
+            headers: { "Accept": "application/json" }
+          }
+        );
+      });
       const outperformingWithUsd = outperformingVsBtc.map((coin) => ({
         id: coin.id,
         symbol: coin.symbol,
@@ -4621,11 +4684,11 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
       try {
         const response = await fetch(url, {
           ...options,
-          signal: AbortSignal.timeout(1e4)
-          // 10 second timeout
+          signal: AbortSignal.timeout(15e3)
+          // Increased timeout to 15 seconds
         });
         if (response.status === 429) {
-          const waitTime = Math.min(Math.pow(2, i) * 1e3, 1e4);
+          const waitTime = Math.min(Math.pow(2, i) * 5e3, 6e4);
           console.warn(`Rate limited, waiting ${waitTime}ms before retry ${i + 1}`);
           await new Promise((resolve) => setTimeout(resolve, waitTime));
           continue;
@@ -4637,7 +4700,9 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
       } catch (error) {
         lastError = error;
         if (i < maxRetries - 1) {
-          await new Promise((resolve) => setTimeout(resolve, 1e3 * (i + 1)));
+          const waitTime = Math.min(Math.pow(2, i) * 3e3, 3e4);
+          console.warn(`Request failed, waiting ${waitTime}ms before retry ${i + 1}:`, error);
+          await new Promise((resolve) => setTimeout(resolve, waitTime));
         }
       }
     }
@@ -5016,6 +5081,54 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
       console.error("Error in fetchWeatherData:", error);
       return null;
     }
+  }
+  async makeQueuedRequest(requestFn) {
+    return new Promise((resolve, reject) => {
+      this.requestQueue.push(async () => {
+        try {
+          const result = await requestFn();
+          resolve(result);
+        } catch (error) {
+          reject(error);
+        }
+      });
+      if (!this.isProcessingQueue) {
+        this.processRequestQueue();
+      }
+    });
+  }
+  async processRequestQueue() {
+    if (this.isProcessingQueue) return;
+    this.isProcessingQueue = true;
+    while (this.requestQueue.length > 0) {
+      if (this.backoffUntil > Date.now()) {
+        const backoffTime = this.backoffUntil - Date.now();
+        console.log(`In backoff period, waiting ${backoffTime}ms`);
+        await new Promise((resolve) => setTimeout(resolve, backoffTime));
+        this.backoffUntil = 0;
+      }
+      const timeSinceLastRequest = Date.now() - this.lastRequestTime;
+      if (timeSinceLastRequest < this.MIN_REQUEST_INTERVAL) {
+        await new Promise((resolve) => setTimeout(resolve, this.MIN_REQUEST_INTERVAL - timeSinceLastRequest));
+      }
+      const request = this.requestQueue.shift();
+      if (request) {
+        try {
+          this.lastRequestTime = Date.now();
+          await request();
+          this.consecutiveFailures = 0;
+        } catch (error) {
+          this.consecutiveFailures++;
+          console.error(`Request failed (${this.consecutiveFailures}/${this.MAX_CONSECUTIVE_FAILURES}):`, error);
+          if (this.consecutiveFailures >= this.MAX_CONSECUTIVE_FAILURES) {
+            const backoffTime = Math.min(Math.pow(2, this.consecutiveFailures - this.MAX_CONSECUTIVE_FAILURES) * 3e4, 3e5);
+            this.backoffUntil = Date.now() + backoffTime;
+            console.log(`Too many consecutive failures, backing off for ${backoffTime}ms`);
+          }
+        }
+      }
+    }
+    this.isProcessingQueue = false;
   }
 };
 
@@ -6991,7 +7104,8 @@ var bitcoinThesisProvider = {
   description: "Tracks progress of the 100K BTC Holders wealth creation thesis",
   get: async (runtime, _message, _state) => {
     try {
-      const currentPrice = 1e5;
+      const priceProvider = await bitcoinPriceProvider.get(runtime, _message, _state);
+      const currentPrice = priceProvider.values?.price || 1e5;
       const targetPrice = 1e6;
       const progressPercentage = currentPrice / targetPrice * 100;
       const multiplierNeeded = targetPrice / currentPrice;

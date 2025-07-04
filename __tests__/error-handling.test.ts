@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import plugin from '../src/plugin';
-import { StarterService } from '../src/plugin';
+import plugin from '../plugin-bitcoin-ltl/src/plugin';
+import { StarterService } from '../plugin-bitcoin-ltl/src/plugin';
 import type { IAgentRuntime, Memory, State } from '@elizaos/core';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -64,11 +64,11 @@ describe('Error Handling', () => {
         await StarterService.stop(mockRuntime);
       } catch (error: any) {
         caughtError = error;
-        expect(error.message).toBe('Starter service not found');
+        expect(error.message).toBe('Bitcoin data service not found');
       }
 
       expect(caughtError).not.toBeNull();
-      expect(mockRuntime.getService).toHaveBeenCalledWith('starter');
+      expect(mockRuntime.getService).toHaveBeenCalledWith('bitcoin-data');
     });
 
     it('should handle service stop errors gracefully', async () => {
@@ -92,7 +92,7 @@ describe('Error Handling', () => {
       }
 
       expect(caughtError).not.toBeNull();
-      expect(mockRuntime.getService).toHaveBeenCalledWith('starter');
+      expect(mockRuntime.getService).toHaveBeenCalledWith('bitcoin-data');
       expect(mockServiceWithError.stop).toHaveBeenCalled();
     });
   });
