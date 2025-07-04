@@ -667,10 +667,45 @@ var BitcoinDataService = class _BitcoinDataService extends Service {
     }
     return 0;
   }
+  /**
+   * Fetch with retry logic for API calls with rate limit handling
+   */
+  async fetchWithRetry(url, options = {}, maxRetries = 3) {
+    let lastError;
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        const response = await fetch(url, {
+          ...options,
+          signal: AbortSignal.timeout(1e4)
+          // 10 second timeout
+        });
+        if (response.status === 429) {
+          const waitTime = Math.min(Math.pow(2, i) * 1e3, 1e4);
+          logger2.warn(`Rate limited, waiting ${waitTime}ms before retry ${i + 1}`);
+          await new Promise((resolve) => setTimeout(resolve, waitTime));
+          continue;
+        }
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return await response.json();
+      } catch (error) {
+        lastError = error;
+        if (i < maxRetries - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 1e3 * (i + 1)));
+        }
+      }
+    }
+    throw lastError;
+  }
   async getBitcoinPrice() {
     try {
-      const response = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd");
-      const data = await response.json();
+      const data = await this.fetchWithRetry(
+        "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd",
+        {
+          headers: { "Accept": "application/json" }
+        }
+      );
       return data.bitcoin?.usd || 1e5;
     } catch (error) {
       logger2.error("Error fetching Bitcoin price:", error);
@@ -716,11 +751,10 @@ var BitcoinDataService = class _BitcoinDataService extends Service {
    */
   async getEnhancedMarketData() {
     try {
-      const response = await fetch(
+      const data = await this.fetchWithRetry(
         "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin&order=market_cap_desc&per_page=1&page=1&sparkline=false&price_change_percentage=24h%2C7d",
         { headers: { "Accept": "application/json" } }
       );
-      const data = await response.json();
       const bitcoin = data[0];
       return {
         price: bitcoin.current_price || 1e5,
@@ -4080,17 +4114,16 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
   }
   async fetchBitcoinPriceData() {
     try {
-      const response = await fetch(
-        `${this.COINGECKO_API}/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true`
+      const data = await this.fetchWithRetry(
+        `${this.COINGECKO_API}/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true`,
+        {
+          headers: { "Accept": "application/json" }
+        }
       );
-      if (response.ok) {
-        const data = await response.json();
-        return {
-          usd: Number(data.bitcoin?.usd) || null,
-          change24h: Number(data.bitcoin?.usd_24h_change) || null
-        };
-      }
-      return null;
+      return {
+        usd: Number(data.bitcoin?.usd) || null,
+        change24h: Number(data.bitcoin?.usd_24h_change) || null
+      };
     } catch (error) {
       console.error("Error fetching Bitcoin price data:", error);
       return null;
@@ -4196,7 +4229,7 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
   async fetchCuratedAltcoinsData() {
     try {
       const idsParam = this.curatedCoinIds.join(",");
-      const response = await fetch(
+      const data = await this.fetchWithRetry(
         `${this.COINGECKO_API}/simple/price?ids=${idsParam}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true&include_24hr_vol=true`,
         {
           headers: {
@@ -4204,10 +4237,6 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
           }
         }
       );
-      if (!response.ok) {
-        throw new Error(`CoinGecko API error: ${response.status}`);
-      }
-      const data = await response.json();
       const result = {};
       this.curatedCoinIds.forEach((id) => {
         result[id] = data[id] ? {
@@ -4242,13 +4271,12 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
   }
   async fetchTop100VsBtcData() {
     try {
-      const btcMarketResponse = await fetch(
-        `${this.COINGECKO_API}/coins/markets?vs_currency=btc&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h,7d,30d`
+      const btcMarketData = await this.fetchWithRetry(
+        `${this.COINGECKO_API}/coins/markets?vs_currency=btc&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h,7d,30d`,
+        {
+          headers: { "Accept": "application/json" }
+        }
       );
-      if (!btcMarketResponse.ok) {
-        throw new Error(`CoinGecko API request (BTC) failed with status ${btcMarketResponse.status}`);
-      }
-      const btcMarketData = await btcMarketResponse.json();
       const outperformingVsBtc = btcMarketData.filter(
         (coin) => coin.price_change_percentage_24h > 0
       );
@@ -4270,13 +4298,12 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
         };
       }
       const outperformingIds = outperformingVsBtc.map((coin) => coin.id).join(",");
-      const usdPriceResponse = await fetch(
-        `${this.COINGECKO_API}/simple/price?ids=${outperformingIds}&vs_currencies=usd`
+      const usdPrices = await this.fetchWithRetry(
+        `${this.COINGECKO_API}/simple/price?ids=${outperformingIds}&vs_currencies=usd`,
+        {
+          headers: { "Accept": "application/json" }
+        }
       );
-      if (!usdPriceResponse.ok) {
-        throw new Error(`CoinGecko simple price API request failed with status ${usdPriceResponse.status}`);
-      }
-      const usdPrices = await usdPriceResponse.json();
       const outperformingWithUsd = outperformingVsBtc.map((coin) => ({
         id: coin.id,
         symbol: coin.symbol,
@@ -4421,16 +4448,12 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
   async fetchTopMoversData() {
     try {
       console.log("[RealTimeDataService] Fetching top movers data...");
-      const response = await fetch(
+      const data = await this.fetchWithRetry(
         `${this.COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&price_change_percentage=24h`,
         {
           headers: { "Accept": "application/json" }
         }
       );
-      if (!response.ok) {
-        throw new Error(`CoinGecko error: ${response.status}`);
-      }
-      const data = await response.json();
       const validCoins = data.filter((coin) => typeof coin.price_change_percentage_24h === "number");
       const topGainers = [...validCoins].sort((a, b) => b.price_change_percentage_24h - a.price_change_percentage_24h).slice(0, 4).map((coin) => ({
         id: coin.id,
@@ -4479,13 +4502,9 @@ var RealTimeDataService = class _RealTimeDataService extends Service8 {
   async fetchTrendingCoinsData() {
     try {
       console.log("[RealTimeDataService] Fetching trending coins data...");
-      const response = await fetch("https://api.coingecko.com/api/v3/search/trending", {
+      const data = await this.fetchWithRetry("https://api.coingecko.com/api/v3/search/trending", {
         headers: { "Accept": "application/json" }
       });
-      if (!response.ok) {
-        throw new Error(`CoinGecko error: ${response.status}`);
-      }
-      const data = await response.json();
       const trending = Array.isArray(data.coins) ? data.coins.map((c) => ({
         id: c.item.id,
         name: c.item.name,
