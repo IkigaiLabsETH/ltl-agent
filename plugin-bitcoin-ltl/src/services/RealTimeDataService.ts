@@ -100,6 +100,142 @@ export interface ComprehensiveBitcoinData {
   lastUpdated: Date;
 }
 
+export interface CuratedCoinData {
+  price: number;
+  change24h: number;
+  marketCap: number;
+  volume24h: number;
+}
+
+export interface CuratedAltcoinsData {
+  [coinId: string]: CuratedCoinData;
+}
+
+export interface CuratedAltcoinsCache {
+  data: CuratedAltcoinsData;
+  timestamp: number;
+}
+
+export interface Top100VsBtcCoin {
+  id: string;
+  symbol: string;
+  name: string;
+  image: string;
+  current_price: number;
+  market_cap_rank: number;
+  price_change_percentage_24h: number;
+  price_change_percentage_7d_in_currency?: number;
+  price_change_percentage_30d_in_currency?: number;
+}
+
+export interface Top100VsBtcData {
+  outperforming: Top100VsBtcCoin[];
+  underperforming: Top100VsBtcCoin[];
+  totalCoins: number;
+  outperformingCount: number;
+  underperformingCount: number;
+  averagePerformance: number;
+  topPerformers: Top100VsBtcCoin[];
+  worstPerformers: Top100VsBtcCoin[];
+  lastUpdated: Date;
+}
+
+export interface Top100VsBtcCache {
+  data: Top100VsBtcData;
+  timestamp: number;
+}
+
+export interface BoostedToken {
+  tokenAddress: string;
+  chainId: string;
+  icon?: string;
+  label?: string;
+  symbol?: string;
+}
+
+export interface DexScreenerPool {
+  liquidity?: { usd?: string | number };
+  volume?: { h24?: string | number };
+  priceUsd?: string;
+  marketCap?: string | number;
+  info?: { imageUrl?: string };
+}
+
+export interface TrendingToken {
+  address: string;
+  chainId: string;
+  image: string;
+  name: string;
+  symbol: string;
+  priceUsd: number | null;
+  marketCap: number | null;
+  totalLiquidity: number;
+  totalVolume: number;
+  poolsCount: number;
+  liquidityRatio: number | null;
+}
+
+export interface DexScreenerData {
+  topTokens: BoostedToken[];
+  trendingTokens: TrendingToken[];
+  lastUpdated: Date;
+}
+
+export interface DexScreenerCache {
+  data: DexScreenerData;
+  timestamp: number;
+}
+
+export interface TopMoverCoin {
+  id: string;
+  name: string;
+  symbol: string;
+  image: string;
+  market_cap_rank: number;
+  price_change_percentage_24h: number;
+}
+
+export interface TopMoversData {
+  topGainers: TopMoverCoin[];
+  topLosers: TopMoverCoin[];
+  lastUpdated: Date;
+}
+
+export interface TopMoversCache {
+  data: TopMoversData;
+  timestamp: number;
+}
+
+export interface TrendingCoin {
+  id: string;
+  name: string;
+  symbol: string;
+  market_cap_rank: number;
+  thumb: string;
+  score: number;
+}
+
+export interface CoinGeckoTrendingItem {
+  item: {
+    id: string;
+    name: string;
+    symbol: string;
+    market_cap_rank: number;
+    thumb: string;
+    score: number;
+  };
+}
+
+export interface TrendingCoinsData {
+  coins: TrendingCoin[];
+  lastUpdated: Date;
+}
+
+export interface TrendingCoinsCache {
+  data: TrendingCoinsData;
+  timestamp: number;
+}
+
 export class RealTimeDataService extends Service {
   static serviceType = 'real-time-data';
   capabilityDescription = 'Provides real-time market data, news feeds, and social sentiment analysis';
@@ -113,6 +249,31 @@ export class RealTimeDataService extends Service {
   private readonly COINGECKO_API = 'https://api.coingecko.com/api/v3';
   private readonly ALTERNATIVE_API = 'https://api.alternative.me';
   private readonly MEMPOOL_API = 'https://mempool.space/api';
+  private readonly DEXSCREENER_API = 'https://api.dexscreener.com';
+  
+  // Curated altcoins list (matching LiveTheLifeTV website)
+  private readonly curatedCoinIds = [
+    'ethereum',
+    'chainlink',
+    'uniswap',
+    'aave',
+    'ondo-finance', 
+    'ethena', 
+    'solana',
+    'sui',
+    'hyperliquid', 
+    'berachain-bera', 
+    'infrafred-bgt', 
+    'avalanche-2',
+    'blockstack',
+    'dogecoin',
+    'pepe',
+    'mog-coin',
+    'bittensor',
+    'render-token',
+    'fartcoin',
+    'railgun'
+  ];
   
   // Data storage
   private marketData: MarketData[] = [];
@@ -121,6 +282,16 @@ export class RealTimeDataService extends Service {
   private economicIndicators: EconomicIndicator[] = [];
   private alerts: MarketAlert[] = [];
   private comprehensiveBitcoinData: ComprehensiveBitcoinData | null = null;
+  private curatedAltcoinsCache: CuratedAltcoinsCache | null = null;
+  private readonly CURATED_CACHE_DURATION = 60 * 1000; // 1 minute
+  private top100VsBtcCache: Top100VsBtcCache | null = null;
+  private readonly TOP100_CACHE_DURATION = 10 * 60 * 1000; // 10 minutes (matches website revalidation)
+  private dexScreenerCache: DexScreenerCache | null = null;
+  private readonly DEXSCREENER_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes for trending data
+  private topMoversCache: TopMoversCache | null = null;
+  private readonly TOP_MOVERS_CACHE_DURATION = 60 * 1000; // 1 minute (matches website)
+  private trendingCoinsCache: TrendingCoinsCache | null = null;
+  private readonly TRENDING_COINS_CACHE_DURATION = 60 * 1000; // 1 minute (matches website)
 
   constructor(runtime: IAgentRuntime) {
     super();
@@ -188,11 +359,20 @@ export class RealTimeDataService extends Service {
       this.economicIndicators = economicIndicators;
       this.comprehensiveBitcoinData = comprehensiveBitcoinData;
 
+      // Update curated altcoins data (with its own caching)
+      await this.updateCuratedAltcoinsData();
+
+      // Update top movers data (with its own caching)
+      await this.updateTopMoversData();
+
+      // Update trending coins data (with its own caching)
+      await this.updateTrendingCoinsData();
+
       // Generate alerts based on new data
       const alerts = this.generateAlerts(marketData, newsItems, socialSentiment);
       this.alerts = alerts;
 
-      console.log(`[RealTimeDataService] Updated data - ${marketData.length} markets, ${newsItems.length} news items, ${alerts.length} alerts, BTC network data: ${comprehensiveBitcoinData ? 'success' : 'failed'}`);
+      console.log(`[RealTimeDataService] Updated data - ${marketData.length} markets, ${newsItems.length} news items, ${alerts.length} alerts, BTC network data: ${comprehensiveBitcoinData ? 'success' : 'failed'}, curated altcoins: ${this.curatedAltcoinsCache ? 'cached' : 'updated'}, top movers: ${this.topMoversCache ? 'cached' : 'updated'}, trending coins: ${this.trendingCoinsCache ? 'cached' : 'updated'}`);
     } catch (error) {
       console.error('Error in updateAllData:', error);
     }
@@ -600,8 +780,63 @@ export class RealTimeDataService extends Service {
     return this.comprehensiveBitcoinData;
   }
 
+  public getCuratedAltcoinsData(): CuratedAltcoinsData | null {
+    if (!this.curatedAltcoinsCache || !this.isCuratedCacheValid()) {
+      return null;
+    }
+    return this.curatedAltcoinsCache.data;
+  }
+
+  public getTop100VsBtcData(): Top100VsBtcData | null {
+    if (!this.top100VsBtcCache || !this.isTop100CacheValid()) {
+      return null;
+    }
+    return this.top100VsBtcCache.data;
+  }
+
+  public getDexScreenerData(): DexScreenerData | null {
+    if (!this.dexScreenerCache || !this.isDexScreenerCacheValid()) {
+      return null;
+    }
+    return this.dexScreenerCache.data;
+  }
+
+  public getTopMoversData(): TopMoversData | null {
+    if (!this.topMoversCache || !this.isTopMoversCacheValid()) {
+      return null;
+    }
+    return this.topMoversCache.data;
+  }
+
+  public getTrendingCoinsData(): TrendingCoinsData | null {
+    if (!this.trendingCoinsCache || !this.isTrendingCoinsCacheValid()) {
+      return null;
+    }
+    return this.trendingCoinsCache.data;
+  }
+
   public async forceUpdate(): Promise<void> {
     await this.updateAllData();
+  }
+
+  public async forceCuratedAltcoinsUpdate(): Promise<CuratedAltcoinsData | null> {
+    return await this.fetchCuratedAltcoinsData();
+  }
+
+  public async forceTop100VsBtcUpdate(): Promise<Top100VsBtcData | null> {
+    return await this.fetchTop100VsBtcData();
+  }
+
+  public async forceDexScreenerUpdate(): Promise<DexScreenerData | null> {
+    return await this.fetchDexScreenerData();
+  }
+
+  public async forceTopMoversUpdate(): Promise<TopMoversData | null> {
+    return await this.fetchTopMoversData();
+  }
+
+  public async forceTrendingCoinsUpdate(): Promise<TrendingCoinsData | null> {
+    return await this.fetchTrendingCoinsData();
   }
 
   // Comprehensive Bitcoin data fetcher
@@ -764,6 +999,437 @@ export class RealTimeDataService extends Service {
       };
     } catch (error) {
       console.error('Error fetching Bitcoin mempool data:', error);
+      return null;
+    }
+  }
+
+  // Curated altcoins data management
+  private isCuratedCacheValid(): boolean {
+    if (!this.curatedAltcoinsCache) return false;
+    return Date.now() - this.curatedAltcoinsCache.timestamp < this.CURATED_CACHE_DURATION;
+  }
+
+  private async updateCuratedAltcoinsData(): Promise<void> {
+    // Only fetch if cache is invalid
+    if (!this.isCuratedCacheValid()) {
+      const data = await this.fetchCuratedAltcoinsData();
+      if (data) {
+        this.curatedAltcoinsCache = {
+          data,
+          timestamp: Date.now()
+        };
+      }
+    }
+  }
+
+  private async fetchCuratedAltcoinsData(): Promise<CuratedAltcoinsData | null> {
+    try {
+      const idsParam = this.curatedCoinIds.join(',');
+      const response = await fetch(
+        `${this.COINGECKO_API}/simple/price?ids=${idsParam}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true&include_24hr_vol=true`,
+        {
+          headers: {
+            'Accept': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`CoinGecko API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      // Ensure all requested IDs are present in the response (with zeroed data if missing)
+      const result: CuratedAltcoinsData = {};
+      this.curatedCoinIds.forEach((id) => {
+        result[id] = data[id]
+          ? {
+              price: data[id].usd || 0,
+              change24h: data[id].usd_24h_change || 0,
+              marketCap: data[id].usd_market_cap || 0,
+              volume24h: data[id].usd_24h_vol || 0,
+            }
+          : { price: 0, change24h: 0, marketCap: 0, volume24h: 0 };
+      });
+
+      console.log(`[RealTimeDataService] Fetched curated altcoins data for ${this.curatedCoinIds.length} coins`);
+      return result;
+    } catch (error) {
+      console.error('Error fetching curated altcoins data:', error);
+      return null;
+    }
+  }
+
+  // Top 100 vs BTC data management
+  private isTop100CacheValid(): boolean {
+    if (!this.top100VsBtcCache) return false;
+    return Date.now() - this.top100VsBtcCache.timestamp < this.TOP100_CACHE_DURATION;
+  }
+
+  private async updateTop100VsBtcData(): Promise<void> {
+    // Only fetch if cache is invalid
+    if (!this.isTop100CacheValid()) {
+      const data = await this.fetchTop100VsBtcData();
+      if (data) {
+        this.top100VsBtcCache = {
+          data,
+          timestamp: Date.now()
+        };
+      }
+    }
+  }
+
+  private async fetchTop100VsBtcData(): Promise<Top100VsBtcData | null> {
+    try {
+      // Step 1: Fetch top 100 coins against BTC to find outperformers and their performance vs BTC
+      const btcMarketResponse = await fetch(
+        `${this.COINGECKO_API}/coins/markets?vs_currency=btc&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h,7d,30d`
+      );
+
+      if (!btcMarketResponse.ok) {
+        throw new Error(`CoinGecko API request (BTC) failed with status ${btcMarketResponse.status}`);
+      }
+
+      const btcMarketData = await btcMarketResponse.json();
+
+      // Step 2: Separate outperformers and underperformers
+      const outperformingVsBtc = btcMarketData.filter(
+        (coin: any) => coin.price_change_percentage_24h > 0
+      );
+      
+      const underperformingVsBtc = btcMarketData.filter(
+        (coin: any) => coin.price_change_percentage_24h <= 0
+      );
+
+      if (outperformingVsBtc.length === 0) {
+        // Return empty data structure if no outperformers
+        return {
+          outperforming: [],
+          underperforming: underperformingVsBtc.slice(0, 10), // Show top 10 underperformers
+          totalCoins: btcMarketData.length,
+          outperformingCount: 0,
+          underperformingCount: underperformingVsBtc.length,
+          averagePerformance: 0,
+          topPerformers: [],
+          worstPerformers: underperformingVsBtc.slice(0, 5),
+          lastUpdated: new Date()
+        };
+      }
+
+      // Step 3: Get USD prices for outperforming coins
+      const outperformingIds = outperformingVsBtc.map((coin: any) => coin.id).join(',');
+      const usdPriceResponse = await fetch(
+        `${this.COINGECKO_API}/simple/price?ids=${outperformingIds}&vs_currencies=usd`
+      );
+
+      if (!usdPriceResponse.ok) {
+        throw new Error(`CoinGecko simple price API request failed with status ${usdPriceResponse.status}`);
+      }
+
+      const usdPrices = await usdPriceResponse.json();
+
+      // Step 4: Combine BTC-denominated performance data with USD prices
+      const outperformingWithUsd = outperformingVsBtc.map((coin: any) => ({
+        id: coin.id,
+        symbol: coin.symbol,
+        name: coin.name,
+        image: coin.image,
+        current_price: usdPrices[coin.id]?.usd ?? 0,
+        market_cap_rank: coin.market_cap_rank,
+        price_change_percentage_24h: coin.price_change_percentage_24h,
+        price_change_percentage_7d_in_currency: coin.price_change_percentage_7d_in_currency,
+        price_change_percentage_30d_in_currency: coin.price_change_percentage_30d_in_currency,
+      }));
+
+      // Step 5: Calculate analytics
+      const totalCoins = btcMarketData.length;
+      const outperformingCount = outperformingWithUsd.length;
+      const underperformingCount = underperformingVsBtc.length;
+      
+      const averagePerformance = btcMarketData.reduce((sum: number, coin: any) => 
+        sum + coin.price_change_percentage_24h, 0) / totalCoins;
+
+      // Sort for top/worst performers
+      const sortedOutperformers = [...outperformingWithUsd].sort((a, b) => 
+        b.price_change_percentage_24h - a.price_change_percentage_24h);
+      
+      const sortedUnderperformers = [...underperformingVsBtc].sort((a, b) => 
+        a.price_change_percentage_24h - b.price_change_percentage_24h);
+
+      const result: Top100VsBtcData = {
+        outperforming: outperformingWithUsd,
+        underperforming: underperformingVsBtc.slice(0, 10), // Limit to top 10 for readability
+        totalCoins,
+        outperformingCount,
+        underperformingCount,
+        averagePerformance,
+        topPerformers: sortedOutperformers.slice(0, 10), // Top 10 performers
+        worstPerformers: sortedUnderperformers.slice(0, 5), // Worst 5 performers
+        lastUpdated: new Date()
+      };
+
+      console.log(`[RealTimeDataService] Fetched top 100 vs BTC data: ${outperformingCount}/${totalCoins} outperforming`);
+      return result;
+      
+    } catch (error) {
+      console.error('Error in fetchTop100VsBtcData:', error);
+      return null;
+    }
+  }
+
+  // DEXScreener data management
+  private isDexScreenerCacheValid(): boolean {
+    if (!this.dexScreenerCache) return false;
+    return Date.now() - this.dexScreenerCache.timestamp < this.DEXSCREENER_CACHE_DURATION;
+  }
+
+  private async updateDexScreenerData(): Promise<void> {
+    // Only fetch if cache is invalid
+    if (!this.isDexScreenerCacheValid()) {
+      const data = await this.fetchDexScreenerData();
+      if (data) {
+        this.dexScreenerCache = {
+          data,
+          timestamp: Date.now()
+        };
+      }
+    }
+  }
+
+  private async fetchDexScreenerData(): Promise<DexScreenerData | null> {
+    try {
+      console.log('[RealTimeDataService] Fetching DEXScreener data...');
+      
+      // Step 1: Fetch trending/boosted tokens
+      const topTokensResponse = await fetch(`${this.DEXSCREENER_API}/token-boosts/top/v1`);
+      
+      if (!topTokensResponse.ok) {
+        throw new Error(`DEXScreener API error: ${topTokensResponse.status}`);
+      }
+      
+      const topTokens: BoostedToken[] = await topTokensResponse.json();
+      
+      // Step 2: For each token, fetch pool data and aggregate metrics
+      const enriched = await Promise.all(
+        topTokens.slice(0, 50).map(async (token): Promise<TrendingToken | null> => {
+          try {
+            const poolResponse = await fetch(
+              `${this.DEXSCREENER_API}/token-pairs/v1/${token.chainId}/${token.tokenAddress}`
+            );
+            
+            if (!poolResponse.ok) return null;
+            const pools: DexScreenerPool[] = await poolResponse.json();
+            
+            if (!pools.length) return null; // skip tokens with no pools
+            
+            const totalLiquidity = pools.reduce(
+              (sum, pool) => sum + (Number(pool.liquidity?.usd) || 0),
+              0
+            );
+            const totalVolume = pools.reduce(
+              (sum, pool) => sum + (Number(pool.volume?.h24) || 0),
+              0
+            );
+            const largestPool = pools.reduce(
+              (max, pool) =>
+                (Number(pool.liquidity?.usd) || 0) > (Number(max.liquidity?.usd) || 0)
+                  ? pool
+                  : max,
+              pools[0] || {}
+            );
+            
+            const priceUsd = largestPool.priceUsd ? Number(largestPool.priceUsd) : null;
+            const marketCap = largestPool.marketCap ? Number(largestPool.marketCap) : null;
+            const liquidityRatio = marketCap && marketCap > 0 ? totalLiquidity / marketCap : null;
+            const icon = token.icon || (largestPool.info && largestPool.info.imageUrl) || '';
+            
+            // Only return tokens with at least one valid metric
+            if (!priceUsd && !marketCap && !totalLiquidity && !totalVolume) return null;
+            
+            return {
+              address: token.tokenAddress,
+              chainId: token.chainId,
+              image: icon,
+              name: token.label || token.symbol || '',
+              symbol: token.symbol || '',
+              priceUsd,
+              marketCap,
+              totalLiquidity,
+              totalVolume,
+              poolsCount: pools.length,
+              liquidityRatio,
+            };
+          } catch (error) {
+            console.warn(`Failed to fetch pool data for token ${token.tokenAddress}:`, error);
+            return null;
+          }
+        })
+      );
+      
+      // Step 3: Filter and rank tokens (matching website logic)
+      const trendingTokens = enriched
+        .filter((t): t is NonNullable<typeof t> => t !== null)
+        .filter((t) => t.chainId === 'solana') // Focus on Solana tokens
+        .filter(
+          (t) =>
+            t.totalLiquidity > 100_000 && // min $100k liquidity
+            t.totalVolume > 20_000 && // min $20k 24h volume
+            t.poolsCount && t.poolsCount > 0 // at least 1 pool
+        )
+        .sort((a, b) => (b.liquidityRatio ?? 0) - (a.liquidityRatio ?? 0)) // Sort by liquidity ratio
+        .slice(0, 9); // Limit to top 9
+      
+      const result: DexScreenerData = {
+        topTokens,
+        trendingTokens,
+        lastUpdated: new Date()
+      };
+      
+      console.log(`[RealTimeDataService] Fetched DEXScreener data: ${topTokens.length} top tokens, ${trendingTokens.length} trending`);
+      return result;
+      
+    } catch (error) {
+      console.error('Error in fetchDexScreenerData:', error);
+      return null;
+    }
+  }
+
+  // Top Movers (Gainers/Losers) data management
+  private isTopMoversCacheValid(): boolean {
+    if (!this.topMoversCache) return false;
+    return Date.now() - this.topMoversCache.timestamp < this.TOP_MOVERS_CACHE_DURATION;
+  }
+
+  private async updateTopMoversData(): Promise<void> {
+    // Only fetch if cache is invalid
+    if (!this.isTopMoversCacheValid()) {
+      const data = await this.fetchTopMoversData();
+      if (data) {
+        this.topMoversCache = {
+          data,
+          timestamp: Date.now()
+        };
+      }
+    }
+  }
+
+  private async fetchTopMoversData(): Promise<TopMoversData | null> {
+    try {
+      console.log('[RealTimeDataService] Fetching top movers data...');
+      
+      const response = await fetch(
+        `${this.COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&price_change_percentage=24h`,
+        {
+          headers: { 'Accept': 'application/json' },
+        }
+      );
+      
+      if (!response.ok) {
+        throw new Error(`CoinGecko error: ${response.status}`);
+      }
+      
+      const data: TopMoverCoin[] = await response.json();
+      
+      // Filter out coins without valid 24h price change percentage
+      const validCoins = data.filter((coin) => typeof coin.price_change_percentage_24h === 'number');
+      
+      // Sort by 24h price change percentage descending for gainers
+      const topGainers = [...validCoins]
+        .sort((a, b) => b.price_change_percentage_24h - a.price_change_percentage_24h)
+        .slice(0, 4)
+        .map((coin) => ({
+          id: coin.id,
+          name: coin.name,
+          symbol: coin.symbol,
+          image: coin.image,
+          market_cap_rank: coin.market_cap_rank,
+          price_change_percentage_24h: coin.price_change_percentage_24h,
+        }));
+      
+      // Sort by 24h price change percentage ascending for losers
+      const topLosers = [...validCoins]
+        .sort((a, b) => a.price_change_percentage_24h - b.price_change_percentage_24h)
+        .slice(0, 4)
+        .map((coin) => ({
+          id: coin.id,
+          name: coin.name,
+          symbol: coin.symbol,
+          image: coin.image,
+          market_cap_rank: coin.market_cap_rank,
+          price_change_percentage_24h: coin.price_change_percentage_24h,
+        }));
+      
+      const result: TopMoversData = {
+        topGainers,
+        topLosers,
+        lastUpdated: new Date()
+      };
+      
+      console.log(`[RealTimeDataService] Fetched top movers: ${topGainers.length} gainers, ${topLosers.length} losers`);
+      return result;
+      
+    } catch (error) {
+      console.error('Error in fetchTopMoversData:', error);
+      return null;
+    }
+  }
+
+  // Trending Coins data management
+  private isTrendingCoinsCacheValid(): boolean {
+    if (!this.trendingCoinsCache) return false;
+    return Date.now() - this.trendingCoinsCache.timestamp < this.TRENDING_COINS_CACHE_DURATION;
+  }
+
+  private async updateTrendingCoinsData(): Promise<void> {
+    // Only fetch if cache is invalid
+    if (!this.isTrendingCoinsCacheValid()) {
+      const data = await this.fetchTrendingCoinsData();
+      if (data) {
+        this.trendingCoinsCache = {
+          data,
+          timestamp: Date.now()
+        };
+      }
+    }
+  }
+
+  private async fetchTrendingCoinsData(): Promise<TrendingCoinsData | null> {
+    try {
+      console.log('[RealTimeDataService] Fetching trending coins data...');
+      
+      const response = await fetch('https://api.coingecko.com/api/v3/search/trending', {
+        headers: { 'Accept': 'application/json' },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`CoinGecko error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      // Map and validate trending coins (matches website exactly)
+      const trending: TrendingCoin[] = Array.isArray(data.coins)
+        ? data.coins.map((c: CoinGeckoTrendingItem) => ({
+            id: c.item.id,
+            name: c.item.name,
+            symbol: c.item.symbol,
+            market_cap_rank: c.item.market_cap_rank,
+            thumb: c.item.thumb,
+            score: c.item.score,
+          }))
+        : [];
+      
+      const result: TrendingCoinsData = {
+        coins: trending,
+        lastUpdated: new Date()
+      };
+      
+      console.log(`[RealTimeDataService] Fetched trending coins: ${trending.length} coins`);
+      return result;
+      
+    } catch (error) {
+      console.error('Error in fetchTrendingCoinsData:', error);
       return null;
     }
   }

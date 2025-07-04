@@ -25,7 +25,7 @@ import {
   SchedulerService,
   RealTimeDataService
 } from './services';
-import { morningBriefingAction } from './actions';
+import { morningBriefingAction, curatedAltcoinsAction, top100VsBtcAction, dexScreenerAction, topMoversAction, trendingCoinsAction } from './actions';
 
 /**
  * Bitcoin Plugin Configuration Schema
@@ -3117,7 +3117,12 @@ const bitcoinPlugin: Plugin = {
     investmentStrategyAction,
     freedomMathematicsAction,
     altcoinBTCPerformanceAction,
-    morningBriefingAction
+    morningBriefingAction,
+    curatedAltcoinsAction,
+    top100VsBtcAction,
+    dexScreenerAction,
+    topMoversAction,
+    trendingCoinsAction
   ],
   events: {
     MESSAGE_RECEIVED: [
@@ -3846,6 +3851,249 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
       },
     },
     {
+      path: '/bitcoin/curated-altcoins',
+      type: 'GET',
+      handler: async (req: any, res: any, runtime: IAgentRuntime) => {
+        try {
+          const service = runtime.getService('real-time-data') as RealTimeDataService;
+          if (!service) {
+            return res.status(503).json({
+              success: false,
+              error: 'Real-time data service not available'
+            });
+          }
+          
+          // Check for force update parameter
+          const forceUpdate = req.query.force === 'true';
+          
+          let curatedData;
+          if (forceUpdate) {
+            curatedData = await service.forceCuratedAltcoinsUpdate();
+          } else {
+            curatedData = service.getCuratedAltcoinsData();
+          }
+          
+          if (!curatedData) {
+            return res.status(503).json({
+              success: false,
+              error: 'Curated altcoins data not available yet. Please try again in a few moments.',
+              hint: 'Data is cached for 1 minute. Use ?force=true to force refresh.'
+            });
+          }
+          
+          res.json({
+            success: true,
+            data: curatedData,
+            meta: {
+              plugin: 'bitcoin-ltl',
+              endpoint: 'curated-altcoins',
+              coinCount: Object.keys(curatedData).length,
+              source: 'CoinGecko API',
+              cacheDuration: '1 minute',
+              coins: [
+                'ethereum', 'chainlink', 'uniswap', 'aave', 'ondo-finance', 
+                'ethena', 'solana', 'sui', 'hyperliquid', 'berachain-bera', 
+                'infrafred-bgt', 'avalanche-2', 'blockstack', 'dogecoin', 
+                'pepe', 'mog-coin', 'bittensor', 'render-token', 'fartcoin', 'railgun'
+              ],
+              disclaimer: 'Data from CoinGecko public API. Not financial advice.'
+            }
+          });
+        } catch (error) {
+          res.status(500).json({
+            success: false,
+            error: error.message,
+            timestamp: new Date().toISOString()
+          });
+        }
+      },
+    },
+    {
+      path: '/bitcoin/top100-vs-btc',
+      type: 'GET',
+      handler: async (req: any, res: any, runtime: IAgentRuntime) => {
+        try {
+          const service = runtime.getService('real-time-data') as RealTimeDataService;
+          if (!service) {
+            return res.status(503).json({
+              success: false,
+              error: 'Real-time data service not available'
+            });
+          }
+          
+          // Check for force update parameter
+          const forceUpdate = req.query.force === 'true';
+          
+          let top100Data;
+          if (forceUpdate) {
+            top100Data = await service.forceTop100VsBtcUpdate();
+          } else {
+            top100Data = service.getTop100VsBtcData();
+            if (!top100Data) {
+              // Try to fetch if not cached
+              top100Data = await service.forceTop100VsBtcUpdate();
+            }
+          }
+          
+          if (!top100Data) {
+            return res.status(503).json({
+              success: false,
+              error: 'Top 100 vs BTC data not available yet. Please try again in a few moments.',
+              hint: 'Data is cached for 10 minutes. Use ?force=true to force refresh.'
+            });
+          }
+          
+          res.json({
+            success: true,
+            data: top100Data,
+            meta: {
+              plugin: 'bitcoin-ltl',
+              endpoint: 'top100-vs-btc',
+              source: 'CoinGecko API',
+              cacheDuration: '10 minutes',
+              revalidate: 600,
+              description: 'Top 100 cryptocurrencies performance vs Bitcoin with outperforming/underperforming analysis',
+              disclaimer: 'Data from CoinGecko public API. Not financial advice.'
+            }
+          });
+        } catch (error) {
+          res.status(500).json({
+            success: false,
+            error: error.message,
+            timestamp: new Date().toISOString()
+          });
+        }
+      },
+    },
+    {
+      path: '/dexscreener/trending',
+      type: 'GET',
+      handler: async (req: any, res: any, runtime: IAgentRuntime) => {
+        try {
+          const service = runtime.getService('real-time-data') as RealTimeDataService;
+          if (!service) {
+            return res.status(503).json({
+              success: false,
+              error: 'Real-time data service not available'
+            });
+          }
+          
+          // Check for force update parameter
+          const forceUpdate = req.query.force === 'true';
+          
+          let dexData;
+          if (forceUpdate) {
+            dexData = await service.forceDexScreenerUpdate();
+          } else {
+            dexData = service.getDexScreenerData();
+            if (!dexData) {
+              // Try to fetch if not cached
+              dexData = await service.forceDexScreenerUpdate();
+            }
+          }
+          
+          if (!dexData) {
+            return res.status(503).json({
+              success: false,
+              error: 'DEXScreener data not available yet. Please try again in a few moments.',
+              hint: 'Data is cached for 5 minutes. Use ?force=true to force refresh.'
+            });
+          }
+          
+          // Filter and format response similar to website
+          const filtered = dexData.trendingTokens.filter(t => 
+            t.chainId === 'solana' &&
+            t.totalLiquidity > 100_000 &&
+            t.totalVolume > 20_000 &&
+            t.poolsCount > 0
+          );
+          
+          res.json({
+            success: true,
+            data: filtered,
+            meta: {
+              plugin: 'bitcoin-ltl',
+              endpoint: 'dexscreener-trending',
+              source: 'DEXScreener API',
+              cacheDuration: '5 minutes',
+              filters: {
+                chain: 'solana',
+                minLiquidity: 100000,
+                minVolume: 20000,
+                minPools: 1
+              },
+              count: filtered.length,
+              description: 'Trending Solana tokens with liquidity analysis matching LiveTheLifeTV criteria',
+              disclaimer: 'Data from DEXScreener public API. Not financial advice.'
+            }
+          });
+        } catch (error) {
+          res.status(500).json({
+            success: false,
+            error: error.message,
+            timestamp: new Date().toISOString()
+          });
+        }
+      },
+    },
+    {
+      path: '/dexscreener/top',
+      type: 'GET',
+      handler: async (req: any, res: any, runtime: IAgentRuntime) => {
+        try {
+          const service = runtime.getService('real-time-data') as RealTimeDataService;
+          if (!service) {
+            return res.status(503).json({
+              success: false,
+              error: 'Real-time data service not available'
+            });
+          }
+          
+          // Check for force update parameter
+          const forceUpdate = req.query.force === 'true';
+          
+          let dexData;
+          if (forceUpdate) {
+            dexData = await service.forceDexScreenerUpdate();
+          } else {
+            dexData = service.getDexScreenerData();
+            if (!dexData) {
+              // Try to fetch if not cached
+              dexData = await service.forceDexScreenerUpdate();
+            }
+          }
+          
+          if (!dexData) {
+            return res.status(503).json({
+              success: false,
+              error: 'DEXScreener data not available yet. Please try again in a few moments.',
+              hint: 'Data is cached for 5 minutes. Use ?force=true to force refresh.'
+            });
+          }
+          
+          res.json({
+            success: true,
+            data: dexData.topTokens,
+            meta: {
+              plugin: 'bitcoin-ltl',
+              endpoint: 'dexscreener-top',
+              source: 'DEXScreener API',
+              cacheDuration: '5 minutes',
+              count: dexData.topTokens.length,
+              description: 'Top boosted tokens from DEXScreener',
+              disclaimer: 'Data from DEXScreener public API. Not financial advice.'
+            }
+          });
+        } catch (error) {
+          res.status(500).json({
+            success: false,
+            error: error.message,
+            timestamp: new Date().toISOString()
+          });
+        }
+      },
+    },
+    {
       path: '/helloworld',
       type: 'GET',
       handler: async (req: any, res: any, runtime: IAgentRuntime) => {
@@ -3862,7 +4110,11 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
             '/bitcoin/comprehensive',
             '/bitcoin/network',
             '/bitcoin/mempool',
-            '/bitcoin/sentiment'
+            '/bitcoin/sentiment',
+            '/bitcoin/curated-altcoins',
+            '/bitcoin/top100-vs-btc',
+            '/dexscreener/trending',
+            '/dexscreener/top'
           ]
         });
       },

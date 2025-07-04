@@ -410,6 +410,10 @@ Our AI agent embodies the spirit of Satoshi Nakamoto - a cypherpunk visionary wh
 - **Opportunity Alerts**: Real-time notifications when investment criteria are met
 - **Performance Reports**: Track how predictions perform over time
 - **Content Generation**: Twitter/YouTube content from knowledge base
+- **Top Gainers/Losers Analysis**: Daily market winners and losers with intelligent sentiment analysis
+- **Trending Coins Detection**: Real-time community interest and search activity tracking
+- **Curated Altcoins Monitoring**: 20 hand-picked coins with category performance analysis
+- **DEXScreener Integration**: Live DEX trending tokens and liquidity analysis
 
 ### **Live Intelligence Infrastructure (NEW)**
 - **Real-Time Market Monitoring**: 1-minute update cycles for Bitcoin, crypto, stocks, news
