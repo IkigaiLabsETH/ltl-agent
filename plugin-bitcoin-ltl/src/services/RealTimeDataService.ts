@@ -53,6 +53,53 @@ export interface MarketAlert {
   data: any;
 }
 
+export interface BitcoinNetworkData {
+  hashRate: number | null;
+  difficulty: number | null;
+  blockHeight: number | null;
+  avgBlockTime: number | null;
+  avgBlockSize: number | null;
+  totalBTC: number | null;
+  marketCap: number | null;
+  nextHalving: {
+    blocks: number | null;
+    estimatedDate: string | null;
+  };
+  mempoolSize: number | null;
+  mempoolFees: {
+    fastestFee: number | null;
+    halfHourFee: number | null;
+    economyFee: number | null;
+  };
+  mempoolTxs: number | null;
+  miningRevenue: number | null;
+  miningRevenue24h: number | null;
+  lightningCapacity: number | null;
+  lightningChannels: number | null;
+  liquidity: number | null;
+}
+
+export interface BitcoinSentimentData {
+  fearGreedIndex: number | null;
+  fearGreedValue: string | null;
+}
+
+export interface BitcoinNodesData {
+  total: number | null;
+  countries: number | null;
+}
+
+export interface ComprehensiveBitcoinData {
+  price: {
+    usd: number | null;
+    change24h: number | null;
+  };
+  network: BitcoinNetworkData;
+  sentiment: BitcoinSentimentData;
+  nodes: BitcoinNodesData;
+  lastUpdated: Date;
+}
+
 export class RealTimeDataService extends Service {
   static serviceType = 'real-time-data';
   capabilityDescription = 'Provides real-time market data, news feeds, and social sentiment analysis';
@@ -61,12 +108,19 @@ export class RealTimeDataService extends Service {
   private readonly UPDATE_INTERVAL = 60000; // 1 minute
   private readonly symbols = ['BTC', 'ETH', 'SOL', 'MATIC', 'ADA', '4337', '8958']; // Include MetaPlanet (4337) and Hyperliquid (8958)
   
+  // API endpoints
+  private readonly BLOCKCHAIN_API = 'https://api.blockchain.info';
+  private readonly COINGECKO_API = 'https://api.coingecko.com/api/v3';
+  private readonly ALTERNATIVE_API = 'https://api.alternative.me';
+  private readonly MEMPOOL_API = 'https://mempool.space/api';
+  
   // Data storage
   private marketData: MarketData[] = [];
   private newsItems: NewsItem[] = [];
   private socialSentiment: SocialSentiment[] = [];
   private economicIndicators: EconomicIndicator[] = [];
   private alerts: MarketAlert[] = [];
+  private comprehensiveBitcoinData: ComprehensiveBitcoinData | null = null;
 
   constructor(runtime: IAgentRuntime) {
     super();
@@ -119,11 +173,12 @@ export class RealTimeDataService extends Service {
   private async updateAllData(): Promise<void> {
     try {
       // Run all updates in parallel for efficiency
-      const [marketData, newsItems, socialSentiment, economicIndicators] = await Promise.all([
+      const [marketData, newsItems, socialSentiment, economicIndicators, comprehensiveBitcoinData] = await Promise.all([
         this.fetchMarketData(),
         this.fetchNewsData(),
         this.fetchSocialSentiment(),
-        this.fetchEconomicIndicators()
+        this.fetchEconomicIndicators(),
+        this.fetchComprehensiveBitcoinData()
       ]);
 
       // Update data properties
@@ -131,12 +186,13 @@ export class RealTimeDataService extends Service {
       this.newsItems = newsItems;
       this.socialSentiment = socialSentiment;
       this.economicIndicators = economicIndicators;
+      this.comprehensiveBitcoinData = comprehensiveBitcoinData;
 
       // Generate alerts based on new data
       const alerts = this.generateAlerts(marketData, newsItems, socialSentiment);
       this.alerts = alerts;
 
-      console.log(`[RealTimeDataService] Updated data - ${marketData.length} markets, ${newsItems.length} news items, ${alerts.length} alerts`);
+      console.log(`[RealTimeDataService] Updated data - ${marketData.length} markets, ${newsItems.length} news items, ${alerts.length} alerts, BTC network data: ${comprehensiveBitcoinData ? 'success' : 'failed'}`);
     } catch (error) {
       console.error('Error in updateAllData:', error);
     }
@@ -540,7 +596,175 @@ export class RealTimeDataService extends Service {
     return marketData.find(market => market.symbol === symbol);
   }
 
+  public getComprehensiveBitcoinData(): ComprehensiveBitcoinData | null {
+    return this.comprehensiveBitcoinData;
+  }
+
   public async forceUpdate(): Promise<void> {
     await this.updateAllData();
+  }
+
+  // Comprehensive Bitcoin data fetcher
+  private async fetchComprehensiveBitcoinData(): Promise<ComprehensiveBitcoinData | null> {
+    try {
+      // Fetch all data in parallel
+      const [priceData, networkData, sentimentData, mempoolData] = await Promise.all([
+        this.fetchBitcoinPriceData(),
+        this.fetchBitcoinNetworkData(),
+        this.fetchBitcoinSentimentData(),
+        this.fetchBitcoinMempoolData()
+      ]);
+
+      // Combine all data
+      const response: ComprehensiveBitcoinData = {
+        price: {
+          usd: priceData?.usd || null,
+          change24h: priceData?.change24h || null
+        },
+        network: {
+          hashRate: networkData?.hashRate || null,
+          difficulty: networkData?.difficulty || null,
+          blockHeight: networkData?.blockHeight || null,
+          avgBlockTime: networkData?.avgBlockTime || null,
+          avgBlockSize: networkData?.avgBlockSize || null,
+          totalBTC: networkData?.totalBTC || null,
+          marketCap: networkData?.marketCap || null,
+          nextHalving: networkData?.nextHalving || { blocks: null, estimatedDate: null },
+          mempoolSize: mempoolData?.mempoolSize || null,
+          mempoolFees: mempoolData?.mempoolFees || { fastestFee: null, halfHourFee: null, economyFee: null },
+          mempoolTxs: mempoolData?.mempoolTxs || null,
+          miningRevenue: mempoolData?.miningRevenue || null,
+          miningRevenue24h: mempoolData?.miningRevenue24h || null,
+          lightningCapacity: null,
+          lightningChannels: null,
+          liquidity: null
+        },
+        sentiment: {
+          fearGreedIndex: sentimentData?.fearGreedIndex || null,
+          fearGreedValue: sentimentData?.fearGreedValue || null
+        },
+        nodes: {
+          total: null,
+          countries: null
+        },
+        lastUpdated: new Date()
+      };
+
+      return response;
+    } catch (error) {
+      console.error('Error fetching comprehensive Bitcoin data:', error);
+      return null;
+    }
+  }
+
+  private async fetchBitcoinPriceData(): Promise<{ usd: number; change24h: number } | null> {
+    try {
+      const response = await fetch(
+        `${this.COINGECKO_API}/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true`
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        return {
+          usd: Number(data.bitcoin?.usd) || null,
+          change24h: Number(data.bitcoin?.usd_24h_change) || null
+        };
+      }
+      return null;
+    } catch (error) {
+      console.error('Error fetching Bitcoin price data:', error);
+      return null;
+    }
+  }
+
+  private async fetchBitcoinNetworkData(): Promise<Partial<BitcoinNetworkData> | null> {
+    try {
+      const response = await fetch(`${this.BLOCKCHAIN_API}/stats`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Calculate next halving
+        const currentBlock = Number(data.n_blocks_total);
+        const currentHalvingEpoch = Math.floor(currentBlock / 210000);
+        const nextHalvingBlock = (currentHalvingEpoch + 1) * 210000;
+        const blocksUntilHalving = nextHalvingBlock - currentBlock;
+        
+        // Estimate halving date based on average block time
+        const avgBlockTime = Number(data.minutes_between_blocks);
+        const minutesUntilHalving = blocksUntilHalving * avgBlockTime;
+        const halvingDate = new Date(Date.now() + minutesUntilHalving * 60 * 1000);
+
+        return {
+          hashRate: Number(data.hash_rate),
+          difficulty: Number(data.difficulty),
+          blockHeight: Number(data.n_blocks_total),
+          avgBlockTime: Number(data.minutes_between_blocks),
+          avgBlockSize: Number(data.blocks_size),
+          totalBTC: Number(data.totalbc) / 1e8,
+          marketCap: Number(data.market_price_usd) * (Number(data.totalbc) / 1e8),
+          nextHalving: {
+            blocks: blocksUntilHalving,
+            estimatedDate: halvingDate.toISOString()
+          }
+        };
+      }
+      return null;
+    } catch (error) {
+      console.error('Error fetching Bitcoin network data:', error);
+      return null;
+    }
+  }
+
+  private async fetchBitcoinSentimentData(): Promise<BitcoinSentimentData | null> {
+    try {
+      const response = await fetch(`${this.ALTERNATIVE_API}/fng/`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        return {
+          fearGreedIndex: Number(data.data[0].value),
+          fearGreedValue: data.data[0].value_classification
+        };
+      }
+      return null;
+    } catch (error) {
+      console.error('Error fetching Bitcoin sentiment data:', error);
+      return null;
+    }
+  }
+
+  private async fetchBitcoinMempoolData(): Promise<Partial<BitcoinNetworkData> | null> {
+    try {
+      // Fetch mempool data in parallel
+      const [mempoolResponse, feesResponse] = await Promise.all([
+        fetch(`${this.MEMPOOL_API}/mempool`),
+        fetch(`${this.MEMPOOL_API}/v1/fees/recommended`)
+      ]);
+
+      if (!mempoolResponse.ok || !feesResponse.ok) {
+        throw new Error('Failed to fetch mempool data');
+      }
+
+      const [mempoolData, feesData] = await Promise.all([
+        mempoolResponse.json(),
+        feesResponse.json()
+      ]);
+
+      return {
+        mempoolSize: mempoolData.vsize || null,  // Virtual size in bytes
+        mempoolTxs: mempoolData.count || null,   // Number of transactions
+        mempoolFees: {
+          fastestFee: feesData.fastestFee || null,
+          halfHourFee: feesData.halfHourFee || null,
+          economyFee: feesData.economyFee || null
+        },
+        miningRevenue: mempoolData.total_fee || null,  // Total fees in satoshis
+        miningRevenue24h: null  // We'll need another endpoint for this
+      };
+    } catch (error) {
+      console.error('Error fetching Bitcoin mempool data:', error);
+      return null;
+    }
   }
 } 

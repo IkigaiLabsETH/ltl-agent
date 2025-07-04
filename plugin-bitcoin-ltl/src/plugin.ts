@@ -3655,6 +3655,197 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
       },
     },
     {
+      path: '/bitcoin/comprehensive',
+      type: 'GET',
+      handler: async (req: any, res: any, runtime: IAgentRuntime) => {
+        try {
+          const service = runtime.getService('real-time-data') as RealTimeDataService;
+          if (!service) {
+            return res.status(503).json({
+              success: false,
+              error: 'Real-time data service not available'
+            });
+          }
+          
+          const comprehensiveData = service.getComprehensiveBitcoinData();
+          
+          if (!comprehensiveData) {
+            return res.status(503).json({
+              success: false,
+              error: 'Comprehensive Bitcoin data not available yet. Please try again in a few moments.',
+              hint: 'Data is refreshed every minute from multiple free APIs'
+            });
+          }
+          
+          res.json({
+            success: true,
+            data: comprehensiveData,
+            meta: {
+              plugin: 'bitcoin-ltl',
+              endpoint: 'comprehensive-bitcoin-data',
+              sources: [
+                'CoinGecko API (price data)',
+                'Blockchain.info API (network stats)',
+                'Alternative.me API (sentiment)',
+                'Mempool.space API (mempool data)'
+              ],
+              updateInterval: '1 minute',
+              disclaimer: 'Data from free public APIs. Not financial advice.'
+            }
+          });
+        } catch (error) {
+          res.status(500).json({
+            success: false,
+            error: error.message,
+            timestamp: new Date().toISOString()
+          });
+        }
+      },
+    },
+    {
+      path: '/bitcoin/network',
+      type: 'GET',
+      handler: async (req: any, res: any, runtime: IAgentRuntime) => {
+        try {
+          const service = runtime.getService('real-time-data') as RealTimeDataService;
+          if (!service) {
+            return res.status(503).json({
+              success: false,
+              error: 'Real-time data service not available'
+            });
+          }
+          
+          const comprehensiveData = service.getComprehensiveBitcoinData();
+          
+          if (!comprehensiveData) {
+            return res.status(503).json({
+              success: false,
+              error: 'Bitcoin network data not available yet. Please try again in a few moments.'
+            });
+          }
+          
+          res.json({
+            success: true,
+            data: {
+              network: comprehensiveData.network,
+              sentiment: comprehensiveData.sentiment,
+              lastUpdated: comprehensiveData.lastUpdated
+            },
+            meta: {
+              plugin: 'bitcoin-ltl',
+              endpoint: 'bitcoin-network-data',
+              sources: [
+                'Blockchain.info API (network stats)',
+                'Alternative.me API (Fear & Greed Index)',
+                'Mempool.space API (mempool & fees)'
+              ],
+              updateInterval: '1 minute'
+            }
+          });
+        } catch (error) {
+          res.status(500).json({
+            success: false,
+            error: error.message,
+            timestamp: new Date().toISOString()
+          });
+        }
+      },
+    },
+    {
+      path: '/bitcoin/mempool',
+      type: 'GET',
+      handler: async (req: any, res: any, runtime: IAgentRuntime) => {
+        try {
+          const service = runtime.getService('real-time-data') as RealTimeDataService;
+          if (!service) {
+            return res.status(503).json({
+              success: false,
+              error: 'Real-time data service not available'
+            });
+          }
+          
+          const comprehensiveData = service.getComprehensiveBitcoinData();
+          
+          if (!comprehensiveData) {
+            return res.status(503).json({
+              success: false,
+              error: 'Mempool data not available yet. Please try again in a few moments.'
+            });
+          }
+          
+          res.json({
+            success: true,
+            data: {
+              mempoolSize: comprehensiveData.network.mempoolSize,
+              mempoolTxs: comprehensiveData.network.mempoolTxs,
+              mempoolFees: comprehensiveData.network.mempoolFees,
+              miningRevenue: comprehensiveData.network.miningRevenue,
+              lastUpdated: comprehensiveData.lastUpdated
+            },
+            meta: {
+              plugin: 'bitcoin-ltl',
+              endpoint: 'bitcoin-mempool-data',
+              source: 'Mempool.space API',
+              updateInterval: '1 minute',
+              description: 'Real-time Bitcoin mempool statistics and fee recommendations'
+            }
+          });
+        } catch (error) {
+          res.status(500).json({
+            success: false,
+            error: error.message,
+            timestamp: new Date().toISOString()
+          });
+        }
+      },
+    },
+    {
+      path: '/bitcoin/sentiment',
+      type: 'GET',
+      handler: async (req: any, res: any, runtime: IAgentRuntime) => {
+        try {
+          const service = runtime.getService('real-time-data') as RealTimeDataService;
+          if (!service) {
+            return res.status(503).json({
+              success: false,
+              error: 'Real-time data service not available'
+            });
+          }
+          
+          const comprehensiveData = service.getComprehensiveBitcoinData();
+          
+          if (!comprehensiveData) {
+            return res.status(503).json({
+              success: false,
+              error: 'Sentiment data not available yet. Please try again in a few moments.'
+            });
+          }
+          
+          res.json({
+            success: true,
+            data: {
+              sentiment: comprehensiveData.sentiment,
+              price: comprehensiveData.price,
+              lastUpdated: comprehensiveData.lastUpdated
+            },
+            meta: {
+              plugin: 'bitcoin-ltl',
+              endpoint: 'bitcoin-sentiment-data',
+              source: 'Alternative.me Fear & Greed Index',
+              updateInterval: '1 minute',
+              description: 'Bitcoin market sentiment analysis'
+            }
+          });
+        } catch (error) {
+          res.status(500).json({
+            success: false,
+            error: error.message,
+            timestamp: new Date().toISOString()
+          });
+        }
+      },
+    },
+    {
       path: '/helloworld',
       type: 'GET',
       handler: async (req: any, res: any, runtime: IAgentRuntime) => {
@@ -3667,7 +3858,11 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
             '/bitcoin/thesis',
             '/bitcoin/freedom-math',
             '/bitcoin/institutional',
-            '/bitcoin/health'
+            '/bitcoin/health',
+            '/bitcoin/comprehensive',
+            '/bitcoin/network',
+            '/bitcoin/mempool',
+            '/bitcoin/sentiment'
           ]
         });
       },
