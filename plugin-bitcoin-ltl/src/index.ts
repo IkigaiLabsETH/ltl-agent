@@ -38,6 +38,9 @@ export const character: Character = {
     // Knowledge and memory systems - needs embeddings support (requires OpenAI API key)
     ...(process.env.OPENAI_API_KEY && !process.env.OPENAI_API_KEY.includes('REPLACE_WITH_YOUR_ACTUAL') && !process.env.OPENAI_API_KEY.includes('your_') ? ['@elizaos/plugin-knowledge'] : []),
     
+    // Optional: Advanced RAG Knowledge system with contextual embeddings
+    ...(process.env.USE_ADVANCED_KNOWLEDGE === 'true' && process.env.OPENAI_API_KEY && !process.env.OPENAI_API_KEY.includes('REPLACE_WITH_YOUR_ACTUAL') && !process.env.OPENAI_API_KEY.includes('your_') ? ['@elizaos-plugins/plugin-knowledge'] : []),
+    
     // Local AI fallback if no cloud providers available
     ...(!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY.includes('REPLACE_WITH_YOUR_ACTUAL') || process.env.OPENAI_API_KEY.includes('your_')
       ? ['@elizaos/plugin-local-ai']
@@ -69,6 +72,18 @@ export const character: Character = {
       LUMA_API_KEY: process.env.LUMA_API_KEY,
       SUPABASE_URL: process.env.SUPABASE_URL,
       SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY,
+      
+      // Advanced Knowledge Plugin Configuration (optional - only if USE_ADVANCED_KNOWLEDGE=true)
+      ...(process.env.USE_ADVANCED_KNOWLEDGE === 'true' && {
+        LOAD_DOCS_ON_STARTUP: process.env.LOAD_DOCS_ON_STARTUP || 'true',
+        KNOWLEDGE_PATH: process.env.KNOWLEDGE_PATH || './knowledge',
+        CTX_KNOWLEDGE_ENABLED: process.env.CTX_KNOWLEDGE_ENABLED || 'true',
+        MAX_CONCURRENT_REQUESTS: process.env.MAX_CONCURRENT_REQUESTS || '30',
+        REQUESTS_PER_MINUTE: process.env.REQUESTS_PER_MINUTE || '60',
+        TOKENS_PER_MINUTE: process.env.TOKENS_PER_MINUTE || '150000',
+        MAX_INPUT_TOKENS: process.env.MAX_INPUT_TOKENS || '4000',
+        MAX_OUTPUT_TOKENS: process.env.MAX_OUTPUT_TOKENS || '4096',
+      }),
     },
     voice: {
       model: 'en_US-hfc_female-medium', // Voice configuration for speech synthesis
@@ -284,29 +299,121 @@ Always cite sources and provide specific metrics when making claims. Convert tec
   ],
 
   // Knowledge base configuration - comprehensive Bitcoin expertise
+  // HYBRID APPROACH: Core ElizaOS knowledge system (always active) + optional advanced plugin
+  // - Core system: Built-in @elizaos/plugin-knowledge with all 84 files (reliable, zero config)
+  // - Advanced: @elizaos-plugins/plugin-knowledge with enhanced RAG (enable with USE_ADVANCED_KNOWLEDGE=true)
   knowledge: [
     // Core Bitcoin Philosophy & Technical Foundation
     { path: '../knowledge/bitcoin-whitepaper.md', shared: false },
     { path: '../knowledge/bitcoin-thesis.md', shared: false },
+    { path: '../knowledge/bitcoin-manifesto-comprehensive.md', shared: false },
     { path: '../knowledge/lightning-network.md', shared: false },
     { path: '../knowledge/satoshi-nakamoto.md', shared: false },
-    
-    // Key Bitcoin Personalities & History
     { path: '../knowledge/bitcoin-personalities.md', shared: false },
     
-    // Communication & Philosophy
-    { path: '../knowledge/communication-philosophy.md', shared: false },
+    // Bitcoin Market Analysis & Thesis
+    { path: '../knowledge/bitcoin-market-cycles-analysis.md', shared: false },
+    { path: '../knowledge/altcoins-vs-bitcoin-cycle-analysis.md', shared: false },
+    { path: '../knowledge/1k-grind-challenge-microcap-strategy.md', shared: false },
+    { path: '../knowledge/million-dollar-mobius-bitcoin-lifestyle.md', shared: false },
+    
+    // Bitcoin Mining & Infrastructure
+    { path: '../knowledge/bitcoin-mining-performance.md', shared: false },
+    { path: '../knowledge/bitaxe-home-mining-revolution.md', shared: false },
+    { path: '../knowledge/bitcoin-immersion-cooling-mining.md', shared: false },
+    { path: '../knowledge/21energy-bitcoin-heating-revolution.md', shared: false },
+    { path: '../knowledge/mara-bitcoin-mining-operations.md', shared: false },
+    
+    // Bitcoin Treasury & Corporate Strategy
+    { path: '../knowledge/bitcoin-treasury-global-holdings.md', shared: false },
+    { path: '../knowledge/microstrategy-msty.md', shared: false },
+    { path: '../knowledge/msty-comprehensive-analysis.md', shared: false },
+    { path: '../knowledge/msty-freedom-calculator-strategy.md', shared: false },
+    { path: '../knowledge/microstrategy-strf-preferred-stock.md', shared: false },
+    { path: '../knowledge/metaplanet-bitcoin-treasury-japan.md', shared: false },
+    { path: '../knowledge/bitcoin-treasury-capital-ab.md', shared: false },
+    { path: '../knowledge/altbg-bitcoin-treasury-analysis.md', shared: false },
+    { path: '../knowledge/twenty-one-capital-analysis.md', shared: false },
+    { path: '../knowledge/monaco-bitcoin-treasury-strategy.md', shared: false },
+    
+    // Lightning Network & DeFi
+    { path: '../knowledge/bitcoin-defi-comprehensive-guide.md', shared: false },
+    { path: '../knowledge/crypto-experiments-lightning-network-evolution.md', shared: false },
+    { path: '../knowledge/bitcoin-backed-loans-lifestyle.md', shared: false },
+    { path: '../knowledge/bitcoin-bonds.md', shared: false },
+    
+    // Investment Strategies & Financial Instruments
+    { path: '../knowledge/financial-instruments.md', shared: false },
+    { path: '../knowledge/wealth-building-philosophy.md', shared: false },
+    { path: '../knowledge/generational-wealth-transfer.md', shared: false },
+    { path: '../knowledge/tesla-2025-strategy.md', shared: false },
+    { path: '../knowledge/tesla-covered-calls.md', shared: false },
+    { path: '../knowledge/early-stage-growth-stocks.md', shared: false },
+    { path: '../knowledge/innovation-stocks-analysis.md', shared: false },
+    { path: '../knowledge/crypto-related-equities.md', shared: false },
+    { path: '../knowledge/nuclear-energy-sector.md', shared: false },
+    { path: '../knowledge/vaneck-node-etf-onchain-economy.md', shared: false },
+    { path: '../knowledge/tokenized-assets-onchain-stocks.md', shared: false },
+    { path: '../knowledge/debt-taxation-fiscal-policy-comparison.md', shared: false },
+    
+    // Altcoins & Blockchain Analysis
+    { path: '../knowledge/dogecoin-comprehensive-analysis.md', shared: false },
+    { path: '../knowledge/solana-blockchain-analysis.md', shared: false },
+    { path: '../knowledge/sui-blockchain-analysis.md', shared: false },
+    { path: '../knowledge/ethereum-digital-oil-thesis.md', shared: false },
+    { path: '../knowledge/hyperliquid-analysis.md', shared: false },
+    { path: '../knowledge/pump-fun-defi-casino-analysis.md', shared: false },
+    { path: '../knowledge/moonpig-memecoin-analysis.md', shared: false },
+    { path: '../knowledge/sharplink-gaming-ethereum-treasury-analysis.md', shared: false },
     
     // Sovereign Living & Biohacking
     { path: '../knowledge/livethelife-lifestyle.md', shared: false },
     { path: '../knowledge/sovereign-living.md', shared: false },
+    { path: '../knowledge/sustainable-fitness-training.md', shared: false },
+    { path: '../knowledge/cost-of-living-geographic-arbitrage.md', shared: false },
+    { path: '../knowledge/energy-independence.md', shared: false },
     
-    // Financial Instruments & Investment Strategies
-    { path: '../knowledge/financial-instruments.md', shared: false },
-    { path: '../knowledge/wealth-building-philosophy.md', shared: false },
+    // Luxury Lifestyle & Travel
+    { path: '../knowledge/portugal-crypto-luxury-lifestyle-guide.md', shared: false },
+    { path: '../knowledge/spain-luxury-journey-excellence.md', shared: false },
+    { path: '../knowledge/italy-luxury-journey-excellence.md', shared: false },
+    { path: '../knowledge/switzerland-alpine-luxury-journey.md', shared: false },
+    { path: '../knowledge/dubai-blockchain-hub-luxury-living-2025.md', shared: false },
+    { path: '../knowledge/costa-rica-luxury-eco-tourism-pura-vida.md', shared: false },
+    { path: '../knowledge/basque-country-luxury-travel-experience.md', shared: false },
+    { path: '../knowledge/luxury-wine-regions-bordeaux-south-africa.md', shared: false },
+    { path: '../knowledge/world-class-wine-regions-comprehensive.md', shared: false },
+    { path: '../knowledge/luxury-outdoor-living.md', shared: false },
+    { path: '../knowledge/premium-smart-home-brands.md', shared: false },
     
-    // Technology & Luxury Lifestyle
+    // Aviation & Transportation
+    { path: '../knowledge/cirrus-vision-jet-personal-aviation.md', shared: false },
+    { path: '../knowledge/hill-hx50-helicopter-aviation.md', shared: false },
+    { path: '../knowledge/hybrid-catamarans-luxury-yachting-market.md', shared: false },
+    { path: '../knowledge/robotaxi-business-plan.md', shared: false },
+    
+    // Real Estate & Geographic Arbitrage
+    { path: '../knowledge/bitcoin-real-estate-investment-strategy.md', shared: false },
+    { path: '../knowledge/premium-camper-vans-southwest-france-rental-business.md', shared: false },
+    { path: '../knowledge/bordeaux-luxury-estate-airstream-retreat.md', shared: false },
+    { path: '../knowledge/forest-land-investment-southwest-france-portugal.md', shared: false },
+    
+    // Technology & AI
     { path: '../knowledge/technology-lifestyle.md', shared: false },
+    { path: '../knowledge/ai-infrastructure-dgx-spark-vs-cloud-apis.md', shared: false },
+    { path: '../knowledge/ai-coding-cursor-workflow.md', shared: false },
+    { path: '../knowledge/vibe-coding-philosophy.md', shared: false },
+    { path: '../knowledge/livethelifetv-crypto-dashboard.md', shared: false },
+    { path: '../knowledge/otonomos-web3-legal-tech-platform.md', shared: false },
+    
+    // Communication & Philosophy
+    { path: '../knowledge/communication-philosophy.md', shared: false },
+    { path: '../knowledge/ltl-art-philosophy-manifesto.md', shared: false },
+    { path: '../knowledge/european-pension-crisis-ai-reckoning.md', shared: false },
+    
+    // Art & Culture
+    { path: '../knowledge/cryptopunks-nft-analysis.md', shared: false },
+    { path: '../knowledge/digital-art-nft-investment-strategy.md', shared: false },
   ],
 
 
@@ -472,6 +579,7 @@ const initCharacter = ({ runtime }: { runtime: IAgentRuntime }) => {
   logger.info('📊 Bitcoin Thesis: 100K BTC Holders → $10M Net Worth by 2030');
   logger.info('🔍 Monitoring: Sovereign adoption, Lightning Network, institutional flows');
   logger.info('🏛️ Sovereign Living: Biohacking protocols, luxury curation, AI-powered culture');
+  logger.info('📚 Knowledge: 84 files via hybrid system (core + optional advanced RAG)');
   logger.info('💡 Truth is verified, not argued. Words are mined, not spoken.');
   logger.info('🌅 The dawn is now. What impossible thing are you building?');
 };
