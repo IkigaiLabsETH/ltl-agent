@@ -128,70 +128,10 @@ export class NFTDataService extends BaseDataService {
   private curatedNFTsCache: CuratedNFTsCache | null = null;
   private readonly CURATED_NFTS_CACHE_DURATION = 60 * 1000; // 1 minute (matches website caching)
 
-  // Curated NFT collections (high-end digital art and OG collections)
+  // Curated NFT collections (focused on high-value generative art)
   private readonly curatedNFTCollections = [
-    // Blue chip PFP collections
-    { slug: 'cryptopunks', category: 'blue-chip' as const },
-    
-    // Generative art collections  
-    { slug: 'fidenza-by-tyler-hobbs', category: 'generative-art' as const },
-    { slug: 'art-blocks-curated', category: 'generative-art' as const },
-    { slug: 'terraforms', category: 'generative-art' as const },
-    { slug: 'ackcolorstudy', category: 'generative-art' as const },
-    { slug: 'vera-molnar-themes-and-variations', category: 'generative-art' as const },
-    { slug: 'sightseers-by-norman-harman', category: 'generative-art' as const },
-    { slug: 'progression-by-jeff-davis', category: 'generative-art' as const },
-    { slug: 'risk-reward-by-kjetil-golid', category: 'generative-art' as const },
-    { slug: 'aligndraw', category: 'generative-art' as const },
-    { slug: 'archetype-by-kjetil-golid', category: 'generative-art' as const },
     { slug: 'qql', category: 'generative-art' as const },
-    { slug: 'orbifold-by-kjetil-golid', category: 'generative-art' as const },
-    { slug: 'meridian-by-matt-deslauriers', category: 'generative-art' as const },
-    
-    // Digital art collections
-    { slug: '0xdgb-thecameras', category: 'digital-art' as const },
-    { slug: 'the-harvest-by-per-kristian-stoveland', category: 'digital-art' as const },
-    { slug: 'xcopy-knownorigin', category: 'digital-art' as const },
-    { slug: 'winds-of-yawanawa', category: 'digital-art' as const },
-    { slug: 'brokenkeys', category: 'digital-art' as const },
-    { slug: 'ripcache', category: 'digital-art' as const },
-    { slug: 'human-unreadable-by-operator', category: 'digital-art' as const },
-    { slug: 'non-either-by-rafael-rozendaal', category: 'digital-art' as const },
-    { slug: 'pop-wonder-editions', category: 'digital-art' as const },
-    { slug: 'machine-hallucinations-coral-generative-ai-data-pa', category: 'digital-art' as const },
-    
-    // PFP collections
-    { slug: 'jaknfthoodies', category: 'pfp' as const },
-    { slug: 'monstersoup', category: 'pfp' as const },
-    { slug: 'getijde-by-bart-simons', category: 'generative-art' as const },
-    { slug: '24-hours-of-art', category: 'digital-art' as const },
-    { slug: 'pursuit-by-per-kristian-stoveland', category: 'generative-art' as const },
-    { slug: '100-sunsets-by-zach-lieberman', category: 'digital-art' as const },
-    { slug: 'strands-of-solitude', category: 'generative-art' as const },
-    { slug: 'justinaversano-gabbagallery', category: 'digital-art' as const },
-    { slug: 'neural-sediments-by-eko33', category: 'generative-art' as const },
-    { slug: 'wavyscape-by-holger-lippmann', category: 'generative-art' as const },
-    { slug: 'opepen-edition', category: 'pfp' as const },
-    { slug: 'mind-the-gap-by-mountvitruvius', category: 'generative-art' as const },
-    { slug: 'urban-transportation-red-trucks', category: 'digital-art' as const },
-    { slug: 'trichro-matic-by-mountvitruvius', category: 'generative-art' as const },
-    { slug: 'sam-spratt-masks-of-luci', category: 'digital-art' as const },
-    { slug: 'pink-such-a-useless-color-by-simon-raion', category: 'digital-art' as const },
-    { slug: 'sketchbook-a-by-william-mapan-1', category: 'generative-art' as const },
-    { slug: 'life-and-love-and-nothing-by-nat-sarkissian', category: 'digital-art' as const },
-    { slug: 'highrises', category: 'digital-art' as const },
-    { slug: 'lifeguard-towers-miami', category: 'digital-art' as const },
-    { slug: 'stranger-together-by-brooke-didonato-ben-zank', category: 'digital-art' as const },
-    { slug: 'the-vault-of-wonders-chapter-1-the-abyssal-unseen', category: 'digital-art' as const },
-    { slug: 'skulptuur-by-piter-pasma', category: 'generative-art' as const },
-    { slug: 'dataland-biomelumina', category: 'generative-art' as const },
-    { slug: 'pop-wonder-superrare', category: 'digital-art' as const },
-    { slug: 'cryptodickbutts', category: 'pfp' as const },
-    { slug: 'day-gardens', category: 'generative-art' as const },
-    { slug: 'cryptoadz-by-gremplin', category: 'pfp' as const },
-    { slug: 'izanami-islands-by-richard-nadler', category: 'digital-art' as const },
-    { slug: 'yamabushi-s-horizons-by-richard-nadler', category: 'digital-art' as const },
-    { slug: 'kinoko-dreams-by-richard-nadler', category: 'digital-art' as const }
+    { slug: 'meridian-by-matt-deslauriers', category: 'generative-art' as const }
   ];
 
   constructor(runtime: IAgentRuntime) {

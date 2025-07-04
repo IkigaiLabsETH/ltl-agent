@@ -40,6 +40,10 @@ export interface Top100VsBtcCoin {
   price_change_percentage_24h: number;
   price_change_percentage_7d_in_currency?: number;
   price_change_percentage_30d_in_currency?: number;
+  // New relative performance fields (like website)
+  btc_relative_performance_7d?: number;
+  btc_relative_performance_24h?: number;
+  btc_relative_performance_30d?: number;
 }
 
 export interface Top100VsBtcData {
@@ -551,100 +555,90 @@ export class AltcoinDataService extends BaseDataService {
     try {
       logger.info('[AltcoinDataService] Starting fetchTop100VsBtcData...');
       
-      // Step 1: Fetch top 100 coins against BTC to find outperformers and their performance vs BTC
-      const btcMarketData = await this.makeQueuedRequest(async () => {
+      // Step 1: Fetch top 200 coins in USD (like website) with 7d performance data
+      const usdMarketData = await this.makeQueuedRequest(async () => {
         return await this.fetchWithRetry(
-          `${this.COINGECKO_API}/coins/markets?vs_currency=btc&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h,7d,30d`,
+          `${this.COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=200&page=1&price_change_percentage=24h,7d,30d`,
           {
             headers: { 'Accept': 'application/json' }
           }
         );
       });
 
-      logger.info(`[AltcoinDataService] Fetched ${btcMarketData?.length || 0} coins from CoinGecko`);
+      logger.info(`[AltcoinDataService] Fetched ${usdMarketData?.length || 0} coins from CoinGecko`);
 
       // Validate the response
-      if (!Array.isArray(btcMarketData)) {
-        logger.error('[AltcoinDataService] Invalid btcMarketData response:', typeof btcMarketData);
+      if (!Array.isArray(usdMarketData)) {
+        logger.error('[AltcoinDataService] Invalid usdMarketData response:', typeof usdMarketData);
         return null;
       }
 
-      // Step 2: Separate outperformers and underperformers
-      const outperformingVsBtc = btcMarketData.filter(
-        (coin: any) => coin && typeof coin.price_change_percentage_24h === 'number' && coin.price_change_percentage_24h > 0
-      );
-      
-      const underperformingVsBtc = btcMarketData.filter(
-        (coin: any) => coin && typeof coin.price_change_percentage_24h === 'number' && coin.price_change_percentage_24h <= 0
-      );
-
-      if (outperformingVsBtc.length === 0) {
-        // Return empty data structure if no outperformers
-        return {
-          outperforming: [],
-          underperforming: underperformingVsBtc.slice(0, 10), // Show top 10 underperformers
-          totalCoins: btcMarketData.length,
-          outperformingCount: 0,
-          underperformingCount: underperformingVsBtc.length,
-          averagePerformance: 0,
-          topPerformers: [],
-          worstPerformers: underperformingVsBtc.slice(0, 5),
-          lastUpdated: new Date()
-        };
+      // Step 2: Find Bitcoin's performance
+      const btc = usdMarketData.find(coin => coin.id === 'bitcoin');
+      if (!btc) {
+        logger.error('[AltcoinDataService] Bitcoin data not found in response');
+        return null;
       }
 
-      // Step 3: Get USD prices for outperforming coins
-      const outperformingIds = outperformingVsBtc.map((coin: any) => coin.id).join(',');
-      const usdPrices = await this.makeQueuedRequest(async () => {
-        return await this.fetchWithRetry(
-          `${this.COINGECKO_API}/simple/price?ids=${outperformingIds}&vs_currencies=usd`,
-          {
-            headers: { 'Accept': 'application/json' }
-          }
-        );
-      });
+      const btcPerformance7d = btc.price_change_percentage_7d_in_currency || 0;
+      const btcPerformance24h = btc.price_change_percentage_24h || 0;
+      const btcPerformance30d = btc.price_change_percentage_30d_in_currency || 0;
 
-      // Step 4: Combine BTC-denominated performance data with USD prices
-      const outperformingWithUsd = outperformingVsBtc.map((coin: any) => ({
-        id: coin.id,
-        symbol: coin.symbol,
-        name: coin.name,
-        image: coin.image,
-        current_price: usdPrices[coin.id]?.usd ?? 0,
-        market_cap_rank: coin.market_cap_rank,
-        price_change_percentage_24h: coin.price_change_percentage_24h,
-        price_change_percentage_7d_in_currency: coin.price_change_percentage_7d_in_currency,
-        price_change_percentage_30d_in_currency: coin.price_change_percentage_30d_in_currency,
-      }));
+      logger.info(`[AltcoinDataService] Bitcoin 7d performance: ${btcPerformance7d.toFixed(2)}%`);
+
+      // Step 3: Filter out Bitcoin and stablecoins, calculate relative performance
+      const stablecoinSymbols = ['usdt', 'usdc', 'usds', 'tusd', 'busd', 'dai', 'frax', 'usdp', 'gusd', 'lusd', 'fei', 'tribe'];
+      
+      const altcoins = usdMarketData
+        .filter(coin => 
+          coin.id !== 'bitcoin' && 
+          typeof coin.price_change_percentage_7d_in_currency === 'number' &&
+          coin.market_cap_rank <= 200 &&
+          !stablecoinSymbols.includes(coin.symbol.toLowerCase()) // Exclude stablecoins
+        )
+        .map(coin => ({
+          id: coin.id,
+          symbol: coin.symbol,
+          name: coin.name,
+          image: coin.image || '',
+          current_price: coin.current_price || 0,
+          market_cap_rank: coin.market_cap_rank || 0,
+          price_change_percentage_24h: coin.price_change_percentage_24h || 0,
+          price_change_percentage_7d_in_currency: coin.price_change_percentage_7d_in_currency || 0,
+          price_change_percentage_30d_in_currency: coin.price_change_percentage_30d_in_currency || 0,
+          // Calculate relative performance vs Bitcoin (website's approach)
+          btc_relative_performance_7d: (coin.price_change_percentage_7d_in_currency || 0) - btcPerformance7d,
+          btc_relative_performance_24h: (coin.price_change_percentage_24h || 0) - btcPerformance24h,
+          btc_relative_performance_30d: (coin.price_change_percentage_30d_in_currency || 0) - btcPerformance30d
+        }))
+        .sort((a, b) => b.btc_relative_performance_7d - a.btc_relative_performance_7d); // Sort by best 7d relative performance
+
+      // Step 4: Separate outperformers and underperformers based on 7d performance
+      const outperformingVsBtc = altcoins.filter(coin => coin.btc_relative_performance_7d > 0);
+      const underperformingVsBtc = altcoins.filter(coin => coin.btc_relative_performance_7d <= 0);
 
       // Step 5: Calculate analytics
-      const totalCoins = btcMarketData.length;
-      const outperformingCount = outperformingWithUsd.length;
+      const totalCoins = altcoins.length;
+      const outperformingCount = outperformingVsBtc.length;
       const underperformingCount = underperformingVsBtc.length;
       
-      const averagePerformance = btcMarketData.reduce((sum: number, coin: any) => 
-        sum + coin.price_change_percentage_24h, 0) / totalCoins;
-
-      // Sort for top/worst performers
-      const sortedOutperformers = [...outperformingWithUsd].sort((a, b) => 
-        b.price_change_percentage_24h - a.price_change_percentage_24h);
-      
-      const sortedUnderperformers = [...underperformingVsBtc].sort((a, b) => 
-        a.price_change_percentage_24h - b.price_change_percentage_24h);
+      const averageRelativePerformance = altcoins.length > 0 
+        ? altcoins.reduce((sum, coin) => sum + coin.btc_relative_performance_7d, 0) / altcoins.length
+        : 0;
 
       const result: Top100VsBtcData = {
-        outperforming: outperformingWithUsd,
-        underperforming: underperformingVsBtc.slice(0, 10), // Limit to top 10 for readability
+        outperforming: outperformingVsBtc.slice(0, 20), // Top 20 outperformers
+        underperforming: underperformingVsBtc.slice(-10), // Bottom 10 underperformers
         totalCoins,
         outperformingCount,
         underperformingCount,
-        averagePerformance,
-        topPerformers: sortedOutperformers.slice(0, 10), // Top 10 performers
-        worstPerformers: sortedUnderperformers.slice(0, 5), // Worst 5 performers
+        averagePerformance: averageRelativePerformance,
+        topPerformers: outperformingVsBtc.slice(0, 8), // Top 8 performers (like website)
+        worstPerformers: underperformingVsBtc.slice(-5), // Worst 5 performers
         lastUpdated: new Date()
       };
 
-      logger.info(`[AltcoinDataService] Fetched top 100 vs BTC data: ${outperformingCount}/${totalCoins} outperforming`);
+      logger.info(`[AltcoinDataService] ✅ Fetched top 200 vs BTC data: ${outperformingCount}/${totalCoins} outperforming Bitcoin (7d), avg relative: ${averageRelativePerformance.toFixed(2)}%`);
       return result;
       
     } catch (error) {

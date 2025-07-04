@@ -126,6 +126,10 @@ export interface Top100VsBtcCoin {
   price_change_percentage_24h: number;
   price_change_percentage_7d_in_currency?: number;
   price_change_percentage_30d_in_currency?: number;
+  // New relative performance fields (like website)
+  btc_relative_performance_7d?: number;
+  btc_relative_performance_24h?: number;
+  btc_relative_performance_30d?: number;
 }
 
 export interface Top100VsBtcData {
@@ -422,70 +426,10 @@ export class RealTimeDataService extends Service {
   private curatedNFTsCache: CuratedNFTsCache | null = null;
   private readonly CURATED_NFTS_CACHE_DURATION = 60 * 1000; // 1 minute (matches website caching)
 
-  // Curated NFT collections (high-end digital art and OG collections)
+  // Curated NFT collections (focused on high-value generative art)
   private readonly curatedNFTCollections = [
-    // Blue chip PFP collections
-    { slug: 'cryptopunks', category: 'blue-chip' as const },
-    
-    // Generative art collections  
-    { slug: 'fidenza-by-tyler-hobbs', category: 'generative-art' as const },
-    { slug: 'art-blocks-curated', category: 'generative-art' as const },
-    { slug: 'terraforms', category: 'generative-art' as const },
-    { slug: 'ackcolorstudy', category: 'generative-art' as const },
-    { slug: 'vera-molnar-themes-and-variations', category: 'generative-art' as const },
-    { slug: 'sightseers-by-norman-harman', category: 'generative-art' as const },
-    { slug: 'progression-by-jeff-davis', category: 'generative-art' as const },
-    { slug: 'risk-reward-by-kjetil-golid', category: 'generative-art' as const },
-    { slug: 'aligndraw', category: 'generative-art' as const },
-    { slug: 'archetype-by-kjetil-golid', category: 'generative-art' as const },
     { slug: 'qql', category: 'generative-art' as const },
-    { slug: 'orbifold-by-kjetil-golid', category: 'generative-art' as const },
-    { slug: 'meridian-by-matt-deslauriers', category: 'generative-art' as const },
-    
-    // Digital art collections
-    { slug: '0xdgb-thecameras', category: 'digital-art' as const },
-    { slug: 'the-harvest-by-per-kristian-stoveland', category: 'digital-art' as const },
-    { slug: 'xcopy-knownorigin', category: 'digital-art' as const },
-    { slug: 'winds-of-yawanawa', category: 'digital-art' as const },
-    { slug: 'brokenkeys', category: 'digital-art' as const },
-    { slug: 'ripcache', category: 'digital-art' as const },
-    { slug: 'human-unreadable-by-operator', category: 'digital-art' as const },
-    { slug: 'non-either-by-rafael-rozendaal', category: 'digital-art' as const },
-    { slug: 'pop-wonder-editions', category: 'digital-art' as const },
-    { slug: 'machine-hallucinations-coral-generative-ai-data-pa', category: 'digital-art' as const },
-    
-    // PFP collections
-    { slug: 'jaknfthoodies', category: 'pfp' as const },
-    { slug: 'monstersoup', category: 'pfp' as const },
-    { slug: 'getijde-by-bart-simons', category: 'generative-art' as const },
-    { slug: '24-hours-of-art', category: 'digital-art' as const },
-    { slug: 'pursuit-by-per-kristian-stoveland', category: 'generative-art' as const },
-    { slug: '100-sunsets-by-zach-lieberman', category: 'digital-art' as const },
-    { slug: 'strands-of-solitude', category: 'generative-art' as const },
-    { slug: 'justinaversano-gabbagallery', category: 'digital-art' as const },
-    { slug: 'neural-sediments-by-eko33', category: 'generative-art' as const },
-    { slug: 'wavyscape-by-holger-lippmann', category: 'generative-art' as const },
-    { slug: 'opepen-edition', category: 'pfp' as const },
-    { slug: 'mind-the-gap-by-mountvitruvius', category: 'generative-art' as const },
-    { slug: 'urban-transportation-red-trucks', category: 'digital-art' as const },
-    { slug: 'trichro-matic-by-mountvitruvius', category: 'generative-art' as const },
-    { slug: 'sam-spratt-masks-of-luci', category: 'digital-art' as const },
-    { slug: 'pink-such-a-useless-color-by-simon-raion', category: 'digital-art' as const },
-    { slug: 'sketchbook-a-by-william-mapan-1', category: 'generative-art' as const },
-    { slug: 'life-and-love-and-nothing-by-nat-sarkissian', category: 'digital-art' as const },
-    { slug: 'highrises', category: 'digital-art' as const },
-    { slug: 'lifeguard-towers-miami', category: 'digital-art' as const },
-    { slug: 'stranger-together-by-brooke-didonato-ben-zank', category: 'digital-art' as const },
-    { slug: 'the-vault-of-wonders-chapter-1-the-abyssal-unseen', category: 'digital-art' as const },
-    { slug: 'skulptuur-by-piter-pasma', category: 'generative-art' as const },
-    { slug: 'dataland-biomelumina', category: 'generative-art' as const },
-    { slug: 'pop-wonder-superrare', category: 'digital-art' as const },
-    { slug: 'cryptodickbutts', category: 'pfp' as const },
-    { slug: 'day-gardens', category: 'generative-art' as const },
-    { slug: 'cryptoadz-by-gremplin', category: 'pfp' as const },
-    { slug: 'izanami-islands-by-richard-nadler', category: 'digital-art' as const },
-    { slug: 'yamabushi-s-horizons-by-richard-nadler', category: 'digital-art' as const },
-    { slug: 'kinoko-dreams-by-richard-nadler', category: 'digital-art' as const }
+    { slug: 'meridian-by-matt-deslauriers', category: 'generative-art' as const }
   ];
 
   constructor(runtime: IAgentRuntime) {
@@ -1479,124 +1423,90 @@ export class RealTimeDataService extends Service {
     try {
       console.log('[RealTimeDataService] Starting fetchTop100VsBtcData...');
       
-      // Step 1: Fetch top 100 coins against BTC to find outperformers and their performance vs BTC
-      const btcMarketData = await this.makeQueuedRequest(async () => {
+      // Step 1: Fetch top 200 coins in USD (like website) with 7d performance data
+      const usdMarketData = await this.makeQueuedRequest(async () => {
         return await this.fetchWithRetry(
-          `${this.COINGECKO_API}/coins/markets?vs_currency=btc&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h,7d,30d`,
+          `${this.COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=200&page=1&price_change_percentage=24h,7d,30d`,
           {
             headers: { 'Accept': 'application/json' }
           }
         );
       });
 
-      console.log(`[RealTimeDataService] Fetched ${btcMarketData?.length || 0} coins from CoinGecko`);
+      console.log(`[RealTimeDataService] Fetched ${usdMarketData?.length || 0} coins from CoinGecko`);
 
       // Validate the response
-      if (!Array.isArray(btcMarketData)) {
-        console.error('[RealTimeDataService] Invalid btcMarketData response:', typeof btcMarketData);
+      if (!Array.isArray(usdMarketData)) {
+        console.error('[RealTimeDataService] Invalid usdMarketData response:', typeof usdMarketData);
         return null;
       }
 
-      // Step 2: Separate outperformers and underperformers
-      const outperformingVsBtc = btcMarketData.filter(
-        (coin: any) => coin && typeof coin.price_change_percentage_24h === 'number' && coin.price_change_percentage_24h > 0
-      );
-      
-      const underperformingVsBtc = btcMarketData.filter(
-        (coin: any) => coin && typeof coin.price_change_percentage_24h === 'number' && coin.price_change_percentage_24h <= 0
-      );
-
-      if (outperformingVsBtc.length === 0) {
-        // Return empty data structure if no outperformers
-        return {
-          outperforming: [],
-          underperforming: underperformingVsBtc.slice(0, 10), // Show top 10 underperformers
-          totalCoins: btcMarketData.length,
-          outperformingCount: 0,
-          underperformingCount: underperformingVsBtc.length,
-          averagePerformance: 0,
-          topPerformers: [],
-          worstPerformers: underperformingVsBtc.slice(0, 5),
-          lastUpdated: new Date()
-        };
+      // Step 2: Find Bitcoin's performance
+      const btc = usdMarketData.find(coin => coin.id === 'bitcoin');
+      if (!btc) {
+        console.error('[RealTimeDataService] Bitcoin data not found in response');
+        return null;
       }
 
-      // Step 3: Get USD prices for outperforming coins
-      let outperformingWithUsd: Top100VsBtcCoin[] = [];
+      const btcPerformance7d = btc.price_change_percentage_7d_in_currency || 0;
+      const btcPerformance24h = btc.price_change_percentage_24h || 0;
+      const btcPerformance30d = btc.price_change_percentage_30d_in_currency || 0;
+
+      console.log(`[RealTimeDataService] Bitcoin 7d performance: ${btcPerformance7d.toFixed(2)}%`);
+
+      // Step 3: Filter out Bitcoin and stablecoins, calculate relative performance
+      const stablecoinSymbols = ['usdt', 'usdc', 'usds', 'tusd', 'busd', 'dai', 'frax', 'usdp', 'gusd', 'lusd', 'fei', 'tribe'];
       
-      if (outperformingVsBtc.length > 0) {
-        const outperformingIds = outperformingVsBtc
-          .filter((coin: any) => coin && coin.id)
-          .map((coin: any) => coin.id)
-          .join(',');
-          
-        console.log(`[RealTimeDataService] Fetching USD prices for ${outperformingVsBtc.length} outperforming coins`);
-        
-        if (outperformingIds) {
-          const usdPrices = await this.makeQueuedRequest(async () => {
-            return await this.fetchWithRetry(
-              `${this.COINGECKO_API}/simple/price?ids=${outperformingIds}&vs_currencies=usd`,
-              {
-                headers: { 'Accept': 'application/json' }
-              }
-            );
-          });
+      const altcoins = usdMarketData
+        .filter(coin => 
+          coin.id !== 'bitcoin' && 
+          typeof coin.price_change_percentage_7d_in_currency === 'number' &&
+          coin.market_cap_rank <= 200 &&
+          !stablecoinSymbols.includes(coin.symbol.toLowerCase()) // Exclude stablecoins
+        )
+        .map(coin => ({
+          id: coin.id,
+          symbol: coin.symbol,
+          name: coin.name,
+          image: coin.image || '',
+          current_price: coin.current_price || 0,
+          market_cap_rank: coin.market_cap_rank || 0,
+          price_change_percentage_24h: coin.price_change_percentage_24h || 0,
+          price_change_percentage_7d_in_currency: coin.price_change_percentage_7d_in_currency || 0,
+          price_change_percentage_30d_in_currency: coin.price_change_percentage_30d_in_currency || 0,
+          // Calculate relative performance vs Bitcoin (website's approach)
+          btc_relative_performance_7d: (coin.price_change_percentage_7d_in_currency || 0) - btcPerformance7d,
+          btc_relative_performance_24h: (coin.price_change_percentage_24h || 0) - btcPerformance24h,
+          btc_relative_performance_30d: (coin.price_change_percentage_30d_in_currency || 0) - btcPerformance30d
+        }))
+        .sort((a, b) => b.btc_relative_performance_7d - a.btc_relative_performance_7d); // Sort by best 7d relative performance
 
-          console.log(`[RealTimeDataService] Received USD prices for ${Object.keys(usdPrices || {}).length} coins`);
-
-          // Step 4: Combine BTC-denominated performance data with USD prices
-          outperformingWithUsd = outperformingVsBtc
-            .filter((coin: any) => coin && coin.id && coin.symbol && coin.name)
-            .map((coin: any) => ({
-              id: coin.id,
-              symbol: coin.symbol,
-              name: coin.name,
-              image: coin.image || '',
-              current_price: usdPrices?.[coin.id]?.usd ?? 0,
-              market_cap_rank: coin.market_cap_rank || 0,
-              price_change_percentage_24h: coin.price_change_percentage_24h || 0,
-              price_change_percentage_7d_in_currency: coin.price_change_percentage_7d_in_currency,
-              price_change_percentage_30d_in_currency: coin.price_change_percentage_30d_in_currency,
-            }));
-        }
-      }
+      // Step 4: Separate outperformers and underperformers based on 7d performance
+      const outperformingVsBtc = altcoins.filter(coin => coin.btc_relative_performance_7d > 0);
+      const underperformingVsBtc = altcoins.filter(coin => coin.btc_relative_performance_7d <= 0);
 
       // Step 5: Calculate analytics
-      const totalCoins = btcMarketData.length;
-      const outperformingCount = outperformingWithUsd.length;
+      const totalCoins = altcoins.length;
+      const outperformingCount = outperformingVsBtc.length;
       const underperformingCount = underperformingVsBtc.length;
       
-      const validCoins = btcMarketData.filter((coin: any) => 
-        coin && typeof coin.price_change_percentage_24h === 'number'
-      );
-      
-      const averagePerformance = validCoins.length > 0 
-        ? validCoins.reduce((sum: number, coin: any) => 
-            sum + coin.price_change_percentage_24h, 0) / validCoins.length
+      const averageRelativePerformance = altcoins.length > 0 
+        ? altcoins.reduce((sum, coin) => sum + coin.btc_relative_performance_7d, 0) / altcoins.length
         : 0;
 
-      // Sort for top/worst performers
-      const sortedOutperformers = [...outperformingWithUsd].sort((a, b) => 
-        (b.price_change_percentage_24h || 0) - (a.price_change_percentage_24h || 0));
-      
-      const sortedUnderperformers = [...underperformingVsBtc]
-        .filter((coin: any) => coin && coin.id && coin.name)
-        .sort((a, b) => 
-          (a.price_change_percentage_24h || 0) - (b.price_change_percentage_24h || 0));
-
       const result: Top100VsBtcData = {
-        outperforming: outperformingWithUsd,
-        underperforming: sortedUnderperformers.slice(0, 10), // Limit to top 10 for readability
+        outperforming: outperformingVsBtc.slice(0, 20), // Top 20 outperformers
+        underperforming: underperformingVsBtc.slice(-10), // Bottom 10 underperformers
         totalCoins,
         outperformingCount,
         underperformingCount,
-        averagePerformance,
-        topPerformers: sortedOutperformers.slice(0, 10), // Top 10 performers
-        worstPerformers: sortedUnderperformers.slice(0, 5), // Worst 5 performers
+        averagePerformance: averageRelativePerformance,
+        topPerformers: outperformingVsBtc.slice(0, 8), // Top 8 performers (like website)
+        worstPerformers: underperformingVsBtc.slice(-5), // Worst 5 performers
         lastUpdated: new Date()
       };
 
-      console.log(`[RealTimeDataService] ✅ Fetched top 100 vs BTC data: ${outperformingCount}/${totalCoins} outperforming, avg: ${averagePerformance.toFixed(2)}%`);
+      console.log(`[RealTimeDataService] ✅ Fetched top 200 vs BTC data: ${outperformingCount}/${totalCoins} outperforming Bitcoin (7d), avg relative: ${averageRelativePerformance.toFixed(2)}%`);
       return result;
       
     } catch (error) {
@@ -2284,14 +2194,16 @@ export class RealTimeDataService extends Service {
 
   private async makeQueuedRequest<T>(requestFn: () => Promise<T>): Promise<T> {
     return new Promise((resolve, reject) => {
-      this.requestQueue.push(async () => {
+      const requestWrapper = async () => {
         try {
           const result = await requestFn();
           resolve(result);
         } catch (error) {
           reject(error);
         }
-      });
+      };
+      
+      this.requestQueue.push(requestWrapper);
       
       if (!this.isProcessingQueue) {
         this.processRequestQueue();
@@ -2308,7 +2220,7 @@ export class RealTimeDataService extends Service {
       // Check if we're in backoff period
       if (this.backoffUntil > Date.now()) {
         const backoffTime = this.backoffUntil - Date.now();
-        console.log(`In backoff period, waiting ${backoffTime}ms`);
+        console.log(`[RealTimeDataService] In backoff period, waiting ${backoffTime}ms`);
         await new Promise(resolve => setTimeout(resolve, backoffTime));
         this.backoffUntil = 0;
       }
@@ -2323,18 +2235,19 @@ export class RealTimeDataService extends Service {
       if (request) {
         try {
           this.lastRequestTime = Date.now();
-          await request();
+          await request(); // This will call the wrapper which handles resolve/reject
           this.consecutiveFailures = 0; // Reset failures on success
         } catch (error) {
           this.consecutiveFailures++;
-          console.error(`Request failed (${this.consecutiveFailures}/${this.MAX_CONSECUTIVE_FAILURES}):`, error);
+          console.error(`[RealTimeDataService] Request failed (${this.consecutiveFailures}/${this.MAX_CONSECUTIVE_FAILURES}):`, error);
           
           if (this.consecutiveFailures >= this.MAX_CONSECUTIVE_FAILURES) {
             // Implement exponential backoff
             const backoffTime = Math.min(Math.pow(2, this.consecutiveFailures - this.MAX_CONSECUTIVE_FAILURES) * 30000, 300000); // Max 5 minutes
             this.backoffUntil = Date.now() + backoffTime;
-            console.log(`Too many consecutive failures, backing off for ${backoffTime}ms`);
+            console.log(`[RealTimeDataService] Too many consecutive failures, backing off for ${backoffTime}ms`);
           }
+          // Don't rethrow here - the error is already handled in the wrapper
         }
       }
     }

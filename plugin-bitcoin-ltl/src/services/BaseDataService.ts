@@ -3,7 +3,7 @@ import { IAgentRuntime, Service, logger } from '@elizaos/core';
 export abstract class BaseDataService extends Service {
   // Rate limiting properties (shared across all services)
   protected lastRequestTime = 0;
-  protected readonly MIN_REQUEST_INTERVAL = 2000; // 2 seconds between requests
+  protected readonly MIN_REQUEST_INTERVAL = 3000; // 3 seconds between requests to avoid rate limits
   protected requestQueue: Array<() => Promise<any>> = [];
   protected isProcessingQueue = false;
   protected consecutiveFailures = 0;
@@ -20,14 +20,16 @@ export abstract class BaseDataService extends Service {
    */
   protected async makeQueuedRequest<T>(requestFn: () => Promise<T>): Promise<T> {
     return new Promise((resolve, reject) => {
-      this.requestQueue.push(async () => {
+      const requestWrapper = async () => {
         try {
           const result = await requestFn();
           resolve(result);
         } catch (error) {
           reject(error);
         }
-      });
+      };
+      
+      this.requestQueue.push(requestWrapper);
       
       if (!this.isProcessingQueue) {
         this.processRequestQueue();
@@ -62,7 +64,7 @@ export abstract class BaseDataService extends Service {
       if (request) {
         try {
           this.lastRequestTime = Date.now();
-          await request();
+          await request(); // This will call the wrapper which handles resolve/reject
           this.consecutiveFailures = 0; // Reset failures on success
         } catch (error) {
           this.consecutiveFailures++;
@@ -74,6 +76,7 @@ export abstract class BaseDataService extends Service {
             this.backoffUntil = Date.now() + backoffTime;
             console.log(`[BaseDataService] Too many consecutive failures, backing off for ${backoffTime}ms`);
           }
+          // Don't rethrow here - the error is already handled in the wrapper
         }
       }
     }

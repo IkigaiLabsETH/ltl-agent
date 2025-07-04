@@ -3,6 +3,7 @@ export { knowledgeDigestAction } from './knowledgeDigestAction';
 export { opportunityAlertsAction } from './opportunityAlertsAction';
 export { curatedAltcoinsAction } from './curatedAltcoinsAction';
 export { top100VsBtcAction } from './top100VsBtcAction';
+export { btcRelativePerformanceAction } from './btcRelativePerformanceAction';
 export { dexScreenerAction } from './dexScreenerAction';
 export { topMoversAction } from './topMoversAction';
 export { trendingCoinsAction } from './trendingCoinsAction';
