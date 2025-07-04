@@ -15,7 +15,12 @@ import {
 } from '@elizaos/core';
 import { z } from 'zod';
 import bitcoinTestSuite from './tests';
-import { BitcoinDataService } from './services';
+import { 
+  BitcoinDataService, 
+  SlackIngestionService, 
+  MorningBriefingService 
+} from './services';
+import { morningBriefingAction } from './actions';
 
 /**
  * Bitcoin Plugin Configuration Schema
@@ -3106,7 +3111,8 @@ const bitcoinPlugin: Plugin = {
     sovereignLivingAction,
     investmentStrategyAction,
     freedomMathematicsAction,
-    altcoinBTCPerformanceAction
+    altcoinBTCPerformanceAction,
+    morningBriefingAction
   ],
   events: {
     MESSAGE_RECEIVED: [
@@ -3662,7 +3668,7 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
       },
     },
   ],
-  services: [BitcoinDataService],
+  services: [BitcoinDataService, SlackIngestionService, MorningBriefingService],
   tests: [bitcoinTestSuite],
 };
 
