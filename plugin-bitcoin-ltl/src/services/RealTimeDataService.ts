@@ -299,6 +299,41 @@ export interface NFTCollectionData {
   stats: NFTCollectionStats;
   lastUpdated: Date;
   category: 'blue-chip' | 'generative-art' | 'digital-art' | 'pfp' | 'utility';
+  floorItems?: NFTFloorItem[];
+  recentSales?: NFTSaleEvent[];
+  contractAddress?: string;
+  blockchain?: string;
+}
+
+export interface NFTFloorItem {
+  token_id: string;
+  name: string;
+  image_url: string;
+  price_eth: number;
+  price_usd: number;
+  rarity_rank?: number;
+  listing_time: string;
+  opensea_url: string;
+}
+
+export interface NFTSaleEvent {
+  token_id: string;
+  name: string;
+  image_url: string;
+  price_eth: number;
+  price_usd: number;
+  buyer: string;
+  seller: string;
+  transaction_hash: string;
+  timestamp: string;
+  event_type: 'sale' | 'transfer' | 'mint';
+}
+
+export interface NFTTraitFloor {
+  trait_type: string;
+  trait_value: string;
+  floor_price: number;
+  count: number;
 }
 
 export interface CuratedNFTsData {
@@ -1753,158 +1788,374 @@ export class RealTimeDataService extends Service {
 
   private async fetchCuratedNFTsData(): Promise<CuratedNFTsData | null> {
     try {
-      console.log('[RealTimeDataService] Fetching curated NFTs data...');
+      console.log('[RealTimeDataService] Fetching enhanced curated NFTs data...');
       
       const openSeaApiKey = this.runtime.getSetting('OPENSEA_API_KEY');
       if (!openSeaApiKey) {
-        console.warn('OPENSEA_API_KEY not configured, skipping NFT data fetch');
-        return null;
+        console.warn('OPENSEA_API_KEY not configured, using fallback data');
+        return this.getFallbackNFTsData();
       }
 
       const headers = {
         'Accept': 'application/json',
-        'X-API-KEY': openSeaApiKey
+        'X-API-KEY': openSeaApiKey,
+        'User-Agent': 'LiveTheLifeTV/1.0'
       };
 
-      // Fetch data for a sample of collections to avoid rate limits
-      // In production, you might want to implement batching or rate limiting
-      const sampleCollections = this.curatedNFTCollections.slice(0, 20); // First 20 collections
-
-      const collectionPromises = sampleCollections.map(async ({ slug, category }) => {
-        try {
-          const response = await fetch(
-            `https://api.opensea.io/api/v2/collections/${slug}/stats`,
-            { headers }
-          );
-
-          if (!response.ok) {
-            console.warn(`Failed to fetch ${slug}: ${response.status}`);
-            return null;
-          }
-
-          const statsData = await response.json();
-          
-          // Also fetch basic collection info
-          const collectionResponse = await fetch(
-            `https://api.opensea.io/api/v2/collections/${slug}`,
-            { headers }
-          );
-
-          let collectionInfo = null;
-          if (collectionResponse.ok) {
-            collectionInfo = await collectionResponse.json();
-          }
-
-          return {
-            slug,
-            collection: collectionInfo || {
-              collection: slug,
-              name: slug,
-              description: '',
-              image_url: '',
-              banner_image_url: '',
-              owner: '',
-              category: '',
-              is_disabled: false,
-              is_nsfw: false,
-              trait_offers_enabled: false,
-              collection_offers_enabled: false,
-              opensea_url: `https://opensea.io/collection/${slug}`,
-              project_url: '',
-              wiki_url: '',
-              discord_url: '',
-              telegram_url: '',
-              twitter_username: '',
-              instagram_username: '',
-              contracts: [],
-              editors: [],
-              fees: [],
-              rarity: {
-                strategy_id: '',
-                strategy_version: '',
-                rank_at: '',
-                max_rank: 0,
-                tokens_scored: 0
-              },
-              total_supply: 0,
-              created_date: ''
-            },
-            stats: {
-              total_supply: statsData.total_supply || 0,
-              num_owners: statsData.num_owners || 0,
-              average_price: statsData.average_price || 0,
-              floor_price: statsData.floor_price || 0,
-              market_cap: statsData.market_cap || 0,
-              one_day_volume: statsData.one_day_volume || 0,
-              one_day_change: statsData.one_day_change || 0,
-              one_day_sales: statsData.one_day_sales || 0,
-              seven_day_volume: statsData.seven_day_volume || 0,
-              seven_day_change: statsData.seven_day_change || 0,
-              seven_day_sales: statsData.seven_day_sales || 0,
-              thirty_day_volume: statsData.thirty_day_volume || 0,
-              thirty_day_change: statsData.thirty_day_change || 0,
-              thirty_day_sales: statsData.thirty_day_sales || 0
-            },
-            lastUpdated: new Date(),
-            category
-          } as NFTCollectionData;
-        } catch (error) {
-          console.error(`Error fetching ${slug}:`, error);
-          return null;
-        }
-      });
-
-      // Add delay between requests to respect rate limits
+      // Process collections in smaller batches to avoid rate limits
       const collections: NFTCollectionData[] = [];
-      for (let i = 0; i < collectionPromises.length; i++) {
-        if (i > 0) {
-          await new Promise(resolve => setTimeout(resolve, 200)); // 200ms delay
-        }
+      const batchSize = 3;
+      
+      for (let i = 0; i < Math.min(this.curatedNFTCollections.length, 15); i += batchSize) {
+        const batch = this.curatedNFTCollections.slice(i, i + batchSize);
+        
+        const batchPromises = batch.map(async (collectionInfo) => {
+          return await this.fetchEnhancedCollectionData(collectionInfo, headers);
+        });
+
         try {
-          const result = await collectionPromises[i];
-          if (result) {
-            collections.push(result);
-          }
+          const batchResults = await Promise.all(batchPromises);
+          collections.push(...batchResults.filter(Boolean) as NFTCollectionData[]);
         } catch (error) {
-          console.error(`Error processing collection ${i}:`, error);
+          console.error(`Error processing batch ${i}:`, error);
+        }
+
+        // Rate limiting between batches
+        if (i + batchSize < this.curatedNFTCollections.length) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
         }
       }
 
-      // Calculate summary statistics
-      const totalVolume24h = collections.reduce((sum, c) => sum + c.stats.one_day_volume, 0);
-      const totalMarketCap = collections.reduce((sum, c) => sum + c.stats.market_cap, 0);
-      const avgFloorPrice = collections.length > 0 
-        ? collections.reduce((sum, c) => sum + c.stats.floor_price, 0) / collections.length 
-        : 0;
-
-      // Top and worst performers (by 24h volume change)
-      const sortedByChange = [...collections]
-        .filter(c => c.stats.one_day_change !== 0)
-        .sort((a, b) => b.stats.one_day_change - a.stats.one_day_change);
-
-      const topPerformers = sortedByChange.slice(0, 5);
-      const worstPerformers = sortedByChange.slice(-5).reverse();
+      // Calculate enhanced summary statistics
+      const summary = this.calculateNFTSummary(collections);
 
       const result: CuratedNFTsData = {
         collections,
-        summary: {
-          totalVolume24h,
-          totalMarketCap,
-          avgFloorPrice,
-          topPerformers,
-          worstPerformers,
-          totalCollections: collections.length
-        },
+        summary,
         lastUpdated: new Date()
       };
 
-      console.log(`[RealTimeDataService] Fetched NFTs data: ${collections.length} collections, total 24h volume: ${totalVolume24h.toFixed(2)} ETH`);
+      console.log(`[RealTimeDataService] Enhanced NFTs data: ${collections.length} collections, total 24h volume: ${summary.totalVolume24h.toFixed(2)} ETH`);
       return result;
 
     } catch (error) {
       console.error('Error in fetchCuratedNFTsData:', error);
-      return null;
+      return this.getFallbackNFTsData();
     }
+  }
+
+  private async fetchEnhancedCollectionData(
+    collectionInfo: any, 
+    headers: any
+  ): Promise<NFTCollectionData | null> {
+    try {
+      // Fetch basic collection data with retry logic
+      const collectionData = await this.fetchWithRetry(
+        `https://api.opensea.io/api/v2/collections/${collectionInfo.slug}`,
+        { headers },
+        3
+      );
+
+      // Fetch collection stats
+      const statsData = await this.fetchWithRetry(
+        `https://api.opensea.io/api/v2/collections/${collectionInfo.slug}/stats`,
+        { headers },
+        3
+      );
+
+      // Parse enhanced stats
+      const stats = this.parseCollectionStats(statsData);
+
+      // Fetch floor items (3 cheapest listings)
+      const floorItems = await this.fetchFloorItems(collectionInfo.slug, headers);
+
+      // Fetch recent sales (3 most recent)
+      const recentSales = await this.fetchRecentSales(collectionInfo.slug, headers);
+
+      // Get contract address for this collection
+      const contractAddress = collectionData?.contracts?.[0]?.address || '';
+
+      return {
+        slug: collectionInfo.slug,
+        collection: this.parseCollectionData(collectionData, collectionInfo),
+        stats,
+        lastUpdated: new Date(),
+        category: collectionInfo.category,
+        floorItems,
+        recentSales,
+        contractAddress,
+        blockchain: 'ethereum'
+      };
+
+    } catch (error) {
+      console.error(`Enhanced fetch failed for ${collectionInfo.slug}:`, error);
+      return this.getFallbackCollectionData(collectionInfo);
+    }
+  }
+
+  private async fetchWithRetry(
+    url: string, 
+    options: any, 
+    maxRetries = 3
+  ): Promise<any> {
+    let lastError;
+    
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        const response = await fetch(url, {
+          ...options,
+          signal: AbortSignal.timeout(10000) // 10 second timeout
+        });
+        
+        if (response.status === 429) {
+          // Rate limited - exponential backoff
+          const waitTime = Math.min(Math.pow(2, i) * 1000, 10000);
+          console.warn(`Rate limited, waiting ${waitTime}ms before retry ${i + 1}`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          continue;
+        }
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        return await response.json();
+      } catch (error) {
+        lastError = error;
+        if (i < maxRetries - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+        }
+      }
+    }
+    
+    throw lastError;
+  }
+
+  private parseCollectionStats(statsData: any): NFTCollectionStats {
+    const stats = statsData?.total || {};
+    
+    return {
+      total_supply: stats.total_supply || 0,
+      num_owners: stats.num_owners || 0,
+      average_price: stats.average_price || 0,
+      floor_price: stats.floor_price || 0,
+      market_cap: stats.market_cap || 0,
+      one_day_volume: stats.one_day_volume || 0,
+      one_day_change: stats.one_day_change || 0,
+      one_day_sales: stats.one_day_sales || 0,
+      seven_day_volume: stats.seven_day_volume || 0,
+      seven_day_change: stats.seven_day_change || 0,
+      seven_day_sales: stats.seven_day_sales || 0,
+      thirty_day_volume: stats.thirty_day_volume || 0,
+      thirty_day_change: stats.thirty_day_change || 0,
+      thirty_day_sales: stats.thirty_day_sales || 0
+    };
+  }
+
+  private parseCollectionData(collectionData: any, collectionInfo: any): NFTCollection {
+    const collection = collectionData?.collection || {};
+    
+    return {
+      collection: collection.slug || collectionInfo.slug,
+      name: collection.name || collectionInfo.name,
+      description: collection.description || collectionInfo.description || '',
+      image_url: collection.image_url || '',
+      banner_image_url: collection.banner_image_url || '',
+      owner: collection.owner || '',
+      category: collectionInfo.category || 'art',
+      is_disabled: collection.is_disabled || false,
+      is_nsfw: collection.is_nsfw || false,
+      trait_offers_enabled: collection.trait_offers_enabled || false,
+      collection_offers_enabled: collection.collection_offers_enabled || false,
+      opensea_url: `https://opensea.io/collection/${collectionInfo.slug}`,
+      project_url: collection.project_url || '',
+      wiki_url: collection.wiki_url || '',
+      discord_url: collection.discord_url || '',
+      telegram_url: collection.telegram_url || '',
+      twitter_username: collection.twitter_username || '',
+      instagram_username: collection.instagram_username || '',
+      contracts: collection.contracts || [],
+      editors: collection.editors || [],
+      fees: collection.fees || [],
+      rarity: collection.rarity || {
+        strategy_id: '',
+        strategy_version: '',
+        rank_at: '',
+        max_rank: 0,
+        tokens_scored: 0
+      },
+      total_supply: collection.total_supply || 0,
+      created_date: collection.created_date || ''
+    };
+  }
+
+  private async fetchFloorItems(slug: string, headers: any): Promise<NFTFloorItem[]> {
+    try {
+      const response = await fetch(
+        `https://api.opensea.io/api/v2/collection/${slug}/nfts?limit=5&order_by=price&order_direction=asc`,
+        { headers, signal: AbortSignal.timeout(5000) }
+      );
+      
+      if (!response.ok) return [];
+      
+      const data = await response.json();
+      return (data.nfts || []).slice(0, 3).map((nft: any) => ({
+        token_id: nft.identifier || '',
+        name: nft.name || `#${nft.identifier}`,
+        image_url: nft.image_url || '',
+        price_eth: this.extractPriceFromNFT(nft),
+        price_usd: this.extractPriceFromNFT(nft) * 3500, // Approximate ETH to USD
+        rarity_rank: nft.rarity?.rank || null,
+        listing_time: nft.updated_at || new Date().toISOString(),
+        opensea_url: `https://opensea.io/assets/ethereum/${nft.contract}/${nft.identifier}`
+      }));
+    } catch (error) {
+      console.warn(`Failed to fetch floor items for ${slug}:`, error);
+      return [];
+    }
+  }
+
+  private async fetchRecentSales(slug: string, headers: any): Promise<NFTSaleEvent[]> {
+    try {
+      const response = await fetch(
+        `https://api.opensea.io/api/v2/events/collection/${slug}?event_type=sale&limit=5`,
+        { headers, signal: AbortSignal.timeout(5000) }
+      );
+      
+      if (!response.ok) return [];
+      
+      const data = await response.json();
+      return (data.events || []).slice(0, 3).map((event: any) => ({
+        token_id: event.nft?.identifier || '',
+        name: event.nft?.name || `#${event.nft?.identifier}`,
+        image_url: event.nft?.image_url || '',
+        price_eth: this.extractPriceFromEvent(event),
+        price_usd: parseFloat(event.payment?.price_usd || '0'),
+        buyer: event.winner?.address || '',
+        seller: event.seller?.address || '',
+        transaction_hash: event.transaction?.hash || '',
+        timestamp: event.event_timestamp || new Date().toISOString(),
+        event_type: 'sale' as const
+      }));
+    } catch (error) {
+      console.warn(`Failed to fetch recent sales for ${slug}:`, error);
+      return [];
+    }
+  }
+
+  private extractPriceFromNFT(nft: any): number {
+    if (nft.listings && nft.listings.length > 0) {
+      const listing = nft.listings[0];
+      return parseFloat(listing.price?.current?.value || '0') / Math.pow(10, 18);
+    }
+    return 0;
+  }
+
+  private extractPriceFromEvent(event: any): number {
+    if (event.payment?.quantity) {
+      return parseFloat(event.payment.quantity) / Math.pow(10, 18);
+    }
+    return 0;
+  }
+
+  private calculateNFTSummary(collections: NFTCollectionData[]): CuratedNFTsData['summary'] {
+    const totalVolume24h = collections.reduce((sum, c) => sum + c.stats.one_day_volume, 0);
+    const totalMarketCap = collections.reduce((sum, c) => sum + c.stats.market_cap, 0);
+    const avgFloorPrice = collections.length > 0 
+      ? collections.reduce((sum, c) => sum + c.stats.floor_price, 0) / collections.length 
+      : 0;
+
+    // Top and worst performers (by 24h volume change)
+    const sortedByChange = [...collections]
+      .filter(c => c.stats.one_day_change !== 0)
+      .sort((a, b) => b.stats.one_day_change - a.stats.one_day_change);
+
+    const topPerformers = sortedByChange.slice(0, 5);
+    const worstPerformers = sortedByChange.slice(-5).reverse();
+
+    return {
+      totalVolume24h,
+      totalMarketCap,
+      avgFloorPrice,
+      topPerformers,
+      worstPerformers,
+      totalCollections: collections.length
+    };
+  }
+
+  private getFallbackCollectionData(collectionInfo: any): NFTCollectionData {
+    return {
+      slug: collectionInfo.slug,
+      collection: {
+        collection: collectionInfo.slug,
+        name: collectionInfo.name,
+        description: collectionInfo.description || '',
+        image_url: '',
+        banner_image_url: '',
+        owner: '',
+        category: collectionInfo.category || 'art',
+        is_disabled: false,
+        is_nsfw: false,
+        trait_offers_enabled: false,
+        collection_offers_enabled: false,
+        opensea_url: `https://opensea.io/collection/${collectionInfo.slug}`,
+        project_url: '',
+        wiki_url: '',
+        discord_url: '',
+        telegram_url: '',
+        twitter_username: '',
+        instagram_username: '',
+        contracts: [],
+        editors: [],
+        fees: [],
+        rarity: {
+          strategy_id: '',
+          strategy_version: '',
+          rank_at: '',
+          max_rank: 0,
+          tokens_scored: 0
+        },
+        total_supply: 0,
+        created_date: ''
+      },
+      stats: {
+        total_supply: 0,
+        num_owners: 0,
+        average_price: 0,
+        floor_price: 0,
+        market_cap: 0,
+        one_day_volume: 0,
+        one_day_change: 0,
+        one_day_sales: 0,
+        seven_day_volume: 0,
+        seven_day_change: 0,
+        seven_day_sales: 0,
+        thirty_day_volume: 0,
+        thirty_day_change: 0,
+        thirty_day_sales: 0
+      },
+      lastUpdated: new Date(),
+      category: collectionInfo.category,
+      floorItems: [],
+      recentSales: [],
+      contractAddress: '',
+      blockchain: 'ethereum'
+    };
+  }
+
+  private getFallbackNFTsData(): CuratedNFTsData {
+    return {
+      collections: [],
+      summary: {
+        totalVolume24h: 0,
+        totalMarketCap: 0,
+        avgFloorPrice: 0,
+        topPerformers: [],
+        worstPerformers: [],
+        totalCollections: 0
+      },
+      lastUpdated: new Date()
+    };
   }
 
   // Weather data management
