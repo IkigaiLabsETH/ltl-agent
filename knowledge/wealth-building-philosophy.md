@@ -13,6 +13,110 @@ The alternative framework:
 **The Old Model**: Work for decades, defer happiness, hope to be free someday.
 **The New Model**: Don't wait. See the future and act now.
 
+## Why Builders Choose Bitcoin: A Naval-Inspired Field Guide
+
+### The Real Game is Wealth
+
+The real game is wealth—assets that compound while you sleep and free you to think beyond the next paycheck.
+
+That insight detonated across the internet in 2018 when entrepreneur-investor Naval Ravikant posted his legendary tweetstorm and later unpacked it in the podcast episode.
+
+**The Three Foundational Principles:**
+
+1. **Seek wealth, not money or status**
+2. **Money is how we transfer time and wealth**
+3. **Ignore people playing status games**
+
+### Leverage in a Digital Frontier
+
+You won't find freedom trading hours for dollars. To get truly wealthy, you need equity—own a piece of something that scales. Wealth is created by solving problems people don't yet know they have—at scale.
+
+**The Strategic Framework:**
+- Choose a game worth playing for decades
+- Surround yourself with allies who compound value, not extract it
+- The greatest returns—wealth, wisdom, love—compound over time
+- Build rare, specific knowledge that feels like play to you, but looks like work to everyone else
+
+**Code and media are leverage without permission.** You can deploy both while you sleep. An army of invisible robots is at your disposal—coded, stored, and humming in data centers. Use them.
+
+### The Infinite Game Mindset
+
+**This isn't a blueprint. It's a compass.**
+
+It explores Naval's mental models—compounding, infinite games, engineering your own luck. The approach:
+
+1. **Listen** - Absorb the signal
+2. **Then Build** - Write your own script in code, in sats, in skin
+3. **Deploy** - Press play, download the philosophy, deploy it on-chain
+
+**The Compound Effect:**
+- Wealth compounds
+- Wisdom compounds  
+- Trust compounds
+
+### The Permission-Free Economy
+
+**Code and Media: The New Leverage**
+
+Unlike traditional forms of leverage (labor and capital), code and media don't require permission:
+- **Code**: Software scales infinitely with near-zero marginal cost
+- **Media**: Content reaches global audiences without gatekeepers
+- **Combination**: Build products that teach, entertain, and solve problems
+
+**The Bitcoin Connection:**
+This is why builders choose Bitcoin. It's the first form of money that operates without permission—programmable money for the permission-free economy.
+
+### From Status Games to Wealth Games
+
+**Status Games** (Avoid These):
+- Competing for titles and recognition
+- Zero-sum thinking
+- Extracting value from others
+- Playing for applause
+
+**Wealth Games** (Focus Here):
+- Creating value that scales
+- Positive-sum thinking
+- Building systems that compound
+- Playing for freedom
+
+### The Naval-Bitcoin Synthesis
+
+**Why This Philosophy Leads to Bitcoin:**
+
+1. **Specific Knowledge**: Understanding monetary systems and decentralization
+2. **Leverage**: Bitcoin as programmable money amplifies your other leverage
+3. **Compounding**: Bitcoin's network effects and scarcity create compounding value
+4. **Permission-Free**: No intermediaries, no gatekeepers, no debasement
+5. **Infinite Game**: Bitcoin is designed to play forever, not to end
+
+### The Implementation Path
+
+**Listen, Then Build:**
+- This thread isn't about getting rich—it's about getting free
+- Don't just listen, absorb the signal
+- Then write your own script in code, in sats, in skin
+- Press play, download the philosophy, deploy it on-chain
+
+**The Meta-Game:**
+- Wealth compounds
+- Wisdom compounds  
+- Trust compounds
+- Your job is to get all three working together
+
+### The Freedom Equation
+
+**Naval's Formula Applied to Bitcoin:**
+- **Specific Knowledge** (Understanding Bitcoin) 
+- **+ Leverage** (Code/Media/Capital)
+- **+ Accountability** (Building in public)
+- **+ Applied Consistently** (Long-term thinking)
+- **= Financial Freedom**
+
+This isn't about getting rich quick. It's about building systems that create wealth while you sleep, giving you the freedom to work on what matters most to you.
+
+**The Ultimate Goal:** Not just financial independence, but the sovereignty to live life on your own terms.
+
 ## Bitcoin Scarcity Economics
 
 ### The 0.05 Bitcoin Threshold
