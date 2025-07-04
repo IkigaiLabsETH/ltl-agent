@@ -3,17 +3,53 @@ import { defineConfig } from 'tsup';
 export default defineConfig({
   entry: ['plugin-bitcoin-ltl/src/index.ts'],
   outDir: 'dist',
-  tsconfig: './tsconfig.build.json', // Use build-specific tsconfig
+  tsconfig: './tsconfig.build.json',
   sourcemap: true,
   clean: true,
-  format: ['esm'], // Ensure you're targeting CommonJS
-  dts: false, // Skip DTS generation to avoid external import issues // Ensure you're targeting CommonJS
+  format: ['esm'],
+  dts: true,
   external: [
-    'dotenv', // Externalize dotenv to prevent bundling
-    'fs', // Externalize fs to use Node.js built-in module
-    'path', // Externalize other built-ins if necessary
+    // Core Node.js modules
+    'dotenv',
+    'fs',
+    'path',
     'https',
     'http',
+    'util',
+    'crypto',
+    'stream',
+    'events',
+    'buffer',
+    'url',
+    'os',
+    'zlib',
+    
+    // Third-party modules that should not be bundled
     'zod',
+    'form-data',
+    'combined-stream',
+    'mime-types',
+    'asynckit',
+    'node-fetch',
+    'axios',
+    
+    // ElizaOS core modules
+    '@elizaos/core',
+    '@elizaos/plugin-sql',
+    '@elizaos/plugin-openai',
+    '@elizaos/plugin-anthropic',
+    '@elizaos/plugin-local-ai',
+    '@elizaos/plugin-bootstrap',
+    '@elizaos/plugin-knowledge',
+    '@elizaos/plugin-discord',
+    '@elizaos/plugin-slack',
+    '@elizaos/plugin-twitter',
+    '@elizaos/plugin-telegram',
+    '@elizaos/plugin-thirdweb',
+    '@elizaos/plugin-video-generation',
   ],
+  noExternal: [], // Let all dependencies be external unless specifically needed
+  bundle: true,
+  splitting: false,
+  treeshake: false, // Disable treeshaking to avoid issues with dynamic imports
 });
