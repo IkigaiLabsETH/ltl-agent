@@ -549,6 +549,8 @@ export class AltcoinDataService extends BaseDataService {
 
   private async fetchTop100VsBtcData(): Promise<Top100VsBtcData | null> {
     try {
+      logger.info('[AltcoinDataService] Starting fetchTop100VsBtcData...');
+      
       // Step 1: Fetch top 100 coins against BTC to find outperformers and their performance vs BTC
       const btcMarketData = await this.makeQueuedRequest(async () => {
         return await this.fetchWithRetry(
@@ -559,13 +561,21 @@ export class AltcoinDataService extends BaseDataService {
         );
       });
 
+      logger.info(`[AltcoinDataService] Fetched ${btcMarketData?.length || 0} coins from CoinGecko`);
+
+      // Validate the response
+      if (!Array.isArray(btcMarketData)) {
+        logger.error('[AltcoinDataService] Invalid btcMarketData response:', typeof btcMarketData);
+        return null;
+      }
+
       // Step 2: Separate outperformers and underperformers
       const outperformingVsBtc = btcMarketData.filter(
-        (coin: any) => coin.price_change_percentage_24h > 0
+        (coin: any) => coin && typeof coin.price_change_percentage_24h === 'number' && coin.price_change_percentage_24h > 0
       );
       
       const underperformingVsBtc = btcMarketData.filter(
-        (coin: any) => coin.price_change_percentage_24h <= 0
+        (coin: any) => coin && typeof coin.price_change_percentage_24h === 'number' && coin.price_change_percentage_24h <= 0
       );
 
       if (outperformingVsBtc.length === 0) {
@@ -638,7 +648,12 @@ export class AltcoinDataService extends BaseDataService {
       return result;
       
     } catch (error) {
-      logger.error('Error in fetchTop100VsBtcData:', error);
+      logger.error('[AltcoinDataService] ❌ Error in fetchTop100VsBtcData:', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        type: typeof error,
+        details: error
+      });
       return null;
     }
   }
