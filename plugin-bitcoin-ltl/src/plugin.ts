@@ -25,7 +25,7 @@ import {
   SchedulerService,
   RealTimeDataService
 } from './services';
-import { morningBriefingAction, curatedAltcoinsAction, top100VsBtcAction, dexScreenerAction, topMoversAction, trendingCoinsAction } from './actions';
+import { morningBriefingAction, curatedAltcoinsAction, top100VsBtcAction, dexScreenerAction, topMoversAction, trendingCoinsAction, curatedNFTsAction, weatherAction } from './actions';
 
 /**
  * Bitcoin Plugin Configuration Schema
@@ -3122,7 +3122,9 @@ const bitcoinPlugin: Plugin = {
     top100VsBtcAction,
     dexScreenerAction,
     topMoversAction,
-    trendingCoinsAction
+    trendingCoinsAction,
+    curatedNFTsAction,
+    weatherAction
   ],
   events: {
     MESSAGE_RECEIVED: [

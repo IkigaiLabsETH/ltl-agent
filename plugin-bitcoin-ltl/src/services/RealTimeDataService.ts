@@ -236,6 +236,199 @@ export interface TrendingCoinsCache {
   timestamp: number;
 }
 
+export interface NFTCollectionStats {
+  total_supply: number;
+  num_owners: number;
+  average_price: number;
+  floor_price: number;
+  market_cap: number;
+  one_day_volume: number;
+  one_day_change: number;
+  one_day_sales: number;
+  seven_day_volume: number;
+  seven_day_change: number;
+  seven_day_sales: number;
+  thirty_day_volume: number;
+  thirty_day_change: number;
+  thirty_day_sales: number;
+}
+
+export interface NFTCollection {
+  collection: string;
+  name: string;
+  description: string;
+  image_url: string;
+  banner_image_url: string;
+  owner: string;
+  category: string;
+  is_disabled: boolean;
+  is_nsfw: boolean;
+  trait_offers_enabled: boolean;
+  collection_offers_enabled: boolean;
+  opensea_url: string;
+  project_url: string;
+  wiki_url: string;
+  discord_url: string;
+  telegram_url: string;
+  twitter_username: string;
+  instagram_username: string;
+  contracts: Array<{
+    address: string;
+    chain: string;
+  }>;
+  editors: string[];
+  fees: Array<{
+    fee: number;
+    recipient: string;
+    required: boolean;
+  }>;
+  rarity: {
+    strategy_id: string;
+    strategy_version: string;
+    rank_at: string;
+    max_rank: number;
+    tokens_scored: number;
+  };
+  total_supply: number;
+  created_date: string;
+}
+
+export interface NFTCollectionData {
+  slug: string;
+  collection: NFTCollection;
+  stats: NFTCollectionStats;
+  lastUpdated: Date;
+  category: 'blue-chip' | 'generative-art' | 'digital-art' | 'pfp' | 'utility';
+}
+
+export interface CuratedNFTsData {
+  collections: NFTCollectionData[];
+  summary: {
+    totalVolume24h: number;
+    totalMarketCap: number;
+    avgFloorPrice: number;
+    topPerformers: NFTCollectionData[];
+    worstPerformers: NFTCollectionData[];
+    totalCollections: number;
+  };
+  lastUpdated: Date;
+}
+
+export interface CuratedNFTsCache {
+  data: CuratedNFTsData;
+  timestamp: number;
+}
+
+export interface WeatherData {
+  latitude: number;
+  longitude: number;
+  generationtime_ms: number;
+  utc_offset_seconds: number;
+  timezone: string;
+  timezone_abbreviation: string;
+  elevation: number;
+  current_units: {
+    time: string;
+    interval: string;
+    temperature_2m: string;
+    wind_speed_10m: string;
+    wind_direction_10m: string;
+  };
+  current: {
+    time: string;
+    interval: number;
+    temperature_2m: number;
+    wind_speed_10m: number;
+    wind_direction_10m: number;
+  };
+  hourly_units: {
+    time: string;
+    temperature_2m: string;
+    wind_speed_10m: string;
+    wind_direction_10m: string;
+  };
+  hourly: {
+    time: string[];
+    temperature_2m: number[];
+    wind_speed_10m: number[];
+    wind_direction_10m: number[];
+  };
+}
+
+export interface MarineData {
+  latitude: number;
+  longitude: number;
+  generationtime_ms: number;
+  utc_offset_seconds: number;
+  timezone: string;
+  timezone_abbreviation: string;
+  current_units: {
+    time: string;
+    wave_height: string;
+    wave_direction: string;
+    wave_period: string;
+    sea_surface_temperature: string;
+  };
+  current: {
+    time: string;
+    wave_height: number;
+    wave_direction: number;
+    wave_period: number;
+    sea_surface_temperature: number;
+  };
+}
+
+export interface AirQualityData {
+  latitude: number;
+  longitude: number;
+  generationtime_ms: number;
+  utc_offset_seconds: number;
+  timezone: string;
+  timezone_abbreviation: string;
+  elevation: number;
+  current_units: {
+    time: string;
+    pm10: string;
+    pm2_5: string;
+    uv_index: string;
+    uv_index_clear_sky: string;
+  };
+  current: {
+    time: string;
+    pm10: number;
+    pm2_5: number;
+    uv_index: number;
+    uv_index_clear_sky: number;
+  };
+}
+
+export interface CityWeatherData {
+  city: string;
+  displayName: string;
+  weather: WeatherData;
+  marine?: MarineData;
+  airQuality?: AirQualityData;
+  lastUpdated: Date;
+}
+
+export interface ComprehensiveWeatherData {
+  cities: CityWeatherData[];
+  summary: {
+    bestWeatherCity: string;
+    bestSurfConditions: string | null;
+    averageTemp: number;
+    windConditions: 'calm' | 'breezy' | 'windy' | 'stormy';
+    uvRisk: 'low' | 'moderate' | 'high' | 'very-high';
+    airQuality: 'excellent' | 'good' | 'moderate' | 'poor';
+  };
+  lastUpdated: Date;
+}
+
+export interface WeatherCache {
+  data: ComprehensiveWeatherData;
+  timestamp: number;
+}
+
 export class RealTimeDataService extends Service {
   static serviceType = 'real-time-data';
   capabilityDescription = 'Provides real-time market data, news feeds, and social sentiment analysis';
@@ -292,6 +485,90 @@ export class RealTimeDataService extends Service {
   private readonly TOP_MOVERS_CACHE_DURATION = 60 * 1000; // 1 minute (matches website)
   private trendingCoinsCache: TrendingCoinsCache | null = null;
   private readonly TRENDING_COINS_CACHE_DURATION = 60 * 1000; // 1 minute (matches website)
+  private curatedNFTsCache: CuratedNFTsCache | null = null;
+  private readonly CURATED_NFTS_CACHE_DURATION = 60 * 1000; // 1 minute (matches website caching)
+  private weatherCache: WeatherCache | null = null;
+  private readonly WEATHER_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes (matches website)
+
+  // Curated European lifestyle cities
+  private readonly weatherCities = {
+    biarritz: { 
+      lat: 43.4833, 
+      lon: -1.5586, 
+      displayName: 'Biarritz',
+      description: 'French Basque coast, surfing paradise'
+    },
+    bordeaux: { 
+      lat: 44.8378, 
+      lon: -0.5792, 
+      displayName: 'Bordeaux',
+      description: 'Wine capital, luxury living'
+    },
+    monaco: { 
+      lat: 43.7384, 
+      lon: 7.4246, 
+      displayName: 'Monaco',
+      description: 'Tax haven, Mediterranean luxury'
+    }
+  };
+
+  // Curated NFT collections (high-end digital art and OG collections)
+  private readonly curatedNFTCollections = [
+    { slug: 'fidenza-by-tyler-hobbs', category: 'generative-art' as const },
+    { slug: 'cryptopunks', category: 'blue-chip' as const },
+    { slug: '0xdgb-thecameras', category: 'digital-art' as const },
+    { slug: 'the-harvest-by-per-kristian-stoveland', category: 'generative-art' as const },
+    { slug: 'terraforms', category: 'generative-art' as const },
+    { slug: 'xcopy-knownorigin', category: 'digital-art' as const },
+    { slug: 'winds-of-yawanawa', category: 'digital-art' as const },
+    { slug: 'meridian-by-matt-deslauriers', category: 'generative-art' as const },
+    { slug: 'ackcolorstudy', category: 'generative-art' as const },
+    { slug: 'vera-molnar-themes-and-variations', category: 'generative-art' as const },
+    { slug: 'sightseers-by-norman-harman', category: 'generative-art' as const },
+    { slug: 'progression-by-jeff-davis', category: 'generative-art' as const },
+    { slug: 'risk-reward-by-kjetil-golid', category: 'generative-art' as const },
+    { slug: 'brokenkeys', category: 'digital-art' as const },
+    { slug: 'aligndraw', category: 'generative-art' as const },
+    { slug: 'archetype-by-kjetil-golid', category: 'generative-art' as const },
+    { slug: 'ripcache', category: 'digital-art' as const },
+    { slug: 'qql', category: 'generative-art' as const },
+    { slug: 'human-unreadable-by-operator', category: 'digital-art' as const },
+    { slug: 'jaknfthoodies', category: 'pfp' as const },
+    { slug: 'non-either-by-rafael-rozendaal', category: 'digital-art' as const },
+    { slug: 'orbifold-by-kjetil-golid', category: 'generative-art' as const },
+    { slug: 'pop-wonder-editions', category: 'digital-art' as const },
+    { slug: 'monstersoup', category: 'pfp' as const },
+    { slug: 'machine-hallucinations-coral-generative-ai-data-pa', category: 'digital-art' as const },
+    { slug: 'getijde-by-bart-simons', category: 'generative-art' as const },
+    { slug: '24-hours-of-art', category: 'digital-art' as const },
+    { slug: 'pursuit-by-per-kristian-stoveland', category: 'generative-art' as const },
+    { slug: '100-sunsets-by-zach-lieberman', category: 'digital-art' as const },
+    { slug: 'strands-of-solitude', category: 'generative-art' as const },
+    { slug: 'justinaversano-gabbagallery', category: 'digital-art' as const },
+    { slug: 'neural-sediments-by-eko33', category: 'generative-art' as const },
+    { slug: 'wavyscape-by-holger-lippmann', category: 'generative-art' as const },
+    { slug: 'opepen-edition', category: 'pfp' as const },
+    { slug: 'mind-the-gap-by-mountvitruvius', category: 'generative-art' as const },
+    { slug: 'urban-transportation-red-trucks', category: 'digital-art' as const },
+    { slug: 'trichro-matic-by-mountvitruvius', category: 'generative-art' as const },
+    { slug: 'sam-spratt-masks-of-luci', category: 'digital-art' as const },
+    { slug: 'pink-such-a-useless-color-by-simon-raion', category: 'digital-art' as const },
+    { slug: 'sketchbook-a-by-william-mapan-1', category: 'generative-art' as const },
+    { slug: 'life-and-love-and-nothing-by-nat-sarkissian', category: 'digital-art' as const },
+    { slug: 'highrises', category: 'digital-art' as const },
+    { slug: 'lifeguard-towers-miami', category: 'digital-art' as const },
+    { slug: 'stranger-together-by-brooke-didonato-ben-zank', category: 'digital-art' as const },
+    { slug: 'the-vault-of-wonders-chapter-1-the-abyssal-unseen', category: 'digital-art' as const },
+    { slug: 'skulptuur-by-piter-pasma', category: 'generative-art' as const },
+    { slug: 'dataland-biomelumina', category: 'generative-art' as const },
+    { slug: 'pop-wonder-superrare', category: 'digital-art' as const },
+    { slug: 'cryptodickbutts', category: 'pfp' as const },
+    { slug: 'day-gardens', category: 'generative-art' as const },
+    { slug: 'cryptoadz-by-gremplin', category: 'pfp' as const },
+    { slug: 'izanami-islands-by-richard-nadler', category: 'digital-art' as const },
+    { slug: 'yamabushi-s-horizons-by-richard-nadler', category: 'digital-art' as const },
+    { slug: 'kinoko-dreams-by-richard-nadler', category: 'digital-art' as const }
+  ];
 
   constructor(runtime: IAgentRuntime) {
     super();
@@ -368,11 +645,17 @@ export class RealTimeDataService extends Service {
       // Update trending coins data (with its own caching)
       await this.updateTrendingCoinsData();
 
+      // Update curated NFTs data (with its own caching)
+      await this.updateCuratedNFTsData();
+
+      // Update weather data (with its own caching)
+      await this.updateWeatherData();
+
       // Generate alerts based on new data
       const alerts = this.generateAlerts(marketData, newsItems, socialSentiment);
       this.alerts = alerts;
 
-      console.log(`[RealTimeDataService] Updated data - ${marketData.length} markets, ${newsItems.length} news items, ${alerts.length} alerts, BTC network data: ${comprehensiveBitcoinData ? 'success' : 'failed'}, curated altcoins: ${this.curatedAltcoinsCache ? 'cached' : 'updated'}, top movers: ${this.topMoversCache ? 'cached' : 'updated'}, trending coins: ${this.trendingCoinsCache ? 'cached' : 'updated'}`);
+      console.log(`[RealTimeDataService] Updated data - ${marketData.length} markets, ${newsItems.length} news items, ${alerts.length} alerts, BTC network data: ${comprehensiveBitcoinData ? 'success' : 'failed'}, curated altcoins: ${this.curatedAltcoinsCache ? 'cached' : 'updated'}, top movers: ${this.topMoversCache ? 'cached' : 'updated'}, trending coins: ${this.trendingCoinsCache ? 'cached' : 'updated'}, curated NFTs: ${this.curatedNFTsCache ? 'cached' : 'updated'}, weather: ${this.weatherCache ? 'cached' : 'updated'}`);
     } catch (error) {
       console.error('Error in updateAllData:', error);
     }
@@ -815,6 +1098,20 @@ export class RealTimeDataService extends Service {
     return this.trendingCoinsCache.data;
   }
 
+  public getCuratedNFTsData(): CuratedNFTsData | null {
+    if (!this.curatedNFTsCache || !this.isCuratedNFTsCacheValid()) {
+      return null;
+    }
+    return this.curatedNFTsCache.data;
+  }
+
+  public getWeatherData(): ComprehensiveWeatherData | null {
+    if (!this.weatherCache || !this.isWeatherCacheValid()) {
+      return null;
+    }
+    return this.weatherCache.data;
+  }
+
   public async forceUpdate(): Promise<void> {
     await this.updateAllData();
   }
@@ -837,6 +1134,14 @@ export class RealTimeDataService extends Service {
 
   public async forceTrendingCoinsUpdate(): Promise<TrendingCoinsData | null> {
     return await this.fetchTrendingCoinsData();
+  }
+
+  public async forceCuratedNFTsUpdate(): Promise<CuratedNFTsData | null> {
+    return await this.fetchCuratedNFTsData();
+  }
+
+  public async forceWeatherUpdate(): Promise<ComprehensiveWeatherData | null> {
+    return await this.fetchWeatherData();
   }
 
   // Comprehensive Bitcoin data fetcher
@@ -1430,6 +1735,366 @@ export class RealTimeDataService extends Service {
       
     } catch (error) {
       console.error('Error in fetchTrendingCoinsData:', error);
+      return null;
+    }
+  }
+
+  // Curated NFTs data management
+  private isCuratedNFTsCacheValid(): boolean {
+    if (!this.curatedNFTsCache) return false;
+    return Date.now() - this.curatedNFTsCache.timestamp < this.CURATED_NFTS_CACHE_DURATION;
+  }
+
+  private async updateCuratedNFTsData(): Promise<void> {
+    // Only fetch if cache is invalid
+    if (!this.isCuratedNFTsCacheValid()) {
+      const data = await this.fetchCuratedNFTsData();
+      if (data) {
+        this.curatedNFTsCache = {
+          data,
+          timestamp: Date.now()
+        };
+      }
+    }
+  }
+
+  private async fetchCuratedNFTsData(): Promise<CuratedNFTsData | null> {
+    try {
+      console.log('[RealTimeDataService] Fetching curated NFTs data...');
+      
+      const openSeaApiKey = this.runtime.getSetting('OPENSEA_API_KEY');
+      if (!openSeaApiKey) {
+        console.warn('OPENSEA_API_KEY not configured, skipping NFT data fetch');
+        return null;
+      }
+
+      const headers = {
+        'Accept': 'application/json',
+        'X-API-KEY': openSeaApiKey
+      };
+
+      // Fetch data for a sample of collections to avoid rate limits
+      // In production, you might want to implement batching or rate limiting
+      const sampleCollections = this.curatedNFTCollections.slice(0, 20); // First 20 collections
+
+      const collectionPromises = sampleCollections.map(async ({ slug, category }) => {
+        try {
+          const response = await fetch(
+            `https://api.opensea.io/api/v2/collections/${slug}/stats`,
+            { headers }
+          );
+
+          if (!response.ok) {
+            console.warn(`Failed to fetch ${slug}: ${response.status}`);
+            return null;
+          }
+
+          const statsData = await response.json();
+          
+          // Also fetch basic collection info
+          const collectionResponse = await fetch(
+            `https://api.opensea.io/api/v2/collections/${slug}`,
+            { headers }
+          );
+
+          let collectionInfo = null;
+          if (collectionResponse.ok) {
+            collectionInfo = await collectionResponse.json();
+          }
+
+          return {
+            slug,
+            collection: collectionInfo || {
+              collection: slug,
+              name: slug,
+              description: '',
+              image_url: '',
+              banner_image_url: '',
+              owner: '',
+              category: '',
+              is_disabled: false,
+              is_nsfw: false,
+              trait_offers_enabled: false,
+              collection_offers_enabled: false,
+              opensea_url: `https://opensea.io/collection/${slug}`,
+              project_url: '',
+              wiki_url: '',
+              discord_url: '',
+              telegram_url: '',
+              twitter_username: '',
+              instagram_username: '',
+              contracts: [],
+              editors: [],
+              fees: [],
+              rarity: {
+                strategy_id: '',
+                strategy_version: '',
+                rank_at: '',
+                max_rank: 0,
+                tokens_scored: 0
+              },
+              total_supply: 0,
+              created_date: ''
+            },
+            stats: {
+              total_supply: statsData.total_supply || 0,
+              num_owners: statsData.num_owners || 0,
+              average_price: statsData.average_price || 0,
+              floor_price: statsData.floor_price || 0,
+              market_cap: statsData.market_cap || 0,
+              one_day_volume: statsData.one_day_volume || 0,
+              one_day_change: statsData.one_day_change || 0,
+              one_day_sales: statsData.one_day_sales || 0,
+              seven_day_volume: statsData.seven_day_volume || 0,
+              seven_day_change: statsData.seven_day_change || 0,
+              seven_day_sales: statsData.seven_day_sales || 0,
+              thirty_day_volume: statsData.thirty_day_volume || 0,
+              thirty_day_change: statsData.thirty_day_change || 0,
+              thirty_day_sales: statsData.thirty_day_sales || 0
+            },
+            lastUpdated: new Date(),
+            category
+          } as NFTCollectionData;
+        } catch (error) {
+          console.error(`Error fetching ${slug}:`, error);
+          return null;
+        }
+      });
+
+      // Add delay between requests to respect rate limits
+      const collections: NFTCollectionData[] = [];
+      for (let i = 0; i < collectionPromises.length; i++) {
+        if (i > 0) {
+          await new Promise(resolve => setTimeout(resolve, 200)); // 200ms delay
+        }
+        try {
+          const result = await collectionPromises[i];
+          if (result) {
+            collections.push(result);
+          }
+        } catch (error) {
+          console.error(`Error processing collection ${i}:`, error);
+        }
+      }
+
+      // Calculate summary statistics
+      const totalVolume24h = collections.reduce((sum, c) => sum + c.stats.one_day_volume, 0);
+      const totalMarketCap = collections.reduce((sum, c) => sum + c.stats.market_cap, 0);
+      const avgFloorPrice = collections.length > 0 
+        ? collections.reduce((sum, c) => sum + c.stats.floor_price, 0) / collections.length 
+        : 0;
+
+      // Top and worst performers (by 24h volume change)
+      const sortedByChange = [...collections]
+        .filter(c => c.stats.one_day_change !== 0)
+        .sort((a, b) => b.stats.one_day_change - a.stats.one_day_change);
+
+      const topPerformers = sortedByChange.slice(0, 5);
+      const worstPerformers = sortedByChange.slice(-5).reverse();
+
+      const result: CuratedNFTsData = {
+        collections,
+        summary: {
+          totalVolume24h,
+          totalMarketCap,
+          avgFloorPrice,
+          topPerformers,
+          worstPerformers,
+          totalCollections: collections.length
+        },
+        lastUpdated: new Date()
+      };
+
+      console.log(`[RealTimeDataService] Fetched NFTs data: ${collections.length} collections, total 24h volume: ${totalVolume24h.toFixed(2)} ETH`);
+      return result;
+
+    } catch (error) {
+      console.error('Error in fetchCuratedNFTsData:', error);
+      return null;
+    }
+  }
+
+  // Weather data management
+  private isWeatherCacheValid(): boolean {
+    if (!this.weatherCache) return false;
+    return Date.now() - this.weatherCache.timestamp < this.WEATHER_CACHE_DURATION;
+  }
+
+  private async updateWeatherData(): Promise<void> {
+    // Only fetch if cache is invalid
+    if (!this.isWeatherCacheValid()) {
+      const data = await this.fetchWeatherData();
+      if (data) {
+        this.weatherCache = {
+          data,
+          timestamp: Date.now()
+        };
+      }
+    }
+  }
+
+  private async fetchWeatherData(): Promise<ComprehensiveWeatherData | null> {
+    try {
+      console.log('[RealTimeDataService] Fetching weather data for European lifestyle cities...');
+      
+      const cities = Object.entries(this.weatherCities);
+      const cityWeatherPromises = cities.map(async ([cityKey, cityConfig]) => {
+        try {
+          // Fetch weather data
+          const weatherResponse = await fetch(
+            `https://api.open-meteo.com/v1/forecast?latitude=${cityConfig.lat}&longitude=${cityConfig.lon}&current=temperature_2m,wind_speed_10m,wind_direction_10m&hourly=temperature_2m,wind_speed_10m,wind_direction_10m&models=meteofrance_seamless`,
+            { signal: AbortSignal.timeout(5000) }
+          );
+
+          if (!weatherResponse.ok) {
+            console.warn(`Failed to fetch weather for ${cityKey}: ${weatherResponse.status}`);
+            return null;
+          }
+
+          const weatherData = await weatherResponse.json();
+
+          // Fetch marine data (for coastal cities)
+          let marineData = null;
+          if (cityKey === 'biarritz' || cityKey === 'monaco') {
+            try {
+              const marineResponse = await fetch(
+                `https://marine-api.open-meteo.com/v1/marine?latitude=${cityConfig.lat}&longitude=${cityConfig.lon}&current=wave_height,wave_direction,wave_period,sea_surface_temperature`,
+                { signal: AbortSignal.timeout(5000) }
+              );
+              if (marineResponse.ok) {
+                marineData = await marineResponse.json();
+              }
+            } catch (error) {
+              console.warn(`Failed to fetch marine data for ${cityKey}:`, error);
+            }
+          }
+
+          // Fetch air quality data
+          let airQualityData = null;
+          try {
+            const airQualityResponse = await fetch(
+              `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${cityConfig.lat}&longitude=${cityConfig.lon}&current=pm10,pm2_5,uv_index,uv_index_clear_sky`,
+              { signal: AbortSignal.timeout(5000) }
+            );
+            if (airQualityResponse.ok) {
+              airQualityData = await airQualityResponse.json();
+            }
+          } catch (error) {
+            console.warn(`Failed to fetch air quality data for ${cityKey}:`, error);
+          }
+
+          return {
+            city: cityKey,
+            displayName: cityConfig.displayName,
+            weather: weatherData,
+            marine: marineData,
+            airQuality: airQualityData,
+            lastUpdated: new Date()
+          } as CityWeatherData;
+
+        } catch (error) {
+          console.error(`Error fetching weather for ${cityKey}:`, error);
+          return null;
+        }
+      });
+
+      // Add delays between requests to avoid rate limits
+      const cityWeatherData: CityWeatherData[] = [];
+      for (let i = 0; i < cityWeatherPromises.length; i++) {
+        if (i > 0) {
+          await new Promise(resolve => setTimeout(resolve, 300)); // 300ms delay
+        }
+        try {
+          const result = await cityWeatherPromises[i];
+          if (result) {
+            cityWeatherData.push(result);
+          }
+        } catch (error) {
+          console.error(`Error processing weather for city ${i}:`, error);
+        }
+      }
+
+      // Calculate summary statistics
+      if (cityWeatherData.length === 0) {
+        console.warn('No weather data retrieved for any city');
+        return null;
+      }
+
+      const temperatures = cityWeatherData.map(city => city.weather.current.temperature_2m);
+      const averageTemp = temperatures.reduce((sum, temp) => sum + temp, 0) / temperatures.length;
+
+      // Find best weather city (highest temp, lowest wind)
+      const bestWeatherCity = cityWeatherData.reduce((best, current) => {
+        const bestScore = best.weather.current.temperature_2m - (best.weather.current.wind_speed_10m * 0.5);
+        const currentScore = current.weather.current.temperature_2m - (current.weather.current.wind_speed_10m * 0.5);
+        return currentScore > bestScore ? current : best;
+      }).displayName;
+
+      // Find best surf conditions (coastal cities only)
+      const coastalCities = cityWeatherData.filter(city => city.marine);
+      let bestSurfConditions = null;
+      if (coastalCities.length > 0) {
+        const bestSurf = coastalCities.reduce((best, current) => {
+          if (!best.marine || !current.marine) return best;
+          const bestWaves = best.marine.current.wave_height * best.marine.current.wave_period;
+          const currentWaves = current.marine.current.wave_height * current.marine.current.wave_period;
+          return currentWaves > bestWaves ? current : best;
+        });
+        bestSurfConditions = bestSurf.displayName;
+      }
+
+      // Wind conditions assessment
+      const maxWindSpeed = Math.max(...cityWeatherData.map(city => city.weather.current.wind_speed_10m));
+      let windConditions: 'calm' | 'breezy' | 'windy' | 'stormy';
+      if (maxWindSpeed < 10) windConditions = 'calm';
+      else if (maxWindSpeed < 20) windConditions = 'breezy';
+      else if (maxWindSpeed < 35) windConditions = 'windy';
+      else windConditions = 'stormy';
+
+      // UV risk assessment
+      const uvIndices = cityWeatherData
+        .filter(city => city.airQuality?.current.uv_index !== undefined)
+        .map(city => city.airQuality!.current.uv_index);
+      
+      let uvRisk: 'low' | 'moderate' | 'high' | 'very-high' = 'low';
+      if (uvIndices.length > 0) {
+        const maxUV = Math.max(...uvIndices);
+        if (maxUV >= 8) uvRisk = 'very-high';
+        else if (maxUV >= 6) uvRisk = 'high';
+        else if (maxUV >= 3) uvRisk = 'moderate';
+      }
+
+      // Air quality assessment
+      const pm25Values = cityWeatherData
+        .filter(city => city.airQuality?.current.pm2_5 !== undefined)
+        .map(city => city.airQuality!.current.pm2_5);
+      
+      let airQuality: 'excellent' | 'good' | 'moderate' | 'poor' = 'excellent';
+      if (pm25Values.length > 0) {
+        const maxPM25 = Math.max(...pm25Values);
+        if (maxPM25 > 35) airQuality = 'poor';
+        else if (maxPM25 > 15) airQuality = 'moderate';
+        else if (maxPM25 > 5) airQuality = 'good';
+      }
+
+      const result: ComprehensiveWeatherData = {
+        cities: cityWeatherData,
+        summary: {
+          bestWeatherCity,
+          bestSurfConditions,
+          averageTemp,
+          windConditions,
+          uvRisk,
+          airQuality
+        },
+        lastUpdated: new Date()
+      };
+
+      console.log(`[RealTimeDataService] Fetched weather data: ${cityWeatherData.length} cities, avg temp: ${averageTemp.toFixed(1)}°C, best weather: ${bestWeatherCity}`);
+      return result;
+
+    } catch (error) {
+      console.error('Error in fetchWeatherData:', error);
       return null;
     }
   }
