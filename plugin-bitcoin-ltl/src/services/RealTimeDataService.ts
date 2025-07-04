@@ -462,8 +462,17 @@ export class RealTimeDataService extends Service {
   capabilityDescription = 'Provides real-time market data, news feeds, and social sentiment analysis';
   
   private updateInterval: NodeJS.Timeout | null = null;
-  private readonly UPDATE_INTERVAL = 60000; // 1 minute
+  private readonly UPDATE_INTERVAL = 300000; // 5 minutes (increased from 1 minute)
   private readonly symbols = ['BTC', 'ETH', 'SOL', 'MATIC', 'ADA', '4337', '8958']; // Include MetaPlanet (4337) and Hyperliquid (8958)
+  
+  // Rate limiting properties
+  private lastRequestTime = 0;
+  private readonly MIN_REQUEST_INTERVAL = 2000; // 2 seconds between requests
+  private requestQueue: Array<() => Promise<any>> = [];
+  private isProcessingQueue = false;
+  private consecutiveFailures = 0;
+  private readonly MAX_CONSECUTIVE_FAILURES = 5;
+  private backoffUntil = 0;
   
   // API endpoints
   private readonly BLOCKCHAIN_API = 'https://api.blockchain.info';
@@ -649,44 +658,80 @@ export class RealTimeDataService extends Service {
 
   private async updateAllData(): Promise<void> {
     try {
-      // Run all updates in parallel for efficiency
-      const [marketData, newsItems, socialSentiment, economicIndicators, comprehensiveBitcoinData] = await Promise.all([
-        this.fetchMarketData(),
-        this.fetchNewsData(),
-        this.fetchSocialSentiment(),
-        this.fetchEconomicIndicators(),
-        this.fetchComprehensiveBitcoinData()
-      ]);
+      console.log('[RealTimeDataService] Starting data update cycle...');
+      
+      // Stagger the updates to avoid overwhelming APIs
+      const updateTasks = [
+        () => this.updateMarketData(),
+        () => this.updateBitcoinData(),
+        () => this.updateNews(),
+        () => this.updateSocialSentiment(),
+        () => this.updateEconomicIndicators(),
+        () => this.updateCuratedAltcoinsData(),
+        () => this.updateTop100VsBtcData(),
+        () => this.updateDexScreenerData(),
+        () => this.updateTopMoversData(),
+        () => this.updateTrendingCoinsData(),
+        () => this.updateCuratedNFTsData(),
+        () => this.updateWeatherData()
+      ];
 
-      // Update data properties
-      this.marketData = marketData;
-      this.newsItems = newsItems;
-      this.socialSentiment = socialSentiment;
-      this.economicIndicators = economicIndicators;
-      this.comprehensiveBitcoinData = comprehensiveBitcoinData;
+      // Execute updates with delays between them
+      for (let i = 0; i < updateTasks.length; i++) {
+        try {
+          await updateTasks[i]();
+          // Add delay between different types of updates
+          if (i < updateTasks.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 3000)); // 3 second delay between update types
+          }
+        } catch (error) {
+          console.error(`Update task ${i} failed:`, error);
+        }
+      }
 
-      // Update curated altcoins data (with its own caching)
-      await this.updateCuratedAltcoinsData();
-
-      // Update top movers data (with its own caching)
-      await this.updateTopMoversData();
-
-      // Update trending coins data (with its own caching)
-      await this.updateTrendingCoinsData();
-
-      // Update curated NFTs data (with its own caching)
-      await this.updateCuratedNFTsData();
-
-      // Update weather data (with its own caching)
-      await this.updateWeatherData();
-
-      // Generate alerts based on new data
-      const alerts = this.generateAlerts(marketData, newsItems, socialSentiment);
-      this.alerts = alerts;
-
-      console.log(`[RealTimeDataService] Updated data - ${marketData.length} markets, ${newsItems.length} news items, ${alerts.length} alerts, BTC network data: ${comprehensiveBitcoinData ? 'success' : 'failed'}, curated altcoins: ${this.curatedAltcoinsCache ? 'cached' : 'updated'}, top movers: ${this.topMoversCache ? 'cached' : 'updated'}, trending coins: ${this.trendingCoinsCache ? 'cached' : 'updated'}, curated NFTs: ${this.curatedNFTsCache ? 'cached' : 'updated'}, weather: ${this.weatherCache ? 'cached' : 'updated'}`);
+      console.log('[RealTimeDataService] Data update cycle completed');
     } catch (error) {
-      console.error('Error in updateAllData:', error);
+      console.error('[RealTimeDataService] Error updating data:', error);
+    }
+  }
+
+  private async updateMarketData(): Promise<void> {
+    try {
+      this.marketData = await this.fetchMarketData();
+    } catch (error) {
+      console.error('Error updating market data:', error);
+    }
+  }
+
+  private async updateBitcoinData(): Promise<void> {
+    try {
+      this.comprehensiveBitcoinData = await this.fetchComprehensiveBitcoinData();
+    } catch (error) {
+      console.error('Error updating Bitcoin data:', error);
+    }
+  }
+
+  private async updateNews(): Promise<void> {
+    try {
+      this.newsItems = await this.fetchNewsData();
+    } catch (error) {
+      console.error('Error updating news data:', error);
+    }
+  }
+
+  private async updateSocialSentiment(): Promise<void> {
+    try {
+      this.socialSentiment = await this.fetchSocialSentiment();
+    } catch (error) {
+      console.error('Error updating social sentiment:', error);
+    }
+  }
+
+  private async updateEconomicIndicators(): Promise<void> {
+    try {
+      this.economicIndicators = await this.fetchEconomicIndicators();
+    } catch (error) {
+      console.error('Error updating economic indicators:', error);
     }
   }
 
@@ -701,22 +746,26 @@ export class RealTimeDataService extends Service {
         ? { 'x-cg-pro-api-key': coingeckoApiKey }
         : {};
 
-      // Fetch crypto data
+      // Fetch crypto data using queued request
       const cryptoIds = 'bitcoin,ethereum,solana,polygon,cardano';
-      const cryptoResponse = await axios.get(`${baseUrl}/simple/price`, {
-        params: {
+      const cryptoData = await this.makeQueuedRequest(async () => {
+        const params = new URLSearchParams({
           ids: cryptoIds,
           vs_currencies: 'usd',
-          include_24hr_change: true,
-          include_24hr_vol: true,
-          include_market_cap: true,
-          include_last_updated_at: true
-        },
-        headers,
-        timeout: 10000
+          include_24hr_change: 'true',
+          include_24hr_vol: 'true',
+          include_market_cap: 'true',
+          include_last_updated_at: 'true'
+        });
+        const url = `${baseUrl}/simple/price?${params.toString()}`;
+        const response = await this.fetchWithRetry(url, {
+          method: 'GET',
+          headers
+        });
+        return response;
       });
 
-      const cryptoData: MarketData[] = Object.entries(cryptoResponse.data).map(([id, data]: [string, any]) => ({
+      const marketData: MarketData[] = Object.entries(cryptoData).map(([id, data]: [string, any]) => ({
         symbol: this.getSymbolFromId(id),
         price: data.usd || 0,
         change24h: data.usd_24h_change || 0,
@@ -727,10 +776,11 @@ export class RealTimeDataService extends Service {
         source: 'CoinGecko'
       }));
 
-      // Fetch Japanese stock data (MetaPlanet approximation)
+      // Fetch stock data with delay
+      await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
       const stockData = await this.fetchStockData();
       
-      return [...cryptoData, ...stockData];
+      return [...marketData, ...stockData];
     } catch (error) {
       console.error('Error fetching market data:', error);
       return this.getFallbackMarketData();
@@ -1228,12 +1278,14 @@ export class RealTimeDataService extends Service {
 
   private async fetchBitcoinPriceData(): Promise<{ usd: number; change24h: number } | null> {
     try {
-      const data = await this.fetchWithRetry(
-        `${this.COINGECKO_API}/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true`,
-        {
-          headers: { 'Accept': 'application/json' }
-        }
-      );
+      const data = await this.makeQueuedRequest(async () => {
+        return await this.fetchWithRetry(
+          `${this.COINGECKO_API}/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true`,
+          {
+            headers: { 'Accept': 'application/json' }
+          }
+        );
+      });
       
       return {
         usd: Number(data.bitcoin?.usd) || null,
@@ -1358,14 +1410,16 @@ export class RealTimeDataService extends Service {
   private async fetchCuratedAltcoinsData(): Promise<CuratedAltcoinsData | null> {
     try {
       const idsParam = this.curatedCoinIds.join(',');
-      const data = await this.fetchWithRetry(
-        `${this.COINGECKO_API}/simple/price?ids=${idsParam}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true&include_24hr_vol=true`,
-        {
-          headers: {
-            'Accept': 'application/json',
-          },
-        }
-      );
+      const data = await this.makeQueuedRequest(async () => {
+        return await this.fetchWithRetry(
+          `${this.COINGECKO_API}/simple/price?ids=${idsParam}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true&include_24hr_vol=true`,
+          {
+            headers: {
+              'Accept': 'application/json',
+            },
+          }
+        );
+      });
       
       // Ensure all requested IDs are present in the response (with zeroed data if missing)
       const result: CuratedAltcoinsData = {};
@@ -1410,12 +1464,14 @@ export class RealTimeDataService extends Service {
   private async fetchTop100VsBtcData(): Promise<Top100VsBtcData | null> {
     try {
       // Step 1: Fetch top 100 coins against BTC to find outperformers and their performance vs BTC
-      const btcMarketData = await this.fetchWithRetry(
-        `${this.COINGECKO_API}/coins/markets?vs_currency=btc&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h,7d,30d`,
-        {
-          headers: { 'Accept': 'application/json' }
-        }
-      );
+      const btcMarketData = await this.makeQueuedRequest(async () => {
+        return await this.fetchWithRetry(
+          `${this.COINGECKO_API}/coins/markets?vs_currency=btc&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h,7d,30d`,
+          {
+            headers: { 'Accept': 'application/json' }
+          }
+        );
+      });
 
       // Step 2: Separate outperformers and underperformers
       const outperformingVsBtc = btcMarketData.filter(
@@ -1443,12 +1499,14 @@ export class RealTimeDataService extends Service {
 
       // Step 3: Get USD prices for outperforming coins
       const outperformingIds = outperformingVsBtc.map((coin: any) => coin.id).join(',');
-      const usdPrices = await this.fetchWithRetry(
-        `${this.COINGECKO_API}/simple/price?ids=${outperformingIds}&vs_currencies=usd`,
-        {
-          headers: { 'Accept': 'application/json' }
-        }
-      );
+      const usdPrices = await this.makeQueuedRequest(async () => {
+        return await this.fetchWithRetry(
+          `${this.COINGECKO_API}/simple/price?ids=${outperformingIds}&vs_currencies=usd`,
+          {
+            headers: { 'Accept': 'application/json' }
+          }
+        );
+      });
 
       // Step 4: Combine BTC-denominated performance data with USD prices
       const outperformingWithUsd = outperformingVsBtc.map((coin: any) => ({
@@ -1880,12 +1938,12 @@ export class RealTimeDataService extends Service {
       try {
         const response = await fetch(url, {
           ...options,
-          signal: AbortSignal.timeout(10000) // 10 second timeout
+          signal: AbortSignal.timeout(15000) // Increased timeout to 15 seconds
         });
         
         if (response.status === 429) {
-          // Rate limited - exponential backoff
-          const waitTime = Math.min(Math.pow(2, i) * 1000, 10000);
+          // Rate limited - more aggressive exponential backoff
+          const waitTime = Math.min(Math.pow(2, i) * 5000, 60000); // 5s, 10s, 20s, up to 60s
           console.warn(`Rate limited, waiting ${waitTime}ms before retry ${i + 1}`);
           await new Promise(resolve => setTimeout(resolve, waitTime));
           continue;
@@ -1899,7 +1957,9 @@ export class RealTimeDataService extends Service {
       } catch (error) {
         lastError = error;
         if (i < maxRetries - 1) {
-          await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+          const waitTime = Math.min(Math.pow(2, i) * 3000, 30000); // 3s, 6s, 12s, up to 30s
+          console.warn(`Request failed, waiting ${waitTime}ms before retry ${i + 1}:`, error);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
         }
       }
     }
@@ -2349,5 +2409,65 @@ export class RealTimeDataService extends Service {
       console.error('Error in fetchWeatherData:', error);
       return null;
     }
+  }
+
+  private async makeQueuedRequest<T>(requestFn: () => Promise<T>): Promise<T> {
+    return new Promise((resolve, reject) => {
+      this.requestQueue.push(async () => {
+        try {
+          const result = await requestFn();
+          resolve(result);
+        } catch (error) {
+          reject(error);
+        }
+      });
+      
+      if (!this.isProcessingQueue) {
+        this.processRequestQueue();
+      }
+    });
+  }
+
+  private async processRequestQueue(): Promise<void> {
+    if (this.isProcessingQueue) return;
+    
+    this.isProcessingQueue = true;
+    
+    while (this.requestQueue.length > 0) {
+      // Check if we're in backoff period
+      if (this.backoffUntil > Date.now()) {
+        const backoffTime = this.backoffUntil - Date.now();
+        console.log(`In backoff period, waiting ${backoffTime}ms`);
+        await new Promise(resolve => setTimeout(resolve, backoffTime));
+        this.backoffUntil = 0;
+      }
+      
+      // Ensure minimum interval between requests
+      const timeSinceLastRequest = Date.now() - this.lastRequestTime;
+      if (timeSinceLastRequest < this.MIN_REQUEST_INTERVAL) {
+        await new Promise(resolve => setTimeout(resolve, this.MIN_REQUEST_INTERVAL - timeSinceLastRequest));
+      }
+      
+      const request = this.requestQueue.shift();
+      if (request) {
+        try {
+          this.lastRequestTime = Date.now();
+          await request();
+          this.consecutiveFailures = 0; // Reset failures on success
+        } catch (error) {
+          this.consecutiveFailures++;
+          console.error(`Request failed (${this.consecutiveFailures}/${this.MAX_CONSECUTIVE_FAILURES}):`, error);
+          
+          if (this.consecutiveFailures >= this.MAX_CONSECUTIVE_FAILURES) {
+            // Implement exponential backoff
+            const backoffTime = Math.min(Math.pow(2, this.consecutiveFailures - this.MAX_CONSECUTIVE_FAILURES) * 30000, 300000); // Max 5 minutes
+            this.backoffUntil = Date.now() + backoffTime;
+            console.log(`Too many consecutive failures, backing off for ${backoffTime}ms`);
+          }
+        }
+      }
+    }
+    
+    this.isProcessingQueue = false;
   }
 } 

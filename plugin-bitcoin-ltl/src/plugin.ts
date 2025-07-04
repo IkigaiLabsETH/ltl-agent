@@ -579,8 +579,9 @@ const bitcoinThesisProvider: Provider = {
     _state: State
   ): Promise<ProviderResult> => {
     try {
-      // Calculate thesis metrics
-      const currentPrice = 100000; // This would be fetched from price provider
+      // Fetch real Bitcoin price from the price provider
+      const priceProvider = await bitcoinPriceProvider.get(runtime, _message, _state);
+      const currentPrice = (priceProvider.values as BitcoinPriceData)?.price || 100000;
       const targetPrice = 1000000;
       const progressPercentage = (currentPrice / targetPrice) * 100;
       const multiplierNeeded = targetPrice / currentPrice;
@@ -2323,7 +2324,19 @@ const cryptoPriceLookupAction: Action = {
       const marketCapRank = result.market_cap_rank || 0;
 
       // Get Bitcoin price for comparison
-      const bitcoinPrice = 100000; // This could be fetched from the Bitcoin provider
+      let bitcoinPrice = 100000; // Fallback
+      try {
+        const btcBaseUrl = 'https://api.coingecko.com/api/v3';
+        const btcHeaders: Record<string, string> = { 'Accept': 'application/json' };
+        const btcResponse = await fetchWithTimeout(
+          `${btcBaseUrl}/simple/price?ids=bitcoin&vs_currencies=usd`, 
+          { headers: btcHeaders, timeout: 5000 }
+        );
+        const btcData = await btcResponse.json() as any;
+        bitcoinPrice = btcData.bitcoin?.usd || 100000;
+      } catch (error) {
+        contextLogger.warn('Failed to fetch Bitcoin price for comparison, using fallback');
+      }
       const btcPrice = price / bitcoinPrice;
 
       const responseText = `
