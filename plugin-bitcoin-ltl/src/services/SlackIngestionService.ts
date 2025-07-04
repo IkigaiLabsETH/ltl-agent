@@ -320,6 +320,38 @@ export class SlackIngestionService extends ContentIngestionService {
   }
 
   /**
+   * Check for new content (method expected by SchedulerService)
+   */
+  async checkForNewContent(): Promise<ContentItem[]> {
+    this.contextLogger.info('Checking for new content in Slack channels');
+    
+    const newContent: ContentItem[] = [];
+    
+    for (const channel of this.channels) {
+      try {
+        const messages = await this.fetchChannelMessages(channel);
+        const newMessages = messages.filter(msg => 
+          new Date(parseFloat(msg.ts) * 1000) > this.lastChecked
+        );
+
+        if (newMessages.length > 0) {
+          const contentItems = await this.convertMessagesToContent(newMessages, channel);
+          newContent.push(...contentItems);
+        }
+      } catch (error) {
+        this.contextLogger.error(`Failed to check channel ${channel.channelName}:`, (error as Error).message);
+      }
+    }
+
+    if (newContent.length > 0) {
+      await this.processAndStoreContent(newContent);
+      this.lastChecked = new Date();
+    }
+
+    return newContent;
+  }
+
+  /**
    * Get monitoring status
    */
   async getMonitoringStatus(): Promise<{

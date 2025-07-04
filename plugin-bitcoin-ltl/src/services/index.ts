@@ -1,4 +1,9 @@
 export { BitcoinDataService } from './BitcoinDataService';
-export { ContentIngestionService, ContentItem, ProcessedIntelligence } from './ContentIngestionService';
+export { ContentIngestionService } from './ContentIngestionService';
 export { SlackIngestionService } from './SlackIngestionService';
-export { MorningBriefingService } from './MorningBriefingService'; 
+export { MorningBriefingService } from './MorningBriefingService';
+export { KnowledgeDigestService } from './KnowledgeDigestService';
+export { OpportunityAlertService } from './OpportunityAlertService';
+export { PerformanceTrackingService } from './PerformanceTrackingService';
+export { SchedulerService } from './SchedulerService';
+export { RealTimeDataService } from './RealTimeDataService'; 

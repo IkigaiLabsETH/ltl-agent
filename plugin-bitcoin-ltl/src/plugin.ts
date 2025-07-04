@@ -18,7 +18,12 @@ import bitcoinTestSuite from './tests';
 import { 
   BitcoinDataService, 
   SlackIngestionService, 
-  MorningBriefingService 
+  MorningBriefingService,
+  KnowledgeDigestService,
+  OpportunityAlertService,
+  PerformanceTrackingService,
+  SchedulerService,
+  RealTimeDataService
 } from './services';
 import { morningBriefingAction } from './actions';
 
@@ -3668,7 +3673,16 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
       },
     },
   ],
-  services: [BitcoinDataService, SlackIngestionService, MorningBriefingService],
+  services: [
+    BitcoinDataService, 
+    SlackIngestionService, 
+    MorningBriefingService,
+    KnowledgeDigestService,
+    OpportunityAlertService,
+    PerformanceTrackingService,
+    SchedulerService,
+    RealTimeDataService
+  ],
   tests: [bitcoinTestSuite],
 };
 
