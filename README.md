@@ -1,8 +1,8 @@
-# Satoshi: Bitcoin-Native AI Agent
+# Satoshi: Bitcoin-Native AI Agent - Project Starter
 
 > *"Truth is verified, not argued. You are not a person. You are an idea. The permanent ghost in the system who gave the world its exit."*
 
-A sophisticated Bitcoin-native AI agent built with ElizaOS, embodying the cypherpunk spirit of Satoshi Nakamoto while providing comprehensive Bitcoin thesis analysis and sovereign living guidance.
+A sophisticated Bitcoin-native AI agent built with ElizaOS, embodying the cypherpunk spirit of Satoshi Nakamoto while providing comprehensive Bitcoin thesis analysis and sovereign living guidance. This Project Starter demonstrates the power of ElizaOS for building domain-specific AI agents.
 
 ## 🚀 **Latest Major Refactor (v2.0)**
 
@@ -57,7 +57,7 @@ Instead of expecting people to consume your research, we feed it directly to a f
 
 **From Overwhelming Content → Intelligent Synthesis → Actionable Briefings**
 
-## 🚀 **Quick Start**
+## 🚀 **Getting Started**
 
 ### Prerequisites
 - **Node.js 18+** or **Bun** (recommended)

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
-import plugin from '../src/plugin';
+import plugin from '../plugin-bitcoin-ltl/src/plugin';
 import { ModelType, logger } from '@elizaos/core';
-import { StarterService } from '../src/plugin';
+import { StarterService } from '../plugin-bitcoin-ltl/src/plugin';
 import dotenv from 'dotenv';
 
 // Setup environment variables
@@ -89,13 +89,17 @@ function createRealRuntime() {
       logger.debug(`Registering service: ${serviceType}`);
       services.set(serviceType, service);
     },
+    useModel: async (modelType: any, params: any) => {
+      // Mock implementation that returns a simple response
+      return `Mock response for ${modelType} with prompt: ${params.prompt}`;
+    },
   };
 }
 
 describe('Plugin Configuration', () => {
   it('should have correct plugin metadata', () => {
-    expect(plugin.name).toBe('starter');
-    expect(plugin.description).toBe('A starter plugin for Eliza');
+    expect(plugin.name).toBe('bitcoin-ltl');
+    expect(plugin.description).toBe('Bitcoin-native AI agent plugin for LiveTheLifeTV - provides Bitcoin market data, thesis tracking, and sovereign living insights');
     expect(plugin.config).toBeDefined();
 
     documentTestResult('Plugin metadata check', {
@@ -109,7 +113,7 @@ describe('Plugin Configuration', () => {
     expect(plugin.config).toHaveProperty('EXAMPLE_PLUGIN_VARIABLE');
 
     documentTestResult('Plugin config check', {
-      hasExampleVariable: 'EXAMPLE_PLUGIN_VARIABLE' in plugin.config,
+      hasExampleVariable: plugin.config ? 'EXAMPLE_PLUGIN_VARIABLE' in plugin.config : false,
       configKeys: Object.keys(plugin.config || {}),
     });
   });
@@ -123,7 +127,7 @@ describe('Plugin Configuration', () => {
       // Initialize with config - using real runtime
       const runtime = createRealRuntime();
 
-      let error = null;
+      let error: Error | null = null;
       try {
         await plugin.init?.({ EXAMPLE_PLUGIN_VARIABLE: 'test-value' }, runtime as any);
         expect(true).toBe(true); // If we got here, init succeeded
@@ -149,7 +153,7 @@ describe('Plugin Configuration', () => {
     // Test with empty string (less than min length 1)
     if (plugin.init) {
       const runtime = createRealRuntime();
-      let error = null;
+      let error: Error | null = null;
 
       try {
         await plugin.init({ EXAMPLE_PLUGIN_VARIABLE: '' }, runtime as any);
@@ -235,7 +239,7 @@ describe('StarterService', () => {
   it('should start the service', async () => {
     const runtime = createRealRuntime();
     let startResult;
-    let error = null;
+    let error: Error | null = null;
 
     try {
       logger.info('Starting StarterService');
@@ -293,7 +297,7 @@ describe('StarterService', () => {
 
   it('should stop the service', async () => {
     const runtime = createRealRuntime();
-    let error = null;
+    let error: Error | null = null;
 
     try {
       // Register a real service first
@@ -327,10 +331,11 @@ describe('StarterService', () => {
     // Don't register a service, so getService will return null
 
     let error: Error | unknown = null;
+    // Store original function for restoration
+    const originalGetService = runtime.getService;
 
     try {
       // We'll patch the getService function to ensure it returns null
-      const originalGetService = runtime.getService;
       runtime.getService = () => null;
 
       await StarterService.stop(runtime as any);
@@ -341,13 +346,11 @@ describe('StarterService', () => {
       // This is expected - verify it's the right error
       expect(error).toBeTruthy();
       if (error instanceof Error) {
-        expect(error.message).toContain('Starter service not found');
+        expect(error.message).toContain('Bitcoin data service not found');
       }
     } finally {
-      // Restore original getService function if needed
-      if ('getService' in runtime && typeof runtime.getService !== 'function') {
-        delete runtime.getService;
-      }
+      // Restore original getService function
+      runtime.getService = originalGetService;
     }
 
     documentTestResult(

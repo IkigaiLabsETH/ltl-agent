@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { character } from '../src/index';
+import { character } from '../plugin-bitcoin-ltl/src/index';
 
 describe('Character Configuration', () => {
   it('should have all required fields', () => {

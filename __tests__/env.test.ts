@@ -82,7 +82,7 @@ describe('Environment Setup', () => {
     expect(fs.existsSync(readmePath)).toBe(true);
 
     const readme = fs.readFileSync(readmePath, 'utf8');
-    expect(readme).toContain('# ElizaOS Project Starter');
+    expect(readme).toContain('# Satoshi: Bitcoin-Native AI Agent');
   });
 
   it('should have a valid README-TESTS.md file with test documentation', () => {

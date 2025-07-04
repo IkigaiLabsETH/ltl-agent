@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeAll, afterAll } from 'vitest';
-import plugin from '../src/plugin';
+import plugin from '../plugin-bitcoin-ltl/src/plugin';
 import { logger } from '@elizaos/core';
 import type { Action, IAgentRuntime, Memory, State, HandlerCallback } from '@elizaos/core';
 import { v4 as uuidv4 } from 'uuid';
