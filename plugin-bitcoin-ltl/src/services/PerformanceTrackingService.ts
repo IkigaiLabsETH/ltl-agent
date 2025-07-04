@@ -94,6 +94,7 @@ export class PerformanceTrackingService extends Service {
 
   constructor(runtime: IAgentRuntime) {
     super();
+    this.runtime = runtime;
     this.correlationId = generateCorrelationId();
     this.contextLogger = new LoggerWithContext(this.correlationId, 'PerformanceTrackingService');
     this.metrics = this.initializeMetrics();

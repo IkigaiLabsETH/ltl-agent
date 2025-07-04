@@ -55,6 +55,7 @@ export class KnowledgeDigestService extends Service {
 
   constructor(runtime: IAgentRuntime) {
     super();
+    this.runtime = runtime;
     this.correlationId = generateCorrelationId();
     this.contextLogger = new LoggerWithContext(this.correlationId, 'KnowledgeDigestService');
   }

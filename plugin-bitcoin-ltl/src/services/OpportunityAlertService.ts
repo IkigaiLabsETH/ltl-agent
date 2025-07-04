@@ -74,6 +74,7 @@ export class OpportunityAlertService extends Service {
 
   constructor(runtime: IAgentRuntime) {
     super();
+    this.runtime = runtime;
     this.correlationId = generateCorrelationId();
     this.contextLogger = new LoggerWithContext(this.correlationId, 'OpportunityAlertService');
     this.metrics = this.initializeMetrics();
