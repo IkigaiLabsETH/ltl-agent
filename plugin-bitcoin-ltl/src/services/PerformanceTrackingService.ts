@@ -1,4 +1,5 @@
-import { Service, logger, type IAgentRuntime } from '@elizaos/core';
+import { elizaLogger, type IAgentRuntime } from '@elizaos/core';
+import { BaseDataService } from './BaseDataService';
 import { ContentItem, ProcessedIntelligence } from './ContentIngestionService';
 import { OpportunityAlert } from './OpportunityAlertService';
 import { LoggerWithContext, generateCorrelationId } from '../utils';
@@ -81,34 +82,35 @@ export interface PerformanceReport {
   };
 }
 
-export class PerformanceTrackingService extends Service {
+export class PerformanceTrackingService extends BaseDataService {
   static serviceType = 'performance-tracking';
-  capabilityDescription = 'Tracks prediction accuracy and performance over time';
   
   private contextLogger: LoggerWithContext;
-  private correlationId: string;
   private predictions: Map<string, Prediction> = new Map();
   private outcomes: Map<string, PredictionOutcome> = new Map();
   private metrics: PerformanceMetrics;
   private evaluationInterval: NodeJS.Timeout | null = null;
 
   constructor(runtime: IAgentRuntime) {
-    super();
-    this.runtime = runtime;
+    super(runtime, 'performanceTracking');
     this.correlationId = generateCorrelationId();
     this.contextLogger = new LoggerWithContext(this.correlationId, 'PerformanceTrackingService');
     this.metrics = this.initializeMetrics();
   }
 
+  public get capabilityDescription(): string {
+    return 'Tracks prediction accuracy and performance over time';
+  }
+
   static async start(runtime: IAgentRuntime) {
-    logger.info('PerformanceTrackingService starting...');
+    elizaLogger.info('PerformanceTrackingService starting...');
     const service = new PerformanceTrackingService(runtime);
     await service.init();
     return service;
   }
 
   static async stop(runtime: IAgentRuntime) {
-    logger.info('PerformanceTrackingService stopping...');
+    elizaLogger.info('PerformanceTrackingService stopping...');
     const service = runtime.getService('performance-tracking');
     if (service && service.stop) {
       await service.stop();
@@ -714,6 +716,32 @@ export class PerformanceTrackingService extends Service {
       },
       deliveryMethod: 'digest'
     };
+  }
+
+  // Required abstract methods from BaseDataService
+  async updateData(): Promise<void> {
+    try {
+      await this.evaluatePredictions();
+      await this.updateMetrics();
+      
+      // Store current state in memory
+      await this.storeInMemory({
+        predictions: Array.from(this.predictions.entries()),
+        outcomes: Array.from(this.outcomes.entries()),
+        metrics: this.metrics,
+        timestamp: Date.now()
+      }, 'performance-tracking-state');
+      
+      this.contextLogger.info(`Updated performance tracking data: ${this.predictions.size} predictions, ${this.outcomes.size} outcomes`);
+    } catch (error) {
+      this.contextLogger.error('Failed to update performance tracking data:', (error as Error).message);
+      throw error;
+    }
+  }
+
+  async forceUpdate(): Promise<void> {
+    this.contextLogger.info('Forcing performance tracking update');
+    await this.updateData();
   }
 }
 

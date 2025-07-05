@@ -1,5 +1,6 @@
-import { logger, type IAgentRuntime } from '@elizaos/core';
+import { elizaLogger, type IAgentRuntime } from '@elizaos/core';
 import { ContentIngestionService, ContentItem } from './ContentIngestionService';
+import { ConfigurationManager, type ServiceConfig } from './ConfigurationManager';
 import { ElizaOSErrorHandler } from '../utils';
 
 export interface SlackChannelConfig {
@@ -25,25 +26,28 @@ export interface SlackMessage {
 
 export class SlackIngestionService extends ContentIngestionService {
   static serviceType = 'slack-ingestion';
-  capabilityDescription = 'Monitors Slack channels for curated content and research updates';
   
   private channels: SlackChannelConfig[] = [];
   private slackToken: string | null = null;
   private lastChecked: Date = new Date();
   
   constructor(runtime: IAgentRuntime) {
-    super(runtime, 'SlackIngestionService');
+    super(runtime, 'SlackIngestionService', 'slackIngestion');
+  }
+
+  public get capabilityDescription(): string {
+    return 'Monitors Slack channels for curated content and research updates';
   }
 
   static async start(runtime: IAgentRuntime) {
-    logger.info('SlackIngestionService starting...');
+    elizaLogger.info('SlackIngestionService starting...');
     const service = new SlackIngestionService(runtime);
     await service.init();
     return service;
   }
 
   static async stop(runtime: IAgentRuntime) {
-    logger.info('SlackIngestionService stopping...');
+    elizaLogger.info('SlackIngestionService stopping...');
     const service = runtime.getService('slack-ingestion');
     if (service && service.stop) {
       await service.stop();

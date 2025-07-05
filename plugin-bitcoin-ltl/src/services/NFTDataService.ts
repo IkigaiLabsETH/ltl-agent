@@ -135,7 +135,7 @@ export class NFTDataService extends BaseDataService {
   ];
 
   constructor(runtime: IAgentRuntime) {
-    super(runtime);
+    super(runtime, 'nftData');
   }
 
   static async start(runtime: IAgentRuntime) {

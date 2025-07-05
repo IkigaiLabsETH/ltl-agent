@@ -1,4 +1,5 @@
-import { Service, logger, type IAgentRuntime } from '@elizaos/core';
+import { Service, elizaLogger, type IAgentRuntime } from '@elizaos/core';
+import { BaseDataService } from './BaseDataService';
 import { BitcoinPriceData, CoinMarketData, BitcoinThesisData } from '../types';
 import { 
   ElizaOSErrorHandler, 
@@ -7,12 +8,12 @@ import {
   validateElizaOSEnvironment 
 } from '../utils';
 
-export class BitcoinDataService extends Service {
+export class BitcoinDataService extends BaseDataService {
   static serviceType = 'bitcoin-data';
   capabilityDescription = 'Provides Bitcoin market data, analysis, and thesis tracking capabilities';
 
-  constructor(protected runtime: IAgentRuntime) {
-    super();
+  constructor(runtime: IAgentRuntime) {
+    super(runtime, 'bitcoinData');
   }
 
   static async start(runtime: IAgentRuntime) {
@@ -30,12 +31,12 @@ export class BitcoinDataService extends Service {
       });
     }
     
-    logger.info('BitcoinDataService starting...');
+    elizaLogger.info('BitcoinDataService starting...');
     return new BitcoinDataService(runtime);
   }
 
   static async stop(runtime: IAgentRuntime) {
-    logger.info('BitcoinDataService stopping...');
+    elizaLogger.info('BitcoinDataService stopping...');
     
     // Check if the service exists in the runtime
     const service = runtime.getService('bitcoin-data');
@@ -52,11 +53,59 @@ export class BitcoinDataService extends Service {
   }
 
   async init() {
-    logger.info('BitcoinDataService initialized');
+    elizaLogger.info('BitcoinDataService initialized');
   }
 
   async stop() {
-    logger.info('BitcoinDataService stopped');
+    elizaLogger.info('BitcoinDataService stopped');
+  }
+
+  /**
+   * Required abstract method implementation for BaseDataService
+   */
+  async updateData(): Promise<void> {
+    try {
+      // Update core Bitcoin data
+      await this.getEnhancedMarketData();
+      await this.getBitcoinPrice();
+      
+      // Calculate and store thesis metrics
+      const currentPrice = await this.getBitcoinPrice();
+      await this.calculateThesisMetrics(currentPrice);
+      
+      elizaLogger.info('[BitcoinDataService] Data update completed successfully');
+    } catch (error) {
+      elizaLogger.error('[BitcoinDataService] Error updating data:', error);
+    }
+  }
+
+  /**
+   * Required abstract method implementation for BaseDataService
+   */
+  async forceUpdate(): Promise<any> {
+    try {
+      elizaLogger.info('[BitcoinDataService] Force updating all Bitcoin data...');
+      
+      // Force fresh data fetch
+      const [marketData, currentPrice, thesisData] = await Promise.all([
+        this.getEnhancedMarketData(),
+        this.getBitcoinPrice(),
+        this.getBitcoinPrice().then(price => this.calculateThesisMetrics(price))
+      ]);
+      
+      const result = {
+        marketData,
+        currentPrice,
+        thesisData,
+        timestamp: Date.now()
+      };
+      
+      elizaLogger.info('[BitcoinDataService] Force update completed successfully');
+      return result;
+    } catch (error) {
+      elizaLogger.error('[BitcoinDataService] Error in force update:', error);
+      throw error;
+    }
   }
 
   /**
@@ -84,7 +133,7 @@ export class BitcoinDataService extends Service {
         
         if (fs.existsSync(dataDir)) {
           fs.rmSync(dataDir, { recursive: true, force: true });
-          logger.info(`Deleted PGLite database directory: ${dataDir}`);
+          elizaLogger.info(`Deleted PGLite database directory: ${dataDir}`);
           
           return {
             success: true,
@@ -99,7 +148,7 @@ export class BitcoinDataService extends Service {
       }
     } catch (error) {
       const enhancedError = ElizaOSErrorHandler.handleCommonErrors(error as Error, 'MemoryReset');
-      logger.error('Failed to reset memory:', enhancedError.message);
+      elizaLogger.error('Failed to reset memory:', enhancedError.message);
       
       return {
         success: false,
@@ -204,59 +253,47 @@ export class BitcoinDataService extends Service {
     return 0;
   }
 
-  /**
-   * Fetch with retry logic for API calls with rate limit handling
-   */
-  private async fetchWithRetry(
-    url: string, 
-    options: any = {}, 
-    maxRetries = 3
-  ): Promise<any> {
-    let lastError;
-    
-    for (let i = 0; i < maxRetries; i++) {
-      try {
-        const response = await fetch(url, {
-          ...options,
-          signal: AbortSignal.timeout(10000) // 10 second timeout
-        });
-        
-        if (response.status === 429) {
-          // Rate limited - exponential backoff
-          const waitTime = Math.min(Math.pow(2, i) * 1000, 10000);
-          logger.warn(`Rate limited, waiting ${waitTime}ms before retry ${i + 1}`);
-          await new Promise(resolve => setTimeout(resolve, waitTime));
-          continue;
-        }
-        
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        return await response.json();
-      } catch (error) {
-        lastError = error;
-        if (i < maxRetries - 1) {
-          await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
-        }
-      }
-    }
-    
-    throw lastError;
-  }
-
   async getBitcoinPrice(): Promise<number> {
     try {
+      // Try to get recent price from memory first
+      const cachedData = await this.getFromMemory('bitcoin-price', 1);
+      if (cachedData.length > 0) {
+        const cached = cachedData[0];
+        const cacheAge = Date.now() - cached.timestamp;
+        if (cacheAge < 60000) { // 1 minute cache
+          elizaLogger.debug('[BitcoinDataService] Using cached Bitcoin price:', cached.price);
+          return cached.price;
+        }
+      }
+
       const data = await this.fetchWithRetry(
         'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd',
         {
           headers: { 'Accept': 'application/json' }
         }
       );
-      return data.bitcoin?.usd || 100000;
+      
+      const price = data.bitcoin?.usd || 100000;
+      
+      // Store in memory for future use
+      await this.storeInMemory({
+        price: price,
+        timestamp: Date.now(),
+        source: 'coingecko'
+      }, 'bitcoin-price');
+      
+      return price;
     } catch (error) {
-      logger.error('Error fetching Bitcoin price:', error);
-      return 100000; // Fallback price
+      elizaLogger.error('Error fetching Bitcoin price:', error);
+      
+      // Try to get last known price from memory as fallback
+      const fallbackData = await this.getFromMemory('bitcoin-price', 1);
+      if (fallbackData.length > 0) {
+        elizaLogger.warn('[BitcoinDataService] Using fallback price from memory');
+        return fallbackData[0].price;
+      }
+      
+      return 100000; // Ultimate fallback price
     }
   }
 
@@ -276,7 +313,7 @@ export class BitcoinDataService extends Service {
     const targetHolders = 100000;
     const holdersProgress = (estimatedHolders / targetHolders) * 100;
 
-    return {
+    const thesisData: BitcoinThesisData = {
       currentPrice,
       targetPrice,
       progressPercentage,
@@ -298,6 +335,17 @@ export class BitcoinDataService extends Service {
         'Nation-state competition for reserves',
       ],
     };
+
+    // Store thesis metrics in memory for tracking progress over time
+    await this.storeInMemory({
+      ...thesisData,
+      timestamp: Date.now(),
+      calculatedAt: new Date().toISOString()
+    }, 'bitcoin-thesis');
+
+    elizaLogger.info(`[BitcoinDataService] Thesis metrics calculated: ${progressPercentage.toFixed(2)}% progress to $1M target`);
+
+    return thesisData;
   }
 
   /**
@@ -305,13 +353,24 @@ export class BitcoinDataService extends Service {
    */
   async getEnhancedMarketData(): Promise<BitcoinPriceData> {
     try {
+      // Check memory cache first
+      const cachedData = await this.getFromMemory('bitcoin-market-data', 1);
+      if (cachedData.length > 0) {
+        const cached = cachedData[0];
+        const cacheAge = Date.now() - cached.timestamp;
+        if (cacheAge < 300000) { // 5 minute cache
+          elizaLogger.debug('[BitcoinDataService] Using cached market data');
+          return cached;
+        }
+      }
+
       const data = await this.fetchWithRetry(
         'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin&order=market_cap_desc&per_page=1&page=1&sparkline=false&price_change_percentage=24h%2C7d',
         { headers: { 'Accept': 'application/json' } }
       ) as CoinMarketData[];
       const bitcoin = data[0];
 
-      return {
+      const marketData: BitcoinPriceData = {
         price: bitcoin.current_price || 100000,
         marketCap: bitcoin.market_cap || 2000000000000,
         volume24h: bitcoin.total_volume || 50000000000,
@@ -325,9 +384,28 @@ export class BitcoinDataService extends Service {
         maxSupply: 21000000, // Static for Bitcoin
         lastUpdated: new Date().toISOString(),
       };
+
+      // Store enhanced market data in memory
+      await this.storeInMemory({
+        ...marketData,
+        timestamp: Date.now(),
+        source: 'coingecko-enhanced'
+      }, 'bitcoin-market-data');
+
+      elizaLogger.info(`[BitcoinDataService] Enhanced market data updated: $${marketData.price.toLocaleString()}`);
+
+      return marketData;
     } catch (error) {
-      logger.error('Error fetching enhanced market data:', error);
-      // Return fallback data
+      elizaLogger.error('Error fetching enhanced market data:', error);
+      
+      // Try to get fallback data from memory
+      const fallbackData = await this.getFromMemory('bitcoin-market-data', 1);
+      if (fallbackData.length > 0) {
+        elizaLogger.warn('[BitcoinDataService] Using fallback market data from memory');
+        return fallbackData[0];
+      }
+      
+      // Return ultimate fallback data
       return {
         price: 100000,
         marketCap: 2000000000000,
@@ -346,8 +424,7 @@ export class BitcoinDataService extends Service {
   }
 
   /**
-   * Calculate Bitcoin Freedom Mathematics
-   * Determines BTC needed for financial freedom at different price points
+   * Calculate Bitcoin Freedom Mathematics with memory persistence
    */
   async calculateFreedomMathematics(targetFreedom: number = 10000000): Promise<{
     currentPrice: number;
@@ -388,17 +465,67 @@ export class BitcoinDataService extends Service {
       aggressive: btcNeeded,         // Exact target
     };
 
-    logger.info(`Freedom Mathematics calculated for $${targetFreedom.toLocaleString()}`, {
-      currentBTCNeeded: `${btcNeeded.toFixed(2)} BTC`,
-      conservativeTarget: `${safeLevels.conservative.toFixed(2)} BTC`,
-    });
-
-    return {
+    const freedomMath = {
       currentPrice,
       btcNeeded,
       scenarios,
       safeLevels,
     };
+
+    // Store freedom mathematics calculation in memory for tracking
+    await this.storeInMemory({
+      ...freedomMath,
+      targetFreedom,
+      timestamp: Date.now(),
+      calculatedAt: new Date().toISOString()
+    }, 'bitcoin-freedom-math');
+
+    elizaLogger.info(`Freedom Mathematics calculated for $${targetFreedom.toLocaleString()}`, {
+      currentBTCNeeded: `${btcNeeded.toFixed(2)} BTC`,
+      conservativeTarget: `${safeLevels.conservative.toFixed(2)} BTC`,
+    });
+
+    return freedomMath;
+  }
+
+  /**
+   * Get historical thesis progress from memory
+   */
+  async getThesisProgressHistory(days: number = 30): Promise<any[]> {
+    try {
+      const thesisHistory = await this.getFromMemory('bitcoin-thesis', 50);
+      
+      // Filter by time range
+      const cutoffTime = Date.now() - (days * 24 * 60 * 60 * 1000);
+      const recentHistory = thesisHistory.filter(entry => entry.timestamp > cutoffTime);
+      
+      elizaLogger.info(`[BitcoinDataService] Retrieved ${recentHistory.length} thesis progress entries from last ${days} days`);
+      
+      return recentHistory;
+    } catch (error) {
+      elizaLogger.error('Error retrieving thesis progress history:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get freedom math calculation history
+   */
+  async getFreedomMathHistory(days: number = 30): Promise<any[]> {
+    try {
+      const freedomHistory = await this.getFromMemory('bitcoin-freedom-math', 50);
+      
+      // Filter by time range
+      const cutoffTime = Date.now() - (days * 24 * 60 * 60 * 1000);
+      const recentHistory = freedomHistory.filter(entry => entry.timestamp > cutoffTime);
+      
+      elizaLogger.info(`[BitcoinDataService] Retrieved ${recentHistory.length} freedom math entries from last ${days} days`);
+      
+      return recentHistory;
+    } catch (error) {
+      elizaLogger.error('Error retrieving freedom math history:', error);
+      return [];
+    }
   }
 
   /**
@@ -445,7 +572,7 @@ export class BitcoinDataService extends Service {
       adoptionScore: 75, // Based on current institutional momentum
     };
 
-    logger.info('Institutional adoption analysis complete', {
+    elizaLogger.info('Institutional adoption analysis complete', {
       adoptionScore: `${analysis.adoptionScore}/100`,
       corporateCount: analysis.corporateAdoption.length,
       bankingCount: analysis.bankingIntegration.length,

@@ -1,6 +1,10 @@
 // Base service class
 export { BaseDataService } from './BaseDataService';
 
+// Service factory and configuration
+export { ServiceFactory } from './ServiceFactory';
+export { ConfigurationManager } from './ConfigurationManager';
+
 // Specialized data services  
 export { BitcoinNetworkDataService } from './BitcoinNetworkDataService';
 export { AltcoinDataService } from './AltcoinDataService';

@@ -24,7 +24,7 @@ export class ETFDataService extends BaseDataService {
   ];
 
   constructor(runtime: IAgentRuntime) {
-    super(runtime);
+    super(runtime, 'etfData');
     this.scheduleRegularUpdates();
   }
 

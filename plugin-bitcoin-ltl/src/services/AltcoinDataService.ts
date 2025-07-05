@@ -203,7 +203,7 @@ export class AltcoinDataService extends BaseDataService {
   private requestLocks: Map<string, Promise<any>> = new Map();
 
   constructor(runtime: IAgentRuntime) {
-    super(runtime);
+    super(runtime, 'altcoinData');
   }
 
   static async start(runtime: IAgentRuntime) {

@@ -332,7 +332,7 @@ export class TravelDataService extends BaseDataService {
   };
 
   constructor(runtime: IAgentRuntime) {
-    super(runtime);
+    super(runtime, 'travelData');
     this.validateConfiguration();
   }
 
