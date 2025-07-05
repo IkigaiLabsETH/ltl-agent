@@ -277,8 +277,8 @@ export class MorningBriefingService extends BaseDataService {
       // Generate the briefing
       const briefing = await this.compileBriefing(weatherData, marketPulse, knowledgeDigest, opportunities);
       
-      // Store in memory for persistence
-      await this.storeInMemory(briefing, 'morning-briefing');
+      // Store in memory for persistence - DISABLED to prevent database errors
+      // await this.storeInMemory(briefing, 'morning-briefing');
       
       // Log the briefing
       elizaLogger.info(`[MorningBriefingService:${this.correlationId}] Morning briefing generated: ${briefing.briefingId}`);

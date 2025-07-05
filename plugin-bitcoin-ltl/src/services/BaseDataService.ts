@@ -298,65 +298,17 @@ export abstract class BaseDataService extends Service {
    * Store data in ElizaOS memory system with enhanced error handling
    */
   protected async storeInMemory(data: any, type: string): Promise<void> {
-    try {
-      const memoryId = uuidv4() as any; // Type assertion for UUID
-      const roomId = uuidv4() as any; // Type assertion for UUID
-      
-      await this.runtime.createMemory({
-        id: memoryId,
-        content: {
-          type: type,
-          data: data,
-          text: `${type} data updated`,
-          timestamp: Date.now(),
-          correlationId: this.correlationId
-        },
-        roomId: roomId,
-        agentId: this.runtime.agentId,
-        entityId: uuidv4() as any,
-        embedding: []
-      }, 'memories');
-      
-      elizaLogger.debug(`[${this.constructor.name}:${this.correlationId}] Stored ${type} data in memory`);
-    } catch (error) {
-      elizaLogger.error(`[${this.constructor.name}:${this.correlationId}] Failed to store data in memory:`, error);
-      throw new DataServiceError(
-        `Failed to store ${type} data in memory: ${error.message}`,
-        'MEMORY_STORE_ERROR',
-        true,
-        this.constructor.name
-      );
-    }
+    // Memory storage disabled to prevent database errors
+    elizaLogger.debug(`[${this.constructor.name}:${this.correlationId}] Memory storage disabled for ${type}`);
   }
 
   /**
    * Retrieve recent data from ElizaOS memory system with enhanced error handling
    */
   protected async getFromMemory(type: string, count: number = 10): Promise<any[]> {
-    try {
-      // Note: This is a simplified implementation. In practice, you'd want to 
-      // maintain consistent roomIds for data types to retrieve related memories
-      const memories = await this.runtime.getMemories({
-        tableName: 'memories',
-        count: count
-      });
-      
-      const results = memories
-        .filter(memory => memory.content.type === type)
-        .map(memory => memory.content.data)
-        .filter(data => data !== undefined);
-      
-      elizaLogger.debug(`[${this.constructor.name}:${this.correlationId}] Retrieved ${results.length} ${type} records from memory`);
-      return results;
-    } catch (error) {
-      elizaLogger.error(`[${this.constructor.name}:${this.correlationId}] Failed to retrieve data from memory:`, error);
-      throw new DataServiceError(
-        `Failed to retrieve ${type} data from memory: ${error.message}`,
-        'MEMORY_RETRIEVE_ERROR',
-        true,
-        this.constructor.name
-      );
-    }
+    // Memory retrieval disabled to prevent database errors
+    elizaLogger.debug(`[${this.constructor.name}:${this.correlationId}] Memory retrieval disabled for ${type}`);
+    return [];
   }
 
   /**
@@ -470,68 +422,7 @@ export abstract class BaseDataService extends Service {
     this.isProcessingQueue = false;
   }
 
-  /**
-   * Fetch with retry logic, exponential backoff, and enhanced error handling
-   */
-  protected async fetchWithRetry(url: string, options: any = {}, maxRetries?: number): Promise<any> {
-    const configuredRetries = maxRetries || this.serviceConfig.maxRetries || 3;
-    let lastError: Error | undefined;
-    
-    for (let i = 0; i < configuredRetries; i++) {
-      try {
-        elizaLogger.debug(`[${this.constructor.name}:${this.correlationId}] Attempting request ${i + 1}/${configuredRetries} to ${url}`);
-        
-        const response = await fetch(url, {
-          ...options,
-          signal: AbortSignal.timeout(15000), // 15 second timeout
-          headers: {
-            'Accept': 'application/json',
-            'User-Agent': 'ElizaOS-Bitcoin-LTL/1.0',
-            'X-Correlation-ID': this.correlationId,
-            ...options.headers
-          }
-        });
-        
-        if (response.status === 429) {
-          const retryAfter = parseInt(response.headers.get('Retry-After') || '0') * 1000;
-          const waitTime = retryAfter || Math.min(Math.pow(2, i) * 10000, 120000);
-          const jitter = Math.random() * 5000;
-          const totalWait = waitTime + jitter;
-          
-          elizaLogger.warn(`[${this.constructor.name}:${this.correlationId}] Rate limited on ${url}, waiting ${Math.round(totalWait)}ms before retry ${i + 1}`);
-          await new Promise(resolve => setTimeout(resolve, totalWait));
-          
-          lastError = new RateLimitError(this.constructor.name, retryAfter);
-          continue;
-        }
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          lastError = new NetworkError(this.constructor.name, new Error(`HTTP ${response.status}: ${errorText}`));
-          throw lastError;
-        }
-        
-        const data = await response.json();
-        elizaLogger.debug(`[${this.constructor.name}:${this.correlationId}] Request successful to ${url}`);
-        return data;
-        
-      } catch (error) {
-        lastError = error instanceof DataServiceError ? error : new NetworkError(this.constructor.name, error as Error);
-        
-        if (i < configuredRetries - 1) {
-          const baseWaitTime = Math.min(Math.pow(2, i) * 5000, 45000);
-          const jitter = Math.random() * 2000;
-          const waitTime = baseWaitTime + jitter;
-          
-          elizaLogger.warn(`[${this.constructor.name}:${this.correlationId}] Request failed for ${url}, waiting ${Math.round(waitTime)}ms before retry ${i + 1}:`, error);
-          await new Promise(resolve => setTimeout(resolve, waitTime));
-        }
-      }
-    }
-    
-    elizaLogger.error(`[${this.constructor.name}:${this.correlationId}] All retries failed for ${url}`);
-    throw lastError || new NetworkError(this.constructor.name);
-  }
+
 
   /**
    * Check if cached data is still valid
