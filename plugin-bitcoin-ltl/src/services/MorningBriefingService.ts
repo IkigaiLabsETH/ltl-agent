@@ -385,7 +385,61 @@ export class MorningBriefingService extends Service {
         };
       }
       
-      // Mock altcoin data - could be replaced with real data from RealTimeDataService
+      // Get real altcoin performance data from RealTimeDataService
+      const realTimeDataService = this.runtime.getService('real-time-data') as any;
+      let altcoinsData = {
+        outperformers: [
+          { symbol: 'ETH', change: 5.2, reason: 'Ethereum upgrade momentum' },
+          { symbol: 'SOL', change: 8.7, reason: 'DeFi activity surge' }
+        ],
+        underperformers: [
+          { symbol: 'ADA', change: -3.1, reason: 'Profit taking' }
+        ],
+        totalOutperforming: 15,
+        isAltseason: false
+      };
+
+      // Get real altcoin performance data
+      if (realTimeDataService) {
+        try {
+          let top100VsBtcData = realTimeDataService.getTop100VsBtcData();
+          if (!top100VsBtcData) {
+            // Force update if no cached data
+            top100VsBtcData = await realTimeDataService.forceTop100VsBtcUpdate();
+          }
+          
+          if (top100VsBtcData) {
+            // Get top outperformers (up to 5 for briefing)
+            const topOutperformers = top100VsBtcData.outperforming.slice(0, 5).map(coin => ({
+              symbol: coin.symbol.toUpperCase(),
+              change: coin.btc_relative_performance_7d || 0,
+              reason: `Outperforming BTC by ${(coin.btc_relative_performance_7d || 0).toFixed(1)}%`
+            }));
+
+            // Get top underperformers (up to 3 for briefing)
+            const topUnderperformers = top100VsBtcData.underperforming.slice(0, 3).map(coin => ({
+              symbol: coin.symbol.toUpperCase(),
+              change: coin.btc_relative_performance_7d || 0,
+              reason: `Underperforming BTC by ${Math.abs(coin.btc_relative_performance_7d || 0).toFixed(1)}%`
+            }));
+
+            const outperformingPercent = (top100VsBtcData.outperformingCount / top100VsBtcData.totalCoins) * 100;
+            const isAltseason = outperformingPercent > 50;
+
+            altcoinsData = {
+              outperformers: topOutperformers,
+              underperformers: topUnderperformers,
+              totalOutperforming: top100VsBtcData.outperformingCount,
+              isAltseason: isAltseason
+            };
+
+            this.contextLogger.info(`Real altcoin data loaded: ${top100VsBtcData.outperformingCount}/${top100VsBtcData.totalCoins} outperforming BTC (${outperformingPercent.toFixed(1)}%)`);
+          }
+        } catch (error) {
+          this.contextLogger.warn('Failed to get real altcoin data, using fallback:', (error as Error).message);
+        }
+      }
+
       const marketPulse: MarketPulse = {
         bitcoin: {
           price: bitcoinPrice,
@@ -396,17 +450,7 @@ export class MorningBriefingService extends Service {
           nextResistance: bitcoinPrice * 1.05,
           nextSupport: bitcoinPrice * 0.95
         },
-        altcoins: {
-          outperformers: [
-            { symbol: 'ETH', change: 5.2, reason: 'Ethereum upgrade momentum' },
-            { symbol: 'SOL', change: 8.7, reason: 'DeFi activity surge' }
-          ],
-          underperformers: [
-            { symbol: 'ADA', change: -3.1, reason: 'Profit taking' }
-          ],
-          totalOutperforming: 15,
-          isAltseason: false
-        },
+        altcoins: altcoinsData,
         stocks: stocksSection,
         overall: {
           sentiment: stockData && stockData.performance.mag7Average > 0 ? 'risk-on' : 'risk-off',

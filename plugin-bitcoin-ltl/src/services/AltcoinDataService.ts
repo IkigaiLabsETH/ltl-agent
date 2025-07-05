@@ -199,6 +199,9 @@ export class AltcoinDataService extends BaseDataService {
   private trendingCoinsCache: TrendingCoinsCache | null = null;
   private readonly TRENDING_COINS_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes - reduce API calls
 
+  // Request locking to prevent simultaneous API calls
+  private requestLocks: Map<string, Promise<any>> = new Map();
+
   constructor(runtime: IAgentRuntime) {
     super(runtime);
   }
@@ -565,6 +568,33 @@ export class AltcoinDataService extends BaseDataService {
   }
 
   private async fetchTop100VsBtcData(): Promise<Top100VsBtcData | null> {
+    const lockKey = 'fetch_top100_vs_btc';
+    
+    // Check if there's already a request in progress
+    if (this.requestLocks.has(lockKey)) {
+      logger.info('[AltcoinDataService] Top100VsBtc request already in progress, waiting...');
+      try {
+        return await this.requestLocks.get(lockKey);
+      } catch (error) {
+        // If the locked request failed, continue with a new request
+        this.requestLocks.delete(lockKey);
+      }
+    }
+
+    // Create a new request promise
+    const requestPromise = this.executeTop100VsBtcFetch();
+    this.requestLocks.set(lockKey, requestPromise);
+
+    try {
+      const result = await requestPromise;
+      return result;
+    } finally {
+      // Always clean up the lock
+      this.requestLocks.delete(lockKey);
+    }
+  }
+
+  private async executeTop100VsBtcFetch(): Promise<Top100VsBtcData | null> {
     try {
       logger.info('[AltcoinDataService] Starting fetchTop100VsBtcData...');
       
@@ -853,7 +883,7 @@ export class AltcoinDataService extends BaseDataService {
   }
 
   // Utility methods
-  protected async fetchWithRetry(url: string, options: any, maxRetries = 3): Promise<any> {
+  protected async fetchWithRetry(url: string, options: any, maxRetries = 2): Promise<any> {
     let lastError;
     
     for (let i = 0; i < maxRetries; i++) {
@@ -864,11 +894,11 @@ export class AltcoinDataService extends BaseDataService {
         });
         
         if (response.status === 429) {
-          // Rate limited - more conservative exponential backoff with jitter
-          const baseWaitTime = Math.min(Math.pow(2, i) * 10000, 120000); // 10s, 20s, 40s, up to 120s
-          const jitter = Math.random() * 5000; // Add 0-5s jitter to avoid thundering herd
+          // Rate limited - much more conservative backoff like your website
+          const baseWaitTime = Math.min(60000 + (i * 30000), 180000); // 60s, 90s, 120s
+          const jitter = Math.random() * 10000; // Add 0-10s jitter
           const waitTime = baseWaitTime + jitter;
-          logger.warn(`[AltcoinDataService] Rate limited on ${url}, waiting ${Math.round(waitTime)}ms before retry ${i + 1}`);
+          logger.warn(`[AltcoinDataService] Rate limited on ${url}, waiting ${Math.round(waitTime/1000)}s before retry ${i + 1}`);
           await new Promise(resolve => setTimeout(resolve, waitTime));
           continue;
         }
@@ -881,10 +911,11 @@ export class AltcoinDataService extends BaseDataService {
       } catch (error) {
         lastError = error;
         if (i < maxRetries - 1) {
-          const baseWaitTime = Math.min(Math.pow(2, i) * 5000, 45000); // 5s, 10s, 20s, up to 45s
-          const jitter = Math.random() * 2000; // Add 0-2s jitter
+          // Much longer waits for non-rate-limit errors
+          const baseWaitTime = Math.min(30000 + (i * 30000), 120000); // 30s, 60s, 90s
+          const jitter = Math.random() * 10000; // Add 0-10s jitter
           const waitTime = baseWaitTime + jitter;
-          logger.warn(`[AltcoinDataService] Request failed for ${url}, waiting ${Math.round(waitTime)}ms before retry ${i + 1}:`, error);
+          logger.warn(`[AltcoinDataService] Request failed for ${url}, waiting ${Math.round(waitTime/1000)}s before retry ${i + 1}:`, error);
           await new Promise(resolve => setTimeout(resolve, waitTime));
         }
       }
