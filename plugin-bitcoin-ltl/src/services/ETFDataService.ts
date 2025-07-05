@@ -249,10 +249,18 @@ export class ETFDataService extends BaseDataService {
     try {
       // Try Yahoo Finance first
       const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}`;
-      const yahooResponse = await this.fetchWithRetry(yahooUrl);
+      const yahooResponse = await fetch(yahooUrl, {
+        signal: AbortSignal.timeout(15000)
+      });
       
-      if (yahooResponse?.chart?.result?.[0]) {
-        const result = yahooResponse.chart.result[0];
+      if (!yahooResponse.ok) {
+        throw new Error(`HTTP ${yahooResponse.status}: ${yahooResponse.statusText}`);
+      }
+      
+      const yahooData = await yahooResponse.json();
+      
+      if (yahooData?.chart?.result?.[0]) {
+        const result = yahooData.chart.result[0];
         return {
           ticker,
           price: result.meta.regularMarketPrice,
@@ -268,10 +276,18 @@ export class ETFDataService extends BaseDataService {
       const alphaVantageKey = this.runtime.getSetting('ALPHA_VANTAGE_API_KEY');
       if (alphaVantageKey) {
         const alphaUrl = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${ticker}&apikey=${alphaVantageKey}`;
-        const alphaResponse = await this.fetchWithRetry(alphaUrl);
+        const alphaResponse = await fetch(alphaUrl, {
+        signal: AbortSignal.timeout(15000)
+      });
+      
+      if (!alphaResponse.ok) {
+        throw new Error(`HTTP ${alphaResponse.status}: ${alphaResponse.statusText}`);
+      }
+      
+      const alphaData = await alphaResponse.json();
         
-        if (alphaResponse?.['Global Quote']) {
-          const quote = alphaResponse['Global Quote'];
+                  if (alphaData?.['Global Quote']) {
+            const quote = alphaData['Global Quote'];
           return {
             ticker,
             price: parseFloat(quote['05. price']),

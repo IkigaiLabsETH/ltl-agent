@@ -353,16 +353,22 @@ export class StockDataService extends BaseDataService {
 
   private async fetchFromYahooFinance(symbol: string): Promise<any> {
     try {
-      const response = await this.fetchWithRetry(
+      const response = await fetch(
         `${this.YAHOO_FINANCE_API}/${symbol}?interval=1d&range=2d`,
         {
           headers: {
             'User-Agent': 'Mozilla/5.0 (compatible; LiveTheLifeTV-Bot/1.0)',
-          }
+          },
+          signal: AbortSignal.timeout(15000)
         }
       );
-
-      const result = response.chart?.result?.[0];
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      const result = data.chart?.result?.[0];
       if (!result) return null;
 
       const meta = result.meta;
@@ -399,12 +405,19 @@ export class StockDataService extends BaseDataService {
 
   private async fetchFromAlphaVantage(symbol: string, apiKey: string): Promise<any> {
     try {
-      const response = await this.fetchWithRetry(
+      const response = await fetch(
         `${this.ALPHA_VANTAGE_API}?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${apiKey}`,
-        {}
+        {
+          signal: AbortSignal.timeout(15000)
+        }
       );
-
-      const quote = response['Global Quote'];
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      const quote = data['Global Quote'];
       if (!quote) return null;
 
       const price = parseFloat(quote['05. price']);
@@ -431,15 +444,22 @@ export class StockDataService extends BaseDataService {
 
   private async fetchFromFinnhub(symbol: string, apiKey: string): Promise<any> {
     try {
-      const response = await this.fetchWithRetry(
+      const response = await fetch(
         `${this.FINNHUB_API}/quote?symbol=${symbol}&token=${apiKey}`,
-        {}
+        {
+          signal: AbortSignal.timeout(15000)
+        }
       );
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      if (!data.c) return null;
 
-      if (!response.c) return null;
-
-      const currentPrice = response.c;
-      const previousClose = response.pc;
+      const currentPrice = data.c;
+      const previousClose = data.pc;
       
       // Validate required data
       if (!currentPrice || !previousClose || previousClose === 0) {

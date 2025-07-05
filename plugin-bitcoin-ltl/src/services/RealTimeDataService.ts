@@ -1542,12 +1542,19 @@ export class RealTimeDataService extends BaseDataService {
       
       // Step 1: Fetch top 200 coins in USD (like website) with 7d performance data
       const usdMarketData = await this.makeQueuedRequest(async () => {
-        return await this.fetchWithRetry(
+        const response = await fetch(
           `${this.COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=200&page=1&price_change_percentage=24h,7d,30d`,
           {
-            headers: { 'Accept': 'application/json' }
+            headers: { 'Accept': 'application/json' },
+            signal: AbortSignal.timeout(15000)
           }
         );
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        return await response.json();
       });
 
       console.log(`[RealTimeDataService] Fetched ${usdMarketData?.length || 0} coins from CoinGecko`);
@@ -1777,12 +1784,19 @@ export class RealTimeDataService extends BaseDataService {
     try {
       console.log('[RealTimeDataService] Fetching top movers data...');
       
-      const data: TopMoverCoin[] = await this.fetchWithRetry(
+      const response = await fetch(
         `${this.COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&price_change_percentage=24h`,
         {
           headers: { 'Accept': 'application/json' },
+          signal: AbortSignal.timeout(15000)
         }
       );
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data: TopMoverCoin[] = await response.json();
       
       // Filter out coins without valid 24h price change percentage
       const validCoins = data.filter((coin) => typeof coin.price_change_percentage_24h === 'number');

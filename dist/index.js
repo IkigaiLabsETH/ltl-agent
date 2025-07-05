@@ -848,22 +848,6 @@ var DataServiceError = class extends Error {
     this.name = "DataServiceError";
   }
 };
-var RateLimitError = class extends DataServiceError {
-  constructor(service, retryAfter) {
-    super(`Rate limit exceeded for ${service}`, "RATE_LIMIT", true, service);
-    this.name = "RateLimitError";
-    this.retryAfter = retryAfter;
-  }
-  retryAfter;
-};
-var NetworkError = class extends DataServiceError {
-  constructor(service, originalError) {
-    super(`Network error in ${service}: ${originalError?.message || "Unknown"}`, "NETWORK_ERROR", true, service);
-    this.name = "NetworkError";
-    this.originalError = originalError;
-  }
-  originalError;
-};
 var CircuitBreakerError = class extends DataServiceError {
   constructor(service) {
     super(`Circuit breaker open for ${service}`, "CIRCUIT_BREAKER_OPEN", false, service);
@@ -1198,58 +1182,6 @@ var BaseDataService = class extends Service {
       }
     }
     this.isProcessingQueue = false;
-  }
-  /**
-   * Fetch with retry logic, exponential backoff, and enhanced error handling
-   */
-  async fetchWithRetry(url, options = {}, maxRetries) {
-    const configuredRetries = maxRetries || this.serviceConfig.maxRetries || 3;
-    let lastError;
-    for (let i = 0; i < configuredRetries; i++) {
-      try {
-        elizaLogger2.debug(`[${this.constructor.name}:${this.correlationId}] Attempting request ${i + 1}/${configuredRetries} to ${url}`);
-        const response = await fetch(url, {
-          ...options,
-          signal: AbortSignal.timeout(15e3),
-          // 15 second timeout
-          headers: {
-            "Accept": "application/json",
-            "User-Agent": "ElizaOS-Bitcoin-LTL/1.0",
-            "X-Correlation-ID": this.correlationId,
-            ...options.headers
-          }
-        });
-        if (response.status === 429) {
-          const retryAfter = parseInt(response.headers.get("Retry-After") || "0") * 1e3;
-          const waitTime = retryAfter || Math.min(Math.pow(2, i) * 1e4, 12e4);
-          const jitter = Math.random() * 5e3;
-          const totalWait = waitTime + jitter;
-          elizaLogger2.warn(`[${this.constructor.name}:${this.correlationId}] Rate limited on ${url}, waiting ${Math.round(totalWait)}ms before retry ${i + 1}`);
-          await new Promise((resolve) => setTimeout(resolve, totalWait));
-          lastError = new RateLimitError(this.constructor.name, retryAfter);
-          continue;
-        }
-        if (!response.ok) {
-          const errorText = await response.text();
-          lastError = new NetworkError(this.constructor.name, new Error(`HTTP ${response.status}: ${errorText}`));
-          throw lastError;
-        }
-        const data = await response.json();
-        elizaLogger2.debug(`[${this.constructor.name}:${this.correlationId}] Request successful to ${url}`);
-        return data;
-      } catch (error) {
-        lastError = error instanceof DataServiceError ? error : new NetworkError(this.constructor.name, error);
-        if (i < configuredRetries - 1) {
-          const baseWaitTime = Math.min(Math.pow(2, i) * 5e3, 45e3);
-          const jitter = Math.random() * 2e3;
-          const waitTime = baseWaitTime + jitter;
-          elizaLogger2.warn(`[${this.constructor.name}:${this.correlationId}] Request failed for ${url}, waiting ${Math.round(waitTime)}ms before retry ${i + 1}:`, error);
-          await new Promise((resolve) => setTimeout(resolve, waitTime));
-        }
-      }
-    }
-    elizaLogger2.error(`[${this.constructor.name}:${this.correlationId}] All retries failed for ${url}`);
-    throw lastError || new NetworkError(this.constructor.name);
   }
   /**
    * Check if cached data is still valid
@@ -3063,15 +2995,20 @@ var StockDataService = class _StockDataService extends BaseDataService {
   }
   async fetchFromYahooFinance(symbol) {
     try {
-      const response = await this.fetchWithRetry(
+      const response = await fetch(
         `${this.YAHOO_FINANCE_API}/${symbol}?interval=1d&range=2d`,
         {
           headers: {
             "User-Agent": "Mozilla/5.0 (compatible; LiveTheLifeTV-Bot/1.0)"
-          }
+          },
+          signal: AbortSignal.timeout(15e3)
         }
       );
-      const result = response.chart?.result?.[0];
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const data = await response.json();
+      const result = data.chart?.result?.[0];
       if (!result) return null;
       const meta = result.meta;
       const currentPrice = meta.regularMarketPrice;
@@ -3100,11 +3037,17 @@ var StockDataService = class _StockDataService extends BaseDataService {
   }
   async fetchFromAlphaVantage(symbol, apiKey) {
     try {
-      const response = await this.fetchWithRetry(
+      const response = await fetch(
         `${this.ALPHA_VANTAGE_API}?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${apiKey}`,
-        {}
+        {
+          signal: AbortSignal.timeout(15e3)
+        }
       );
-      const quote = response["Global Quote"];
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const data = await response.json();
+      const quote = data["Global Quote"];
       if (!quote) return null;
       const price = parseFloat(quote["05. price"]);
       const change = parseFloat(quote["09. change"]);
@@ -3126,13 +3069,19 @@ var StockDataService = class _StockDataService extends BaseDataService {
   }
   async fetchFromFinnhub(symbol, apiKey) {
     try {
-      const response = await this.fetchWithRetry(
+      const response = await fetch(
         `${this.FINNHUB_API}/quote?symbol=${symbol}&token=${apiKey}`,
-        {}
+        {
+          signal: AbortSignal.timeout(15e3)
+        }
       );
-      if (!response.c) return null;
-      const currentPrice = response.c;
-      const previousClose = response.pc;
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const data = await response.json();
+      if (!data.c) return null;
+      const currentPrice = data.c;
+      const previousClose = data.pc;
       if (!currentPrice || !previousClose || previousClose === 0) {
         logger5.warn(`[StockDataService] Invalid Finnhub data for ${symbol}: current=${currentPrice}, previous=${previousClose}`);
         return null;
@@ -4089,9 +4038,15 @@ var ETFDataService = class _ETFDataService extends BaseDataService {
   async fetchETFMarketData(ticker) {
     try {
       const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}`;
-      const yahooResponse = await this.fetchWithRetry(yahooUrl);
-      if (yahooResponse?.chart?.result?.[0]) {
-        const result = yahooResponse.chart.result[0];
+      const yahooResponse = await fetch(yahooUrl, {
+        signal: AbortSignal.timeout(15e3)
+      });
+      if (!yahooResponse.ok) {
+        throw new Error(`HTTP ${yahooResponse.status}: ${yahooResponse.statusText}`);
+      }
+      const yahooData = await yahooResponse.json();
+      if (yahooData?.chart?.result?.[0]) {
+        const result = yahooData.chart.result[0];
         return {
           ticker,
           price: result.meta.regularMarketPrice,
@@ -4105,9 +4060,15 @@ var ETFDataService = class _ETFDataService extends BaseDataService {
       const alphaVantageKey = this.runtime.getSetting("ALPHA_VANTAGE_API_KEY");
       if (alphaVantageKey) {
         const alphaUrl = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${ticker}&apikey=${alphaVantageKey}`;
-        const alphaResponse = await this.fetchWithRetry(alphaUrl);
-        if (alphaResponse?.["Global Quote"]) {
-          const quote = alphaResponse["Global Quote"];
+        const alphaResponse = await fetch(alphaUrl, {
+          signal: AbortSignal.timeout(15e3)
+        });
+        if (!alphaResponse.ok) {
+          throw new Error(`HTTP ${alphaResponse.status}: ${alphaResponse.statusText}`);
+        }
+        const alphaData = await alphaResponse.json();
+        if (alphaData?.["Global Quote"]) {
+          const quote = alphaData["Global Quote"];
           return {
             ticker,
             price: parseFloat(quote["05. price"]),
@@ -4694,12 +4655,17 @@ var BitcoinDataService = class _BitcoinDataService extends BaseDataService {
           return cached.price;
         }
       }
-      const data = await this.fetchWithRetry(
+      const response = await fetch(
         "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd",
         {
-          headers: { "Accept": "application/json" }
+          headers: { "Accept": "application/json" },
+          signal: AbortSignal.timeout(15e3)
         }
       );
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const data = await response.json();
       const price = data.bitcoin?.usd || 1e5;
       await this.storeInMemory({
         price,
@@ -4772,10 +4738,17 @@ var BitcoinDataService = class _BitcoinDataService extends BaseDataService {
           return cached;
         }
       }
-      const data = await this.fetchWithRetry(
+      const response = await fetch(
         "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin&order=market_cap_desc&per_page=1&page=1&sparkline=false&price_change_percentage=24h%2C7d",
-        { headers: { "Accept": "application/json" } }
+        {
+          headers: { "Accept": "application/json" },
+          signal: AbortSignal.timeout(15e3)
+        }
       );
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const data = await response.json();
       const bitcoin = data[0];
       const marketData = {
         price: bitcoin.current_price || 1e5,
@@ -8925,12 +8898,17 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
     try {
       console.log("[RealTimeDataService] Starting fetchTop100VsBtcData...");
       const usdMarketData = await this.makeQueuedRequest(async () => {
-        return await this.fetchWithRetry(
+        const response = await fetch(
           `${this.COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=200&page=1&price_change_percentage=24h,7d,30d`,
           {
-            headers: { "Accept": "application/json" }
+            headers: { "Accept": "application/json" },
+            signal: AbortSignal.timeout(15e3)
           }
         );
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return await response.json();
       });
       console.log(`[RealTimeDataService] Fetched ${usdMarketData?.length || 0} coins from CoinGecko`);
       if (!Array.isArray(usdMarketData)) {
@@ -9104,12 +9082,17 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
   async fetchTopMoversData() {
     try {
       console.log("[RealTimeDataService] Fetching top movers data...");
-      const data = await this.fetchWithRetry(
+      const response = await fetch(
         `${this.COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&price_change_percentage=24h`,
         {
-          headers: { "Accept": "application/json" }
+          headers: { "Accept": "application/json" },
+          signal: AbortSignal.timeout(15e3)
         }
       );
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const data = await response.json();
       const validCoins = data.filter((coin) => typeof coin.price_change_percentage_24h === "number");
       const topGainers = [...validCoins].sort((a, b) => b.price_change_percentage_24h - a.price_change_percentage_24h).slice(0, 4).map((coin) => ({
         id: coin.id,
@@ -17408,13 +17391,13 @@ var BitcoinDataError2 = class extends Error {
     this.name = "BitcoinDataError";
   }
 };
-var RateLimitError2 = class extends BitcoinDataError2 {
+var RateLimitError = class extends BitcoinDataError2 {
   constructor(message) {
     super(message, "RATE_LIMIT", true);
     this.name = "RateLimitError";
   }
 };
-var NetworkError3 = class extends BitcoinDataError2 {
+var NetworkError2 = class extends BitcoinDataError2 {
   constructor(message) {
     super(message, "NETWORK_ERROR", true);
     this.name = "NetworkError";
@@ -17556,22 +17539,22 @@ async function fetchWithTimeout(url, options = {}) {
     });
     if (!response.ok) {
       if (response.status === 429) {
-        throw new RateLimitError2(`Rate limit exceeded: ${response.status}`);
+        throw new RateLimitError(`Rate limit exceeded: ${response.status}`);
       }
       if (response.status >= 500) {
-        throw new NetworkError3(`Server error: ${response.status}`);
+        throw new NetworkError2(`Server error: ${response.status}`);
       }
       throw new BitcoinDataError2(`HTTP error: ${response.status}`, "HTTP_ERROR");
     }
     return response;
   } catch (error) {
     if (error.name === "AbortError") {
-      throw new NetworkError3("Request timeout");
+      throw new NetworkError2("Request timeout");
     }
     if (error instanceof BitcoinDataError2) {
       throw error;
     }
-    throw new NetworkError3(`Network error: ${error.message}`);
+    throw new NetworkError2(`Network error: ${error.message}`);
   } finally {
     clearTimeout(timeoutId);
   }

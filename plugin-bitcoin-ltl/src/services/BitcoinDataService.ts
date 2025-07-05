@@ -272,12 +272,19 @@ export class BitcoinDataService extends BaseDataService {
         }
       }
 
-      const data = await this.fetchWithRetry(
+      const response = await fetch(
         'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd',
         {
-          headers: { 'Accept': 'application/json' }
+          headers: { 'Accept': 'application/json' },
+          signal: AbortSignal.timeout(15000)
         }
       );
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
       
       const price = data.bitcoin?.usd || 100000;
       
@@ -370,10 +377,19 @@ export class BitcoinDataService extends BaseDataService {
         }
       }
 
-      const data = await this.fetchWithRetry(
+      const response = await fetch(
         'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin&order=market_cap_desc&per_page=1&page=1&sparkline=false&price_change_percentage=24h%2C7d',
-        { headers: { 'Accept': 'application/json' } }
-      ) as CoinMarketData[];
+        { 
+          headers: { 'Accept': 'application/json' },
+          signal: AbortSignal.timeout(15000)
+        }
+      );
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json() as CoinMarketData[];
       const bitcoin = data[0];
 
       const marketData: BitcoinPriceData = {
