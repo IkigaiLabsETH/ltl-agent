@@ -1,47 +1,88 @@
-import { Action, HandlerCallback, IAgentRuntime, Memory, State } from '@elizaos/core';
+import {
+  type Action,
+  type Content,
+  type HandlerCallback,
+  type IAgentRuntime,
+  type Memory,
+  type State,
+  logger,
+} from '@elizaos/core';
+import { createActionTemplate, ValidationPatterns, ResponseCreators } from './base/ActionTemplate';
 import { KnowledgeDigestService } from '../services/KnowledgeDigestService';
 import { SchedulerService } from '../services/SchedulerService';
 
-export const knowledgeDigestAction: Action = {
-  name: "KNOWLEDGE_DIGEST",
-  similes: [
-    "GENERATE_DIGEST",
-    "CREATE_DIGEST", 
-    "DAILY_DIGEST",
-    "KNOWLEDGE_SUMMARY",
-    "RESEARCH_DIGEST"
+export const knowledgeDigestAction: Action = createActionTemplate({
+  name: 'KNOWLEDGE_DIGEST',
+  description: 'Generate comprehensive knowledge digest summarizing recent research insights, predictions, and performance metrics from curated sources',
+  similes: ['RESEARCH_DIGEST', 'DAILY_DIGEST', 'KNOWLEDGE_SUMMARY', 'INSIGHTS_DIGEST', 'INTELLIGENCE_SUMMARY'],
+  
+  examples: [
+    [
+      {
+        name: '{{user}}',
+        content: { text: 'Generate a knowledge digest' },
+      },
+      {
+        name: 'Satoshi',
+        content: {
+          text: 'Knowledge Digest: 8 new insights analyzed. Bitcoin institutional adoption accelerating - 3 major corps considering treasury strategies. Altcoin momentum building in DeFi sector. 4 predictions tracking positive. Performance: BTC thesis validation +12% vs initial models.',
+          thought: 'User is requesting a knowledge digest. I need to synthesize recent research insights, track prediction accuracy, and provide a comprehensive intelligence summary covering market developments, institutional adoption trends, and performance metrics from our research sources.',
+          actions: ['KNOWLEDGE_DIGEST'],
+        },
+      },
+    ],
+    [
+      {
+        name: '{{user}}',
+        content: { text: 'Show me today\'s research summary' },
+      },
+      {
+        name: 'Satoshi',
+        content: {
+          text: 'Research Summary: 5 insights processed. Key themes: MetaPlanet strategy validation, MSTY yield optimization at 18.5%, traditional finance DeFi integration signals strengthening. 3 predictions updated - 2 on track, 1 accelerating. Truth verified through multi-source analysis.',
+          thought: 'User wants today\'s research summary. I should provide a focused digest of the most recent insights, highlighting key themes, prediction updates, and validation of our analytical models from the research channels.',
+          actions: ['KNOWLEDGE_DIGEST'],
+        },
+      },
+    ],
+    [
+      {
+        name: '{{user}}',
+        content: { text: 'What have we learned recently?' },
+      },
+      {
+        name: 'Satoshi',
+        content: {
+          text: 'Recent Intelligence: 6 key insights extracted. Institutional Bitcoin adoption accelerating - BlackRock flows +$2.1B this week. Market cycle positioning suggests early accumulation phase. Alternative asset correlations decreasing. Knowledge patterns documented and archived.',
+          thought: 'User is asking about recent learnings. I need to synthesize the most important insights from our research sources, focusing on institutional flows, market positioning, and correlation analysis to provide actionable intelligence.',
+          actions: ['KNOWLEDGE_DIGEST'],
+        },
+      },
+    ],
   ],
-  description: "Generate a knowledge digest summarizing recent research and insights",
-  validate: async (runtime: IAgentRuntime, message: Memory) => {
-    const text = message.content.text.toLowerCase();
-    
-    const digestTriggers = [
-      'digest',
-      'knowledge digest',
-      'daily digest',
-      'research summary',
-      'knowledge summary',
-      'generate digest',
-      'create digest',
-      'summarize research',
-      'show insights',
-      'what have we learned'
-    ];
-    
-    return digestTriggers.some(trigger => text.includes(trigger));
+  
+  validateFn: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+    const text = message.content?.text?.toLowerCase() || '';
+    return ValidationPatterns.isKnowledgeDigestRequest(text);
   },
-  handler: async (
+
+  handlerFn: async (
     runtime: IAgentRuntime,
     message: Memory,
     state: State,
     options: any,
-    callback: HandlerCallback
-  ) => {
+    callback?: HandlerCallback
+  ): Promise<boolean> => {
+    logger.info('Knowledge digest action triggered');
+    
+    // Initial thought process
+    const thoughtProcess = 'User is requesting a knowledge digest. I need to synthesize recent research insights, track prediction accuracy, analyze performance metrics, and provide comprehensive intelligence from our curated sources including research channels, market data, and institutional signals.';
+    
     try {
+      let digestIntelligence;
+      
       // Try to get the scheduler service first for manual trigger
       const schedulerService = runtime.getService('scheduler') as unknown as SchedulerService;
-      
-      let digestIntelligence;
       
       if (schedulerService) {
         // Use scheduler service to trigger manual digest
@@ -51,19 +92,16 @@ export const knowledgeDigestAction: Action = {
         const digestService = runtime.getService('knowledge-digest') as KnowledgeDigestService;
         
         if (!digestService) {
-          const errorResponse = {
-            text: "Knowledge digest service is not available. The proactive intelligence system may still be initializing.",
-            content: {
-              text: "Knowledge digest service is not available. The proactive intelligence system may still be initializing.",
-              action: "KNOWLEDGE_DIGEST",
-              source: "system",
-              error: "Service unavailable"
-            }
-          };
+          logger.warn('Knowledge digest service not available');
+          
+          const fallbackResponse = ResponseCreators.createErrorResponse(
+            'KNOWLEDGE_DIGEST',
+            'Knowledge digest service unavailable',
+            'Knowledge digest service temporarily unavailable. The proactive intelligence system may still be initializing. Research monitoring continues in background.'
+          );
           
           if (callback) {
-            callback(errorResponse);
-            return true;
+            await callback(fallbackResponse);
           }
           return false;
         }
@@ -74,123 +112,113 @@ export const knowledgeDigestAction: Action = {
       }
       
       if (!digestIntelligence) {
-        const noContentResponse = {
-          text: "Insufficient content available for digest generation. The system needs more research data to analyze patterns and generate insights.",
-          content: {
-            text: "Insufficient content available for digest generation. The system needs more research data to analyze patterns and generate insights.",
-            action: "KNOWLEDGE_DIGEST",
-            source: "system",
-            warning: "Insufficient data"
-          }
-        };
+        logger.warn('Insufficient content for digest generation');
+        
+        const noContentResponse = ResponseCreators.createErrorResponse(
+          'KNOWLEDGE_DIGEST',
+          'Insufficient content available',
+          'Insufficient content available for digest generation. The system needs more research data to analyze patterns and generate insights. Research monitoring active.'
+        );
         
         if (callback) {
-          callback(noContentResponse);
-          return true;
+          await callback(noContentResponse);
         }
         return false;
       }
       
       // Format the digest for delivery
-      const formattedDigest = [
-        "📊 **Knowledge Digest Generated**",
-        "",
-        "🧠 **Research Intelligence Summary:**",
-        `• New Insights: ${digestIntelligence.content.knowledgeDigest.newInsights.length} items analyzed`,
-        `• Prediction Updates: ${digestIntelligence.content.knowledgeDigest.predictionUpdates.length} tracked`,
-        `• Performance Notes: ${digestIntelligence.content.knowledgeDigest.performanceReport.length} metrics`,
-        "",
-        "📈 **Key Findings:**",
-        ...digestIntelligence.content.knowledgeDigest.newInsights.slice(0, 3).map(insight => `• ${insight}`),
-        "",
-        "🎯 **Watchlist Updates:**",
-        ...digestIntelligence.content.opportunities.watchlist.slice(0, 3).map(item => `• ${item}`),
-        "",
-        "📊 **Performance Tracking:**",
-        ...digestIntelligence.content.knowledgeDigest.performanceReport.slice(0, 2).map(report => `• ${report}`),
-        "",
-        "Intelligence synthesis complete. Knowledge patterns identified and archived."
-      ].join("\n");
+      const formattedDigest = formatDigestForDelivery(digestIntelligence);
       
-      const response = {
-        text: formattedDigest,
-        content: {
-          text: formattedDigest,
-          action: "KNOWLEDGE_DIGEST",
-          source: "digest_service",
+      const response = ResponseCreators.createStandardResponse(
+        thoughtProcess,
+        formattedDigest,
+        'KNOWLEDGE_DIGEST',
+        {
           briefingId: digestIntelligence.briefingId,
           generatedAt: digestIntelligence.date.toISOString(),
           insights: digestIntelligence.content.knowledgeDigest.newInsights,
-          watchlist: digestIntelligence.content.opportunities.watchlist,
+          watchlist: digestIntelligence.content.opportunities?.watchlist || [],
           performance: digestIntelligence.content.knowledgeDigest.performanceReport
         }
-      };
+      );
       
       if (callback) {
-        callback(response);
-        return true;
+        await callback(response);
       }
       
+      logger.info('Knowledge digest delivered successfully');
       return true;
-    } catch (error) {
-      const errorMessage = `Knowledge digest generation failed: ${(error as Error).message}`;
       
-      const errorResponse = {
-        text: errorMessage,
-        content: {
-          text: errorMessage,
-          action: "KNOWLEDGE_DIGEST",
-          source: "system",
-          error: (error as Error).message
-        }
-      };
+    } catch (error) {
+      logger.error('Failed to generate knowledge digest:', (error as Error).message);
+      
+      // Enhanced error handling with context-specific responses
+      let errorMessage = 'Knowledge synthesis systems operational. Research monitoring continues. Intelligence processing may be delayed.';
+      
+      const errorMsg = (error as Error).message.toLowerCase();
+      if (errorMsg.includes('rate limit') || errorMsg.includes('429') || errorMsg.includes('too many requests')) {
+        errorMessage = 'Research data rate limited. Knowledge synthesis paused temporarily. Intelligence gathering continues at reduced frequency.';
+      } else if (errorMsg.includes('network') || errorMsg.includes('timeout') || errorMsg.includes('fetch')) {
+        errorMessage = 'Research source connectivity issues. Knowledge synthesis temporarily impaired. Local intelligence cache operational.';
+      } else if (errorMsg.includes('service') || errorMsg.includes('unavailable')) {
+        errorMessage = 'Knowledge processing service temporarily down. Research monitoring continues. Intelligence backlog being processed.';
+      }
+      
+      const errorResponse = ResponseCreators.createErrorResponse(
+        'KNOWLEDGE_DIGEST',
+        (error as Error).message,
+        errorMessage
+      );
       
       if (callback) {
-        callback(errorResponse);
-        return true;
+        await callback(errorResponse);
       }
       
       return false;
     }
   },
-  examples: [
-    [
-      {
-        name: "{{user1}}",
-        content: { text: "Generate a knowledge digest" }
-      },
-      {
-        name: "{{agentName}}",
-        content: {
-          text: "📊 **Knowledge Digest Generated**\n\n🧠 **Research Intelligence Summary:**\n• New Insights: 5 items analyzed\n• Prediction Updates: 3 tracked\n• Performance Notes: 4 metrics\n\n📈 **Key Findings:**\n• Bitcoin institutional adoption accelerating\n• Altcoin season momentum building\n• DeFi integration signals strengthening\n\n🎯 **Watchlist Updates:**\n• U.S. Strategic Bitcoin Reserve Implementation\n• Ethereum Staking Yield Optimization\n• Solana Ecosystem Maturation\n\nIntelligence synthesis complete. Knowledge patterns identified and archived."
-        }
-      }
-    ],
-    [
-      {
-        name: "{{user1}}",
-        content: { text: "Show me today's research summary" }
-      },
-      {
-        name: "{{agentName}}",
-        content: {
-          text: "📊 **Knowledge Digest Generated**\n\n🧠 **Research Intelligence Summary:**\n• New Insights: 3 items analyzed\n• Prediction Updates: 2 tracked\n• Performance Notes: 3 metrics\n\n📈 **Key Findings:**\n• MetaPlanet strategy validation continuing\n• MSTY yield optimization opportunities\n• Traditional finance DeFi integration signals\n\nIntelligence synthesis complete. Truth is verified through analysis."
-        }
-      }
-    ],
-    [
-      {
-        name: "{{user1}}",
-        content: { text: "What have we learned recently?" }
-      },
-      {
-        name: "{{agentName}}",
-        content: {
-          text: "📊 **Knowledge Digest Generated**\n\n🧠 **Research Intelligence Summary:**\n• New Insights: 4 items analyzed\n• Prediction Updates: 3 tracked\n• Performance Notes: 2 metrics\n\n📈 **Key Findings:**\n• Institutional Bitcoin adoption patterns emerging\n• Alternative asset correlation analysis\n• Market cycle positioning insights\n\nKnowledge extraction complete. Patterns documented and verified."
-        }
-      }
-    ]
-  ]
-};
+});
+
+/**
+ * Format digest intelligence for conversational delivery
+ */
+function formatDigestForDelivery(digestIntelligence: any): string {
+  const content = digestIntelligence.content;
+  
+  // Start with digest summary
+  const insightsCount = content.knowledgeDigest.newInsights.length;
+  const predictionsCount = content.knowledgeDigest.predictionUpdates.length;
+  const performanceCount = content.knowledgeDigest.performanceReport.length;
+  
+  let response = `Knowledge Digest: ${insightsCount} insights analyzed.`;
+  
+  // Add key findings
+  if (content.knowledgeDigest.newInsights.length > 0) {
+    const topInsights = content.knowledgeDigest.newInsights.slice(0, 2);
+    response += ` Key findings: ${topInsights.join(', ')}.`;
+  }
+  
+  // Add prediction updates
+  if (predictionsCount > 0) {
+    response += ` ${predictionsCount} predictions tracked.`;
+  }
+  
+  // Add performance notes
+  if (content.knowledgeDigest.performanceReport.length > 0) {
+    const performanceNote = content.knowledgeDigest.performanceReport[0];
+    response += ` Performance: ${performanceNote}.`;
+  }
+  
+  // Add watchlist updates if available
+  if (content.opportunities?.watchlist?.length > 0) {
+    const watchlistItem = content.opportunities.watchlist[0];
+    response += ` Watchlist: ${watchlistItem}.`;
+  }
+  
+  // Add closing note
+  response += ' Intelligence synthesis complete.';
+  
+  return response;
+}
 
 export default knowledgeDigestAction; 

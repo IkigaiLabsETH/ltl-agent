@@ -1,29 +1,18 @@
 import {
-  Action,
-  IAgentRuntime,
-  Memory,
-  State,
-  HandlerCallback,
-  elizaLogger,
-  type ActionExample
+  type Action,
+  type Content,
+  type HandlerCallback,
+  type IAgentRuntime,
+  type Memory,
+  type State,
+  logger,
 } from '@elizaos/core';
-import { TravelDataService, type CuratedHotel, type OptimalBookingWindow } from '../services/TravelDataService';
-
-interface DealAlertParams {
-  hotels?: string[]; // hotel IDs or names
-  cities?: string[]; // city names
-  maxPrice?: number;
-  minSavings?: number; // minimum savings percentage
-  dateRange?: {
-    start: string;
-    end: string;
-  };
-  alertType?: 'immediate' | 'daily' | 'weekly';
-}
+import { createActionTemplate, ValidationPatterns, ResponseCreators } from './base/ActionTemplate';
+import { TravelDataService } from '../services/TravelDataService';
 
 interface DealAlert {
   id: string;
-  hotel: CuratedHotel;
+  hotel: any;
   currentRate: number;
   previousRate: number;
   savings: number;
@@ -34,156 +23,228 @@ interface DealAlert {
   actionRecommendation: string;
 }
 
-export const hotelDealAlertAction: Action = {
-  name: "HOTEL_DEAL_ALERT",
-  similes: [
-    "HOTEL_ALERTS",
-    "DEAL_ALERTS",
-    "PRICE_ALERTS",
-    "HOTEL_DEALS",
-    "BOOKING_ALERTS",
-    "SAVINGS_ALERTS",
-    "RATE_MONITORING",
-    "HOTEL_NOTIFICATIONS",
-    "DEAL_FINDER",
-    "PRICE_DROPS"
-  ],
-  description: "Monitor hotel rates and alert on significant price drops and booking opportunities",
+export const hotelDealAlertAction: Action = createActionTemplate({
+  name: 'HOTEL_DEAL_ALERT',
+  description: 'Monitor hotel rates and alert on significant price drops and booking opportunities with urgency-based recommendations',
+  similes: ['HOTEL_ALERTS', 'DEAL_ALERTS', 'PRICE_ALERTS', 'HOTEL_DEALS', 'BOOKING_ALERTS', 'SAVINGS_ALERTS', 'RATE_MONITORING', 'HOTEL_NOTIFICATIONS', 'DEAL_FINDER', 'PRICE_DROPS'],
   
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
-    const text = message.content.text.toLowerCase();
-    
-    // Deal and alert keywords
-    const dealKeywords = [
-      'deal', 'deals', 'alert', 'alerts', 'notification', 'notify', 'monitor',
-      'watch', 'track', 'savings', 'discount', 'price drop', 'bargain', 'special'
-    ];
-    
-    // Hotel keywords
-    const hotelKeywords = [
-      'hotel', 'hotels', 'accommodation', 'booking', 'stay', 'room', 'suite'
-    ];
-    
-    // Price and booking keywords
-    const priceKeywords = [
-      'price', 'rate', 'cost', 'cheap', 'cheaper', 'best price', 'lowest',
-      'when to book', 'optimal', 'timing', 'bargain', 'steal'
-    ];
-    
-    const hasDealKeyword = dealKeywords.some(keyword => text.includes(keyword));
-    const hasHotelKeyword = hotelKeywords.some(keyword => text.includes(keyword));
-    const hasPriceKeyword = priceKeywords.some(keyword => text.includes(keyword));
-    
-    // Activate if user mentions deals + hotels or hotels + prices
-    return (hasDealKeyword && hasHotelKeyword) || (hasHotelKeyword && hasPriceKeyword);
+  examples: [
+    [
+      {
+        name: '{{user}}',
+        content: { text: 'Any hotel deals available right now?' },
+      },
+      {
+        name: 'Satoshi',
+        content: {
+          text: '🚨 Hotel deals: Ritz-Carlton €450/night (was €720, 37% off) Mar 15-20, Hotel du Palais €380/night (45% off) Apr 5-12. 2 urgent opportunities found. Book immediately - exceptional savings rarely available. Sound money enables swift decisions.',
+          thought: 'User wants current hotel deal alerts. I need to scan for price drops, assess urgency levels, identify booking windows, and provide actionable recommendations while maintaining Bitcoin-enabled travel philosophy.',
+          actions: ['HOTEL_DEAL_ALERT'],
+        },
+      },
+    ],
+    [
+      {
+        name: '{{user}}',
+        content: { text: 'Alert me to Monaco hotel discounts over 30%' },
+      },
+      {
+        name: 'Satoshi',
+        content: {
+          text: 'Monaco deal alert set: 30%+ savings threshold. Current: Hotel Hermitage €520/night (was €780, 33% off) Feb 20-25. High-urgency deal - Monaco rates rarely drop this much. Monitor daily for additional opportunities. Bitcoin wealth creates booking flexibility.',
+          thought: 'User setting up deal monitoring for Monaco with specific savings threshold. I should scan current deals meeting criteria, explain alert setup, and provide immediate opportunities while emphasizing Bitcoin-enabled decisiveness.',
+          actions: ['HOTEL_DEAL_ALERT'],
+        },
+      },
+    ],
+    [
+      {
+        name: '{{user}}',
+        content: { text: 'Show me luxury hotel price drops this week' },
+      },
+      {
+        name: 'Satoshi',
+        content: {
+          text: '📉 Luxury price drops: Four Seasons €580/night (was €850, 32% off), Conrad €420/night (was €650, 35% off), Le Bristol €690/night (was €920, 25% off). 3 deals found. Best window: next 7 days. Strike while rates are down.',
+          thought: 'User wants recent luxury hotel price drops. I need to identify significant rate reductions, categorize by urgency, provide booking windows, and emphasize the temporary nature of these opportunities.',
+          actions: ['HOTEL_DEAL_ALERT'],
+        },
+      },
+    ],
+  ],
+  
+  validateFn: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+    const text = message.content?.text?.toLowerCase() || '';
+    return ValidationPatterns.isHotelDealRequest(text);
   },
 
-  handler: async (
+  handlerFn: async (
     runtime: IAgentRuntime,
     message: Memory,
     state: State,
     options: any,
-    callback: HandlerCallback
-  ): Promise<void> => {
+    callback?: HandlerCallback
+  ): Promise<boolean> => {
+    logger.info('Hotel deal alert action triggered');
+    
+    const thoughtProcess = 'User is requesting hotel deal monitoring. I need to scan for price drops, assess urgency levels, identify booking opportunities, and provide actionable recommendations while maintaining Bitcoin travel philosophy.';
+    
     try {
-      elizaLogger.info(`[HotelDealAlertAction] Processing deal alert request: ${message.content.text}`);
+      const travelDataService = runtime.getService('travel-data') as TravelDataService;
       
-      // Get the TravelDataService
-      const travelService = runtime.getService('travel-data') as TravelDataService;
-      if (!travelService) {
-        elizaLogger.error('[HotelDealAlertAction] TravelDataService not available');
-        await callback({
-          text: "❌ Travel monitoring service is currently unavailable. Please try again later.",
-          content: { error: "TravelDataService not found" }
-        });
-        return;
+      if (!travelDataService) {
+        logger.warn('TravelDataService not available');
+        
+        const fallbackResponse = ResponseCreators.createErrorResponse(
+          'HOTEL_DEAL_ALERT',
+          'Deal monitoring service unavailable',
+          'Hotel deal monitoring temporarily unavailable. Like Bitcoin\'s price discovery, luxury travel deals require patience and timing.'
+        );
+        
+        if (callback) {
+          await callback(fallbackResponse);
+        }
+        return false;
       }
 
-      // Parse alert parameters
-      const alertParams = await parseAlertParameters(runtime, message.content.text);
-      elizaLogger.info(`[HotelDealAlertAction] Parsed alert params:`, alertParams);
+      // Parse alert parameters from message
+      const messageText = message.content?.text || '';
+      const alertParams = extractAlertParameters(messageText);
 
       // Get current travel data
-      const travelData = travelService.getTravelData();
+      const travelData = travelDataService.getTravelData();
       if (!travelData) {
-        elizaLogger.warn('[HotelDealAlertAction] No travel data available, forcing update');
-        await travelService.forceUpdate();
+        logger.warn('No travel data available for deal monitoring');
+        
+        const noDataResponse = ResponseCreators.createErrorResponse(
+          'HOTEL_DEAL_ALERT',
+          'Hotel data unavailable',
+          'Hotel data temporarily unavailable. Like network congestion, sometimes data flows require patience.'
+        );
+        
+        if (callback) {
+          await callback(noDataResponse);
+        }
+        return false;
       }
 
-      // Find current deals and opportunities
-      const currentDeals = await findCurrentDeals(travelService, alertParams);
+      // Find current deals based on parameters
+      const currentDeals = findCurrentDeals(travelDataService, alertParams);
       
-      // Generate alert response
-      const response = await generateAlertResponse(runtime, alertParams, currentDeals);
-      
-      elizaLogger.info(`[HotelDealAlertAction] Generated response with ${currentDeals.length} deals`);
-      
-      await callback({
-        text: response,
-        content: {
-          action: "hotel_deal_alert",
-          parameters: alertParams,
-          results: {
-            dealCount: currentDeals.length,
-            highUrgencyDeals: currentDeals.filter(d => d.urgency === 'high').length,
-            totalSavings: currentDeals.reduce((sum, d) => sum + d.savings, 0)
+      if (currentDeals.length === 0) {
+        logger.info('No current deals match criteria');
+        
+        const noDealsResponse = ResponseCreators.createStandardResponse(
+          thoughtProcess,
+          'No current deals match your criteria. I\'ll continue monitoring for opportunities and alert you when rates drop! Like Bitcoin accumulation, patience is rewarded.',
+          'HOTEL_DEAL_ALERT',
+          {
+            dealCount: 0,
+            monitoringActive: true,
+            criteria: alertParams
           }
+        );
+        
+        if (callback) {
+          await callback(noDealsResponse);
         }
-      });
+        return true;
+      }
+
+      // Format deals response
+      const responseText = formatDealsResponse(currentDeals, alertParams);
+
+      const response = ResponseCreators.createStandardResponse(
+        thoughtProcess,
+        responseText,
+        'HOTEL_DEAL_ALERT',
+        {
+          dealCount: currentDeals.length,
+          highUrgencyDeals: currentDeals.filter(d => d.urgency === 'high').length,
+          totalSavings: currentDeals.reduce((sum, d) => sum + d.savings, 0),
+          averageSavings: currentDeals.reduce((sum, d) => sum + d.savingsPercentage, 0) / currentDeals.length,
+          bestDeal: currentDeals[0]?.hotel?.name
+        }
+      );
+
+      if (callback) {
+        await callback(response);
+      }
+
+      logger.info('Hotel deal alerts delivered successfully');
+      return true;
 
     } catch (error) {
-      elizaLogger.error('[HotelDealAlertAction] Error processing deal alert:', error);
-      await callback({
-        text: "❌ I encountered an error while checking for hotel deals. Please try again.",
-        content: { error: error.message }
-      });
+      logger.error('Failed to process hotel deal alerts:', (error as Error).message);
+      
+      const errorResponse = ResponseCreators.createErrorResponse(
+        'HOTEL_DEAL_ALERT',
+        (error as Error).message,
+        'Deal monitoring failed. Like Bitcoin\'s mempool, sometimes transactions need patience to clear.'
+      );
+      
+      if (callback) {
+        await callback(errorResponse);
+      }
+      
+      return false;
     }
   },
+});
 
-  examples: []
-};
-
-async function parseAlertParameters(runtime: IAgentRuntime, text: string): Promise<DealAlertParams> {
-  try {
-    const text_lower = text.toLowerCase();
-    const params: DealAlertParams = { alertType: 'immediate' };
-    
-    // Extract cities
-    const cities = [];
-    if (text_lower.includes('biarritz')) cities.push('biarritz');
-    if (text_lower.includes('bordeaux')) cities.push('bordeaux');
-    if (text_lower.includes('monaco')) cities.push('monaco');
-    if (cities.length > 0) params.cities = cities;
-    
-    // Extract hotel names
-    const hotels = [];
-    if (text_lower.includes('hôtel du palais') || text_lower.includes('hotel du palais')) hotels.push('Hôtel du Palais');
-    if (text_lower.includes('hermitage')) hotels.push('Hôtel Hermitage');
-    if (text_lower.includes('metropole')) hotels.push('Hotel Metropole');
-    if (hotels.length > 0) params.hotels = hotels;
-    
-    // Extract max price
-    const priceMatch = text.match(/(?:below|under|max|maximum)?\s*€?(\d+(?:,\d+)?)/i);
-    if (priceMatch) {
-      params.maxPrice = parseInt(priceMatch[1].replace(',', ''));
-    }
-    
-    // Extract minimum savings
-    const savingsMatch = text.match(/(\d+)%\s*(?:savings|off|discount)/i);
-    if (savingsMatch) {
-      params.minSavings = parseInt(savingsMatch[1]);
-    }
-    
-    return params;
-  } catch (error) {
-    elizaLogger.error('[HotelDealAlertAction] Error parsing parameters:', error);
-    return { alertType: 'immediate' };
+/**
+ * Extract alert parameters from message text
+ */
+function extractAlertParameters(text: string): {
+  cities?: string[];
+  hotels?: string[];
+  maxPrice?: number;
+  minSavings?: number;
+  alertType: string;
+} {
+  const params: {
+    cities?: string[];
+    hotels?: string[];
+    maxPrice?: number;
+    minSavings?: number;
+    alertType: string;
+  } = { alertType: 'immediate' };
+  
+  // Extract cities
+  const cities = [];
+  if (text.toLowerCase().includes('biarritz')) cities.push('biarritz');
+  if (text.toLowerCase().includes('bordeaux')) cities.push('bordeaux');
+  if (text.toLowerCase().includes('monaco')) cities.push('monaco');
+  if (cities.length > 0) params.cities = cities;
+  
+  // Extract hotel names
+  const hotels = [];
+  if (text.toLowerCase().includes('ritz') || text.toLowerCase().includes('ritz-carlton')) hotels.push('Ritz-Carlton');
+  if (text.toLowerCase().includes('four seasons')) hotels.push('Four Seasons');
+  if (text.toLowerCase().includes('conrad')) hotels.push('Conrad');
+  if (hotels.length > 0) params.hotels = hotels;
+  
+  // Extract max price
+  const priceMatch = text.match(/(?:below|under|max|maximum)?\s*€?(\d+(?:,\d+)?)/i);
+  if (priceMatch) {
+    params.maxPrice = parseInt(priceMatch[1].replace(',', ''));
   }
+  
+  // Extract minimum savings
+  const savingsMatch = text.match(/(\d+)%\s*(?:savings|off|discount)/i);
+  if (savingsMatch) {
+    params.minSavings = parseInt(savingsMatch[1]);
+  }
+  
+  return params;
 }
 
-async function findCurrentDeals(travelService: TravelDataService, params: DealAlertParams): Promise<DealAlert[]> {
-  const hotels = travelService.getCuratedHotels();
-  const optimalWindows = travelService.getOptimalBookingWindows();
+/**
+ * Find current deals based on parameters
+ */
+function findCurrentDeals(travelService: TravelDataService, params: any): DealAlert[] {
+  const hotels = travelService.getCuratedHotels() || [];
+  const optimalWindows = travelService.getOptimalBookingWindows() || [];
   const deals: DealAlert[] = [];
 
   // Filter hotels based on parameters
@@ -191,13 +252,13 @@ async function findCurrentDeals(travelService: TravelDataService, params: DealAl
   
   if (params.cities && params.cities.length > 0) {
     filteredHotels = hotels.filter(hotel => 
-      params.cities!.some(city => hotel.city.toLowerCase() === city.toLowerCase())
+      params.cities.some((city: string) => hotel.city?.toLowerCase() === city.toLowerCase())
     );
   }
   
   if (params.hotels && params.hotels.length > 0) {
     filteredHotels = filteredHotels.filter(hotel => 
-      params.hotels!.some(name => hotel.name.toLowerCase().includes(name.toLowerCase()))
+      params.hotels.some((name: string) => hotel.name?.toLowerCase().includes(name.toLowerCase()))
     );
   }
 
@@ -205,29 +266,29 @@ async function findCurrentDeals(travelService: TravelDataService, params: DealAl
   for (const hotel of filteredHotels) {
     const optimalWindow = optimalWindows.find(w => w.hotelId === hotel.hotelId);
     
-    if (optimalWindow && optimalWindow.bestDates.length > 0) {
-      for (const bestDate of optimalWindow.bestDates.slice(0, 3)) { // Top 3 deals per hotel
+    if (optimalWindow && optimalWindow.bestDates?.length > 0) {
+      for (const bestDate of optimalWindow.bestDates.slice(0, 2)) { // Top 2 deals per hotel
         // Check if deal meets criteria
         if (params.maxPrice && bestDate.totalPrice > params.maxPrice) continue;
         if (params.minSavings && bestDate.savingsPercentage < params.minSavings) continue;
         
-        const savings = bestDate.savings;
-        const savingsPercentage = bestDate.savingsPercentage;
+        const savings = bestDate.savings || 0;
+        const savingsPercentage = bestDate.savingsPercentage || 0;
         
         // Determine urgency
         let urgency: 'high' | 'medium' | 'low' = 'low';
-        if (savingsPercentage >= 60) urgency = 'high';
-        else if (savingsPercentage >= 40) urgency = 'medium';
+        if (savingsPercentage >= 40) urgency = 'high';
+        else if (savingsPercentage >= 25) urgency = 'medium';
         
         // Generate reason and recommendation
-        const reason = generateDealReason(bestDate, hotel);
-        const actionRecommendation = generateActionRecommendation(bestDate, hotel, urgency);
+        const reason = generateDealReason(bestDate, savingsPercentage);
+        const actionRecommendation = generateActionRecommendation(urgency);
         
         deals.push({
           id: `${hotel.hotelId}-${bestDate.checkIn}`,
           hotel,
-          currentRate: bestDate.totalPrice,
-          previousRate: bestDate.totalPrice + savings,
+          currentRate: bestDate.totalPrice || 0,
+          previousRate: (bestDate.totalPrice || 0) + savings,
           savings,
           savingsPercentage,
           validDates: [bestDate.checkIn, bestDate.checkOut],
@@ -243,96 +304,85 @@ async function findCurrentDeals(travelService: TravelDataService, params: DealAl
   return deals.sort((a, b) => b.savingsPercentage - a.savingsPercentage);
 }
 
-function generateDealReason(bestDate: any, hotel: CuratedHotel): string {
-  const season = getCurrentSeason(new Date(bestDate.checkIn));
-  const savingsPercentage = bestDate.savingsPercentage;
+/**
+ * Generate deal reason based on savings
+ */
+function generateDealReason(bestDate: any, savingsPercentage: number): string {
+  const checkInDate = new Date(bestDate.checkIn);
+  const month = checkInDate.getMonth() + 1;
   
-  if (savingsPercentage >= 60) {
-    return `${season} season pricing - exceptional ${savingsPercentage}% savings`;
-  } else if (savingsPercentage >= 40) {
-    return `${season} season offering solid ${savingsPercentage}% value`;
+  let season = 'Winter';
+  if ([3, 4, 5].includes(month)) season = 'Spring';
+  else if ([6, 7, 8].includes(month)) season = 'Summer';
+  else if ([9, 10, 11].includes(month)) season = 'Fall';
+  
+  if (savingsPercentage >= 50) {
+    return `${season} season pricing - exceptional ${savingsPercentage.toFixed(0)}% savings`;
+  } else if (savingsPercentage >= 30) {
+    return `${season} season offering solid ${savingsPercentage.toFixed(0)}% value`;
   } else {
-    return `${season} season with ${savingsPercentage}% savings vs peak`;
+    return `${season} season with ${savingsPercentage.toFixed(0)}% savings vs peak`;
   }
 }
 
-function generateActionRecommendation(bestDate: any, hotel: CuratedHotel, urgency: string): string {
+/**
+ * Generate action recommendation based on urgency
+ */
+function generateActionRecommendation(urgency: string): string {
   if (urgency === 'high') {
-    return `Book immediately - exceptional savings rarely available`;
+    return 'Book immediately - exceptional savings rarely available';
   } else if (urgency === 'medium') {
-    return `Book within 7 days - good value window`;
+    return 'Book within 7 days - good value window';
   } else {
-    return `Monitor for additional savings or book for guaranteed value`;
+    return 'Monitor for additional savings or book for guaranteed value';
   }
 }
 
-function getCurrentSeason(date: Date): string {
-  const month = date.getMonth() + 1;
-  
-  if ([12, 1, 2].includes(month)) return 'Winter';
-  if ([3, 4, 5].includes(month)) return 'Spring';
-  if ([6, 7, 8].includes(month)) return 'Summer';
-  return 'Fall';
-}
-
-async function generateAlertResponse(runtime: IAgentRuntime, params: DealAlertParams, deals: DealAlert[]): Promise<string> {
-  if (deals.length === 0) {
-    return "📊 No current deals match your criteria. I'll continue monitoring for opportunities and alert you when rates drop!";
-  }
-
+/**
+ * Format deals response
+ */
+function formatDealsResponse(deals: DealAlert[], params: any): string {
   const highUrgencyDeals = deals.filter(d => d.urgency === 'high');
   const totalSavings = deals.reduce((sum, d) => sum + d.savings, 0);
   
-  let response = `🚨 **Hotel Deal Alert - ${deals.length} ${deals.length === 1 ? 'Opportunity' : 'Opportunities'} Found**\n\n`;
+  let responseText = `🚨 Hotel deals: `;
+  
+  // Show top deals
+  const topDeals = deals.slice(0, 3).map(deal => {
+    const dates = formatDateRange(deal.validDates);
+    return `${deal.hotel.name} €${deal.currentRate}/night (was €${deal.previousRate}, ${deal.savingsPercentage.toFixed(0)}% off) ${dates}`;
+  }).join(', ');
+  
+  responseText += `${topDeals}. `;
+  
+  responseText += `${deals.length} ${deals.length === 1 ? 'opportunity' : 'opportunities'} found. `;
   
   if (highUrgencyDeals.length > 0) {
-    response += `🔥 **URGENT DEALS (Book Now):**\n\n`;
-    
-    for (const deal of highUrgencyDeals.slice(0, 2)) {
-      const categoryIcon = getCategoryIcon(deal.hotel.category);
-      response += `${categoryIcon} **${deal.hotel.name}** (${deal.hotel.city})\n`;
-      response += `• **Rate**: €${deal.currentRate}/night (was €${deal.previousRate})\n`;
-      response += `• **Savings**: €${deal.savings}/night (${deal.savingsPercentage}% off)\n`;
-      response += `• **Dates**: ${formatDateRange(deal.validDates)}\n`;
-      response += `• **Reason**: ${deal.reason}\n`;
-      response += `• **Action**: ${deal.actionRecommendation}\n\n`;
-    }
+    responseText += `${highUrgencyDeals[0].actionRecommendation}. `;
   }
   
-  const mediumDeals = deals.filter(d => d.urgency === 'medium');
-  if (mediumDeals.length > 0) {
-    response += `💎 **GOOD VALUE OPPORTUNITIES:**\n\n`;
-    
-    for (const deal of mediumDeals.slice(0, 2)) {
-      const categoryIcon = getCategoryIcon(deal.hotel.category);
-      response += `${categoryIcon} **${deal.hotel.name}** (${deal.hotel.city})\n`;
-      response += `• **Rate**: €${deal.currentRate}/night (${deal.savingsPercentage}% off)\n`;
-      response += `• **Savings**: €${deal.savings}/night\n`;
-      response += `• **Dates**: ${formatDateRange(deal.validDates)}\n\n`;
-    }
-  }
+  // Add Bitcoin travel philosophy
+  const bitcoinQuotes = [
+    'Sound money enables swift decisions.',
+    'Bitcoin wealth creates booking flexibility.',
+    'Strike while rates are down.',
+    'Hard money, soft adventures.',
+    'Stack sats, book deals.'
+  ];
   
-  response += `📊 **Summary**: ${deals.length} deals found with total savings of €${totalSavings.toLocaleString()}\n\n`;
-  response += `💡 **Tip**: Act quickly on high-urgency deals - these rates change frequently!`;
+  responseText += bitcoinQuotes[Math.floor(Math.random() * bitcoinQuotes.length)];
   
-  return response;
+  return responseText;
 }
 
-function getCategoryIcon(category: string): string {
-  const iconMap = {
-    'palace': '🏰',
-    'luxury': '✨',
-    'boutique': '🌟',
-    'resort': '🌊'
-  };
-  return iconMap[category as keyof typeof iconMap] || '🏨';
-}
-
+/**
+ * Format date range for display
+ */
 function formatDateRange(dates: string[]): string {
   if (dates.length >= 2) {
     const start = new Date(dates[0]).toLocaleDateString('en-GB', { month: 'short', day: 'numeric' });
     const end = new Date(dates[1]).toLocaleDateString('en-GB', { month: 'short', day: 'numeric' });
-    return `${start} - ${end}`;
+    return `${start}-${end}`;
   }
   return dates[0] || 'TBD';
 } 

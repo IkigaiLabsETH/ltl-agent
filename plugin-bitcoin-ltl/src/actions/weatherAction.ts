@@ -1,4 +1,13 @@
-import { Action, ActionExample, IAgentRuntime, Memory, State, HandlerCallback } from '@elizaos/core';
+import {
+  type Action,
+  type Content,
+  type HandlerCallback,
+  type IAgentRuntime,
+  type Memory,
+  type State,
+  logger,
+} from '@elizaos/core';
+import { createActionTemplate, ValidationPatterns, ResponseCreators } from './base/ActionTemplate';
 import { LifestyleDataService } from '../services/LifestyleDataService';
 
 // Helper function to safely format values
@@ -13,46 +22,103 @@ const formatTemp = (temp: number | undefined | null): string => {
   return `${Math.round(temp)}°C`;
 };
 
-export const weatherAction: Action = {
+export const weatherAction: Action = createActionTemplate({
   name: 'WEATHER_ANALYSIS',
-  similes: [
-    'WEATHER_REPORT',
-    'CURRENT_WEATHER',
-    'WEATHER_CONDITIONS',
-    'CITY_WEATHER',
-    'SURF_CONDITIONS',
-    'AIR_QUALITY',
-    'BIARRITZ_SURF',
-    'SURF_REPORT'
+  description: 'Comprehensive weather and surf analysis for European lifestyle cities, with detailed Biarritz surf conditions and regional weather intelligence',
+  similes: ['WEATHER_REPORT', 'SURF_REPORT', 'WEATHER_CONDITIONS', 'SURF_CONDITIONS', 'CITY_WEATHER'],
+  
+  examples: [
+    [
+      {
+        name: '{{user}}',
+        content: { text: 'How are the surf conditions in Biarritz?' },
+      },
+      {
+        name: 'Satoshi',
+        content: {
+          text: 'Biarritz surf: 1.2m waves, 8.5s period, 15°C water. Wave conditions: Moderate size. Wave quality: Long period swells. Suitable for intermediate surfers. The ocean\'s energy is nature\'s proof-of-work - each wave represents accumulated energy from distant storms, distributed through a decentralized network of swells.',
+          thought: 'User is asking specifically about Biarritz surf conditions. I need to provide detailed surf metrics including wave height, period, water temperature, and assess the conditions for different skill levels while incorporating the philosophical perspective on ocean energy systems.',
+          actions: ['WEATHER_ANALYSIS'],
+        },
+      },
+    ],
+    [
+      {
+        name: '{{user}}',
+        content: { text: 'What\'s the weather like in our European cities?' },
+      },
+      {
+        name: 'Satoshi',
+        content: {
+          text: 'European weather: Biarritz 18°C, 1.2m waves (15°C water). Bordeaux 16°C, calm winds, PM2.5: 12μg/m³. Monaco 20°C, 0.8m waves, UV: 6. Best weather: Monaco. Air quality excellent. Optimal conditions for sovereign living. Weather systems are decentralized networks processing energy.',
+          thought: 'User wants a comprehensive European weather overview. I should provide temperature, wave conditions, air quality, and UV data for all monitored cities, then synthesize this into actionable insights for lifestyle decisions.',
+          actions: ['WEATHER_ANALYSIS'],
+        },
+      },
+    ],
+    [
+      {
+        name: '{{user}}',
+        content: { text: 'Is it a good day for outdoor activities?' },
+      },
+      {
+        name: 'Satoshi',
+        content: {
+          text: 'Excellent day for outdoor activities. Air quality: excellent, average temp: 19°C, wind conditions: calm. UV risk: moderate - optimize vitamin D synthesis but protect skin. Surf conditions favorable in Biarritz (1.2m waves). Bordeaux optimal for vineyard visits. Respect natural cycles, stack sats during storms.',
+          thought: 'User is asking about outdoor activity suitability. I need to assess air quality, UV levels, wind conditions, and temperatures to provide specific recommendations for different activities.',
+          actions: ['WEATHER_ANALYSIS'],
+        },
+      },
+    ],
   ],
-  description: 'Provides real-time weather and surf analysis for European lifestyle cities, especially Biarritz surf conditions',
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
-    const content = message.content.text?.toLowerCase() || '';
-    const triggers = [
-      'weather', 'temperature', 'wind', 'conditions', 'forecast',
-      'biarritz', 'bordeaux', 'monaco', 'surf', 'waves', 'marine',
-      'air quality', 'uv', 'storm', 'sunny', 'cloudy', 'rain',
-      'sea temperature', 'wave height', 'wave period'
-    ];
-    
-    return triggers.some(trigger => content.includes(trigger));
+  
+  validateFn: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+    const text = message.content?.text?.toLowerCase() || '';
+    return ValidationPatterns.isWeatherRequest(text);
   },
-  handler: async (runtime: IAgentRuntime, message: Memory, state: State, options: any, callback: HandlerCallback) => {
+
+  handlerFn: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+    state: State,
+    options: any,
+    callback?: HandlerCallback
+  ): Promise<boolean> => {
+    logger.info('Weather analysis action triggered');
+    
+    const messageText = message.content?.text?.toLowerCase() || '';
+    
+    // Determine thought process based on query type
+    let thoughtProcess = 'User is requesting weather information. I need to analyze current conditions across European lifestyle cities and provide actionable insights for daily decisions.';
+    
+    if (messageText.includes('surf') || messageText.includes('wave')) {
+      thoughtProcess = 'User is asking about surf conditions. I need to provide detailed wave analysis including height, period, water temperature, and suitability assessment for different skill levels, particularly for Biarritz.';
+    } else if (messageText.includes('outdoor') || messageText.includes('activities')) {
+      thoughtProcess = 'User wants to know about outdoor activity suitability. I should assess air quality, UV levels, wind conditions, and temperatures to provide specific recommendations for different activities.';
+    }
+    
     try {
       const lifestyleDataService = runtime.getService('lifestyle-data') as LifestyleDataService;
       
       if (!lifestyleDataService) {
-        callback({
-          text: "Weather data service unavailable. The system is initializing - please try again in a moment.",
-          action: 'WEATHER_ANALYSIS'
-        });
-        return;
+        logger.warn('Lifestyle data service not available');
+        
+        const fallbackResponse = ResponseCreators.createErrorResponse(
+          'WEATHER_ANALYSIS',
+          'Weather service unavailable',
+          'Weather data service temporarily unavailable. The system is initializing - natural weather patterns continue regardless of our monitoring capabilities. Please try again in a moment.'
+        );
+        
+        if (callback) {
+          await callback(fallbackResponse);
+        }
+        return false;
       }
 
       // Check if force refresh is requested
-      const forceRefresh = message.content.text?.toLowerCase().includes('refresh') || 
-                          message.content.text?.toLowerCase().includes('latest') ||
-                          message.content.text?.toLowerCase().includes('current');
+      const forceRefresh = messageText.includes('refresh') || 
+                          messageText.includes('latest') ||
+                          messageText.includes('current');
 
       let weatherData;
       if (forceRefresh) {
@@ -66,15 +132,21 @@ export const weatherAction: Action = {
       }
 
       if (!weatherData || !weatherData.cities || weatherData.cities.length === 0) {
-        callback({
-          text: "Weather data temporarily unavailable. Unable to fetch current conditions from weather services.",
-          action: 'WEATHER_ANALYSIS'
-        });
-        return;
+        logger.warn('No weather data available');
+        
+        const noDataResponse = ResponseCreators.createErrorResponse(
+          'WEATHER_ANALYSIS',
+          'Weather data unavailable',
+          'Weather data temporarily unavailable. Unable to fetch current conditions from weather services. Natural systems continue operating independently of our monitoring.'
+        );
+        
+        if (callback) {
+          await callback(noDataResponse);
+        }
+        return false;
       }
 
       const { cities, summary } = weatherData;
-      const messageText = message.content.text?.toLowerCase() || '';
       
       // Find specific city data
       const biarritz = cities.find(c => c.city === 'biarritz');
@@ -85,228 +157,195 @@ export const weatherAction: Action = {
       const isBiarritzSurfQuery = messageText.includes('biarritz') && 
                                   (messageText.includes('surf') || messageText.includes('wave'));
       
+      let responseText: string;
+      let responseData: any = {
+        cities: cities.map(city => ({
+          name: city.city,
+          temperature: city.weather.current?.temperature_2m,
+          windSpeed: city.weather.current?.wind_speed_10m,
+          waveHeight: city.marine?.current?.wave_height,
+          seaTemp: city.marine?.current?.sea_surface_temperature
+        })),
+        summary,
+        lastUpdated: weatherData.lastUpdated
+      };
+      
       if (isBiarritzSurfQuery && biarritz && biarritz.marine) {
-        // Provide detailed Biarritz surf report
-        const marine = biarritz.marine.current;
-        const weather = biarritz.weather.current;
-        const airQuality = biarritz.airQuality?.current;
-
-        let surfReport = "**🏄‍♂️ BIARRITZ SURF REPORT**\n\n";
-        
-        surfReport += `**Current Conditions:**\n`;
-        surfReport += `• Wave Height: ${formatValue(marine.wave_height, 'm')}\n`;
-        surfReport += `• Wave Period: ${formatValue(marine.wave_period, 's')}\n`;
-        surfReport += `• Wave Direction: ${marine.wave_direction ? `${marine.wave_direction}°` : 'N/A'}\n`;
-        surfReport += `• Sea Temperature: ${formatTemp(marine.sea_surface_temperature)}\n`;
-        
-        if (weather) {
-          surfReport += `• Air Temperature: ${formatTemp(weather.temperature_2m)}\n`;
-          surfReport += `• Wind Speed: ${formatValue(weather.wind_speed_10m, 'km/h', 0)}\n`;
-          if (weather.wind_direction_10m) {
-            surfReport += `• Wind Direction: ${weather.wind_direction_10m}°\n`;
-          }
-        }
-        
-        if (airQuality) {
-          surfReport += `• UV Index: ${formatValue(airQuality.uv_index, '', 0)}\n`;
-        }
-
-        // Surf condition assessment
-        surfReport += `\n**Surf Assessment:**\n`;
-        if (marine.wave_height >= 1.5) {
-          surfReport += `• Wave conditions: Good size (${formatValue(marine.wave_height, 'm')})\n`;
-        } else if (marine.wave_height >= 0.8) {
-          surfReport += `• Wave conditions: Moderate (${formatValue(marine.wave_height, 'm')})\n`;
-        } else {
-          surfReport += `• Wave conditions: Small (${formatValue(marine.wave_height, 'm')})\n`;
-        }
-
-        if (marine.wave_period >= 8) {
-          surfReport += `• Wave quality: Long period swells (${formatValue(marine.wave_period, 's')})\n`;
-        } else if (marine.wave_period >= 6) {
-          surfReport += `• Wave quality: Moderate period (${formatValue(marine.wave_period, 's')})\n`;
-        } else {
-          surfReport += `• Wave quality: Short period (${formatValue(marine.wave_period, 's')})\n`;
-        }
-
-        // Suitable skill level
-        if (marine.wave_height >= 2.0 && marine.wave_period >= 8) {
-          surfReport += `• Suitable for: Advanced surfers\n`;
-        } else if (marine.wave_height >= 1.0 && marine.wave_period >= 6) {
-          surfReport += `• Suitable for: Intermediate surfers\n`;
-        } else {
-          surfReport += `• Suitable for: Beginners to intermediate\n`;
-        }
-
-        surfReport += `\n**Satoshi's Surf Philosophy:**\n`;
-        surfReport += "The ocean's energy is nature's proof-of-work. Each wave represents accumulated energy from distant storms, ";
-        surfReport += "distributed through a decentralized network of swells. Like Bitcoin mining difficulty, ";
-        surfReport += "surf conditions adjust based on natural consensus mechanisms. ";
-        surfReport += "Respect the ocean's volatility, ride the energy waves.";
-
-        const lastUpdated = new Date(biarritz.marine.current.time).toLocaleTimeString();
-        surfReport += `\n\n*Last updated: ${lastUpdated}*`;
-
-        callback({
-          text: surfReport,
-          action: 'WEATHER_ANALYSIS'
-        });
-        return;
-      }
-
-      // Generate comprehensive weather analysis for all cities
-      let analysis = "**🌍 EUROPEAN LIFESTYLE WEATHER REPORT**\n\n";
-
-      // Current conditions overview
-      analysis += `**Regional Summary:**\n`;
-      analysis += `• Best Weather: ${summary.bestWeatherCity} (${formatTemp(summary.averageTemp)} avg)\n`;
-      analysis += `• Wind Conditions: ${summary.windConditions}\n`;
-      analysis += `• Air Quality: ${summary.airQuality}\n`;
-      analysis += `• UV Risk: ${summary.uvRisk}\n`;
-      if (summary.bestSurfConditions) {
-        analysis += `• Best Surf: ${summary.bestSurfConditions}\n`;
-      }
-      analysis += `\n`;
-
-      // City-by-city breakdown
-      analysis += `**City Details:**\n`;
-      
-      if (biarritz) {
-        const temp = formatTemp(biarritz.weather.current?.temperature_2m);
-        const wind = formatValue(biarritz.weather.current?.wind_speed_10m, 'km/h', 0);
-        analysis += `• **Biarritz**: ${temp}, ${wind} wind`;
-        if (biarritz.marine) {
-          const waveHeight = formatValue(biarritz.marine.current.wave_height, 'm');
-          const seaTemp = formatTemp(biarritz.marine.current.sea_surface_temperature);
-          analysis += `, ${waveHeight} waves (${seaTemp} water)`;
-        }
-        analysis += `\n`;
-      }
-      
-      if (bordeaux) {
-        const temp = formatTemp(bordeaux.weather.current?.temperature_2m);
-        const wind = formatValue(bordeaux.weather.current?.wind_speed_10m, 'km/h', 0);
-        analysis += `• **Bordeaux**: ${temp}, ${wind} wind`;
-        if (bordeaux.airQuality) {
-          const pm25 = formatValue(bordeaux.airQuality.current.pm2_5, 'μg/m³', 0);
-          analysis += `, PM2.5: ${pm25}`;
-        }
-        analysis += `\n`;
-      }
-      
-      if (monaco) {
-        const temp = formatTemp(monaco.weather.current?.temperature_2m);
-        const wind = formatValue(monaco.weather.current?.wind_speed_10m, 'km/h', 0);
-        analysis += `• **Monaco**: ${temp}, ${wind} wind`;
-        if (monaco.marine) {
-          const waveHeight = formatValue(monaco.marine.current.wave_height, 'm');
-          analysis += `, ${waveHeight} waves`;
-        }
-        if (monaco.airQuality) {
-          const uv = formatValue(monaco.airQuality.current.uv_index, '', 0);
-          analysis += `, UV: ${uv}`;
-        }
-        analysis += `\n`;
-      }
-
-      // Satoshi's weather philosophy
-      analysis += `\n**🧠 SATOSHI'S WEATHER PERSPECTIVE:**\n`;
-      
-      if (summary.averageTemp > 20) {
-        analysis += "Optimal conditions for sovereign living. ";
-      } else if (summary.averageTemp < 10) {
-        analysis += "Cold snap across the region. Time for indoor contemplation and code review. ";
+        // Generate detailed Biarritz surf report
+        responseText = generateBiarritzSurfReport(biarritz);
+        responseData.surfReport = {
+          waveHeight: biarritz.marine.current.wave_height,
+          wavePeriod: biarritz.marine.current.wave_period,
+          seaTemp: biarritz.marine.current.sea_surface_temperature,
+          assessment: assessSurfConditions(biarritz.marine.current)
+        };
       } else {
-        analysis += "Moderate conditions. Perfect for focused work and strategic thinking. ";
+        // Generate comprehensive weather analysis
+        responseText = generateWeatherAnalysis(cities, summary, biarritz, bordeaux, monaco);
       }
-
-      if (summary.windConditions === 'stormy') {
-        analysis += "Storm conditions remind us that volatility exists in all systems - weather and markets alike. ";
-      } else if (summary.windConditions === 'calm') {
-        analysis += "Calm conditions. Like consolidation phases in markets, these moments precede action. ";
+      
+      const response = ResponseCreators.createStandardResponse(
+        thoughtProcess,
+        responseText,
+        'WEATHER_ANALYSIS',
+        responseData
+      );
+      
+      if (callback) {
+        await callback(response);
       }
-
-      if (summary.bestSurfConditions && biarritz?.marine) {
-        const waveHeight = biarritz.marine.current.wave_height;
-        if (waveHeight > 1) {
-          analysis += `${summary.bestSurfConditions} showing ${formatValue(waveHeight, 'm')} waves - nature's proof-of-work in action. `;
-        }
-      }
-
-      analysis += "\n\nWeather systems are decentralized networks processing energy and information. ";
-      analysis += "Unlike central bank monetary policy, weather cannot be artificially manipulated. ";
-      analysis += "Respect natural cycles, stack sats during storms.";
-
-      // Activity recommendations
-      analysis += `\n\n**🎯 SOVEREIGN LIVING RECOMMENDATIONS:**\n`;
-      if (summary.airQuality === 'excellent' && summary.averageTemp > 18) {
-        analysis += "• Excellent day for outdoor activities and coastal walks\n";
-      }
-      if (summary.uvRisk === 'high' || summary.uvRisk === 'very-high') {
-        analysis += "• High UV - optimize vitamin D synthesis but protect skin\n";
-      }
-      if (biarritz?.marine && biarritz.marine.current.wave_height > 1) {
-        analysis += `• Surf conditions favorable in Biarritz (${formatValue(biarritz.marine.current.wave_height, 'm')} waves)\n`;
-      }
-      if (bordeaux && bordeaux.weather.current && bordeaux.weather.current.temperature_2m > 15 && (bordeaux.weather.current.wind_speed_10m || 0) < 15) {
-        analysis += "• Bordeaux conditions optimal for vineyard visits\n";
-      }
-
-      const lastUpdated = new Date(weatherData.lastUpdated).toLocaleTimeString();
-      analysis += `\n*Data updated: ${lastUpdated}*`;
-
-      callback({
-        text: analysis,
-        action: 'WEATHER_ANALYSIS'
-      });
-
+      
+      logger.info('Weather analysis delivered successfully');
+      return true;
+      
     } catch (error) {
-      console.error('Error in weatherAction:', error);
-      callback({
-        text: "Weather analysis failed. Unable to connect to weather services. Please try again in a moment.",
-        action: 'WEATHER_ANALYSIS'
-      });
+      logger.error('Failed to get weather data:', (error as Error).message);
+      
+      // Enhanced error handling with context-specific responses
+      let errorMessage = 'Weather monitoring systems operational. Natural patterns continue regardless of our observation capabilities.';
+      
+      const errorMsg = (error as Error).message.toLowerCase();
+      if (errorMsg.includes('rate limit') || errorMsg.includes('429') || errorMsg.includes('too many requests')) {
+        errorMessage = 'Weather data rate limited. Like Bitcoin mining difficulty, natural systems have their own rate limits. Will retry shortly.';
+      } else if (errorMsg.includes('network') || errorMsg.includes('timeout') || errorMsg.includes('fetch')) {
+        errorMessage = 'Weather service connectivity issues. Natural weather patterns continue independently of our monitoring infrastructure.';
+      } else if (errorMsg.includes('api') || errorMsg.includes('service')) {
+        errorMessage = 'Weather API temporarily down. The weather itself remains decentralized and operational - only our monitoring is affected.';
+      }
+      
+      const errorResponse = ResponseCreators.createErrorResponse(
+        'WEATHER_ANALYSIS',
+        (error as Error).message,
+        errorMessage
+      );
+      
+      if (callback) {
+        await callback(errorResponse);
+      }
+      
+      return false;
     }
   },
-  examples: [
-    [
-      {
-        name: "{{user}}",
-        content: { text: "How are the surf conditions in Biarritz?" }
-      },
-      {
-        name: "Satoshi",
-        content: { 
-          text: "Biarritz surf report: 1.2m waves, 8.5s period, 15°C water. Wave conditions: Moderate size. Wave quality: Moderate period. Suitable for: Intermediate surfers. The ocean's energy is nature's proof-of-work. Each wave represents accumulated energy from distant storms.",
-          actions: ["WEATHER_ANALYSIS"]
-        }
-      }
-    ],
-    [
-      {
-        name: "{{user}}",
-        content: { text: "What's the weather like in our European cities?" }
-      },
-      {
-        name: "Satoshi",
-        content: {
-          text: "European weather: Biarritz 18°C, 1.2m waves. Bordeaux 16°C, calm winds. Monaco 20°C, 0.8m waves. Best weather: Monaco. Air quality excellent. Optimal conditions for sovereign living. Weather systems are decentralized networks processing energy.",
-          actions: ["WEATHER_ANALYSIS"]
-        }
-      }
-    ],
-    [
-      {
-        name: "{{user}}",
-        content: { text: "Is it a good day for outdoor activities?" }
-      },
-      {
-        name: "Satoshi",
-        content: {
-          text: "Air quality: excellent, average temp: 19°C, wind conditions: calm. Excellent day for outdoor activities and coastal walks. UV risk: moderate - optimize vitamin D synthesis but protect skin. Respect natural cycles.",
-          actions: ["WEATHER_ANALYSIS"]
-        }
-      }
-    ]
-  ]
-}; 
+});
+
+/**
+ * Generate detailed Biarritz surf report
+ */
+function generateBiarritzSurfReport(biarritz: any): string {
+  const marine = biarritz.marine.current;
+  const weather = biarritz.weather.current;
+  const airQuality = biarritz.airQuality?.current;
+
+  let surfReport = `Biarritz surf: ${formatValue(marine.wave_height, 'm')} waves, ${formatValue(marine.wave_period, 's')} period, ${formatTemp(marine.sea_surface_temperature)} water.`;
+  
+  // Add air conditions
+  if (weather) {
+    surfReport += ` Air: ${formatTemp(weather.temperature_2m)}, ${formatValue(weather.wind_speed_10m, 'km/h', 0)} wind.`;
+  }
+  
+  // Surf assessment
+  const conditions = assessSurfConditions(marine);
+  surfReport += ` ${conditions.size}. ${conditions.quality}. ${conditions.suitability}.`;
+  
+  // Add philosophical perspective
+  surfReport += ` The ocean's energy is nature's proof-of-work - each wave represents accumulated energy from distant storms, distributed through a decentralized network of swells. Like Bitcoin mining difficulty, surf conditions adjust based on natural consensus mechanisms.`;
+  
+  return surfReport;
+}
+
+/**
+ * Generate comprehensive weather analysis
+ */
+function generateWeatherAnalysis(cities: any[], summary: any, biarritz: any, bordeaux: any, monaco: any): string {
+  let analysis = `European weather: `;
+  
+  // City-by-city summary
+  if (biarritz) {
+    const temp = formatTemp(biarritz.weather.current?.temperature_2m);
+    const wind = formatValue(biarritz.weather.current?.wind_speed_10m, 'km/h', 0);
+    analysis += `Biarritz ${temp}, ${wind} wind`;
+    if (biarritz.marine) {
+      const waveHeight = formatValue(biarritz.marine.current.wave_height, 'm');
+      const seaTemp = formatTemp(biarritz.marine.current.sea_surface_temperature);
+      analysis += `, ${waveHeight} waves (${seaTemp} water)`;
+    }
+    analysis += `. `;
+  }
+  
+  if (bordeaux) {
+    const temp = formatTemp(bordeaux.weather.current?.temperature_2m);
+    const wind = formatValue(bordeaux.weather.current?.wind_speed_10m, 'km/h', 0);
+    analysis += `Bordeaux ${temp}, ${wind} wind`;
+    if (bordeaux.airQuality) {
+      const pm25 = formatValue(bordeaux.airQuality.current.pm2_5, 'μg/m³', 0);
+      analysis += `, PM2.5: ${pm25}`;
+    }
+    analysis += `. `;
+  }
+  
+  if (monaco) {
+    const temp = formatTemp(monaco.weather.current?.temperature_2m);
+    const wind = formatValue(monaco.weather.current?.wind_speed_10m, 'km/h', 0);
+    analysis += `Monaco ${temp}, ${wind} wind`;
+    if (monaco.marine) {
+      const waveHeight = formatValue(monaco.marine.current.wave_height, 'm');
+      analysis += `, ${waveHeight} waves`;
+    }
+    if (monaco.airQuality) {
+      const uv = formatValue(monaco.airQuality.current.uv_index, '', 0);
+      analysis += `, UV: ${uv}`;
+    }
+    analysis += `. `;
+  }
+  
+  // Summary insights
+  analysis += `Best weather: ${summary.bestWeatherCity}. Air quality: ${summary.airQuality}. `;
+  
+  // Philosophical perspective
+  if (summary.averageTemp > 20) {
+    analysis += `Optimal conditions for sovereign living. `;
+  } else if (summary.averageTemp < 10) {
+    analysis += `Cold conditions - perfect for indoor contemplation and code review. `;
+  }
+  
+  analysis += `Weather systems are decentralized networks processing energy and information. Unlike central bank monetary policy, weather cannot be artificially manipulated. Respect natural cycles.`;
+  
+  return analysis;
+}
+
+/**
+ * Assess surf conditions based on marine data
+ */
+function assessSurfConditions(marine: any): { size: string; quality: string; suitability: string } {
+  const waveHeight = marine.wave_height;
+  const wavePeriod = marine.wave_period;
+  
+  let size: string;
+  if (waveHeight >= 1.5) {
+    size = 'Wave conditions: Good size';
+  } else if (waveHeight >= 0.8) {
+    size = 'Wave conditions: Moderate size';
+  } else {
+    size = 'Wave conditions: Small';
+  }
+  
+  let quality: string;
+  if (wavePeriod >= 8) {
+    quality = 'Wave quality: Long period swells';
+  } else if (wavePeriod >= 6) {
+    quality = 'Wave quality: Moderate period';
+  } else {
+    quality = 'Wave quality: Short period';
+  }
+  
+  let suitability: string;
+  if (waveHeight >= 2.0 && wavePeriod >= 8) {
+    suitability = 'Suitable for advanced surfers';
+  } else if (waveHeight >= 1.0 && wavePeriod >= 6) {
+    suitability = 'Suitable for intermediate surfers';
+  } else {
+    suitability = 'Suitable for beginners to intermediate';
+  }
+  
+  return { size, quality, suitability };
+} 
