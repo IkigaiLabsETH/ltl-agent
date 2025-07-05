@@ -59,6 +59,9 @@
   "publishConfig": {
     "access": "public"
   },
+  "resolutions": {
+    "@elizaos/core": "1.0.17"
+  },
   "gitHead": "b165ad83e5f7a21bc1edbd83374ca087e3cd6b33",
   "elizaos": {
     "type": "project",
