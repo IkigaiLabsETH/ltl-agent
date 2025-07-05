@@ -116,10 +116,20 @@ export const morningBriefingAction: Action = {
     } catch (error) {
       logger.error('Failed to generate morning briefing:', (error as Error).message);
       
+      // Be transparent about the specific error
+      let errorMessage = 'Systems operational. Bitcoin protocol unchanged. Market data temporarily unavailable.';
+      
+      const errorMsg = (error as Error).message.toLowerCase();
+      if (errorMsg.includes('rate limit') || errorMsg.includes('429') || errorMsg.includes('too many requests')) {
+        errorMessage = 'Rate limited by market data providers. Bitcoin protocol unchanged. Will retry shortly.';
+      } else if (errorMsg.includes('network') || errorMsg.includes('timeout') || errorMsg.includes('fetch')) {
+        errorMessage = 'Network connectivity issues with market data. Bitcoin protocol unchanged. Connection being restored.';
+      }
+      
       // Fallback response
       if (callback) {
         callback({
-          text: 'Systems operational. Bitcoin protocol unchanged. Market data temporarily unavailable.',
+          text: errorMessage,
           actions: ['MORNING_BRIEFING'],
         } as Content);
       }
@@ -164,7 +174,7 @@ async function formatBriefingForDelivery(
   if (content.marketPulse?.altcoins) {
     const alts = content.marketPulse.altcoins;
     if (alts.outperformers?.length > 0) {
-      const topPerformers = alts.outperformers.slice(0, 3).join(', ');
+      const topPerformers = alts.outperformers.slice(0, 3).map(coin => coin.symbol).join(', ');
       response += ` ${topPerformers} outperforming.`;
     }
   }
