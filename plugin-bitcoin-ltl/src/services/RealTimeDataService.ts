@@ -369,13 +369,13 @@ export class RealTimeDataService extends BaseDataService {
   private readonly symbols = ['BTC', 'ETH', 'SOL', 'MATIC', 'ADA', '4337', '8958']; // Include MetaPlanet (4337) and Hyperliquid (8958)
   
   // Rate limiting properties
-  private lastRequestTime = 0;
+  protected lastRequestTime = 0;
   private readonly MIN_REQUEST_INTERVAL = 3000; // 3 seconds between requests to avoid rate limits
-  private requestQueue: Array<() => Promise<any>> = [];
-  private isProcessingQueue = false;
-  private consecutiveFailures = 0;
+  protected requestQueue: Array<() => Promise<any>> = [];
+  protected isProcessingQueue = false;
+  protected consecutiveFailures = 0;
   private readonly MAX_CONSECUTIVE_FAILURES = 5;
-  private backoffUntil = 0;
+  protected backoffUntil = 0;
   
   // API endpoints
   private readonly BLOCKCHAIN_API = 'https://api.blockchain.info';
@@ -1085,12 +1085,6 @@ export class RealTimeDataService extends BaseDataService {
     return this.curatedNFTsCache.data;
   }
 
-
-
-  public async forceUpdate(): Promise<void> {
-    await this.updateAllData();
-  }
-
   public async forceCuratedAltcoinsUpdate(): Promise<CuratedAltcoinsData | null> {
     return await this.fetchCuratedAltcoinsData();
   }
@@ -1114,8 +1108,6 @@ export class RealTimeDataService extends BaseDataService {
   public async forceCuratedNFTsUpdate(): Promise<CuratedNFTsData | null> {
     return await this.fetchCuratedNFTsData();
   }
-
-
 
   // Comprehensive Bitcoin data fetcher
   private async fetchComprehensiveBitcoinData(): Promise<ComprehensiveBitcoinData | null> {
@@ -1340,8 +1332,6 @@ export class RealTimeDataService extends BaseDataService {
       return null;
     }
   }
-
-
 
   private async fetchBitcoinSentimentData(): Promise<BitcoinSentimentData | null> {
     try {
@@ -1913,4 +1903,82 @@ export class RealTimeDataService extends BaseDataService {
 
       // Parse enhanced stats
       const stats = this.parseCollectionStats(statsData);
-      console.log(`
+      console.log(`[RealTimeDataService] Enhanced collection stats for ${collectionInfo.slug}: Floor ${stats.floor_price} ETH, Volume ${stats.one_day_volume} ETH`);
+
+      return {
+        slug: collectionInfo.slug,
+        collection: collectionData,
+        stats,
+        lastUpdated: new Date(),
+        category: collectionInfo.category || 'utility',
+        contractAddress: collectionData.contracts?.[0]?.address,
+        blockchain: collectionData.contracts?.[0]?.chain || 'ethereum'
+      };
+
+    } catch (error) {
+      console.error(`Error fetching collection data for ${collectionInfo.slug}:`, error);
+      return null;
+    }
+  }
+
+  private parseCollectionStats(statsData: any): NFTCollectionStats {
+    const total = statsData?.total || {};
+    
+    return {
+      total_supply: total.supply || 0,
+      num_owners: total.num_owners || 0,
+      average_price: total.average_price || 0,
+      floor_price: total.floor_price || 0,
+      market_cap: total.market_cap || 0,
+      one_day_volume: total.one_day_volume || 0,
+      one_day_change: total.one_day_change || 0,
+      one_day_sales: total.one_day_sales || 0,
+      seven_day_volume: total.seven_day_volume || 0,
+      seven_day_change: total.seven_day_change || 0,
+      seven_day_sales: total.seven_day_sales || 0,
+      thirty_day_volume: total.thirty_day_volume || 0,
+      thirty_day_change: total.thirty_day_change || 0,
+      thirty_day_sales: total.thirty_day_sales || 0,
+    };
+  }
+
+  private calculateNFTSummary(collections: NFTCollectionData[]): {
+    totalVolume24h: number;
+    totalMarketCap: number;
+    avgFloorPrice: number;
+    topPerformers: NFTCollectionData[];
+    worstPerformers: NFTCollectionData[];
+    totalCollections: number;
+  } {
+    const totalVolume24h = collections.reduce((sum, c) => sum + (c.stats.one_day_volume || 0), 0);
+    const totalMarketCap = collections.reduce((sum, c) => sum + (c.stats.market_cap || 0), 0);
+    const avgFloorPrice = collections.length > 0 
+      ? collections.reduce((sum, c) => sum + (c.stats.floor_price || 0), 0) / collections.length 
+      : 0;
+
+    const sorted = [...collections].sort((a, b) => (b.stats.one_day_change || 0) - (a.stats.one_day_change || 0));
+    
+    return {
+      totalVolume24h,
+      totalMarketCap,
+      avgFloorPrice,
+      topPerformers: sorted.slice(0, 3),
+      worstPerformers: sorted.slice(-3).reverse(),
+      totalCollections: collections.length
+    };
+  }
+
+  protected async fetchWithRetry(url: string, options: any = {}, maxRetries: number = 3): Promise<any> {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const response = await axios.get(url, options);
+        return response.data;
+      } catch (error) {
+        if (attempt === maxRetries) {
+          throw error;
+        }
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+      }
+    }
+  }
+}
