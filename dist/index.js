@@ -435,7 +435,7 @@ import {
 
 // plugin-bitcoin-ltl/src/plugin.ts
 import {
-  ModelType,
+  ModelType as ModelType3,
   Service as Service7,
   logger as logger27
 } from "@elizaos/core";
@@ -1301,6 +1301,11 @@ var BitcoinNetworkDataService = class _BitcoinNetworkDataService extends BaseDat
       await service.stop();
     }
   }
+  async start() {
+    logger.info("BitcoinNetworkDataService starting...");
+    await this.updateData();
+    logger.info("BitcoinNetworkDataService started successfully");
+  }
   async init() {
     logger.info("BitcoinNetworkDataService initialized");
     await this.updateData();
@@ -1410,12 +1415,17 @@ var BitcoinNetworkDataService = class _BitcoinNetworkDataService extends BaseDat
   async fetchBitcoinPriceData() {
     try {
       const data = await this.makeQueuedRequest(async () => {
-        return await this.fetchWithRetry(
+        const response = await fetch(
           `${this.COINGECKO_API}/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true`,
           {
-            headers: { "Accept": "application/json" }
+            headers: { "Accept": "application/json" },
+            signal: AbortSignal.timeout(15e3)
           }
         );
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return await response.json();
       });
       return {
         usd: Number(data.bitcoin?.usd) || null,
@@ -1677,6 +1687,11 @@ var AltcoinDataService = class _AltcoinDataService extends BaseDataService {
       await service.stop();
     }
   }
+  async start() {
+    logger2.info("AltcoinDataService starting...");
+    await this.updateData();
+    logger2.info("AltcoinDataService started successfully");
+  }
   async init() {
     logger2.info("AltcoinDataService initialized");
     await this.updateData();
@@ -1862,11 +1877,15 @@ var AltcoinDataService = class _AltcoinDataService extends BaseDataService {
           include_last_updated_at: "true"
         });
         const url = `${baseUrl}/simple/price?${params.toString()}`;
-        const response = await this.fetchWithRetry(url, {
+        const response = await fetch(url, {
           method: "GET",
-          headers
+          headers,
+          signal: AbortSignal.timeout(15e3)
         });
-        return response;
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return await response.json();
       });
       const marketData = Object.entries(cryptoData).map(([id, data]) => ({
         symbol: this.getSymbolFromId(id),
@@ -1940,14 +1959,19 @@ var AltcoinDataService = class _AltcoinDataService extends BaseDataService {
     try {
       const idsParam = this.curatedCoinIds.join(",");
       const data = await this.makeQueuedRequest(async () => {
-        return await this.fetchWithRetry(
+        const response = await fetch(
           `${this.COINGECKO_API}/simple/price?ids=${idsParam}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true&include_24hr_vol=true`,
           {
             headers: {
               "Accept": "application/json"
-            }
+            },
+            signal: AbortSignal.timeout(15e3)
           }
         );
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return await response.json();
       });
       const result = {};
       this.curatedCoinIds.forEach((id) => {
@@ -1988,12 +2012,17 @@ var AltcoinDataService = class _AltcoinDataService extends BaseDataService {
     try {
       logger2.info("[AltcoinDataService] Starting fetchTop100VsBtcData...");
       const usdMarketData = await this.makeQueuedRequest(async () => {
-        return await this.fetchWithRetry(
+        const response = await fetch(
           `${this.COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=200&page=1&price_change_percentage=24h,7d,30d`,
           {
-            headers: { "Accept": "application/json" }
+            headers: { "Accept": "application/json" },
+            signal: AbortSignal.timeout(15e3)
           }
         );
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return await response.json();
       });
       logger2.info(`[AltcoinDataService] Fetched ${usdMarketData?.length || 0} coins from CoinGecko`);
       if (!Array.isArray(usdMarketData)) {
@@ -2135,12 +2164,17 @@ var AltcoinDataService = class _AltcoinDataService extends BaseDataService {
   async fetchTopMoversData() {
     try {
       logger2.info("[AltcoinDataService] Fetching top movers data...");
-      const data = await this.fetchWithRetry(
+      const response = await fetch(
         `${this.COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&price_change_percentage=24h`,
         {
-          headers: { "Accept": "application/json" }
+          headers: { "Accept": "application/json" },
+          signal: AbortSignal.timeout(15e3)
         }
       );
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const data = await response.json();
       const validCoins = data.filter((coin) => typeof coin.price_change_percentage_24h === "number");
       const topGainers = [...validCoins].sort((a, b) => b.price_change_percentage_24h - a.price_change_percentage_24h).slice(0, 4).map((coin) => ({
         id: coin.id,
@@ -2173,9 +2207,14 @@ var AltcoinDataService = class _AltcoinDataService extends BaseDataService {
   async fetchTrendingCoinsData() {
     try {
       logger2.info("[AltcoinDataService] Fetching trending coins data...");
-      const data = await this.fetchWithRetry("https://api.coingecko.com/api/v3/search/trending", {
-        headers: { "Accept": "application/json" }
+      const response = await fetch("https://api.coingecko.com/api/v3/search/trending", {
+        headers: { "Accept": "application/json" },
+        signal: AbortSignal.timeout(15e3)
       });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const data = await response.json();
       const trending = Array.isArray(data.coins) ? data.coins.map((c) => ({
         id: c.item.id,
         name: c.item.name,
@@ -2194,41 +2233,6 @@ var AltcoinDataService = class _AltcoinDataService extends BaseDataService {
       logger2.error("Error in fetchTrendingCoinsData:", error);
       return null;
     }
-  }
-  // Utility methods
-  async fetchWithRetry(url, options, maxRetries = 2) {
-    let lastError;
-    for (let i = 0; i < maxRetries; i++) {
-      try {
-        const response = await fetch(url, {
-          ...options,
-          signal: AbortSignal.timeout(15e3)
-          // 15 second timeout
-        });
-        if (response.status === 429) {
-          const baseWaitTime = Math.min(6e4 + i * 3e4, 18e4);
-          const jitter = Math.random() * 1e4;
-          const waitTime = baseWaitTime + jitter;
-          logger2.warn(`[AltcoinDataService] Rate limited on ${url}, waiting ${Math.round(waitTime / 1e3)}s before retry ${i + 1}`);
-          await new Promise((resolve) => setTimeout(resolve, waitTime));
-          continue;
-        }
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        return await response.json();
-      } catch (error) {
-        lastError = error;
-        if (i < maxRetries - 1) {
-          const baseWaitTime = Math.min(3e4 + i * 3e4, 12e4);
-          const jitter = Math.random() * 1e4;
-          const waitTime = baseWaitTime + jitter;
-          logger2.warn(`[AltcoinDataService] Request failed for ${url}, waiting ${Math.round(waitTime / 1e3)}s before retry ${i + 1}:`, error);
-          await new Promise((resolve) => setTimeout(resolve, waitTime));
-        }
-      }
-    }
-    throw lastError;
   }
   getSymbolFromId(id) {
     const mapping = {
@@ -2310,6 +2314,11 @@ var NFTDataService = class _NFTDataService extends BaseDataService {
     if (service && service.stop) {
       await service.stop();
     }
+  }
+  async start() {
+    logger3.info("NFTDataService starting...");
+    await this.updateData();
+    logger3.info("NFTDataService started successfully");
   }
   async init() {
     logger3.info("NFTDataService initialized");
@@ -2561,6 +2570,11 @@ var LifestyleDataService = class _LifestyleDataService extends BaseDataService {
     if (service && service.stop) {
       await service.stop();
     }
+  }
+  async start() {
+    logger4.info("LifestyleDataService starting...");
+    await this.updateData();
+    logger4.info("LifestyleDataService started successfully");
   }
   async init() {
     logger4.info("LifestyleDataService initialized");
@@ -2868,6 +2882,11 @@ var StockDataService = class _StockDataService extends BaseDataService {
     if (service && service.stop) {
       await service.stop();
     }
+  }
+  async start() {
+    logger5.info("StockDataService starting...");
+    await this.updateData();
+    logger5.info("StockDataService started successfully");
   }
   async init() {
     logger5.info("StockDataService initialized");
@@ -3410,6 +3429,12 @@ var TravelDataService = class extends BaseDataService {
       this.logWarning("Booking.com API credentials not configured - limited functionality available");
     }
   }
+  async start() {
+    this.logInfo("TravelDataService starting...");
+    this.validateConfiguration();
+    await this.updateData();
+    this.logInfo("TravelDataService started successfully");
+  }
   async updateData() {
     try {
       this.logInfo("Updating comprehensive travel data...");
@@ -3886,6 +3911,11 @@ var ETFDataService = class _ETFDataService extends BaseDataService {
       await service.stop();
     }
   }
+  async start() {
+    logger7.info("ETFDataService starting...");
+    await this.updateData();
+    logger7.info("ETFDataService started successfully");
+  }
   async init() {
     logger7.info("ETFDataService initialized");
     await this.updateData();
@@ -4156,8 +4186,14 @@ var ETFDataService = class _ETFDataService extends BaseDataService {
    */
   async getBitcoinPrice() {
     try {
-      const response = await this.fetchWithRetry("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd");
-      return response.bitcoin.usd;
+      const response = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd", {
+        signal: AbortSignal.timeout(15e3)
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const data = await response.json();
+      return data.bitcoin.usd;
     } catch (error) {
       logger7.error("Error fetching Bitcoin price:", error);
       return 0;
@@ -4488,6 +4524,11 @@ var BitcoinDataService = class _BitcoinDataService extends BaseDataService {
     if (service.stop && typeof service.stop === "function") {
       await service.stop();
     }
+  }
+  async start() {
+    elizaLogger4.info("BitcoinDataService starting...");
+    await this.updateData();
+    elizaLogger4.info("BitcoinDataService started successfully");
   }
   async init() {
     elizaLogger4.info("BitcoinDataService initialized");
@@ -4935,6 +4976,11 @@ var ContentIngestionService2 = class extends BaseDataService {
   }
   static async stop(runtime) {
     elizaLogger5.info("ContentIngestionService stopping...");
+  }
+  async start() {
+    this.contextLogger.info(`${this.serviceName} starting...`);
+    await this.updateData();
+    this.contextLogger.info(`${this.serviceName} started successfully`);
   }
   async init() {
     this.contextLogger.info(`${this.serviceName} initialized`);
@@ -5474,6 +5520,11 @@ var MorningBriefingService = class _MorningBriefingService extends BaseDataServi
       await service.stop();
     }
   }
+  async start() {
+    elizaLogger7.info(`[MorningBriefingService:${this.correlationId}] Service starting...`);
+    await this.updateData();
+    elizaLogger7.info(`[MorningBriefingService:${this.correlationId}] Service started successfully`);
+  }
   async init() {
     elizaLogger7.info(`[MorningBriefingService:${this.correlationId}] Service initialized`);
     this.scheduleDailyBriefing();
@@ -6008,6 +6059,11 @@ var KnowledgeDigestService = class _KnowledgeDigestService extends BaseDataServi
       await service.stop();
     }
   }
+  async start() {
+    elizaLogger8.info(`[KnowledgeDigestService:${this.correlationId}] Service starting...`);
+    await this.updateData();
+    elizaLogger8.info(`[KnowledgeDigestService:${this.correlationId}] Service started successfully`);
+  }
   async init() {
     elizaLogger8.info(`[KnowledgeDigestService:${this.correlationId}] Service initialized`);
     await this.loadDigestHistory();
@@ -6391,6 +6447,11 @@ var OpportunityAlertService = class _OpportunityAlertService extends BaseDataSer
     if (service && service.stop) {
       await service.stop();
     }
+  }
+  async start() {
+    this.contextLogger.info("OpportunityAlertService starting...");
+    await this.updateData();
+    this.contextLogger.info("OpportunityAlertService started successfully");
   }
   async init() {
     this.contextLogger.info("OpportunityAlertService initialized");
@@ -6785,6 +6846,11 @@ var PerformanceTrackingService = class _PerformanceTrackingService extends BaseD
     if (service && service.stop) {
       await service.stop();
     }
+  }
+  async start() {
+    this.contextLogger.info("PerformanceTrackingService starting...");
+    await this.updateData();
+    this.contextLogger.info("PerformanceTrackingService started successfully");
   }
   async init() {
     this.contextLogger.info("PerformanceTrackingService initialized");
@@ -7351,6 +7417,11 @@ var SchedulerService = class _SchedulerService extends BaseDataService {
     if (service && service.stop) {
       await service.stop();
     }
+  }
+  async start() {
+    this.contextLogger.info("SchedulerService starting...");
+    await this.updateData();
+    this.contextLogger.info("SchedulerService started successfully");
   }
   async init() {
     this.contextLogger.info("SchedulerService initialized");
@@ -7931,6 +8002,11 @@ var RealTimeDataService = class _RealTimeDataService extends BaseDataService {
       await service.stop();
     }
   }
+  async start() {
+    elizaLogger12.info("RealTimeDataService starting...");
+    await this.updateData();
+    elizaLogger12.info("RealTimeDataService started successfully");
+  }
   async init() {
     elizaLogger12.info("RealTimeDataService initialized");
     await this.startRealTimeUpdates();
@@ -8134,11 +8210,15 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
           include_last_updated_at: "true"
         });
         const url = `${baseUrl}/simple/price?${params.toString()}`;
-        const response = await this.fetchWithRetry(url, {
+        const response = await fetch(url, {
           method: "GET",
-          headers
+          headers,
+          signal: AbortSignal.timeout(15e3)
         });
-        return response;
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return await response.json();
       });
       const marketData = Object.entries(cryptoData).map(([id, data]) => ({
         symbol: this.getSymbolFromId(id),
@@ -8581,12 +8661,17 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
   async fetchBitcoinPriceData() {
     try {
       const data = await this.makeQueuedRequest(async () => {
-        return await this.fetchWithRetry(
+        const response = await fetch(
           `${this.COINGECKO_API}/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true`,
           {
-            headers: { "Accept": "application/json" }
+            headers: { "Accept": "application/json" },
+            signal: AbortSignal.timeout(15e3)
           }
         );
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return await response.json();
       });
       return {
         usd: Number(data.bitcoin?.usd) || null,
@@ -8790,14 +8875,19 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
     try {
       const idsParam = this.curatedCoinIds.join(",");
       const data = await this.makeQueuedRequest(async () => {
-        return await this.fetchWithRetry(
+        const response = await fetch(
           `${this.COINGECKO_API}/simple/price?ids=${idsParam}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true&include_24hr_vol=true`,
           {
             headers: {
               "Accept": "application/json"
-            }
+            },
+            signal: AbortSignal.timeout(15e3)
           }
         );
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return await response.json();
       });
       const result = {};
       this.curatedCoinIds.forEach((id) => {
@@ -9068,9 +9158,14 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
   async fetchTrendingCoinsData() {
     try {
       console.log("[RealTimeDataService] Fetching trending coins data...");
-      const data = await this.fetchWithRetry("https://api.coingecko.com/api/v3/search/trending", {
-        headers: { "Accept": "application/json" }
+      const response = await fetch("https://api.coingecko.com/api/v3/search/trending", {
+        headers: { "Accept": "application/json" },
+        signal: AbortSignal.timeout(15e3)
       });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const data = await response.json();
       const trending = Array.isArray(data.coins) ? data.coins.map((c) => ({
         id: c.item.id,
         name: c.item.name,
@@ -9152,16 +9247,28 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
   async fetchEnhancedCollectionData(collectionInfo, headers) {
     try {
       console.log(`[RealTimeDataService] Fetching collection data for: ${collectionInfo.slug}`);
-      const collectionData = await this.fetchWithRetry(
+      const collectionResponse = await fetch(
         `https://api.opensea.io/api/v2/collections/${collectionInfo.slug}`,
-        { headers },
-        3
+        {
+          headers,
+          signal: AbortSignal.timeout(15e3)
+        }
       );
-      const statsData = await this.fetchWithRetry(
+      if (!collectionResponse.ok) {
+        throw new Error(`HTTP ${collectionResponse.status}: ${collectionResponse.statusText}`);
+      }
+      const collectionData = await collectionResponse.json();
+      const statsResponse = await fetch(
         `https://api.opensea.io/api/v2/collections/${collectionInfo.slug}/stats`,
-        { headers },
-        3
+        {
+          headers,
+          signal: AbortSignal.timeout(15e3)
+        }
       );
+      if (!statsResponse.ok) {
+        throw new Error(`HTTP ${statsResponse.status}: ${statsResponse.statusText}`);
+      }
+      const statsData = await statsResponse.json();
       const stats = this.parseCollectionStats(statsData);
       console.log(`[RealTimeDataService] Enhanced collection stats for ${collectionInfo.slug}: Floor ${stats.floor_price} ETH, Volume ${stats.one_day_volume} ETH`);
       return {
@@ -9210,19 +9317,6 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
       worstPerformers: sorted.slice(-3).reverse(),
       totalCollections: collections.length
     };
-  }
-  async fetchWithRetry(url, options = {}, maxRetries = 3) {
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        const response = await axios2.get(url, options);
-        return response.data;
-      } catch (error) {
-        if (attempt === maxRetries) {
-          throw error;
-        }
-        await new Promise((resolve) => setTimeout(resolve, 1e3 * attempt));
-      }
-    }
   }
 };
 
@@ -14084,187 +14178,124 @@ function getCityDisplayName2(city) {
 }
 
 // plugin-bitcoin-ltl/src/actions/enhanced-knowledge-search.ts
+import {
+  ModelType
+} from "@elizaos/core";
 var enhancedKnowledgeSearchAction = {
   name: "ENHANCED_KNOWLEDGE_SEARCH",
-  similes: [
-    "KNOWLEDGE_SEARCH",
-    "SEARCH_KNOWLEDGE",
-    "FIND_INFORMATION",
-    "LOOKUP_KNOWLEDGE",
-    "RETRIEVE_KNOWLEDGE",
-    "SEARCH_DOCS",
-    "FIND_DOCS",
-    "SEMANTIC_SEARCH",
-    "RAG_SEARCH"
-  ],
-  description: "Search the knowledge base using RAG (Retrieval-Augmented Generation) for relevant information",
+  similes: ["SEARCH_KNOWLEDGE", "FIND_INFORMATION", "KNOWLEDGE_QUERY"],
+  description: "Enhanced knowledge search with semantic understanding and context-aware results",
   validate: async (runtime, message) => {
-    const knowledgeService = runtime.getService("knowledge");
-    if (!knowledgeService) {
-      console.warn("Knowledge service not available");
-      return false;
-    }
-    const content = message.content?.text;
-    if (!content || content.length < 10) {
-      return false;
-    }
-    const knowledgeKeywords = [
-      "explain",
-      "how does",
-      "what is",
-      "tell me about",
-      "describe",
-      "bitcoin",
-      "cryptocurrency",
-      "strategy",
-      "analysis",
-      "investment",
-      "luxury",
-      "travel",
-      "lifestyle",
-      "market",
-      "thesis",
-      "guide"
-    ];
-    return knowledgeKeywords.some(
-      (keyword) => content.toLowerCase().includes(keyword.toLowerCase())
-    );
+    const text = message.content?.text?.toLowerCase() || "";
+    return text.includes("search") || text.includes("find") || text.includes("knowledge") || text.includes("information") || text.includes("what do you know about") || text.includes("tell me about");
   },
-  handler: async (runtime, message, state, _options, callback) => {
+  handler: async (runtime, message, state, options, callback) => {
     try {
-      const knowledgeService = runtime.getService("knowledge");
-      if (!knowledgeService) {
-        callback({
-          text: "Knowledge service is not available. Please check the plugin configuration.",
-          action: "ENHANCED_KNOWLEDGE_SEARCH"
-        });
-        return;
+      const query = message.content?.text || "";
+      const digestService = runtime.getService("knowledge-digest");
+      if (!digestService) {
+        console.warn("Knowledge digest service not available");
+        if (callback) {
+          await callback({
+            thought: "The knowledge digest service is not available, so I cannot perform an enhanced search.",
+            text: "I'm sorry, but the knowledge search service is currently unavailable. I can still help you with general questions about Bitcoin, investments, and lifestyle topics.",
+            actions: ["REPLY"]
+          });
+        }
+        return false;
       }
-      const query = message.content?.text;
-      if (!query) {
-        callback({
-          text: "Please provide a search query.",
-          action: "ENHANCED_KNOWLEDGE_SEARCH"
-        });
-        return;
+      const embedding = await runtime.useModel(ModelType.TEXT_EMBEDDING, {
+        text: query
+      });
+      if (!embedding || embedding.length === 0) {
+        console.warn("Failed to generate embedding for query:", query);
+        if (callback) {
+          await callback({
+            thought: "Failed to generate embedding for the search query.",
+            text: "I'm having trouble processing your search request. Could you try rephrasing your question?",
+            actions: ["REPLY"]
+          });
+        }
+        return false;
       }
-      console.log(`\u{1F50D} Searching knowledge base for: "${query}"`);
-      const searchResults = await knowledgeService.search({
+      const searchResults = await runtime.searchMemories({
+        tableName: "knowledge",
+        embedding,
         query,
-        agentId: runtime.agentId,
-        maxResults: 5,
-        similarityThreshold: 0.7
+        count: 5,
+        match_threshold: 0.7,
+        roomId: message.roomId
       });
       if (!searchResults || searchResults.length === 0) {
-        callback({
-          text: `I searched my knowledge base but couldn't find specific information about "${query}". Could you rephrase your question or ask about Bitcoin, cryptocurrency, luxury lifestyle, or investment strategies?`,
-          action: "ENHANCED_KNOWLEDGE_SEARCH"
-        });
-        return;
-      }
-      const formattedResults = searchResults.map((result, index) => {
-        const relevanceScore = Math.round((result.similarity || 0.8) * 100);
-        const source = result.metadata?.source || result.source || "Knowledge Base";
-        return {
-          index: index + 1,
-          content: result.content.substring(0, 500) + (result.content.length > 500 ? "..." : ""),
-          source,
-          relevance: relevanceScore,
-          metadata: result.metadata
-        };
-      });
-      const topResult = formattedResults[0];
-      const additionalSources = formattedResults.slice(1, 3);
-      let response = `Based on my knowledge base search, here's what I found about "${query}":
+        if (callback) {
+          await callback({
+            thought: "No relevant knowledge found for the search query.",
+            text: `I searched my knowledge base for information about "${query}" but didn't find any relevant results. This could mean:
 
-`;
-      response += `**Primary Information (${topResult.relevance}% relevance):**
-`;
-      response += `${topResult.content}
+1. The topic isn't covered in my knowledge base yet
+2. You might want to try different keywords
+3. The information might be stored under a different topic
 
-`;
-      if (additionalSources.length > 0) {
-        response += `**Additional Context:**
-`;
-        additionalSources.forEach((result, index) => {
-          response += `${index + 1}. (${result.relevance}% relevance) ${result.content.substring(0, 200)}...
-`;
-        });
-        response += `
-`;
-      }
-      response += `*Sources: ${formattedResults.map((r) => r.source).join(", ")}*
-
-`;
-      response += `Would you like me to elaborate on any specific aspect or search for related topics?`;
-      callback({
-        text: response,
-        action: "ENHANCED_KNOWLEDGE_SEARCH",
-        metadata: {
-          searchQuery: query,
-          resultsCount: searchResults.length,
-          sources: formattedResults.map((r) => r.source),
-          topRelevance: topResult.relevance
+Would you like me to help you with a broader search or suggest related topics?`,
+            actions: ["REPLY"]
+          });
         }
-      });
+        return true;
+      }
+      let response = `## Knowledge Search Results for: "${query}"
+
+`;
+      for (let i = 0; i < Math.min(searchResults.length, 3); i++) {
+        const result = searchResults[i];
+        const content = result.content?.text || "No content available";
+        const snippet = content.length > 300 ? content.substring(0, 300) + "..." : content;
+        response += `### Result ${i + 1}
+`;
+        response += `**Source:** ${result.metadata?.source || "Knowledge Base"}
+`;
+        response += `**Relevance:** ${((result.similarity || 0) * 100).toFixed(1)}%
+`;
+        response += `**Content:** ${snippet}
+
+`;
+      }
+      if (searchResults.length > 3) {
+        response += `*... and ${searchResults.length - 3} more results found.*
+
+`;
+      }
+      response += `**Search completed successfully!** I found ${searchResults.length} relevant pieces of information.`;
+      if (callback) {
+        await callback({
+          thought: `Successfully performed enhanced knowledge search for "${query}" and found ${searchResults.length} relevant results.`,
+          text: response,
+          actions: ["ENHANCED_KNOWLEDGE_SEARCH"]
+        });
+      }
+      return true;
     } catch (error) {
       console.error("Enhanced knowledge search error:", error);
-      callback({
-        text: `I encountered an error while searching my knowledge base: ${error.message}. Please try rephrasing your question.`,
-        action: "ENHANCED_KNOWLEDGE_SEARCH"
-      });
+      if (callback) {
+        await callback({
+          thought: "An error occurred during the enhanced knowledge search.",
+          text: "I encountered an error while searching my knowledge base. This might be a temporary issue. Could you try again in a moment?",
+          actions: ["REPLY"]
+        });
+      }
+      return false;
     }
   },
   examples: [
     [
       {
-        name: "{{user1}}",
-        content: {
-          text: "Tell me about Bitcoin treasury strategies"
-        }
+        name: "{{name1}}",
+        content: { text: "Search for information about Bitcoin mining" }
       },
       {
-        name: "Satoshi",
+        name: "{{name2}}",
         content: {
-          text: `Based on my knowledge base search, here's what I found about "Bitcoin treasury strategies":
-
-**Primary Information (95% relevance):**
-Bitcoin treasury strategies involve companies adopting Bitcoin as a primary treasury reserve asset. Leading examples include MicroStrategy, which has accumulated over 190,000 Bitcoin, and Tesla's strategic Bitcoin holdings. These strategies focus on preserving purchasing power against currency debasement...
-
-**Additional Context:**
-1. (89% relevance) Corporate treasury allocation typically ranges from 10-100% of excess cash reserves...
-2. (84% relevance) Risk management includes dollar-cost averaging and strategic timing of purchases...
-
-*Sources: microstrategy-analysis.md, bitcoin-treasury-strategies.md, corporate-bitcoin-adoption.md*
-
-Would you like me to elaborate on any specific aspect or search for related topics?`,
-          action: "ENHANCED_KNOWLEDGE_SEARCH"
-        }
-      }
-    ],
-    [
-      {
-        name: "{{user1}}",
-        content: {
-          text: "How does luxury lifestyle connect with Bitcoin wealth?"
-        }
-      },
-      {
-        name: "Satoshi",
-        content: {
-          text: `Based on my knowledge base search, here's what I found about "luxury lifestyle and Bitcoin wealth":
-
-**Primary Information (92% relevance):**
-Bitcoin wealth enables a sovereign luxury lifestyle through geographic arbitrage and premium experiences. Bitcoin holders can leverage their appreciating asset to access luxury real estate, private aviation, and exclusive travel experiences while maintaining their core Bitcoin holdings...
-
-**Additional Context:**
-1. (87% relevance) Bitcoin-backed loans allow luxury purchases without selling Bitcoin...
-2. (82% relevance) Geographic arbitrage strategies optimize cost of living in luxury destinations...
-
-*Sources: bitcoin-luxury-lifestyle.md, sovereign-living.md, geographic-arbitrage.md*
-
-Would you like me to elaborate on any specific aspect or search for related topics?`,
-          action: "ENHANCED_KNOWLEDGE_SEARCH"
+          text: '## Knowledge Search Results for: "Bitcoin mining"\n\n### Result 1\n**Source:** Bitcoin Mining Guide\n**Relevance:** 95.2%\n**Content:** Bitcoin mining is the process of validating transactions and adding them to the blockchain...\n\n**Search completed successfully!** I found 3 relevant pieces of information.',
+          actions: ["ENHANCED_KNOWLEDGE_SEARCH"]
         }
       }
     ]
@@ -17170,13 +17201,16 @@ function buildBriefingContext(briefingAnalysis, keyInsights, marketConditions, b
 }
 
 // plugin-bitcoin-ltl/src/providers/knowledge-context-provider.ts
+import {
+  ModelType as ModelType2
+} from "@elizaos/core";
 var knowledgeContextProvider = {
   name: "knowledge-context",
   get: async (runtime, message, state) => {
     try {
-      const knowledgeService = runtime.getService("knowledge");
-      if (!knowledgeService) {
-        console.warn("Knowledge service not available for context provider");
+      const digestService = runtime.getService("knowledge-digest");
+      if (!digestService) {
+        console.warn("Knowledge digest service not available for context provider");
         return { text: "" };
       }
       const messageText = message.content?.text;
@@ -17190,11 +17224,20 @@ var knowledgeContextProvider = {
       const contextResults = await Promise.all(
         topics.map(async (topic) => {
           try {
-            const results = await knowledgeService.search({
+            const embedding = await runtime.useModel(ModelType2.TEXT_EMBEDDING, {
+              text: topic
+            });
+            if (!embedding || embedding.length === 0) {
+              console.warn("Failed to generate embedding for topic:", topic);
+              return { topic, results: [] };
+            }
+            const results = await runtime.searchMemories({
+              tableName: "knowledge",
+              embedding,
               query: topic,
-              agentId: runtime.agentId,
-              maxResults: 2,
-              similarityThreshold: 0.75
+              count: 2,
+              match_threshold: 0.75,
+              roomId: message.roomId
             });
             return {
               topic,
@@ -17215,9 +17258,12 @@ var knowledgeContextProvider = {
         context += `### ${ctx.topic}
 `;
         for (const result of ctx.results.slice(0, 1)) {
-          const snippet = result.content.substring(0, 300) + "...";
-          const source = result.metadata?.source || result.source || "Knowledge Base";
+          const content = result.content?.text || "No content available";
+          const snippet = content.length > 300 ? content.substring(0, 300) + "..." : content;
+          const source = result.metadata?.source || "Knowledge Base";
           context += `- **Source:** ${source}
+`;
+          context += `- **Relevance:** ${((result.similarity || 0) * 100).toFixed(1)}%
 `;
           context += `- **Info:** ${snippet}
 
@@ -19285,7 +19331,7 @@ var bitcoinPlugin = {
     ]
   },
   models: {
-    [ModelType.TEXT_SMALL]: async (runtime, params) => {
+    [ModelType3.TEXT_SMALL]: async (runtime, params) => {
       const bitcoinContext = runtime.bitcoinContext;
       let enhancedPrompt = params.prompt;
       if (bitcoinContext) {
@@ -19304,12 +19350,12 @@ Respond as a Bitcoin-maximalist AI with concise, factual insights focused on:
 - Cypherpunk philosophy
 Keep response under 100 words.`;
       }
-      return await runtime.useModel(ModelType.TEXT_SMALL, {
+      return await runtime.useModel(ModelType3.TEXT_SMALL, {
         ...params,
         prompt: enhancedPrompt
       });
     },
-    [ModelType.TEXT_LARGE]: async (runtime, params) => {
+    [ModelType3.TEXT_LARGE]: async (runtime, params) => {
       const bitcoinContext = runtime.bitcoinContext;
       const thesisHistory = runtime.thesisHistory || [];
       let enhancedPrompt = params.prompt;
@@ -19359,7 +19405,7 @@ You are a Bitcoin-maximalist AI with deep expertise in:
 
 Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist perspective.`;
       }
-      return await runtime.useModel(ModelType.TEXT_LARGE, {
+      return await runtime.useModel(ModelType3.TEXT_LARGE, {
         ...params,
         prompt: enhancedPrompt
       });

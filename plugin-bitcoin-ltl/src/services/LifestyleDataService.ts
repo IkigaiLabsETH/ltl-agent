@@ -285,6 +285,12 @@ export class LifestyleDataService extends BaseDataService {
     }
   }
 
+  async start(): Promise<void> {
+    logger.info('LifestyleDataService starting...');
+    await this.updateData();
+    logger.info('LifestyleDataService started successfully');
+  }
+
   async init() {
     logger.info('LifestyleDataService initialized');
     

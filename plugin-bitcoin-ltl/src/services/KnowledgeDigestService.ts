@@ -70,6 +70,12 @@ export class KnowledgeDigestService extends BaseDataService {
     }
   }
 
+  async start(): Promise<void> {
+    elizaLogger.info(`[KnowledgeDigestService:${this.correlationId}] Service starting...`);
+    await this.updateData();
+    elizaLogger.info(`[KnowledgeDigestService:${this.correlationId}] Service started successfully`);
+  }
+
   async init() {
     elizaLogger.info(`[KnowledgeDigestService:${this.correlationId}] Service initialized`);
     // Load any existing digest cache

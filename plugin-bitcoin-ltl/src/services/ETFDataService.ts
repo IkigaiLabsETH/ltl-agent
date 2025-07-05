@@ -41,6 +41,12 @@ export class ETFDataService extends BaseDataService {
     }
   }
 
+  async start(): Promise<void> {
+    logger.info('ETFDataService starting...');
+    await this.updateData();
+    logger.info('ETFDataService started successfully');
+  }
+
   async init() {
     logger.info('ETFDataService initialized');
     await this.updateData();
@@ -357,8 +363,16 @@ export class ETFDataService extends BaseDataService {
    */
   private async getBitcoinPrice(): Promise<number> {
     try {
-      const response = await this.fetchWithRetry('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');
-      return response.bitcoin.usd;
+      const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd', {
+        signal: AbortSignal.timeout(15000)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      return data.bitcoin.usd;
     } catch (error) {
       logger.error('Error fetching Bitcoin price:', error);
       return 0;

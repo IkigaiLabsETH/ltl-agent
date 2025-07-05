@@ -105,6 +105,12 @@ export class SchedulerService extends BaseDataService {
     }
   }
 
+  async start(): Promise<void> {
+    this.contextLogger.info('SchedulerService starting...');
+    await this.updateData();
+    this.contextLogger.info('SchedulerService started successfully');
+  }
+
   async init() {
     this.contextLogger.info('SchedulerService initialized');
     await this.validateServiceDependencies();

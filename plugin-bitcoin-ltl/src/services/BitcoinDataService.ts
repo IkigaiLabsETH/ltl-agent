@@ -52,6 +52,12 @@ export class BitcoinDataService extends BaseDataService {
     // Cleanup any resources if needed
   }
 
+  async start(): Promise<void> {
+    elizaLogger.info('BitcoinDataService starting...');
+    await this.updateData();
+    elizaLogger.info('BitcoinDataService started successfully');
+  }
+
   async init() {
     elizaLogger.info('BitcoinDataService initialized');
   }

@@ -345,6 +345,13 @@ export class TravelDataService extends BaseDataService {
     }
   }
 
+  async start(): Promise<void> {
+    this.logInfo('TravelDataService starting...');
+    this.validateConfiguration();
+    await this.updateData();
+    this.logInfo('TravelDataService started successfully');
+  }
+
   async updateData(): Promise<void> {
     try {
       this.logInfo('Updating comprehensive travel data...');

@@ -3,16 +3,18 @@ import {
   Memory,
   Provider,
   State,
+  ModelType,
 } from '@elizaos/core';
 
 export const knowledgeContextProvider: Provider = {
   name: 'knowledge-context',
   get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
     try {
-      const knowledgeService = runtime.getService('knowledge');
+      // Use the correct service name
+      const digestService = runtime.getService('knowledge-digest');
       
-      if (!knowledgeService) {
-        console.warn('Knowledge service not available for context provider');
+      if (!digestService) {
+        console.warn('Knowledge digest service not available for context provider');
         return { text: '' };
       }
       
@@ -27,15 +29,28 @@ export const knowledgeContextProvider: Provider = {
         return { text: '' };
       }
       
-      // Search for relevant knowledge
+      // Search for relevant knowledge using runtime's searchMemories method
       const contextResults = await Promise.all(
         topics.map(async (topic) => {
           try {
-            const results = await (knowledgeService as any).search({
+            // Generate embedding for the topic
+            const embedding = await runtime.useModel(ModelType.TEXT_EMBEDDING, {
+              text: topic,
+            });
+
+            if (!embedding || embedding.length === 0) {
+              console.warn('Failed to generate embedding for topic:', topic);
+              return { topic, results: [] };
+            }
+
+            // Search memories
+            const results = await runtime.searchMemories({
+              tableName: 'knowledge',
+              embedding: embedding,
               query: topic,
-              agentId: runtime.agentId,
-              maxResults: 2,
-              similarityThreshold: 0.75,
+              count: 2,
+              match_threshold: 0.75,
+              roomId: message.roomId,
             });
             
             return {
@@ -63,10 +78,12 @@ export const knowledgeContextProvider: Provider = {
         context += `### ${ctx.topic}\n`;
         
         for (const result of ctx.results.slice(0, 1)) { // Top result per topic
-          const snippet = result.content.substring(0, 300) + '...';
-          const source = result.metadata?.source || result.source || 'Knowledge Base';
+          const content = result.content?.text || 'No content available';
+          const snippet = content.length > 300 ? content.substring(0, 300) + '...' : content;
+          const source = result.metadata?.source || 'Knowledge Base';
           
           context += `- **Source:** ${source}\n`;
+          context += `- **Relevance:** ${((result.similarity || 0) * 100).toFixed(1)}%\n`;
           context += `- **Info:** ${snippet}\n\n`;
         }
       }

@@ -45,10 +45,10 @@ export class KnowledgePerformanceMonitor extends Service {
   async initialize(runtime: IAgentRuntime): Promise<void> {
     console.log('🔄 Initializing Knowledge Performance Monitor...');
     
-    // Get initial metrics from knowledge service
-    const knowledgeService = runtime.getService('knowledge');
-    if (knowledgeService) {
-      await this.updateIndexMetrics(knowledgeService);
+    // Get initial metrics from knowledge digest service
+    const digestService = runtime.getService('knowledge-digest');
+    if (digestService) {
+      await this.updateIndexMetrics(digestService);
     }
     
     // Log performance metrics every 5 minutes

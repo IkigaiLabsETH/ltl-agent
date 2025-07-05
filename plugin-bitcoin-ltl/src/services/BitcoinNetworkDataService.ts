@@ -81,6 +81,12 @@ export class BitcoinNetworkDataService extends BaseDataService {
     }
   }
 
+  async start(): Promise<void> {
+    logger.info('BitcoinNetworkDataService starting...');
+    await this.updateData();
+    logger.info('BitcoinNetworkDataService started successfully');
+  }
+
   async init() {
     logger.info('BitcoinNetworkDataService initialized');
     // Perform initial Bitcoin data fetch
@@ -203,12 +209,19 @@ export class BitcoinNetworkDataService extends BaseDataService {
   private async fetchBitcoinPriceData(): Promise<{ usd: number; change24h: number } | null> {
     try {
       const data = await this.makeQueuedRequest(async () => {
-        return await this.fetchWithRetry(
+        const response = await fetch(
           `${this.COINGECKO_API}/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true`,
           {
-            headers: { 'Accept': 'application/json' }
+            headers: { 'Accept': 'application/json' },
+            signal: AbortSignal.timeout(15000)
           }
         );
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        return await response.json();
       });
       
       return {
