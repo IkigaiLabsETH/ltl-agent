@@ -1,4 +1,5 @@
-import { Service, logger, type IAgentRuntime } from '@elizaos/core';
+import { elizaLogger, type IAgentRuntime } from '@elizaos/core';
+import { BaseDataService } from './BaseDataService';
 import { ContentItem, ProcessedIntelligence } from './ContentIngestionService';
 import { LoggerWithContext, generateCorrelationId } from '../utils';
 
@@ -60,12 +61,10 @@ export interface OpportunityMetrics {
   totalReturn: number;
 }
 
-export class OpportunityAlertService extends Service {
+export class OpportunityAlertService extends BaseDataService {
   static serviceType = 'opportunity-alert';
-  capabilityDescription = 'Monitors for investment opportunities and generates real-time alerts';
   
   private contextLogger: LoggerWithContext;
-  private correlationId: string;
   private alertCriteria: AlertCriteria[] = [];
   private activeAlerts: OpportunityAlert[] = [];
   private alertHistory: OpportunityAlert[] = [];
@@ -73,22 +72,25 @@ export class OpportunityAlertService extends Service {
   private monitoringInterval: NodeJS.Timeout | null = null;
 
   constructor(runtime: IAgentRuntime) {
-    super();
-    this.runtime = runtime;
+    super(runtime, 'opportunityAlert');
     this.correlationId = generateCorrelationId();
     this.contextLogger = new LoggerWithContext(this.correlationId, 'OpportunityAlertService');
     this.metrics = this.initializeMetrics();
   }
 
+  public get capabilityDescription(): string {
+    return 'Monitors for investment opportunities and generates real-time alerts';
+  }
+
   static async start(runtime: IAgentRuntime) {
-    logger.info('OpportunityAlertService starting...');
+    elizaLogger.info('OpportunityAlertService starting...');
     const service = new OpportunityAlertService(runtime);
     await service.init();
     return service;
   }
 
   static async stop(runtime: IAgentRuntime) {
-    logger.info('OpportunityAlertService stopping...');
+    elizaLogger.info('OpportunityAlertService stopping...');
     const service = runtime.getService('opportunity-alert');
     if (service && service.stop) {
       await service.stop();
@@ -500,6 +502,31 @@ export class OpportunityAlertService extends Service {
       },
       deliveryMethod: 'alert'
     };
+  }
+
+  // Required abstract methods from BaseDataService
+  async updateData(): Promise<void> {
+    try {
+      await this.checkForOpportunities();
+      
+      // Store current state in memory
+      await this.storeInMemory({
+        activeAlerts: this.activeAlerts,
+        alertHistory: this.alertHistory.slice(-100), // Keep last 100 alerts
+        metrics: this.metrics,
+        timestamp: Date.now()
+      }, 'opportunity-alerts-state');
+      
+      this.contextLogger.info(`Updated opportunity alert data: ${this.activeAlerts.length} active alerts`);
+    } catch (error) {
+      this.contextLogger.error('Failed to update opportunity alert data:', (error as Error).message);
+      throw error;
+    }
+  }
+
+  async forceUpdate(): Promise<void> {
+    this.contextLogger.info('Forcing opportunity alert update');
+    await this.updateData();
   }
 }
 

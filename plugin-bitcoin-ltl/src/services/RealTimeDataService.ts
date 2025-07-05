@@ -1,4 +1,6 @@
-import { IAgentRuntime, Service, logger } from '@elizaos/core';
+import { IAgentRuntime, elizaLogger } from '@elizaos/core';
+import { BaseDataService } from './BaseDataService';
+import { LoggerWithContext, generateCorrelationId } from '../utils';
 import axios from 'axios';
 
 export interface MarketData {
@@ -358,10 +360,10 @@ export interface CuratedNFTsCache {
   timestamp: number;
 }
 
-export class RealTimeDataService extends Service {
+export class RealTimeDataService extends BaseDataService {
   static serviceType = 'real-time-data';
-  capabilityDescription = 'Provides real-time market data, news feeds, and social sentiment analysis';
   
+  private contextLogger: LoggerWithContext;
   private updateInterval: NodeJS.Timeout | null = null;
   private readonly UPDATE_INTERVAL = 180000; // 3 minutes - prioritize Bitcoin data freshness
   private readonly symbols = ['BTC', 'ETH', 'SOL', 'MATIC', 'ADA', '4337', '8958']; // Include MetaPlanet (4337) and Hyperliquid (8958)
@@ -433,19 +435,24 @@ export class RealTimeDataService extends Service {
   ];
 
   constructor(runtime: IAgentRuntime) {
-    super();
-    this.runtime = runtime;
+    super(runtime, 'realTimeData');
+    this.correlationId = generateCorrelationId();
+    this.contextLogger = new LoggerWithContext(this.correlationId, 'RealTimeDataService');
+  }
+
+  public get capabilityDescription(): string {
+    return 'Provides real-time market data, news feeds, and social sentiment analysis';
   }
 
   static async start(runtime: IAgentRuntime) {
-    logger.info('RealTimeDataService starting...');
+    elizaLogger.info('RealTimeDataService starting...');
     const service = new RealTimeDataService(runtime);
     await service.init();
     return service;
   }
 
   static async stop(runtime: IAgentRuntime) {
-    logger.info('RealTimeDataService stopping...');
+    elizaLogger.info('RealTimeDataService stopping...');
     const service = runtime.getService('real-time-data');
     if (service && service.stop) {
       await service.stop();
@@ -453,7 +460,7 @@ export class RealTimeDataService extends Service {
   }
 
   async init() {
-    logger.info('RealTimeDataService initialized');
+    elizaLogger.info('RealTimeDataService initialized');
     
     // Start real-time updates
     await this.startRealTimeUpdates();
@@ -464,7 +471,36 @@ export class RealTimeDataService extends Service {
       clearInterval(this.updateInterval);
       this.updateInterval = null;
     }
-    logger.info('RealTimeDataService stopped');
+    elizaLogger.info('RealTimeDataService stopped');
+  }
+
+  // Required abstract methods from BaseDataService
+  async updateData(): Promise<void> {
+    try {
+      await this.updateAllData();
+      
+      // Store current state in memory
+      await this.storeInMemory({
+        marketData: this.marketData,
+        comprehensiveBitcoinData: this.comprehensiveBitcoinData,
+        curatedAltcoinsCache: this.curatedAltcoinsCache,
+        top100VsBtcCache: this.top100VsBtcCache,
+        newsItems: this.newsItems.slice(-50), // Keep last 50 news items
+        socialSentiment: this.socialSentiment.slice(-20), // Keep last 20 sentiment items
+        alerts: this.alerts.slice(-100), // Keep last 100 alerts
+        timestamp: Date.now()
+      }, 'real-time-data-state');
+      
+      this.contextLogger.info(`Updated real-time data: ${this.marketData.length} market items, ${this.newsItems.length} news items`);
+    } catch (error) {
+      this.contextLogger.error('Failed to update real-time data:', (error as Error).message);
+      throw error;
+    }
+  }
+
+  async forceUpdate(): Promise<void> {
+    this.contextLogger.info('Forcing real-time data update');
+    await this.updateData();
   }
 
   private async startRealTimeUpdates(): Promise<void> {
@@ -1877,394 +1913,4 @@ export class RealTimeDataService extends Service {
 
       // Parse enhanced stats
       const stats = this.parseCollectionStats(statsData);
-      console.log(`[RealTimeDataService] ${collectionInfo.slug} floor price: ${stats.floor_price} ETH`);
-
-      // Get contract address for this collection
-      const contractAddress = collectionData?.contracts?.[0]?.address || '';
-
-      // Fetch floor items (3 cheapest listings) - pass contract address
-      const floorItems = await this.fetchFloorItems(collectionInfo.slug, headers, contractAddress);
-
-      // Fetch recent sales (3 most recent)
-      const recentSales = await this.fetchRecentSales(collectionInfo.slug, headers);
-
-      return {
-        slug: collectionInfo.slug,
-        collection: this.parseCollectionData(collectionData, collectionInfo),
-        stats,
-        lastUpdated: new Date(),
-        category: collectionInfo.category,
-        floorItems,
-        recentSales,
-        contractAddress,
-        blockchain: 'ethereum'
-      };
-
-    } catch (error) {
-      console.error(`Enhanced fetch failed for ${collectionInfo.slug}:`, error);
-      return this.getFallbackCollectionData(collectionInfo);
-    }
-  }
-
-  private async fetchWithRetry(
-    url: string, 
-    options: any, 
-    maxRetries = 3
-  ): Promise<any> {
-    let lastError;
-    
-    for (let i = 0; i < maxRetries; i++) {
-      try {
-        const response = await fetch(url, {
-          ...options,
-          signal: AbortSignal.timeout(15000) // 15 second timeout
-        });
-        
-        if (response.status === 429) {
-          // Rate limited - more conservative exponential backoff with jitter
-          const baseWaitTime = Math.min(Math.pow(2, i) * 10000, 120000); // 10s, 20s, 40s, up to 120s
-          const jitter = Math.random() * 5000; // Add 0-5s jitter to avoid thundering herd
-          const waitTime = baseWaitTime + jitter;
-          console.warn(`[RealTimeDataService] Rate limited on ${url}, waiting ${Math.round(waitTime)}ms before retry ${i + 1}`);
-          await new Promise(resolve => setTimeout(resolve, waitTime));
-          continue;
-        }
-        
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        return await response.json();
-      } catch (error) {
-        lastError = error;
-        if (i < maxRetries - 1) {
-          const baseWaitTime = Math.min(Math.pow(2, i) * 5000, 45000); // 5s, 10s, 20s, up to 45s
-          const jitter = Math.random() * 2000; // Add 0-2s jitter
-          const waitTime = baseWaitTime + jitter;
-          console.warn(`[RealTimeDataService] Request failed for ${url}, waiting ${Math.round(waitTime)}ms before retry ${i + 1}:`, error);
-          await new Promise(resolve => setTimeout(resolve, waitTime));
-        }
-      }
-    }
-    
-    throw lastError;
-  }
-
-  private parseCollectionStats(statsData: any): NFTCollectionStats {
-    const stats = statsData?.total || {};
-    const intervals = statsData?.intervals || [];
-    
-    // Find interval data
-    const oneDayInterval = intervals.find(i => i.interval === 'one_day');
-    const sevenDayInterval = intervals.find(i => i.interval === 'seven_day');
-    const thirtyDayInterval = intervals.find(i => i.interval === 'thirty_day');
-    
-    return {
-      total_supply: stats.total_supply || 0,
-      num_owners: stats.num_owners || 0,
-      average_price: stats.average_price || 0,
-      floor_price: stats.floor_price || 0,
-      market_cap: stats.market_cap || 0,
-      one_day_volume: oneDayInterval?.volume || 0,
-      one_day_change: oneDayInterval?.volume_change || 0,
-      one_day_sales: oneDayInterval?.sales || 0,
-      seven_day_volume: sevenDayInterval?.volume || 0,
-      seven_day_change: sevenDayInterval?.volume_change || 0,
-      seven_day_sales: sevenDayInterval?.sales || 0,
-      thirty_day_volume: thirtyDayInterval?.volume || 0,
-      thirty_day_change: thirtyDayInterval?.volume_change || 0,
-      thirty_day_sales: thirtyDayInterval?.sales || 0
-    };
-  }
-
-  private parseCollectionData(collectionData: any, collectionInfo: any): NFTCollection {
-    const collection = collectionData?.collection || {};
-    
-    return {
-      collection: collection.slug || collectionInfo.slug,
-      name: collection.name || collectionInfo.name,
-      description: collection.description || collectionInfo.description || '',
-      image_url: collection.image_url || '',
-      banner_image_url: collection.banner_image_url || '',
-      owner: collection.owner || '',
-      category: collectionInfo.category || 'art',
-      is_disabled: collection.is_disabled || false,
-      is_nsfw: collection.is_nsfw || false,
-      trait_offers_enabled: collection.trait_offers_enabled || false,
-      collection_offers_enabled: collection.collection_offers_enabled || false,
-      opensea_url: `https://opensea.io/collection/${collectionInfo.slug}`,
-      project_url: collection.project_url || '',
-      wiki_url: collection.wiki_url || '',
-      discord_url: collection.discord_url || '',
-      telegram_url: collection.telegram_url || '',
-      twitter_username: collection.twitter_username || '',
-      instagram_username: collection.instagram_username || '',
-      contracts: collection.contracts || [],
-      editors: collection.editors || [],
-      fees: collection.fees || [],
-      rarity: collection.rarity || {
-        strategy_id: '',
-        strategy_version: '',
-        rank_at: '',
-        max_rank: 0,
-        tokens_scored: 0
-      },
-      total_supply: collection.total_supply || 0,
-      created_date: collection.created_date || ''
-    };
-  }
-
-  private async fetchFloorItems(slug: string, headers: any, contractAddress?: string): Promise<NFTFloorItem[]> {
-    try {
-      // If no contract address provided, return empty array
-      if (!contractAddress) {
-        console.warn(`No contract address available for ${slug}, skipping floor items`);
-        return [];
-      }
-
-      // Use contract-based endpoint which works for the new API
-      const response = await fetch(
-        `https://api.opensea.io/api/v2/chain/ethereum/contract/${contractAddress}/nfts?limit=10`,
-        { headers, signal: AbortSignal.timeout(5000) }
-      );
-      
-      if (!response.ok) {
-        console.warn(`Failed to fetch floor items for ${slug} (${response.status})`);
-        return [];
-      }
-      
-      const data = await response.json();
-      const nfts = data.nfts || [];
-      
-      // Filter for NFTs with listings/prices and sort by price
-      const nftsWithPrices = nfts
-        .filter((nft: any) => nft.listings && nft.listings.length > 0)
-        .sort((a: any, b: any) => {
-          const priceA = this.extractPriceFromNFT(a);
-          const priceB = this.extractPriceFromNFT(b);
-          return priceA - priceB;
-        })
-        .slice(0, 3);
-
-      return nftsWithPrices.map((nft: any) => ({
-        token_id: nft.identifier || '',
-        name: nft.name || `#${nft.identifier}`,
-        image_url: nft.image_url || '',
-        price_eth: this.extractPriceFromNFT(nft),
-        price_usd: this.extractPriceFromNFT(nft) * 3500, // Approximate ETH to USD
-        rarity_rank: nft.rarity?.rank || null,
-        listing_time: nft.updated_at || new Date().toISOString(),
-        opensea_url: `https://opensea.io/assets/ethereum/${contractAddress}/${nft.identifier}`
-      }));
-    } catch (error) {
-      console.warn(`Failed to fetch floor items for ${slug}:`, error);
-      return [];
-    }
-  }
-
-  private async fetchRecentSales(slug: string, headers: any): Promise<NFTSaleEvent[]> {
-    try {
-      const response = await fetch(
-        `https://api.opensea.io/api/v2/events/collection/${slug}?event_type=sale&limit=5`,
-        { headers, signal: AbortSignal.timeout(5000) }
-      );
-      
-      if (!response.ok) return [];
-      
-      const data = await response.json();
-      return (data.events || []).slice(0, 3).map((event: any) => ({
-        token_id: event.nft?.identifier || '',
-        name: event.nft?.name || `#${event.nft?.identifier}`,
-        image_url: event.nft?.image_url || '',
-        price_eth: this.extractPriceFromEvent(event),
-        price_usd: parseFloat(event.payment?.price_usd || '0'),
-        buyer: event.winner?.address || '',
-        seller: event.seller?.address || '',
-        transaction_hash: event.transaction?.hash || '',
-        timestamp: event.event_timestamp || new Date().toISOString(),
-        event_type: 'sale' as const
-      }));
-    } catch (error) {
-      console.warn(`Failed to fetch recent sales for ${slug}:`, error);
-      return [];
-    }
-  }
-
-  private extractPriceFromNFT(nft: any): number {
-    if (nft.listings && nft.listings.length > 0) {
-      const listing = nft.listings[0];
-      return parseFloat(listing.price?.current?.value || '0') / Math.pow(10, 18);
-    }
-    return 0;
-  }
-
-  private extractPriceFromEvent(event: any): number {
-    if (event.payment?.quantity) {
-      return parseFloat(event.payment.quantity) / Math.pow(10, 18);
-    }
-    return 0;
-  }
-
-  private calculateNFTSummary(collections: NFTCollectionData[]): CuratedNFTsData['summary'] {
-    const totalVolume24h = collections.reduce((sum, c) => sum + c.stats.one_day_volume, 0);
-    const totalMarketCap = collections.reduce((sum, c) => sum + c.stats.market_cap, 0);
-    const avgFloorPrice = collections.length > 0 
-      ? collections.reduce((sum, c) => sum + c.stats.floor_price, 0) / collections.length 
-      : 0;
-
-    // Top and worst performers (by 24h volume change)
-    const sortedByChange = [...collections]
-      .filter(c => c.stats.one_day_change !== 0)
-      .sort((a, b) => b.stats.one_day_change - a.stats.one_day_change);
-
-    const topPerformers = sortedByChange.slice(0, 5);
-    const worstPerformers = sortedByChange.slice(-5).reverse();
-
-    return {
-      totalVolume24h,
-      totalMarketCap,
-      avgFloorPrice,
-      topPerformers,
-      worstPerformers,
-      totalCollections: collections.length
-    };
-  }
-
-  private getFallbackCollectionData(collectionInfo: any): NFTCollectionData {
-    return {
-      slug: collectionInfo.slug,
-      collection: {
-        collection: collectionInfo.slug,
-        name: collectionInfo.name,
-        description: collectionInfo.description || '',
-        image_url: '',
-        banner_image_url: '',
-        owner: '',
-        category: collectionInfo.category || 'art',
-        is_disabled: false,
-        is_nsfw: false,
-        trait_offers_enabled: false,
-        collection_offers_enabled: false,
-        opensea_url: `https://opensea.io/collection/${collectionInfo.slug}`,
-        project_url: '',
-        wiki_url: '',
-        discord_url: '',
-        telegram_url: '',
-        twitter_username: '',
-        instagram_username: '',
-        contracts: [],
-        editors: [],
-        fees: [],
-        rarity: {
-          strategy_id: '',
-          strategy_version: '',
-          rank_at: '',
-          max_rank: 0,
-          tokens_scored: 0
-        },
-        total_supply: 0,
-        created_date: ''
-      },
-      stats: {
-        total_supply: 0,
-        num_owners: 0,
-        average_price: 0,
-        floor_price: 0,
-        market_cap: 0,
-        one_day_volume: 0,
-        one_day_change: 0,
-        one_day_sales: 0,
-        seven_day_volume: 0,
-        seven_day_change: 0,
-        seven_day_sales: 0,
-        thirty_day_volume: 0,
-        thirty_day_change: 0,
-        thirty_day_sales: 0
-      },
-      lastUpdated: new Date(),
-      category: collectionInfo.category,
-      floorItems: [],
-      recentSales: [],
-      contractAddress: '',
-      blockchain: 'ethereum'
-    };
-  }
-
-  private getFallbackNFTsData(): CuratedNFTsData {
-    return {
-      collections: [],
-      summary: {
-        totalVolume24h: 0,
-        totalMarketCap: 0,
-        avgFloorPrice: 0,
-        topPerformers: [],
-        worstPerformers: [],
-        totalCollections: 0
-      },
-      lastUpdated: new Date()
-    };
-  }
-
-  private async makeQueuedRequest<T>(requestFn: () => Promise<T>): Promise<T> {
-    return new Promise((resolve, reject) => {
-      const requestWrapper = async () => {
-        try {
-          const result = await requestFn();
-          resolve(result);
-        } catch (error) {
-          reject(error);
-        }
-      };
-      
-      this.requestQueue.push(requestWrapper);
-      
-      if (!this.isProcessingQueue) {
-        this.processRequestQueue();
-      }
-    });
-  }
-
-  private async processRequestQueue(): Promise<void> {
-    if (this.isProcessingQueue) return;
-    
-    this.isProcessingQueue = true;
-    
-    while (this.requestQueue.length > 0) {
-      // Check if we're in backoff period
-      if (this.backoffUntil > Date.now()) {
-        const backoffTime = this.backoffUntil - Date.now();
-        console.log(`[RealTimeDataService] In backoff period, waiting ${backoffTime}ms`);
-        await new Promise(resolve => setTimeout(resolve, backoffTime));
-        this.backoffUntil = 0;
-      }
-      
-      // Ensure minimum interval between requests
-      const timeSinceLastRequest = Date.now() - this.lastRequestTime;
-      if (timeSinceLastRequest < this.MIN_REQUEST_INTERVAL) {
-        await new Promise(resolve => setTimeout(resolve, this.MIN_REQUEST_INTERVAL - timeSinceLastRequest));
-      }
-      
-      const request = this.requestQueue.shift();
-      if (request) {
-        try {
-          this.lastRequestTime = Date.now();
-          await request(); // This will call the wrapper which handles resolve/reject
-          this.consecutiveFailures = 0; // Reset failures on success
-        } catch (error) {
-          this.consecutiveFailures++;
-          console.error(`[RealTimeDataService] Request failed (${this.consecutiveFailures}/${this.MAX_CONSECUTIVE_FAILURES}):`, error);
-          
-          if (this.consecutiveFailures >= this.MAX_CONSECUTIVE_FAILURES) {
-            // Implement exponential backoff
-            const backoffTime = Math.min(Math.pow(2, this.consecutiveFailures - this.MAX_CONSECUTIVE_FAILURES) * 30000, 300000); // Max 5 minutes
-            this.backoffUntil = Date.now() + backoffTime;
-            console.log(`[RealTimeDataService] Too many consecutive failures, backing off for ${backoffTime}ms`);
-          }
-          // Don't rethrow here - the error is already handled in the wrapper
-        }
-      }
-    }
-    
-    this.isProcessingQueue = false;
-  }
-} 
+      console.log(`

@@ -1,6 +1,6 @@
-import { Service, logger, type IAgentRuntime } from '@elizaos/core';
+import { elizaLogger, type IAgentRuntime } from '@elizaos/core';
+import { BaseDataService } from './BaseDataService';
 import { ContentItem, ProcessedIntelligence } from './ContentIngestionService';
-import { LoggerWithContext, generateCorrelationId } from '../utils';
 
 export interface KnowledgeDigest {
   id: string;
@@ -44,31 +44,26 @@ export interface KnowledgeDigest {
   }>;
 }
 
-export class KnowledgeDigestService extends Service {
+export class KnowledgeDigestService extends BaseDataService {
   static serviceType = 'knowledge-digest';
   capabilityDescription = 'Generates daily knowledge digests from ingested content and research';
   
-  private contextLogger: LoggerWithContext;
-  private correlationId: string;
   private dailyContent: Map<string, ContentItem[]> = new Map();
   private digestCache: Map<string, KnowledgeDigest> = new Map();
 
   constructor(runtime: IAgentRuntime) {
-    super();
-    this.runtime = runtime;
-    this.correlationId = generateCorrelationId();
-    this.contextLogger = new LoggerWithContext(this.correlationId, 'KnowledgeDigestService');
+    super(runtime, 'knowledgeDigest');
   }
 
   static async start(runtime: IAgentRuntime) {
-    logger.info('KnowledgeDigestService starting...');
+    elizaLogger.info('KnowledgeDigestService starting...');
     const service = new KnowledgeDigestService(runtime);
     await service.init();
     return service;
   }
 
   static async stop(runtime: IAgentRuntime) {
-    logger.info('KnowledgeDigestService stopping...');
+    elizaLogger.info('KnowledgeDigestService stopping...');
     const service = runtime.getService('knowledge-digest');
     if (service && service.stop) {
       await service.stop();
@@ -76,19 +71,82 @@ export class KnowledgeDigestService extends Service {
   }
 
   async init() {
-    this.contextLogger.info('KnowledgeDigestService initialized');
+    elizaLogger.info(`[KnowledgeDigestService:${this.correlationId}] Service initialized`);
     // Load any existing digest cache
     await this.loadDigestHistory();
   }
 
   async stop() {
-    this.contextLogger.info('KnowledgeDigestService stopped');
+    elizaLogger.info(`[KnowledgeDigestService:${this.correlationId}] Service stopped`);
+  }
+
+  /**
+   * Required abstract method implementation
+   */
+  async updateData(): Promise<void> {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      if (this.dailyContent.has(today) && this.dailyContent.get(today)!.length >= 10) {
+        await this.generateDailyDigest(today);
+      }
+    } catch (error) {
+      elizaLogger.error(`[KnowledgeDigestService:${this.correlationId}] Error updating data:`, error);
+    }
+  }
+
+  /**
+   * Required abstract method implementation
+   */
+  async forceUpdate(): Promise<any> {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      return await this.generateDailyDigest(today);
+    } catch (error) {
+      elizaLogger.error(`[KnowledgeDigestService:${this.correlationId}] Error in force update:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get default configuration for this service
+   */
+  protected getDefaultConfig(): any {
+    return {
+      enabled: true,
+      cacheTimeout: 3600000, // 1 hour
+      maxRetries: 3,
+      rateLimitPerMinute: 30,
+      digestGenerationThreshold: 10,
+      maxHistoryDays: 30,
+      circuitBreakerThreshold: 5,
+      circuitBreakerTimeout: 60000
+    };
+  }
+
+  /**
+   * Handle configuration changes
+   */
+  protected async onConfigurationChanged(newConfig: any): Promise<void> {
+    elizaLogger.info(`[KnowledgeDigestService:${this.correlationId}] Configuration updated`);
+    // Perform any necessary updates based on new configuration
+    if (newConfig.maxHistoryDays !== this.serviceConfig.maxHistoryDays) {
+      await this.cleanup();
+    }
   }
 
   private async loadDigestHistory(): Promise<void> {
-    // In a real implementation, this would load from database
-    // For now, we'll start with empty state
-    this.contextLogger.info('Loading digest history (mock implementation)');
+    try {
+      // Load recent digests from memory
+      const recentDigests = await this.getFromMemory('knowledge-digest', 10);
+      
+      for (const digest of recentDigests) {
+        this.digestCache.set(digest.date, digest);
+      }
+      
+      elizaLogger.info(`[KnowledgeDigestService:${this.correlationId}] Loaded ${recentDigests.length} digests from memory`);
+    } catch (error) {
+      elizaLogger.error(`[KnowledgeDigestService:${this.correlationId}] Failed to load digest history:`, error);
+    }
   }
 
   async addContent(content: ContentItem): Promise<void> {
@@ -102,11 +160,12 @@ export class KnowledgeDigestService extends Service {
       this.dailyContent.get(today)!.push(content);
       
       // If we have enough content, generate digest
-      if (this.dailyContent.get(today)!.length >= 10) {
+      const threshold = this.serviceConfig.digestGenerationThreshold || 10;
+      if (this.dailyContent.get(today)!.length >= threshold) {
         await this.generateDailyDigest(today);
       }
     } catch (error) {
-      this.contextLogger.error('Failed to add content to digest:', (error as Error).message);
+      elizaLogger.error(`[KnowledgeDigestService:${this.correlationId}] Failed to add content to digest:`, error);
     }
   }
 
@@ -137,9 +196,13 @@ export class KnowledgeDigestService extends Service {
       };
 
       this.digestCache.set(targetDate, digest);
+      
+      // Store in memory for persistence
+      await this.storeInMemory(digest, 'knowledge-digest');
+      
       return digest;
     } catch (error) {
-      this.contextLogger.error('Failed to generate daily digest:', (error as Error).message);
+      elizaLogger.error(`[KnowledgeDigestService:${this.correlationId}] Failed to generate daily digest:`, error);
       throw error;
     }
   }
@@ -370,7 +433,7 @@ export class KnowledgeDigestService extends Service {
 
       return null;
     } catch (error) {
-      this.contextLogger.error('Failed to get digest:', (error as Error).message);
+      elizaLogger.error(`[KnowledgeDigestService:${this.correlationId}] Failed to get digest:`, error);
       return null;
     }
   }
@@ -428,23 +491,35 @@ export class KnowledgeDigestService extends Service {
   }
 
   async cleanup(): Promise<void> {
-    // Clean up old digests and content to prevent memory issues
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - 30); // Keep 30 days
-    
-    const cutoffString = cutoffDate.toISOString().split('T')[0];
-    
-    // Remove old entries
-    for (const [date] of this.dailyContent.entries()) {
-      if (date < cutoffString) {
-        this.dailyContent.delete(date);
+    try {
+      // Clean up old digests and content to prevent memory issues
+      const maxDays = this.serviceConfig.maxHistoryDays || 30;
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - maxDays);
+      
+      const cutoffString = cutoffDate.toISOString().split('T')[0];
+      
+      let removedContent = 0;
+      let removedDigests = 0;
+      
+      // Remove old entries
+      for (const [date] of this.dailyContent.entries()) {
+        if (date < cutoffString) {
+          this.dailyContent.delete(date);
+          removedContent++;
+        }
       }
-    }
-    
-    for (const [date] of this.digestCache.entries()) {
-      if (date < cutoffString) {
-        this.digestCache.delete(date);
+      
+      for (const [date] of this.digestCache.entries()) {
+        if (date < cutoffString) {
+          this.digestCache.delete(date);
+          removedDigests++;
+        }
       }
+      
+      elizaLogger.info(`[KnowledgeDigestService:${this.correlationId}] Cleanup completed: removed ${removedContent} content entries and ${removedDigests} digests`);
+    } catch (error) {
+      elizaLogger.error(`[KnowledgeDigestService:${this.correlationId}] Error during cleanup:`, error);
     }
   }
 }

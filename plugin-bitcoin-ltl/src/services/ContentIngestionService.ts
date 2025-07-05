@@ -1,4 +1,6 @@
-import { Service, logger, type IAgentRuntime } from '@elizaos/core';
+import { elizaLogger, type IAgentRuntime } from '@elizaos/core';
+import { BaseDataService } from './BaseDataService';
+import { ConfigurationManager, type ServiceConfig } from './ConfigurationManager';
 import { 
   ElizaOSErrorHandler, 
   LoggerWithContext, 
@@ -68,16 +70,31 @@ export interface ProcessedIntelligence {
   deliveryMethod: 'morning-briefing' | 'alert' | 'digest';
 }
 
-export abstract class ContentIngestionService extends Service {
+export abstract class ContentIngestionService extends BaseDataService {
   protected contextLogger: LoggerWithContext;
-  protected correlationId: string;
   protected contentQueue: ContentItem[] = [];
   protected processedContent: ContentItem[] = [];
   
-  constructor(protected runtime: IAgentRuntime, protected serviceName: string) {
-    super();
+  constructor(protected runtime: IAgentRuntime, protected serviceName: string, configKey: keyof ServiceConfig = 'bitcoinData') {
+    super(runtime, configKey);
     this.correlationId = generateCorrelationId();
     this.contextLogger = new LoggerWithContext(this.correlationId, serviceName);
+  }
+
+  // Set capability description after constructor
+  public get capabilityDescription(): string {
+    return 'Ingests and processes content from various sources for analysis';
+  }
+
+  static async start(runtime: IAgentRuntime) {
+    elizaLogger.info('ContentIngestionService starting...');
+    // Individual services that extend this will provide their own start method
+    return null;
+  }
+
+  static async stop(runtime: IAgentRuntime) {
+    elizaLogger.info('ContentIngestionService stopping...');
+    // Individual services that extend this will provide their own stop method
   }
 
   async init() {
@@ -86,6 +103,35 @@ export abstract class ContentIngestionService extends Service {
 
   async stop() {
     this.contextLogger.info(`${this.serviceName} stopped`);
+  }
+
+  // Required abstract methods from BaseDataService
+  async updateData(): Promise<void> {
+    try {
+      const newContent = await this.ingestContent();
+      if (newContent.length > 0) {
+        const processedItems = await this.processContent(newContent);
+        await this.storeContent(processedItems);
+        
+        // Store in memory for persistence
+        await this.storeInMemory({
+          contentItems: processedItems,
+          timestamp: Date.now(),
+          source: this.serviceName
+        }, 'content-ingestion');
+        
+        this.contextLogger.info(`Updated data: processed ${processedItems.length} new content items`);
+      }
+    } catch (error) {
+      const enhancedError = ElizaOSErrorHandler.handleCommonErrors(error as Error, 'ContentIngestionUpdate');
+      this.contextLogger.error('Failed to update content data:', enhancedError.message);
+      throw enhancedError;
+    }
+  }
+
+  async forceUpdate(): Promise<void> {
+    this.contextLogger.info('Forcing content ingestion update');
+    await this.updateData();
   }
 
   /**
@@ -221,6 +267,15 @@ export abstract class ContentIngestionService extends Service {
    */
   async storeContent(content: ContentItem[]): Promise<void> {
     this.processedContent.push(...content);
+    
+    // Store in memory for persistence with timestamp
+    await this.storeInMemory({
+      contentItems: content,
+      timestamp: Date.now(),
+      source: this.serviceName,
+      count: content.length
+    }, 'processed-content');
+    
     this.contextLogger.info(`Stored ${content.length} processed content items`);
   }
 
@@ -234,6 +289,17 @@ export abstract class ContentIngestionService extends Service {
     importance?: ContentItem['metadata']['importance'];
     assets?: string[];
   }): Promise<ContentItem[]> {
+    // First check memory for cached results
+    const cacheKey = `content-filter-${JSON.stringify(filters)}`;
+    const cached = await this.getFromMemory(cacheKey, 10); // 10 minute cache
+    
+    if (cached.length > 0) {
+      const cachedData = cached[0];
+      if (Date.now() - cachedData.timestamp < 10 * 60 * 1000) {
+        return cachedData.results;
+      }
+    }
+
     let filteredContent = this.processedContent;
 
     if (filters.source) {
@@ -260,6 +326,13 @@ export abstract class ContentIngestionService extends Service {
         item.metadata.assets?.some(asset => filters.assets!.includes(asset))
       );
     }
+
+    // Store result in memory
+    await this.storeInMemory({
+      results: filteredContent,
+      timestamp: Date.now(),
+      filters
+    }, cacheKey);
 
     return filteredContent;
   }
@@ -320,5 +393,45 @@ export abstract class ContentIngestionService extends Service {
     summary.mentionedAssets = assets;
 
     return summary;
+  }
+
+  /**
+   * Get historical content processing metrics
+   */
+  async getContentMetrics(): Promise<{
+    totalProcessed: number;
+    averageProcessingTime: number;
+    successRate: number;
+    contentBySource: { [key: string]: number };
+    contentByType: { [key: string]: number };
+    lastProcessed: Date | null;
+  }> {
+    const memoryData = await this.getFromMemory('content-metrics', 1);
+    
+    if (memoryData.length > 0) {
+      return memoryData[0];
+    }
+
+    // Calculate metrics
+    const metrics = {
+      totalProcessed: this.processedContent.length,
+      averageProcessingTime: 0, // Would need to track this
+      successRate: this.processedContent.filter(c => c.processed).length / Math.max(this.processedContent.length, 1),
+      contentBySource: {} as { [key: string]: number },
+      contentByType: {} as { [key: string]: number },
+      lastProcessed: this.processedContent.length > 0 ? 
+        this.processedContent[this.processedContent.length - 1].metadata.timestamp : null
+    };
+
+    // Calculate source and type distributions
+    this.processedContent.forEach(item => {
+      metrics.contentBySource[item.source] = (metrics.contentBySource[item.source] || 0) + 1;
+      metrics.contentByType[item.type] = (metrics.contentByType[item.type] || 0) + 1;
+    });
+
+    // Store in memory
+    await this.storeInMemory(metrics, 'content-metrics');
+
+    return metrics;
   }
 } 

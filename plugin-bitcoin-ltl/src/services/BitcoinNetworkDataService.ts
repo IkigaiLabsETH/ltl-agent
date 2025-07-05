@@ -62,6 +62,10 @@ export class BitcoinNetworkDataService extends BaseDataService {
   // Bitcoin data storage
   private comprehensiveBitcoinData: ComprehensiveBitcoinData | null = null;
 
+  constructor(runtime: IAgentRuntime) {
+    super(runtime, 'bitcoinNetwork');
+  }
+
   static async start(runtime: IAgentRuntime) {
     logger.info('BitcoinNetworkDataService starting...');
     const service = new BitcoinNetworkDataService(runtime);

@@ -1,8 +1,8 @@
-import { Service, logger, type IAgentRuntime } from '@elizaos/core';
+import { elizaLogger, type IAgentRuntime } from '@elizaos/core';
+import { BaseDataService } from './BaseDataService';
 import { ProcessedIntelligence } from './ContentIngestionService';
 import { BitcoinDataService } from './BitcoinDataService';
 import { SlackIngestionService } from './SlackIngestionService';
-import { ElizaOSErrorHandler, LoggerWithContext, generateCorrelationId } from '../utils';
 
 export interface MorningBriefingConfig {
   deliveryTime: { hour: number; minute: number }; // 24-hour format
@@ -97,33 +97,28 @@ export interface OpportunityAlert {
   };
 }
 
-export class MorningBriefingService extends Service {
+export class MorningBriefingService extends BaseDataService {
   static serviceType = 'morning-briefing';
   capabilityDescription = 'Generates proactive morning intelligence briefings with market data and curated insights';
   
-  private contextLogger: LoggerWithContext;
-  private correlationId: string;
   private briefingConfig: MorningBriefingConfig;
   private lastBriefing: Date | null = null;
   private scheduledBriefing: NodeJS.Timeout | null = null;
   
   constructor(runtime: IAgentRuntime) {
-    super();
-    this.runtime = runtime;
-    this.correlationId = generateCorrelationId();
-    this.contextLogger = new LoggerWithContext(this.correlationId, 'MorningBriefingService');
-    this.briefingConfig = this.getDefaultConfig();
+    super(runtime, 'morningBriefing');
+    this.briefingConfig = this.getDefaultBriefingConfig();
   }
 
   static async start(runtime: IAgentRuntime) {
-    logger.info('MorningBriefingService starting...');
+    elizaLogger.info('MorningBriefingService starting...');
     const service = new MorningBriefingService(runtime);
     await service.init();
     return service;
   }
 
   static async stop(runtime: IAgentRuntime) {
-    logger.info('MorningBriefingService stopping...');
+    elizaLogger.info('MorningBriefingService stopping...');
     const service = runtime.getService('morning-briefing');
     if (service && service.stop) {
       await service.stop();
@@ -131,7 +126,7 @@ export class MorningBriefingService extends Service {
   }
 
   async init() {
-    this.contextLogger.info('MorningBriefingService initialized');
+    elizaLogger.info(`[MorningBriefingService:${this.correlationId}] Service initialized`);
     
     // Schedule daily briefings
     this.scheduleDailyBriefing();
@@ -146,10 +141,79 @@ export class MorningBriefingService extends Service {
     if (this.scheduledBriefing) {
       clearTimeout(this.scheduledBriefing);
     }
-    this.contextLogger.info('MorningBriefingService stopped');
+    elizaLogger.info(`[MorningBriefingService:${this.correlationId}] Service stopped`);
   }
 
-  private getDefaultConfig(): MorningBriefingConfig {
+  /**
+   * Required abstract method implementation
+   */
+  async updateData(): Promise<void> {
+    try {
+      // Check if it's time for a new briefing
+      const now = new Date();
+      const lastBriefingDate = this.lastBriefing ? new Date(this.lastBriefing) : null;
+      
+      if (!lastBriefingDate || 
+          (now.getDate() !== lastBriefingDate.getDate() && 
+           now.getHours() >= this.briefingConfig.deliveryTime.hour)) {
+        await this.generateMorningBriefing();
+      }
+    } catch (error) {
+      elizaLogger.error(`[MorningBriefingService:${this.correlationId}] Error updating data:`, error);
+    }
+  }
+
+  /**
+   * Required abstract method implementation
+   */
+  async forceUpdate(): Promise<any> {
+    try {
+      return await this.generateMorningBriefing();
+    } catch (error) {
+      elizaLogger.error(`[MorningBriefingService:${this.correlationId}] Error in force update:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get default configuration for this service
+   */
+  protected getDefaultConfig(): any {
+    return {
+      enabled: true,
+      cacheTimeout: 3600000, // 1 hour
+      maxRetries: 3,
+      rateLimitPerMinute: 30,
+      deliveryTime: { hour: 7, minute: 0 },
+      timezone: 'America/New_York',
+      includeWeather: true,
+      includeMarketData: true,
+      includeNewsDigest: true,
+      includePerformanceTracking: true,
+      circuitBreakerThreshold: 5,
+      circuitBreakerTimeout: 60000
+    };
+  }
+
+  /**
+   * Handle configuration changes
+   */
+  protected async onConfigurationChanged(newConfig: any): Promise<void> {
+    elizaLogger.info(`[MorningBriefingService:${this.correlationId}] Configuration updated`);
+    
+    // Update briefing config if delivery time changed
+    if (newConfig.deliveryTime) {
+      this.briefingConfig.deliveryTime = newConfig.deliveryTime;
+      
+      // Reschedule if delivery time changed
+      if (this.scheduledBriefing) {
+        clearTimeout(this.scheduledBriefing);
+        this.scheduleDailyBriefing();
+      }
+    }
+  }
+
+  private getDefaultBriefingConfig(): MorningBriefingConfig {
     return {
       deliveryTime: { hour: 7, minute: 0 }, // 7:00 AM
       timezone: 'America/New_York',
@@ -189,33 +253,35 @@ export class MorningBriefingService extends Service {
       this.scheduleDailyBriefing();
     }, msUntilNext);
     
-    this.contextLogger.info(`Next morning briefing scheduled for ${next.toLocaleString()}`);
+    elizaLogger.info(`[MorningBriefingService:${this.correlationId}] Next morning briefing scheduled for ${next.toLocaleString()}`);
   }
 
   async generateMorningBriefing(): Promise<ProcessedIntelligence> {
-    this.contextLogger.info('Generating morning intelligence briefing...');
+    elizaLogger.info(`[MorningBriefingService:${this.correlationId}] Generating morning intelligence briefing...`);
     
     try {
-              // Gather all necessary data
-        const [weatherData, marketPulse, knowledgeDigest, opportunities] = await Promise.all([
-          this.briefingConfig.includeWeather ? this.getWeatherData() : Promise.resolve(null),
-          this.briefingConfig.includeMarketData ? this.getMarketPulse() : Promise.resolve(null),
-          this.briefingConfig.includeNewsDigest ? this.getKnowledgeDigest() : Promise.resolve(null),
-          this.getOpportunities()
-        ]);
+      // Gather all necessary data
+      const [weatherData, marketPulse, knowledgeDigest, opportunities] = await Promise.all([
+        this.briefingConfig.includeWeather ? this.getWeatherData() : Promise.resolve(null),
+        this.briefingConfig.includeMarketData ? this.getMarketPulse() : Promise.resolve(null),
+        this.briefingConfig.includeNewsDigest ? this.getKnowledgeDigest() : Promise.resolve(null),
+        this.getOpportunities()
+      ]);
 
       // Generate the briefing
       const briefing = await this.compileBriefing(weatherData, marketPulse, knowledgeDigest, opportunities);
       
+      // Store in memory for persistence
+      await this.storeInMemory(briefing, 'morning-briefing');
+      
       // Log the briefing
-      this.contextLogger.info(`Morning briefing generated: ${briefing.briefingId}`);
+      elizaLogger.info(`[MorningBriefingService:${this.correlationId}] Morning briefing generated: ${briefing.briefingId}`);
       this.lastBriefing = new Date();
       
       return briefing;
     } catch (error) {
-      const enhancedError = ElizaOSErrorHandler.handleCommonErrors(error as Error, 'MorningBriefingGeneration');
-      this.contextLogger.error('Failed to generate morning briefing:', enhancedError.message);
-      throw enhancedError;
+      elizaLogger.error(`[MorningBriefingService:${this.correlationId}] Failed to generate morning briefing:`, error);
+      throw error;
     }
   }
 
@@ -224,13 +290,13 @@ export class MorningBriefingService extends Service {
       // Get real weather data from RealTimeDataService
       const realTimeDataService = this.runtime.getService('RealTimeDataService') as any;
       if (!realTimeDataService) {
-        this.contextLogger.warn('RealTimeDataService not available for weather data');
+        elizaLogger.warn(`[MorningBriefingService:${this.correlationId}] RealTimeDataService not available for weather data`);
         return null;
       }
 
       const weatherData = realTimeDataService.getWeatherData();
       if (!weatherData) {
-        this.contextLogger.warn('No weather data available');
+        elizaLogger.warn(`[MorningBriefingService:${this.correlationId}] No weather data available`);
         return null;
       }
 
@@ -290,7 +356,7 @@ export class MorningBriefingService extends Service {
         windSpeed: Math.round(primaryCity.weather.current?.wind_speed_10m || 0)
       };
     } catch (error) {
-      this.contextLogger.error('Error fetching weather data:', error);
+      elizaLogger.error(`[MorningBriefingService:${this.correlationId}] Error fetching weather data:`, error);
       return null;
     }
   }
@@ -300,7 +366,7 @@ export class MorningBriefingService extends Service {
       // Get Bitcoin data service
       const bitcoinService = this.runtime.getService('bitcoin-data') as BitcoinDataService;
       if (!bitcoinService) {
-        this.contextLogger.warn('BitcoinDataService not available');
+        elizaLogger.warn(`[MorningBriefingService:${this.correlationId}] BitcoinDataService not available`);
         return null;
       }
 
@@ -314,9 +380,9 @@ export class MorningBriefingService extends Service {
       if (stockDataService && stockDataService.getStockData) {
         try {
           stockData = stockDataService.getStockData();
-          this.contextLogger.info('Stock data loaded for morning briefing');
+          elizaLogger.info(`[MorningBriefingService:${this.correlationId}] Stock data loaded for morning briefing`);
         } catch (error) {
-          this.contextLogger.warn('Failed to get stock data:', (error as Error).message);
+          elizaLogger.warn(`[MorningBriefingService:${this.correlationId}] Failed to get stock data:`, error);
         }
       }
 
@@ -433,10 +499,10 @@ export class MorningBriefingService extends Service {
               isAltseason: isAltseason
             };
 
-            this.contextLogger.info(`Real altcoin data loaded: ${top100VsBtcData.outperformingCount}/${top100VsBtcData.totalCoins} outperforming BTC (${outperformingPercent.toFixed(1)}%)`);
+            elizaLogger.info(`[MorningBriefingService:${this.correlationId}] Real altcoin data loaded: ${top100VsBtcData.outperformingCount}/${top100VsBtcData.totalCoins} outperforming BTC (${outperformingPercent.toFixed(1)}%)`);
           }
         } catch (error) {
-          this.contextLogger.warn('Failed to get real altcoin data, using fallback:', (error as Error).message);
+          elizaLogger.warn(`[MorningBriefingService:${this.correlationId}] Failed to get real altcoin data, using fallback:`, error);
         }
       }
 
@@ -463,7 +529,7 @@ export class MorningBriefingService extends Service {
 
       return marketPulse;
     } catch (error) {
-      this.contextLogger.error('Failed to get market pulse:', (error as Error).message);
+      elizaLogger.error(`[MorningBriefingService:${this.correlationId}] Failed to get market pulse:`, error);
       return null;
     }
   }
@@ -515,7 +581,7 @@ export class MorningBriefingService extends Service {
 
       return knowledgeDigest;
     } catch (error) {
-      this.contextLogger.error('Failed to get knowledge digest:', (error as Error).message);
+      elizaLogger.error(`[MorningBriefingService:${this.correlationId}] Failed to get knowledge digest:`, error);
       return null;
     }
   }
@@ -631,7 +697,7 @@ export class MorningBriefingService extends Service {
    * Generate briefing on demand
    */
   async generateOnDemandBriefing(): Promise<ProcessedIntelligence> {
-    this.contextLogger.info('Generating on-demand briefing...');
+    elizaLogger.info(`[MorningBriefingService:${this.correlationId}] Generating on-demand briefing...`);
     return await this.generateMorningBriefing();
   }
 
@@ -647,17 +713,27 @@ export class MorningBriefingService extends Service {
       this.scheduleDailyBriefing();
     }
     
-    this.contextLogger.info('Briefing configuration updated');
+    elizaLogger.info(`[MorningBriefingService:${this.correlationId}] Briefing configuration updated`);
   }
 
   /**
    * Get briefing history
    */
   async getBriefingHistory(days: number = 7): Promise<{ lastBriefing: Date | null; totalGenerated: number }> {
-    return {
-      lastBriefing: this.lastBriefing,
-      totalGenerated: this.lastBriefing ? 1 : 0 // Simplified for now
-    };
+    try {
+      const recentBriefings = await this.getFromMemory('morning-briefing', days);
+      
+      return {
+        lastBriefing: this.lastBriefing,
+        totalGenerated: recentBriefings.length
+      };
+    } catch (error) {
+      elizaLogger.error(`[MorningBriefingService:${this.correlationId}] Failed to get briefing history:`, error);
+      return {
+        lastBriefing: this.lastBriefing,
+        totalGenerated: 0
+      };
+    }
   }
 
   /**

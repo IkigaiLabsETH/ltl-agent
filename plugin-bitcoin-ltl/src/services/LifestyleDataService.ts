@@ -267,7 +267,7 @@ export class LifestyleDataService extends BaseDataService {
   private readonly TRAVEL_CACHE_DURATION = 60 * 60 * 1000; // 1 hour for hotel rates
 
   constructor(runtime: IAgentRuntime) {
-    super(runtime);
+    super(runtime, 'lifestyleData');
   }
 
   static async start(runtime: IAgentRuntime) {

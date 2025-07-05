@@ -114,7 +114,7 @@ export class StockDataService extends BaseDataService {
   ];
 
   constructor(runtime: IAgentRuntime) {
-    super(runtime);
+    super(runtime, 'stockData');
   }
 
   static async start(runtime: IAgentRuntime) {

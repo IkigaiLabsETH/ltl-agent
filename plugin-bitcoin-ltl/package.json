@@ -41,7 +41,7 @@
   ],
   "dependencies": {
     "@elizaos/core": "^1.0.17",
-    "zod": "3.24.2"
+    "zod": "^3.24.2"
   },
   "optionalDependencies": {
     "@elizaos-plugins/plugin-knowledge": "^1.0.11"
@@ -50,6 +50,7 @@
     "@elizaos/cli": "^1.0.17",
     "@tailwindcss/vite": "^4.1.11",
     "@tanstack/react-query": "^5.81.5",
+    "@types/node": "^22.15.3",
     "@vitejs/plugin-react-swc": "^3.10.2",
     "clsx": "^2.1.1",
     "dotenv": "^16.4.5",
@@ -59,12 +60,14 @@
     "tailwindcss-animate": "^1.0.7",
     "tsup": "^8.5.0",
     "typescript": "^5.8.2",
-    "vite": "^6.3.5"
+    "vite": "^6.3.5",
+    "vitest": "^3.1.4"
   },
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "test": "echo \"Tests will be implemented\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "lint": "prettier --write ./src",
     "format": "prettier --write ./src",
     "format:check": "prettier --check ./src"

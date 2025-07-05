@@ -1,4 +1,5 @@
-import { Service, logger, type IAgentRuntime } from '@elizaos/core';
+import { elizaLogger, type IAgentRuntime } from '@elizaos/core';
+import { BaseDataService } from './BaseDataService';
 import { ProcessedIntelligence } from './ContentIngestionService';
 import { MorningBriefingService } from './MorningBriefingService';
 import { KnowledgeDigestService } from './KnowledgeDigestService';
@@ -67,12 +68,10 @@ export interface SchedulerMetrics {
   systemHealth: 'healthy' | 'degraded' | 'critical';
 }
 
-export class SchedulerService extends Service {
+export class SchedulerService extends BaseDataService {
   static serviceType = 'scheduler';
-  capabilityDescription = 'Coordinates automated briefings, digests, and alerts across all services';
   
   private contextLogger: LoggerWithContext;
-  private correlationId: string;
   private scheduleConfig: ScheduleConfig; // Renamed to avoid conflict with base Service class
   private scheduledTasks: Map<string, ScheduledTask> = new Map();
   private activeTimers: Map<string, NodeJS.Timeout> = new Map();
@@ -80,23 +79,26 @@ export class SchedulerService extends Service {
   private isRunning: boolean = false;
 
   constructor(runtime: IAgentRuntime) {
-    super();
-    this.runtime = runtime;
+    super(runtime, 'scheduler');
     this.correlationId = generateCorrelationId();
     this.contextLogger = new LoggerWithContext(this.correlationId, 'SchedulerService');
     this.scheduleConfig = this.getDefaultConfig();
     this.metrics = this.initializeMetrics();
   }
 
+  public get capabilityDescription(): string {
+    return 'Coordinates automated briefings, digests, and alerts across all services';
+  }
+
   static async start(runtime: IAgentRuntime) {
-    logger.info('SchedulerService starting...');
+    elizaLogger.info('SchedulerService starting...');
     const service = new SchedulerService(runtime);
     await service.init();
     return service;
   }
 
   static async stop(runtime: IAgentRuntime) {
-    logger.info('SchedulerService stopping...');
+    elizaLogger.info('SchedulerService stopping...');
     const service = runtime.getService('scheduler');
     if (service && service.stop) {
       await service.stop();
@@ -122,7 +124,35 @@ export class SchedulerService extends Service {
     this.contextLogger.info('SchedulerService stopped');
   }
 
-  private getDefaultConfig(): ScheduleConfig {
+  // Required abstract methods from BaseDataService
+  async updateData(): Promise<void> {
+    try {
+      // Update scheduler metrics and task status
+      await this.updateMetrics();
+      
+      // Store current state in memory
+      await this.storeInMemory({
+        scheduledTasks: Array.from(this.scheduledTasks.entries()),
+        metrics: this.metrics,
+        scheduleConfig: this.scheduleConfig,
+        isRunning: this.isRunning,
+        activeTimerCount: this.activeTimers.size,
+        timestamp: Date.now()
+      }, 'scheduler-state');
+      
+      this.contextLogger.info(`Updated scheduler data: ${this.scheduledTasks.size} tasks, ${this.activeTimers.size} active timers`);
+    } catch (error) {
+      this.contextLogger.error('Failed to update scheduler data:', (error as Error).message);
+      throw error;
+    }
+  }
+
+  async forceUpdate(): Promise<void> {
+    this.contextLogger.info('Forcing scheduler update');
+    await this.updateData();
+  }
+
+  protected getDefaultConfig(): ScheduleConfig {
     return {
       morningBriefing: {
         enabled: true,
