@@ -32,6 +32,7 @@ import {
   AltcoinDataService,
   BitcoinNetworkDataService
 } from './services';
+import { KnowledgePerformanceMonitor } from './services/knowledge-performance-monitor';
 import { morningBriefingAction, curatedAltcoinsAction, top100VsBtcAction, btcRelativePerformanceAction, dexScreenerAction, topMoversAction, trendingCoinsAction, curatedNFTsAction, weatherAction, stockMarketAction, hotelSearchAction, hotelDealAlertAction, bookingOptimizationAction, travelInsightsAction, etfFlowAction } from './actions';
 import { allProviders } from './providers';
 
@@ -4213,7 +4214,8 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
     TravelDataService,
     NFTDataService,
     AltcoinDataService,
-    BitcoinNetworkDataService
+    BitcoinNetworkDataService,
+    KnowledgePerformanceMonitor
   ],
   tests: [bitcoinTestSuite],
 };

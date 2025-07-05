@@ -18,6 +18,7 @@ import { lifestyleProvider } from './lifestyleProvider';
 import { networkHealthProvider } from './networkHealthProvider';
 import { opportunityProvider } from './opportunityProvider';
 import { briefingProvider } from './briefingProvider';
+import { knowledgeContextProvider } from './knowledge-context-provider';
 
 // Re-export individual providers
 export { timeProvider } from './timeProvider';
@@ -34,6 +35,7 @@ export { lifestyleProvider } from './lifestyleProvider';
 export { networkHealthProvider } from './networkHealthProvider';
 export { opportunityProvider } from './opportunityProvider';
 export { briefingProvider } from './briefingProvider';
+export { knowledgeContextProvider } from './knowledge-context-provider';
 
 // Provider collection for easy import
 export const allProviders = [
@@ -51,6 +53,7 @@ export const allProviders = [
   opportunityProvider,
   briefingProvider,
   marketContextProvider,
+  knowledgeContextProvider,
 ];
 
 // Provider groups for different use cases
@@ -75,6 +78,7 @@ export const privateProviders = [
   opportunityProvider,
   briefingProvider,
   marketContextProvider,
+  knowledgeContextProvider,
 ];
 
 /**
