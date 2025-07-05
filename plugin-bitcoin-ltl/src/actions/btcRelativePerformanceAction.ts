@@ -60,58 +60,82 @@ export const btcRelativePerformanceAction: Action = {
     callback: HandlerCallback
   ) => {
     try {
-      const realTimeService = runtime.getService<RealTimeDataService>('RealTimeDataService');
+      const realTimeDataService = runtime.getService('real-time-data') as RealTimeDataService;
       
-      if (!realTimeService) {
+      if (!realTimeDataService) {
         callback({
-          text: "❌ Unable to access real-time data service",
-          content: { error: "Service not available" }
+          text: "❌ Market data service unavailable",
+          content: { error: "Service not found" }
         });
         return;
       }
 
-      // Get the BTC relative performance data
-      const btcData = await realTimeService.forceTop100VsBtcUpdate();
-      
+      // Get the Top 200 vs BTC data (same as website)
+      let btcData = realTimeDataService.getTop100VsBtcData();
+      if (!btcData) {
+        btcData = await realTimeDataService.forceTop100VsBtcUpdate();
+      }
+
       if (!btcData) {
         callback({
-          text: "❌ Unable to fetch BTC relative performance data at this time",
-          content: { error: "Data fetch failed" }
+          text: "❌ Unable to fetch BTC relative performance data",
+          content: { error: "Data unavailable" }
         });
         return;
       }
 
-      // Format the response similar to website API
-      const topPerformers = btcData.topPerformers.slice(0, 8);
+      // Get top performers (outperforming BTC over 7d)
+      const topPerformers = btcData.outperforming.slice(0, 8); // Show top 8 like website
+      const totalOutperforming = btcData.outperformingCount;
+      const totalCoins = btcData.totalCoins;
+      const outperformingPercent = (totalOutperforming / totalCoins) * 100;
+
       const summary = {
-        totalCoins: btcData.totalCoins,
-        outperformingCount: btcData.outperformingCount,
-        underperformingCount: btcData.underperformingCount,
+        outperformingCount: totalOutperforming,
+        totalCoins: totalCoins,
         averageRelativePerformance: btcData.averagePerformance,
         lastUpdated: btcData.lastUpdated
       };
 
-      // Create formatted response
-      let response = `📊 **BTC Relative Performance Analysis** (7-day)\n\n`;
-      response += `🚀 **Top ${Math.min(8, topPerformers.length)} Bitcoin Outperformers:**\n\n`;
+      let response = `**🪙 ALTCOINS OUTPERFORMING BITCOIN (7D)**\n\n`;
+      
+      // Market sentiment
+      if (outperformingPercent > 50) {
+        response += `🚀 **ALTSEASON DETECTED!** ${totalOutperforming}/${totalCoins} (${outperformingPercent.toFixed(1)}%) altcoins beating Bitcoin\n\n`;
+      } else {
+        response += `₿ **Bitcoin Dominance** - ${totalOutperforming}/${totalCoins} (${outperformingPercent.toFixed(1)}%) altcoins outperforming\n\n`;
+      }
 
+      // Show top performers with detailed data
+      response += `**🏆 TOP OUTPERFORMERS (vs BTC 7d):**\n`;
       topPerformers.forEach((coin, index) => {
         const relativePerf = coin.btc_relative_performance_7d || 0;
-        const coinPerf = coin.price_change_percentage_7d_in_currency || 0;
+        const coinPerf7d = coin.price_change_percentage_7d_in_currency || 0;
         const price = coin.current_price || 0;
         const rank = coin.market_cap_rank || '?';
 
-        response += `${index + 1}. **${coin.name} (${coin.symbol.toUpperCase()})** - Rank #${rank}\n`;
-        response += `   • **+${relativePerf.toFixed(2)}%** vs BTC\n`;
-        response += `   • ${coin.symbol}: ${coinPerf >= 0 ? '+' : ''}${coinPerf.toFixed(2)}%\n`;
-        response += `   • Price: $${price.toLocaleString()}\n\n`;
+        response += `${index + 1}. **${coin.name} (${coin.symbol.toUpperCase()})** - #${rank}\n`;
+        response += `   • **+${relativePerf.toFixed(2)}%** vs BTC (7d)\n`;
+        response += `   • ${coin.symbol.toUpperCase()}: ${coinPerf7d >= 0 ? '+' : ''}${coinPerf7d.toFixed(2)}% (7d USD)\n`;
+        response += `   • Price: $${price >= 1 ? price.toLocaleString() : price.toFixed(6)}\n\n`;
       });
 
-      response += `📈 **Market Summary:**\n`;
-      response += `• **${summary.outperformingCount}/${summary.totalCoins}** altcoins outperforming Bitcoin\n`;
+      // Summary stats
+      response += `📊 **MARKET SUMMARY:**\n`;
+      response += `• **${totalOutperforming}/${totalCoins}** altcoins outperforming Bitcoin (7d)\n`;
       response += `• **Average relative performance:** ${summary.averageRelativePerformance >= 0 ? '+' : ''}${summary.averageRelativePerformance.toFixed(2)}%\n`;
-      response += `• **Updated:** ${summary.lastUpdated.toLocaleString()}\n\n`;
-      response += `💡 These coins show stronger momentum than Bitcoin over the past week, indicating potential alpha opportunities.`;
+      
+      // Satoshi's perspective
+      response += `\n**🧠 SATOSHI'S ANALYSIS:**\n`;
+      if (outperformingPercent > 50) {
+        response += `Altcoin momentum building, but remember: most altcoins are venture capital plays. `;
+        response += `Bitcoin remains the monetary base layer. Use this strength to accumulate more Bitcoin.`;
+      } else {
+        response += `Bitcoin dominance continues as digital gold thesis strengthens. `;
+        response += `The market recognizes store of value over speculation. Stack sats.`;
+      }
+
+      response += `\n\n*Updated: ${summary.lastUpdated.toLocaleString()}*`;
 
       callback({
         text: response,

@@ -129,23 +129,23 @@ export const top100VsBtcAction: Action = {
         analysis = `₿ **Bitcoin dominance ${dominanceStrength}** - ${top100Data.outperformingCount}/${top100Data.totalCoins} (${outperformingPercent.toFixed(1)}%) altcoins outperforming.`;
       }
 
-      // Top performers
+      // Top performers - show BTC relative performance (7d) like the website
       const topPerformersText = top100Data.topPerformers.slice(0, limit).map(coin => 
-        `${coin.symbol.toUpperCase()} (+${coin.price_change_percentage_24h.toFixed(1)}%)`
+        `${coin.symbol.toUpperCase()} (+${(coin.btc_relative_performance_7d || 0).toFixed(1)}% vs BTC)`
       ).join(', ');
 
-      // Worst performers 
+      // Worst performers - show BTC relative performance (7d)
       const worstPerformersText = top100Data.worstPerformers.slice(0, Math.min(5, limit)).map(coin => 
-        `${coin.symbol.toUpperCase()} (${coin.price_change_percentage_24h.toFixed(1)}%)`
+        `${coin.symbol.toUpperCase()} (${(coin.btc_relative_performance_7d || 0).toFixed(1)}% vs BTC)`
       ).join(', ');
 
-      // Generate response
+      // Generate response with proper BTC relative performance focus
       const responseText = [
         analysis,
-        `**Average Performance:** ${top100Data.averagePerformance.toFixed(1)}% vs BTC`,
-        `**Top Performers:** ${topPerformersText}`,
-        `**Worst Performers:** ${worstPerformersText}`,
-        `*Data updated: ${top100Data.lastUpdated.toLocaleTimeString()}*`
+        `**Average 7d Performance vs BTC:** ${top100Data.averagePerformance.toFixed(1)}%`,
+        `**Top 7d Outperformers vs BTC:** ${topPerformersText}`,
+        `**Worst 7d Performers vs BTC:** ${worstPerformersText}`,
+        `*Updated: ${top100Data.lastUpdated.toLocaleTimeString()}*`
       ].join('\n\n');
 
       if (callback) {
