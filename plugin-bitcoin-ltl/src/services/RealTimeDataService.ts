@@ -552,6 +552,58 @@ export class RealTimeDataService extends BaseDataService {
         }
       }
 
+      // Log outperforming altcoins summary
+      if (this.top100VsBtcCache && this.top100VsBtcCache.data) {
+        const data = this.top100VsBtcCache.data;
+        // Find Bitcoin's performance from the altcoin data (should be available in the fetch)
+        let btc24h = 0, btc7d = 0, btc30d = 0;
+        // Try to get BTC from the first underperformer or any coin with id 'bitcoin'
+        const btcCoin = [...data.underperforming, ...data.outperforming].find(c => c.id === 'bitcoin');
+        if (btcCoin) {
+          btc24h = btcCoin.price_change_percentage_24h || 0;
+          btc7d = btcCoin.price_change_percentage_7d_in_currency || 0;
+          btc30d = btcCoin.price_change_percentage_30d_in_currency || 0;
+        }
+        let summary = `\n₿ BITCOIN PERFORMANCE:`;
+        summary += `\n• 24h: ${btc24h > 0 ? '+' : ''}${btc24h.toFixed(2)}%`;
+        summary += `\n• 7d: ${btc7d > 0 ? '+' : ''}${btc7d.toFixed(2)}%`;
+        summary += `\n• 30d: ${btc30d > 0 ? '+' : ''}${btc30d.toFixed(2)}%`;
+        // 24h Outperformers
+        const top24h = [...data.outperforming]
+          .filter(c => typeof c.btc_relative_performance_24h === 'number' && c.btc_relative_performance_24h > 0)
+          .sort((a, b) => (b.btc_relative_performance_24h || 0) - (a.btc_relative_performance_24h || 0))
+          .slice(0, 5);
+        if (top24h.length) {
+          summary += `\n\n🚀 ALTCOINS OUTPERFORMING BTC (24h):`;
+          top24h.forEach((coin, i) => {
+            summary += `\n${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_24h?.toFixed(2)}% (vs BTC ${btc24h > 0 ? '+' : ''}${btc24h.toFixed(2)}%, +${coin.btc_relative_performance_24h?.toFixed(2)}% better)`;
+          });
+        }
+        // 7d Outperformers
+        const top7d = [...data.outperforming]
+          .filter(c => typeof c.btc_relative_performance_7d === 'number' && c.btc_relative_performance_7d > 0)
+          .sort((a, b) => (b.btc_relative_performance_7d || 0) - (a.btc_relative_performance_7d || 0))
+          .slice(0, 5);
+        if (top7d.length) {
+          summary += `\n\n📈 ALTCOINS OUTPERFORMING BTC (7d):`;
+          top7d.forEach((coin, i) => {
+            summary += `\n${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_7d_in_currency?.toFixed(2)}% (vs BTC ${btc7d > 0 ? '+' : ''}${btc7d.toFixed(2)}%, +${coin.btc_relative_performance_7d?.toFixed(2)}% better)`;
+          });
+        }
+        // 30d Outperformers
+        const top30d = [...data.outperforming]
+          .filter(c => typeof c.btc_relative_performance_30d === 'number' && c.btc_relative_performance_30d > 0)
+          .sort((a, b) => (b.btc_relative_performance_30d || 0) - (a.btc_relative_performance_30d || 0))
+          .slice(0, 5);
+        if (top30d.length) {
+          summary += `\n\n📊 ALTCOINS OUTPERFORMING BTC (30d):`;
+          top30d.forEach((coin, i) => {
+            summary += `\n${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFixed(2)}% (vs BTC ${btc30d > 0 ? '+' : ''}${btc30d.toFixed(2)}%, +${coin.btc_relative_performance_30d?.toFixed(2)}% better)`;
+          });
+        }
+        console.log(summary + '\n');
+      }
+
       console.log('[RealTimeDataService] ✅ Data update cycle completed');
     } catch (error) {
       console.error('[RealTimeDataService] ❌ Error updating data:', error);
