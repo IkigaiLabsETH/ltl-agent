@@ -8,6 +8,7 @@ export { NFTDataService } from './NFTDataService';
 export { LifestyleDataService } from './LifestyleDataService';
 export { StockDataService } from './StockDataService';
 export { TravelDataService } from './TravelDataService';
+export { ETFDataService } from './ETFDataService';
 
 // Existing services
 export { BitcoinDataService } from './BitcoinDataService';
