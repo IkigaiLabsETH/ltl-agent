@@ -97,6 +97,12 @@ export class OpportunityAlertService extends BaseDataService {
     }
   }
 
+  async start(): Promise<void> {
+    this.contextLogger.info('OpportunityAlertService starting...');
+    await this.updateData();
+    this.contextLogger.info('OpportunityAlertService started successfully');
+  }
+
   async init() {
     this.contextLogger.info('OpportunityAlertService initialized');
     await this.loadDefaultCriteria();

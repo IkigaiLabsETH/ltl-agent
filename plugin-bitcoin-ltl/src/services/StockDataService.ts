@@ -132,6 +132,12 @@ export class StockDataService extends BaseDataService {
     }
   }
 
+  async start(): Promise<void> {
+    logger.info('StockDataService starting...');
+    await this.updateData();
+    logger.info('StockDataService started successfully');
+  }
+
   async init() {
     logger.info('StockDataService initialized');
     

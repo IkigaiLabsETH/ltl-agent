@@ -459,6 +459,12 @@ export class RealTimeDataService extends BaseDataService {
     }
   }
 
+  async start(): Promise<void> {
+    elizaLogger.info('RealTimeDataService starting...');
+    await this.updateData();
+    elizaLogger.info('RealTimeDataService started successfully');
+  }
+
   async init() {
     elizaLogger.info('RealTimeDataService initialized');
     
@@ -698,11 +704,17 @@ export class RealTimeDataService extends BaseDataService {
           include_last_updated_at: 'true'
         });
         const url = `${baseUrl}/simple/price?${params.toString()}`;
-        const response = await this.fetchWithRetry(url, {
+        const response = await fetch(url, {
           method: 'GET',
-          headers
+          headers,
+          signal: AbortSignal.timeout(15000)
         });
-        return response;
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        return await response.json();
       });
 
       const marketData: MarketData[] = Object.entries(cryptoData).map(([id, data]: [string, any]) => ({
@@ -1217,12 +1229,19 @@ export class RealTimeDataService extends BaseDataService {
   private async fetchBitcoinPriceData(): Promise<{ usd: number; change24h: number } | null> {
     try {
       const data = await this.makeQueuedRequest(async () => {
-        return await this.fetchWithRetry(
+        const response = await fetch(
           `${this.COINGECKO_API}/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true`,
           {
-            headers: { 'Accept': 'application/json' }
+            headers: { 'Accept': 'application/json' },
+            signal: AbortSignal.timeout(15000)
           }
         );
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        return await response.json();
       });
       
       return {
@@ -1460,14 +1479,21 @@ export class RealTimeDataService extends BaseDataService {
     try {
       const idsParam = this.curatedCoinIds.join(',');
       const data = await this.makeQueuedRequest(async () => {
-        return await this.fetchWithRetry(
+        const response = await fetch(
           `${this.COINGECKO_API}/simple/price?ids=${idsParam}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true&include_24hr_vol=true`,
           {
             headers: {
               'Accept': 'application/json',
             },
+            signal: AbortSignal.timeout(15000)
           }
         );
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        return await response.json();
       });
       
       // Ensure all requested IDs are present in the response (with zeroed data if missing)
@@ -1825,9 +1851,16 @@ export class RealTimeDataService extends BaseDataService {
     try {
       console.log('[RealTimeDataService] Fetching trending coins data...');
       
-      const data = await this.fetchWithRetry('https://api.coingecko.com/api/v3/search/trending', {
+      const response = await fetch('https://api.coingecko.com/api/v3/search/trending', {
         headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(15000)
       });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
       
       // Map and validate trending coins (matches website exactly)
       const trending: TrendingCoin[] = Array.isArray(data.coins)
@@ -1939,19 +1972,35 @@ export class RealTimeDataService extends BaseDataService {
     try {
       console.log(`[RealTimeDataService] Fetching collection data for: ${collectionInfo.slug}`);
       
-      // Fetch basic collection data with retry logic
-      const collectionData = await this.fetchWithRetry(
+      // Fetch basic collection data
+      const collectionResponse = await fetch(
         `https://api.opensea.io/api/v2/collections/${collectionInfo.slug}`,
-        { headers },
-        3
+        { 
+          headers,
+          signal: AbortSignal.timeout(15000)
+        }
       );
+      
+      if (!collectionResponse.ok) {
+        throw new Error(`HTTP ${collectionResponse.status}: ${collectionResponse.statusText}`);
+      }
+      
+      const collectionData = await collectionResponse.json();
 
       // Fetch collection stats
-      const statsData = await this.fetchWithRetry(
+      const statsResponse = await fetch(
         `https://api.opensea.io/api/v2/collections/${collectionInfo.slug}/stats`,
-        { headers },
-        3
+        { 
+          headers,
+          signal: AbortSignal.timeout(15000)
+        }
       );
+      
+      if (!statsResponse.ok) {
+        throw new Error(`HTTP ${statsResponse.status}: ${statsResponse.statusText}`);
+      }
+      
+      const statsData = await statsResponse.json();
 
       // Parse enhanced stats
       const stats = this.parseCollectionStats(statsData);
@@ -2020,17 +2069,5 @@ export class RealTimeDataService extends BaseDataService {
     };
   }
 
-  protected async fetchWithRetry(url: string, options: any = {}, maxRetries: number = 3): Promise<any> {
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        const response = await axios.get(url, options);
-        return response.data;
-      } catch (error) {
-        if (attempt === maxRetries) {
-          throw error;
-        }
-        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
-      }
-    }
-  }
+
 }

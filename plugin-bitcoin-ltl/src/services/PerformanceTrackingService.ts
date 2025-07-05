@@ -117,6 +117,12 @@ export class PerformanceTrackingService extends BaseDataService {
     }
   }
 
+  async start(): Promise<void> {
+    this.contextLogger.info('PerformanceTrackingService starting...');
+    await this.updateData();
+    this.contextLogger.info('PerformanceTrackingService started successfully');
+  }
+
   async init() {
     this.contextLogger.info('PerformanceTrackingService initialized');
     await this.loadHistoricalData();

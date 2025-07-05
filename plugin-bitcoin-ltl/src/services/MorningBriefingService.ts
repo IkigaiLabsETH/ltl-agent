@@ -125,6 +125,12 @@ export class MorningBriefingService extends BaseDataService {
     }
   }
 
+  async start(): Promise<void> {
+    elizaLogger.info(`[MorningBriefingService:${this.correlationId}] Service starting...`);
+    await this.updateData();
+    elizaLogger.info(`[MorningBriefingService:${this.correlationId}] Service started successfully`);
+  }
+
   async init() {
     elizaLogger.info(`[MorningBriefingService:${this.correlationId}] Service initialized`);
     

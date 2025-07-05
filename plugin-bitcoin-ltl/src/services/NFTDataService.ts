@@ -153,6 +153,12 @@ export class NFTDataService extends BaseDataService {
     }
   }
 
+  async start(): Promise<void> {
+    logger.info('NFTDataService starting...');
+    await this.updateData();
+    logger.info('NFTDataService started successfully');
+  }
+
   async init() {
     logger.info('NFTDataService initialized');
     

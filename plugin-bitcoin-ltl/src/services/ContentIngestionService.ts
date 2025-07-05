@@ -97,6 +97,12 @@ export abstract class ContentIngestionService extends BaseDataService {
     // Individual services that extend this will provide their own stop method
   }
 
+  async start(): Promise<void> {
+    this.contextLogger.info(`${this.serviceName} starting...`);
+    await this.updateData();
+    this.contextLogger.info(`${this.serviceName} started successfully`);
+  }
+
   async init() {
     this.contextLogger.info(`${this.serviceName} initialized`);
   }

@@ -221,6 +221,12 @@ export class AltcoinDataService extends BaseDataService {
     }
   }
 
+  async start(): Promise<void> {
+    logger.info('AltcoinDataService starting...');
+    await this.updateData();
+    logger.info('AltcoinDataService started successfully');
+  }
+
   async init() {
     logger.info('AltcoinDataService initialized');
     
@@ -444,11 +450,17 @@ export class AltcoinDataService extends BaseDataService {
           include_last_updated_at: 'true'
         });
         const url = `${baseUrl}/simple/price?${params.toString()}`;
-        const response = await this.fetchWithRetry(url, {
+        const response = await fetch(url, {
           method: 'GET',
-          headers
+          headers,
+          signal: AbortSignal.timeout(15000)
         });
-        return response;
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        return await response.json();
       });
 
       const marketData: MarketData[] = Object.entries(cryptoData).map(([id, data]: [string, any]) => ({
@@ -536,14 +548,21 @@ export class AltcoinDataService extends BaseDataService {
     try {
       const idsParam = this.curatedCoinIds.join(',');
       const data = await this.makeQueuedRequest(async () => {
-        return await this.fetchWithRetry(
+        const response = await fetch(
           `${this.COINGECKO_API}/simple/price?ids=${idsParam}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true&include_24hr_vol=true`,
           {
             headers: {
               'Accept': 'application/json',
             },
+            signal: AbortSignal.timeout(15000)
           }
         );
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        return await response.json();
       });
       
       // Ensure all requested IDs are present in the response (with zeroed data if missing)
@@ -600,12 +619,19 @@ export class AltcoinDataService extends BaseDataService {
       
       // Step 1: Fetch top 200 coins in USD (like website) with 7d performance data
       const usdMarketData = await this.makeQueuedRequest(async () => {
-        return await this.fetchWithRetry(
+        const response = await fetch(
           `${this.COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=200&page=1&price_change_percentage=24h,7d,30d`,
           {
-            headers: { 'Accept': 'application/json' }
+            headers: { 'Accept': 'application/json' },
+            signal: AbortSignal.timeout(15000)
           }
         );
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        return await response.json();
       });
 
       logger.info(`[AltcoinDataService] Fetched ${usdMarketData?.length || 0} coins from CoinGecko`);
@@ -797,12 +823,19 @@ export class AltcoinDataService extends BaseDataService {
     try {
       logger.info('[AltcoinDataService] Fetching top movers data...');
       
-      const data: TopMoverCoin[] = await this.fetchWithRetry(
+      const response = await fetch(
         `${this.COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&price_change_percentage=24h`,
         {
           headers: { 'Accept': 'application/json' },
+          signal: AbortSignal.timeout(15000)
         }
       );
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data: TopMoverCoin[] = await response.json();
       
       // Filter out coins without valid 24h price change percentage
       const validCoins = data.filter((coin) => typeof coin.price_change_percentage_24h === 'number');
@@ -852,9 +885,16 @@ export class AltcoinDataService extends BaseDataService {
     try {
       logger.info('[AltcoinDataService] Fetching trending coins data...');
       
-      const data = await this.fetchWithRetry('https://api.coingecko.com/api/v3/search/trending', {
+      const response = await fetch('https://api.coingecko.com/api/v3/search/trending', {
         headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(15000)
       });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
       
       // Map and validate trending coins (matches website exactly)
       const trending: TrendingCoin[] = Array.isArray(data.coins)
@@ -882,47 +922,7 @@ export class AltcoinDataService extends BaseDataService {
     }
   }
 
-  // Utility methods
-  protected async fetchWithRetry(url: string, options: any, maxRetries = 2): Promise<any> {
-    let lastError;
-    
-    for (let i = 0; i < maxRetries; i++) {
-      try {
-        const response = await fetch(url, {
-          ...options,
-          signal: AbortSignal.timeout(15000) // 15 second timeout
-        });
-        
-        if (response.status === 429) {
-          // Rate limited - much more conservative backoff like your website
-          const baseWaitTime = Math.min(60000 + (i * 30000), 180000); // 60s, 90s, 120s
-          const jitter = Math.random() * 10000; // Add 0-10s jitter
-          const waitTime = baseWaitTime + jitter;
-          logger.warn(`[AltcoinDataService] Rate limited on ${url}, waiting ${Math.round(waitTime/1000)}s before retry ${i + 1}`);
-          await new Promise(resolve => setTimeout(resolve, waitTime));
-          continue;
-        }
-        
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        return await response.json();
-      } catch (error) {
-        lastError = error;
-        if (i < maxRetries - 1) {
-          // Much longer waits for non-rate-limit errors
-          const baseWaitTime = Math.min(30000 + (i * 30000), 120000); // 30s, 60s, 90s
-          const jitter = Math.random() * 10000; // Add 0-10s jitter
-          const waitTime = baseWaitTime + jitter;
-          logger.warn(`[AltcoinDataService] Request failed for ${url}, waiting ${Math.round(waitTime/1000)}s before retry ${i + 1}:`, error);
-          await new Promise(resolve => setTimeout(resolve, waitTime));
-        }
-      }
-    }
-    
-    throw lastError;
-  }
+
 
   private getSymbolFromId(id: string): string {
     const mapping: { [key: string]: string } = {
