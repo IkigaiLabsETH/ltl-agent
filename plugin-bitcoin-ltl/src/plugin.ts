@@ -25,9 +25,10 @@ import {
   SchedulerService,
   RealTimeDataService,
   StockDataService,
-  LifestyleDataService
+  LifestyleDataService,
+  ETFDataService
 } from './services';
-import { morningBriefingAction, curatedAltcoinsAction, top100VsBtcAction, btcRelativePerformanceAction, dexScreenerAction, topMoversAction, trendingCoinsAction, curatedNFTsAction, weatherAction, stockMarketAction, hotelSearchAction, hotelDealAlertAction, bookingOptimizationAction, travelInsightsAction } from './actions';
+import { morningBriefingAction, curatedAltcoinsAction, top100VsBtcAction, btcRelativePerformanceAction, dexScreenerAction, topMoversAction, trendingCoinsAction, curatedNFTsAction, weatherAction, stockMarketAction, hotelSearchAction, hotelDealAlertAction, bookingOptimizationAction, travelInsightsAction, etfFlowAction } from './actions';
 
 /**
  * Bitcoin Plugin Configuration Schema
@@ -2999,6 +3000,7 @@ const bitcoinPlugin: Plugin = {
     curatedNFTsAction,
     weatherAction,
     stockMarketAction,
+    etfFlowAction,
     // Travel & Booking Actions
     hotelSearchAction,
     hotelDealAlertAction,
@@ -3983,7 +3985,8 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
     SchedulerService,
     RealTimeDataService,
     StockDataService,
-    LifestyleDataService
+    LifestyleDataService,
+    ETFDataService
   ],
   tests: [bitcoinTestSuite],
 };

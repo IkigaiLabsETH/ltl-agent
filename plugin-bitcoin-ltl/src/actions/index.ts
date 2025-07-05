@@ -11,6 +11,7 @@ export { curatedNFTsAction } from './curatedNFTsAction';
 export { weatherAction } from './weatherAction';
 export { bitcoinNetworkHealthAction } from './bitcoinNetworkHealthAction';
 export { stockMarketAction } from './stockMarketAction';
+export { etfFlowAction } from './etfFlowAction';
 
 // Travel & Booking Actions
 export { hotelSearchAction } from './hotelSearchAction';
