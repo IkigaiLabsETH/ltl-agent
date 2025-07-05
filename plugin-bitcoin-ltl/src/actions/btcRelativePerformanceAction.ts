@@ -16,7 +16,31 @@ export const btcRelativePerformanceAction: Action = {
   Excludes stablecoins and focuses on meaningful relative performance data.`,
   
   validate: async (runtime: IAgentRuntime, message: Memory) => {
-    return true;
+    const text = message.content.text.toLowerCase();
+    
+    // Check for trigger phrases that indicate the user wants BTC relative performance data
+    const triggers = [
+      'outperforming',
+      'outperform',
+      'vs btc',
+      'vs bitcoin',
+      'altcoins',
+      'altcoin',
+      'beating bitcoin',
+      'beat bitcoin',
+      'relative performance',
+      'performance vs bitcoin',
+      'which coins',
+      'top performers',
+      'altseason',
+      'bitcoin dominance'
+    ];
+    
+    // Must mention performance/comparison AND crypto context
+    const hasPerformance = triggers.some(trigger => text.includes(trigger));
+    const hasCryptoContext = text.includes('coin') || text.includes('crypto') || text.includes('bitcoin') || text.includes('btc');
+    
+    return hasPerformance && hasCryptoContext;
   },
   
   examples: [

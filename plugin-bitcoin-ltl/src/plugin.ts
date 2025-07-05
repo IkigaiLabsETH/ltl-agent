@@ -27,7 +27,7 @@ import {
   StockDataService,
   LifestyleDataService
 } from './services';
-import { morningBriefingAction, curatedAltcoinsAction, top100VsBtcAction, dexScreenerAction, topMoversAction, trendingCoinsAction, curatedNFTsAction, weatherAction, stockMarketAction, hotelSearchAction, hotelDealAlertAction, bookingOptimizationAction, travelInsightsAction } from './actions';
+import { morningBriefingAction, curatedAltcoinsAction, top100VsBtcAction, btcRelativePerformanceAction, dexScreenerAction, topMoversAction, trendingCoinsAction, curatedNFTsAction, weatherAction, stockMarketAction, hotelSearchAction, hotelDealAlertAction, bookingOptimizationAction, travelInsightsAction } from './actions';
 
 /**
  * Bitcoin Plugin Configuration Schema
@@ -2394,150 +2394,7 @@ const cryptoPriceLookupAction: Action = {
   ],
 };
 
-/**
- * BTC Relative Performance Action
- * Shows which coins are outperforming Bitcoin using public CoinGecko API
- */
-const btcRelativePerformanceAction: Action = {
-  name: 'BTC_RELATIVE_PERFORMANCE',
-  similes: ['ALTCOIN_PERFORMANCE', 'BITCOIN_OUTPERFORMANCE', 'CRYPTO_OUTPERFORMERS', 'ALTSEASON_CHECK'],
-  description: 'Shows which cryptocurrencies are outperforming Bitcoin over 7 days',
-
-  validate: async (runtime: IAgentRuntime, message: Memory, state: State): Promise<boolean> => {
-    const text = message.content.text.toLowerCase();
-    return (
-      text.includes('outperform') ||
-      text.includes('altseason') ||
-      text.includes('vs btc') ||
-      text.includes('vs bitcoin') ||
-      text.includes('relative performance') ||
-      (text.includes('altcoin') && (text.includes('performance') || text.includes('bitcoin')))
-    );
-  },
-
-  handler: async (
-    runtime: IAgentRuntime,
-    message: Memory,
-    state: State,
-    _options: unknown,
-    callback: HandlerCallback,
-    _responses: Memory[]
-  ) => {
-    try {
-      logger.info('Processing BTC relative performance analysis');
-
-      const correlationId = generateCorrelationId();
-      const contextLogger = new LoggerWithContext(correlationId, 'BTCRelativePerformance');
-      
-      const result = await retryOperation(async () => {
-        const baseUrl = 'https://api.coingecko.com/api/v3';
-        const headers: Record<string, string> = { 'Accept': 'application/json' };
-
-        const response = await fetchWithTimeout(
-          `${baseUrl}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=200&page=1&price_change_percentage=7d&sparkline=false`, 
-          { headers, timeout: 15000 }
-        );
-        
-        if (!response.ok) {
-          throw new Error(`CoinGecko API error: ${response.status} ${response.statusText}`);
-        }
-        
-        return await response.json() as CoinMarketData[];
-      });
-
-      // Find Bitcoin's 7d performance
-      const bitcoin = result.find(coin => coin.id === 'bitcoin');
-      if (!bitcoin) {
-        throw new Error('Bitcoin data not found');
-      }
-
-      const btcChange7d = bitcoin.price_change_percentage_7d || 0;
-
-      // Calculate relative performance and sort
-      const relativePerformers = result
-        .filter(coin => 
-          coin.id !== 'bitcoin' && 
-          typeof coin.price_change_percentage_7d === 'number' &&
-          coin.market_cap_rank <= 200
-        )
-        .map(coin => ({
-          ...coin,
-          btc_relative_performance: coin.price_change_percentage_7d - btcChange7d
-        }))
-        .sort((a, b) => b.btc_relative_performance - a.btc_relative_performance)
-        .slice(0, 8);
-
-      const outperformers = relativePerformers.filter(coin => coin.btc_relative_performance > 0);
-      const outperformerCount = outperformers.length;
-      const totalCount = relativePerformers.length;
-
-      const isAltseason = outperformerCount > totalCount / 2;
-
-      const topOutperformers = outperformers.slice(0, 5);
-
-      const responseText = `
-**🪙 BTC RELATIVE PERFORMANCE (7D)**
-
-**Bitcoin**: ${btcChange7d >= 0 ? '+' : ''}${btcChange7d.toFixed(2)}%
-
-**Top Outperformers vs BTC:**
-${topOutperformers.map(coin => 
-  `• ${coin.symbol.toUpperCase()}: +${coin.btc_relative_performance.toFixed(2)}% vs BTC`
-).join('\n')}
-
-**Market Analysis:**
-• ${outperformerCount}/${totalCount} coins beating Bitcoin over 7 days
-• ${isAltseason ? '🚀 Altseason signals detected' : '₿ Bitcoin dominance continues'}
-
-**Strategic Context:**
-${isAltseason 
-  ? 'Altcoin outperformance often temporary. Consider taking profits and rotating back to Bitcoin.'
-  : 'Flight to quality favoring Bitcoin as digital gold. Classic pattern: Bitcoin leads, altcoins follow.'
-}
-
-*Remember: Altcoins are venture capital plays on crypto infrastructure. Bitcoin is monetary infrastructure. The exit is always Bitcoin.*
-      `.trim();
-
-      const responseContent: Content = {
-        text: responseText,
-        actions: ['BTC_RELATIVE_PERFORMANCE'],
-        source: message.content.source,
-      };
-
-      await callback(responseContent);
-      return responseContent;
-    } catch (error) {
-      logger.error('Error in BTC relative performance analysis:', error);
-      
-      const errorContent: Content = {
-        text: 'Unable to analyze altcoin performance. Remember: altcoins are distractions from the main event—Bitcoin. The exit is, and always has been, Bitcoin.',
-        actions: ['BTC_RELATIVE_PERFORMANCE'],
-        source: message.content.source,
-      };
-
-      await callback(errorContent);
-      return errorContent;
-    }
-  },
-
-  examples: [
-    [
-      {
-        name: '{{user}}',
-        content: {
-          text: 'Which altcoins are outperforming Bitcoin?',
-        },
-      },
-      {
-        name: 'Satoshi',
-        content: {
-          text: 'Current analysis shows 15/200 coins outperforming Bitcoin over 7d. ETH leading at +2.3% vs BTC. Remember: altcoins are venture capital plays. The exit is always Bitcoin.',
-          actions: ['BTC_RELATIVE_PERFORMANCE'],
-        },
-      },
-    ],
-  ],
-};
+// BTC Relative Performance Action is imported from actions/index.ts
 
 /**
  * Bitcoin Data Service
@@ -3135,6 +2992,7 @@ const bitcoinPlugin: Plugin = {
     morningBriefingAction,
     curatedAltcoinsAction,
     top100VsBtcAction,
+    btcRelativePerformanceAction,
     dexScreenerAction,
     topMoversAction,
     trendingCoinsAction,
