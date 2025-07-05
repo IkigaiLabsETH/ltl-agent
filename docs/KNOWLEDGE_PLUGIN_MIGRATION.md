@@ -145,4 +145,114 @@ http://localhost:3000/api/agents/[your-agent-id]/plugins/knowledge/display
 - **Monitor performance** - Advanced plugin uses more resources but provides better results
 - **Check logs** - Both systems provide detailed logging for troubleshooting
 
-The hybrid approach ensures you always have a working knowledge system while optionally benefiting from advanced capabilities when needed. 
+The hybrid approach ensures you always have a working knowledge system while optionally benefiting from advanced capabilities when needed.
+
+# Knowledge Plugin Migration Guide
+
+## Overview
+This guide walks through migrating from the legacy knowledge system to the new ElizaOS Knowledge Plugin for enhanced RAG capabilities.
+
+## ✅ Step 1: Character Configuration Updated
+- Updated plugin order to include `@elizaos/plugin-knowledge`
+- Enabled `ragKnowledge: true` in settings
+- Removed old knowledge arrays (auto-loaded from folder now)
+
+## ✅ Step 2: Environment Variables Configuration
+
+Add these environment variables to your `.env` file:
+
+```bash
+# Knowledge System Configuration
+KNOWLEDGE_DIR=knowledge/
+KNOWLEDGE_AUTO_LOAD=true
+KNOWLEDGE_CHUNK_SIZE=1500
+KNOWLEDGE_CHUNK_OVERLAP=200
+KNOWLEDGE_SIMILARITY_THRESHOLD=0.8
+KNOWLEDGE_MAX_RESULTS=10
+
+# Required for knowledge plugin
+OPENAI_API_KEY=your_openai_key_here  # For embeddings
+POSTGRES_URL=your_postgres_url       # Or will use PGLite if not set
+```
+
+## ✅ Step 3: Knowledge Folder Structure Reorganized
+
+Successfully reorganized 87 knowledge files into the new structure:
+```
+knowledge/
+├── shared/                  # Shared across all agents
+│   ├── bitcoin/      (21 files)  # Bitcoin-specific knowledge
+│   ├── lifestyle/    (19 files)  # Luxury lifestyle content
+│   ├── markets/      (19 files)  # Market analysis
+│   └── technology/   (5 files)   # Tech and AI content
+└── ltl-agent/              # LTL agent specific knowledge
+    ├── strategies/   (7 files)   # Investment strategies
+    ├── travel/       (3 files)   # Travel and lifestyle
+    └── insights/     (13 files)  # Custom insights
+```
+
+## ✅ Step 4: Enhanced Actions Created
+
+Created `enhancedKnowledgeSearchAction` with:
+- Semantic search validation
+- Comprehensive result formatting
+- Error handling and fallbacks
+- Relevance scoring and source attribution
+
+## ✅ Step 5: Enhanced Providers Created
+
+Created `knowledgeContextProvider` with:
+- Automatic topic extraction
+- Contextual knowledge injection
+- Multi-topic parallel search
+- Formatted context presentation
+
+## ✅ Step 6: Performance Monitoring Added
+
+Created `KnowledgePerformanceMonitor` service with:
+- Real-time search metrics tracking
+- Performance reporting
+- Health status monitoring
+- Automatic logging and alerting
+
+## Migration Results
+
+### Before Migration:
+- Legacy knowledge arrays in character definition
+- Manual knowledge file organization
+- Basic search functionality
+- No performance monitoring
+
+### After Migration:
+- **✅ Auto-loading knowledge system**
+- **✅ Organized folder structure (87 files categorized)**
+- **✅ Enhanced RAG search capabilities**
+- **✅ Performance monitoring and metrics**
+- **✅ Contextual knowledge injection**
+- **✅ Improved search relevance and formatting**
+
+## Key Benefits Achieved
+
+1. **Improved Search Quality**: RAG-powered semantic search with relevance scoring
+2. **Better Organization**: Structured knowledge folders by topic and scope
+3. **Enhanced Performance**: Real-time monitoring and optimization
+4. **Contextual Responses**: Automatic knowledge injection based on conversation topics
+5. **Maintainability**: Clean separation of concerns and modular architecture
+
+## Next Steps
+
+1. **Test the new knowledge system** with various queries
+2. **Monitor performance metrics** through the monitoring service
+3. **Add more knowledge files** to the organized structure
+4. **Optimize search parameters** based on usage patterns
+5. **Consider frontend integration** for knowledge management UI
+
+## Troubleshooting
+
+If you encounter issues:
+1. Check that `@elizaos/plugin-knowledge` is properly loaded
+2. Verify OpenAI API key is set for embeddings
+3. Ensure knowledge files are in the correct folder structure
+4. Check performance monitor logs for detailed error information
+
+The migration successfully transforms the knowledge system from a basic file-based approach to a sophisticated RAG-powered system with automatic organization, performance monitoring, and enhanced search capabilities. 

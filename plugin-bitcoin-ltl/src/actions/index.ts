@@ -19,6 +19,7 @@ import { hotelSearchAction } from './hotelSearchAction';
 import { hotelDealAlertAction } from './hotelDealAlertAction';
 import { bookingOptimizationAction } from './bookingOptimizationAction';
 import { travelInsightsAction } from './travelInsightsAction';
+import { enhancedKnowledgeSearchAction } from './enhanced-knowledge-search';
 
 // Core Actions
 export { morningBriefingAction };
@@ -26,6 +27,7 @@ export { knowledgeDigestAction };
 export { opportunityAlertsAction };
 export { bitcoinNetworkHealthAction };
 export { weatherAction };
+export { enhancedKnowledgeSearchAction };
 
 // Market Analysis Actions
 export { curatedAltcoinsAction };
@@ -68,6 +70,16 @@ export const actionRegistry: Record<string, ActionRegistryEntry> = {
     tags: ['briefing', 'market', 'daily', 'intelligence'],
     isCore: true,
     dependencies: ['morning-briefing-service', 'weather-service']
+  },
+  
+  ENHANCED_KNOWLEDGE_SEARCH: {
+    action: enhancedKnowledgeSearchAction,
+    category: 'core',
+    priority: 'high',
+    description: 'Enhanced RAG-powered knowledge search with relevance scoring and source attribution',
+    tags: ['knowledge', 'search', 'rag', 'semantic', 'research'],
+    isCore: true,
+    dependencies: ['knowledge-service', 'knowledge-performance-monitor']
   },
   
   BITCOIN_NETWORK_HEALTH: {
@@ -198,18 +210,18 @@ export const actionRegistry: Record<string, ActionRegistryEntry> = {
     action: hotelSearchAction,
     category: 'travel',
     priority: 'low',
-    description: 'Hotel search and booking assistance',
+    description: 'Hotel search and booking optimization',
     tags: ['hotel', 'search', 'booking', 'travel'],
-    dependencies: ['hotel-service']
+    dependencies: ['travel-service']
   },
   
   HOTEL_DEAL_ALERT: {
     action: hotelDealAlertAction,
     category: 'travel',
     priority: 'low',
-    description: 'Hotel deal monitoring and alerts',
-    tags: ['hotel', 'deals', 'alerts', 'savings'],
-    dependencies: ['hotel-service']
+    description: 'Hotel deal alerts and notifications',
+    tags: ['hotel', 'deals', 'alerts', 'travel'],
+    dependencies: ['travel-service']
   },
   
   BOOKING_OPTIMIZATION: {
@@ -225,13 +237,13 @@ export const actionRegistry: Record<string, ActionRegistryEntry> = {
     action: travelInsightsAction,
     category: 'travel',
     priority: 'low',
-    description: 'Travel insights and destination analysis',
-    tags: ['travel', 'insights', 'destinations', 'analysis'],
+    description: 'Travel insights and destination recommendations',
+    tags: ['travel', 'insights', 'destinations', 'recommendations'],
     dependencies: ['travel-service']
-  },
+  }
 };
 
-// Utility Functions for Action Management
+// Helper functions
 export const getActionsByCategory = (category: string): ActionRegistryEntry[] => {
   return Object.values(actionRegistry).filter(entry => entry.category === category);
 };
@@ -241,7 +253,7 @@ export const getActionsByPriority = (priority: 'high' | 'medium' | 'low'): Actio
 };
 
 export const getCoreActions = (): ActionRegistryEntry[] => {
-  return Object.values(actionRegistry).filter(entry => entry.isCore === true);
+  return Object.values(actionRegistry).filter(entry => entry.isCore);
 };
 
 export const getActionsByTag = (tag: string): ActionRegistryEntry[] => {
