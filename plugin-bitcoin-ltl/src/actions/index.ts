@@ -5,6 +5,8 @@ import { morningBriefingAction } from './morningBriefingAction';
 import { knowledgeDigestAction } from './knowledgeDigestAction';
 import { opportunityAlertsAction } from './opportunityAlertsAction';
 import { bitcoinNetworkHealthAction } from './bitcoinNetworkHealthAction';
+import { bitcoinPriceAction } from './bitcoinPriceAction';
+import { altcoinPriceAction } from './altcoinPriceAction';
 import { weatherAction } from './weatherAction';
 import { curatedAltcoinsAction } from './curatedAltcoinsAction';
 import { top100VsBtcAction } from './top100VsBtcAction';
@@ -26,6 +28,8 @@ export { morningBriefingAction };
 export { knowledgeDigestAction };
 export { opportunityAlertsAction };
 export { bitcoinNetworkHealthAction };
+export { bitcoinPriceAction };
+export { altcoinPriceAction };
 export { weatherAction };
 export { enhancedKnowledgeSearchAction };
 
@@ -89,6 +93,25 @@ export const actionRegistry: Record<string, ActionRegistryEntry> = {
     description: 'Comprehensive Bitcoin network health and security metrics',
     tags: ['bitcoin', 'network', 'hashrate', 'security', 'health'],
     isCore: true,
+    dependencies: ['real-time-data-service']
+  },
+  
+  BITCOIN_PRICE: {
+    action: bitcoinPriceAction,
+    category: 'core',
+    priority: 'high',
+    description: 'Get current Bitcoin price and market data',
+    tags: ['bitcoin', 'price', 'market', 'crypto'],
+    isCore: true,
+    dependencies: ['bitcoin-data-service']
+  },
+  
+  ALTCOIN_PRICE: {
+    action: altcoinPriceAction,
+    category: 'market',
+    priority: 'high',
+    description: 'Get current prices for specific altcoins or curated portfolio overview',
+    tags: ['altcoin', 'price', 'crypto', 'market'],
     dependencies: ['real-time-data-service']
   },
   
