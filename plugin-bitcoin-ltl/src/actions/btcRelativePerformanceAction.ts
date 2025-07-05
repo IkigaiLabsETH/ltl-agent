@@ -1,183 +1,223 @@
-import { Action, IAgentRuntime, Memory, State, HandlerCallback, ActionExample } from '@elizaos/core';
-import { RealTimeDataService } from '../services/RealTimeDataService';
-import { Top100VsBtcData } from '../services/RealTimeDataService';
+import {
+  type Action,
+  type Content,
+  type HandlerCallback,
+  type IAgentRuntime,
+  type Memory,
+  type State,
+  logger,
+} from '@elizaos/core';
+import { createActionTemplate, ValidationPatterns, ResponseCreators } from './base/ActionTemplate';
+import { RealTimeDataService, Top100VsBtcData } from '../services/RealTimeDataService';
 
-export const btcRelativePerformanceAction: Action = {
-  name: "BTC_RELATIVE_PERFORMANCE",
-  similes: [
-    "BITCOIN_RELATIVE_PERFORMANCE",
-    "ALTCOINS_VS_BTC",
-    "COINS_OUTPERFORMING_BITCOIN",
-    "BTC_OUTPERFORMERS",
-    "RELATIVE_PERFORMANCE_VS_BITCOIN"
-  ],
-  description: `Get altcoins that are outperforming Bitcoin on 7-day basis, showing relative performance in percentage points. 
-  Similar to the website's most-watched page showing which top 200 altcoins are beating Bitcoin.
-  Excludes stablecoins and focuses on meaningful relative performance data.`,
-  
-  validate: async (runtime: IAgentRuntime, message: Memory) => {
-    const text = message.content.text.toLowerCase();
-    
-    // Check for trigger phrases that indicate the user wants BTC relative performance data
-    const triggers = [
-      'outperforming',
-      'outperform',
-      'vs btc',
-      'vs bitcoin',
-      'altcoins',
-      'altcoin',
-      'beating bitcoin',
-      'beat bitcoin',
-      'relative performance',
-      'performance vs bitcoin',
-      'which coins',
-      'top performers',
-      'altseason',
-      'bitcoin dominance'
-    ];
-    
-    // Must mention performance/comparison AND crypto context
-    const hasPerformance = triggers.some(trigger => text.includes(trigger));
-    const hasCryptoContext = text.includes('coin') || text.includes('crypto') || text.includes('bitcoin') || text.includes('btc');
-    
-    return hasPerformance && hasCryptoContext;
-  },
+export const btcRelativePerformanceAction: Action = createActionTemplate({
+  name: 'BTC_RELATIVE_PERFORMANCE',
+  description: 'Comprehensive analysis of altcoins outperforming Bitcoin on 7-day basis, showing relative performance in percentage points across top 200 altcoins',
+  similes: ['BITCOIN_RELATIVE_PERFORMANCE', 'ALTCOINS_VS_BTC', 'COINS_OUTPERFORMING_BITCOIN', 'BTC_OUTPERFORMERS', 'RELATIVE_PERFORMANCE_VS_BITCOIN'],
   
   examples: [
     [
       {
-        name: "{{user1}}",
-        content: {
-          text: "Show me which altcoins are outperforming Bitcoin this week"
-        }
+        name: '{{user}}',
+        content: { text: 'Show me which altcoins are outperforming Bitcoin this week' },
       },
       {
-        name: "{{user2}}",
+        name: 'Satoshi',
         content: {
-          text: "Based on the latest 7-day performance data, here are the top altcoins outperforming Bitcoin:\n\n📊 **Top BTC Outperformers (7d)**\n\n1. **Ethereum (ETH)** - Rank #2\n   • +5.32% vs BTC (ETH: +8.45%, BTC: +3.13%)\n   • Current Price: $3,245\n\n2. **Solana (SOL)** - Rank #5\n   • +12.87% vs BTC (SOL: +15.98%, BTC: +3.11%)\n   • Current Price: $198.45\n\n3. **Binance Coin (BNB)** - Rank #4\n   • +3.21% vs BTC (BNB: +6.34%, BTC: +3.13%)\n   • Current Price: $652.92\n\n**Summary:** 67 out of 186 altcoins are outperforming Bitcoin this week, with an average relative performance of +2.15%",
-          actions: ["BTC_RELATIVE_PERFORMANCE"]
-        }
-      }
+          text: 'Based on 7-day performance data: ETH +5.32% vs BTC (ETH: +8.45%, BTC: +3.13%). SOL +12.87% vs BTC (SOL: +15.98%, BTC: +3.11%). BNB +3.21% vs BTC. 67/186 altcoins outperforming Bitcoin - moderate altcoin momentum but Bitcoin still the monetary base layer.',
+          thought: 'User wants to see altcoins outperforming Bitcoin. I need to analyze 7-day relative performance data, identify the strongest outperformers, and provide context about whether this indicates altseason or Bitcoin dominance continuation.',
+          actions: ['BTC_RELATIVE_PERFORMANCE'],
+        },
+      },
     ],
     [
       {
-        name: "{{user1}}",
-        content: {
-          text: "What coins are beating Bitcoin performance right now?"
-        }
+        name: '{{user}}',
+        content: { text: 'What coins are beating Bitcoin performance right now?' },
       },
       {
-        name: "{{user2}}",
+        name: 'Satoshi',
         content: {
-          text: "Here are the current BTC outperformers based on 7-day relative performance:\n\n🚀 **Bitcoin Outperformers**\n\n• **Top Performer:** Solana (SOL) - +15.34% vs BTC\n• **Strong Performer:** Ethereum (ETH) - +7.89% vs BTC\n• **Solid Performer:** Cardano (ADA) - +4.23% vs BTC\n\n📈 **Market Overview:**\n• 73/189 altcoins outperforming Bitcoin\n• Average relative performance: +1.87%\n• Bitcoin 7d: +2.34%\n\n💡 These coins are showing stronger momentum than Bitcoin over the past week, indicating potential alpha opportunities.",
-          actions: ["BTC_RELATIVE_PERFORMANCE"]
-        }
-      }
-    ]
+          text: 'Current BTC outperformers (7d): SOL +15.34% vs BTC, ETH +7.89% vs BTC, ADA +4.23% vs BTC. 73/189 altcoins outperforming Bitcoin. Average relative performance: +1.87%. These coins show stronger momentum than Bitcoin, indicating potential alpha opportunities.',
+          thought: 'User asking about current Bitcoin outperformers. I should focus on the strongest performers with their relative performance data and assess if this is altseason territory or normal market rotation.',
+          actions: ['BTC_RELATIVE_PERFORMANCE'],
+        },
+      },
+    ],
+    [
+      {
+        name: '{{user}}',
+        content: { text: 'Are we in altseason? Check altcoin vs Bitcoin performance' },
+      },
+      {
+        name: 'Satoshi',
+        content: {
+          text: 'Not altseason yet. Only 34/186 altcoins outperforming Bitcoin (18% vs 50%+ threshold). Bitcoin dominance strong with average -2.4% underperformance across top 200. Most altcoins are venture capital plays - Bitcoin remains the monetary base layer.',
+          thought: 'User asking about altseason status. I need to analyze the percentage of altcoins outperforming Bitcoin and compare it to the traditional 50%+ altseason threshold, then provide perspective on Bitcoin\'s role as sound money.',
+          actions: ['BTC_RELATIVE_PERFORMANCE'],
+        },
+      },
+    ],
   ],
+  
+  validateFn: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+    const text = message.content?.text?.toLowerCase() || '';
+    return ValidationPatterns.isBtcRelativePerformanceRequest(text);
+  },
 
-  handler: async (
+  handlerFn: async (
     runtime: IAgentRuntime,
     message: Memory,
     state: State,
-    options: { [key: string]: unknown },
-    callback: HandlerCallback
-  ) => {
+    options: any,
+    callback?: HandlerCallback
+  ): Promise<boolean> => {
+    logger.info('BTC relative performance action triggered');
+    
+    const thoughtProcess = 'User is requesting Bitcoin relative performance analysis. I need to analyze which altcoins are outperforming Bitcoin on a 7-day basis, assess if this indicates altseason, and provide context about Bitcoin\'s role as the monetary base layer.';
+    
     try {
       const realTimeDataService = runtime.getService('real-time-data') as RealTimeDataService;
       
       if (!realTimeDataService) {
-        callback({
-          text: "❌ Market data service unavailable",
-          content: { error: "Service not found" }
-        });
-        return;
+        logger.warn('RealTimeDataService not available for BTC relative performance');
+        
+        const fallbackResponse = ResponseCreators.createErrorResponse(
+          'BTC_RELATIVE_PERFORMANCE',
+          'Real-time data service unavailable',
+          'Market data service unavailable. Bitcoin relative performance analysis requires live data to assess altcoin vs Bitcoin momentum properly.'
+        );
+        
+        if (callback) {
+          await callback(fallbackResponse);
+        }
+        return false;
       }
 
-      // Get the Top 200 vs BTC data (same as website)
+      // Get the Top 200 vs BTC data
       let btcData = realTimeDataService.getTop100VsBtcData();
       if (!btcData) {
         btcData = await realTimeDataService.forceTop100VsBtcUpdate();
       }
 
       if (!btcData) {
-        callback({
-          text: "❌ Unable to fetch BTC relative performance data",
-          content: { error: "Data unavailable" }
-        });
-        return;
+        logger.warn('No BTC relative performance data available');
+        
+        const noDataResponse = ResponseCreators.createErrorResponse(
+          'BTC_RELATIVE_PERFORMANCE',
+          'BTC relative performance data unavailable',
+          'Unable to fetch BTC relative performance data. The altcoin casino operates independently of our monitoring capabilities.'
+        );
+        
+        if (callback) {
+          await callback(noDataResponse);
+        }
+        return false;
       }
 
-      // Get top performers (outperforming BTC over 7d)
-      const topPerformers = btcData.outperforming.slice(0, 8); // Show top 8 like website
+      // Analyze market dynamics
+      const topPerformers = btcData.outperforming.slice(0, 8);
       const totalOutperforming = btcData.outperformingCount;
       const totalCoins = btcData.totalCoins;
       const outperformingPercent = (totalOutperforming / totalCoins) * 100;
+      const isAltseason = outperformingPercent > 50;
 
-      const summary = {
-        outperformingCount: totalOutperforming,
-        totalCoins: totalCoins,
-        averageRelativePerformance: btcData.averagePerformance,
-        lastUpdated: btcData.lastUpdated
-      };
+      // Generate response
+      const responseText = formatBtcRelativeResponse(
+        topPerformers,
+        totalOutperforming,
+        totalCoins,
+        outperformingPercent,
+        isAltseason,
+        btcData.averagePerformance
+      );
 
-      let response = `**🪙 ALTCOINS OUTPERFORMING BITCOIN (7D)**\n\n`;
-      
-      // Market sentiment
-      if (outperformingPercent > 50) {
-        response += `🚀 **ALTSEASON DETECTED!** ${totalOutperforming}/${totalCoins} (${outperformingPercent.toFixed(1)}%) altcoins beating Bitcoin\n\n`;
-      } else {
-        response += `₿ **Bitcoin Dominance** - ${totalOutperforming}/${totalCoins} (${outperformingPercent.toFixed(1)}%) altcoins outperforming\n\n`;
-      }
-
-      // Show top performers with detailed data
-      response += `**🏆 TOP OUTPERFORMERS (vs BTC 7d):**\n`;
-      topPerformers.forEach((coin, index) => {
-        const relativePerf = coin.btc_relative_performance_7d || 0;
-        const coinPerf7d = coin.price_change_percentage_7d_in_currency || 0;
-        const price = coin.current_price || 0;
-        const rank = coin.market_cap_rank || '?';
-
-        response += `${index + 1}. **${coin.name} (${coin.symbol.toUpperCase()})** - #${rank}\n`;
-        response += `   • **+${relativePerf.toFixed(2)}%** vs BTC (7d)\n`;
-        response += `   • ${coin.symbol.toUpperCase()}: ${coinPerf7d >= 0 ? '+' : ''}${coinPerf7d.toFixed(2)}% (7d USD)\n`;
-        response += `   • Price: $${price >= 1 ? price.toLocaleString() : price.toFixed(6)}\n\n`;
-      });
-
-      // Summary stats
-      response += `📊 **MARKET SUMMARY:**\n`;
-      response += `• **${totalOutperforming}/${totalCoins}** altcoins outperforming Bitcoin (7d)\n`;
-      response += `• **Average relative performance:** ${summary.averageRelativePerformance >= 0 ? '+' : ''}${summary.averageRelativePerformance.toFixed(2)}%\n`;
-      
-      // Satoshi's perspective
-      response += `\n**🧠 SATOSHI'S ANALYSIS:**\n`;
-      if (outperformingPercent > 50) {
-        response += `Altcoin momentum building, but remember: most altcoins are venture capital plays. `;
-        response += `Bitcoin remains the monetary base layer. Use this strength to accumulate more Bitcoin.`;
-      } else {
-        response += `Bitcoin dominance continues as digital gold thesis strengthens. `;
-        response += `The market recognizes store of value over speculation. Stack sats.`;
-      }
-
-      response += `\n\n*Updated: ${summary.lastUpdated.toLocaleString()}*`;
-
-      callback({
-        text: response,
-        content: {
-          btcRelativePerformance: {
-            topPerformers,
-            summary,
-            data: btcData
-          }
+      const response = ResponseCreators.createStandardResponse(
+        thoughtProcess,
+        responseText,
+        'BTC_RELATIVE_PERFORMANCE',
+        {
+          outperformingCount: totalOutperforming,
+          totalCoins: totalCoins,
+          outperformingPercent,
+          isAltseason,
+          averageRelativePerformance: btcData.averagePerformance,
+          topPerformers: topPerformers.map(coin => ({
+            name: coin.name,
+            symbol: coin.symbol,
+            relativePerformance: coin.btc_relative_performance_7d,
+            price: coin.current_price,
+            rank: coin.market_cap_rank
+          })),
+          lastUpdated: btcData.lastUpdated
         }
-      });
+      );
+
+      if (callback) {
+        await callback(response);
+      }
+
+      logger.info('BTC relative performance analysis delivered successfully');
+      return true;
 
     } catch (error) {
-      console.error('Error in BTC relative performance action:', error);
-      callback({
-        text: "❌ Error fetching BTC relative performance data",
-        content: { error: error.message }
-      });
+      logger.error('Failed to analyze BTC relative performance:', (error as Error).message);
+      
+      const errorResponse = ResponseCreators.createErrorResponse(
+        'BTC_RELATIVE_PERFORMANCE',
+        (error as Error).message,
+        'BTC relative performance analysis failed. Market dynamics continue regardless of our monitoring systems.'
+      );
+      
+      if (callback) {
+        await callback(errorResponse);
+      }
+      
+      return false;
     }
+  },
+});
+
+/**
+ * Format BTC relative performance response
+ */
+function formatBtcRelativeResponse(
+  topPerformers: any[],
+  totalOutperforming: number,
+  totalCoins: number,
+  outperformingPercent: number,
+  isAltseason: boolean,
+  averagePerformance: number
+): string {
+  let response = '';
+  
+  // Market sentiment
+  if (isAltseason) {
+    response += `🚀 ALTSEASON DETECTED! ${totalOutperforming}/${totalCoins} (${outperformingPercent.toFixed(1)}%) altcoins beating Bitcoin. `;
+  } else {
+    response += `₿ Bitcoin dominance - ${totalOutperforming}/${totalCoins} (${outperformingPercent.toFixed(1)}%) altcoins outperforming. `;
   }
-}; 
+
+  // Show top performers with detailed data
+  if (topPerformers.length > 0) {
+    const topPerformersText = topPerformers.slice(0, 3).map(coin => {
+      const relativePerf = coin.btc_relative_performance_7d || 0;
+      const rank = coin.market_cap_rank || '?';
+      return `${coin.symbol.toUpperCase()} +${relativePerf.toFixed(2)}% vs BTC (#${rank})`;
+    }).join(', ');
+    
+    response += `Top outperformers (7d): ${topPerformersText}. `;
+  }
+
+  // Summary stats
+  response += `Average relative performance: ${averagePerformance >= 0 ? '+' : ''}${averagePerformance.toFixed(2)}%. `;
+  
+  // Satoshi's perspective
+  if (isAltseason) {
+    response += 'Altcoin momentum building, but remember: most altcoins are venture capital plays. Bitcoin remains the monetary base layer. Use this strength to accumulate more Bitcoin.';
+  } else {
+    response += 'Bitcoin dominance continues as digital gold thesis strengthens. The market recognizes store of value over speculation. Stack sats.';
+  }
+
+  return response;
+} 

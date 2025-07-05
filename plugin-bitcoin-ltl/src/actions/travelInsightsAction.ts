@@ -1,13 +1,14 @@
 import {
-  Action,
-  IAgentRuntime,
-  Memory,
-  State,
-  HandlerCallback,
-  elizaLogger,
-  type ActionExample
+  type Action,
+  type Content,
+  type HandlerCallback,
+  type IAgentRuntime,
+  type Memory,
+  type State,
+  logger,
 } from '@elizaos/core';
-import { TravelDataService, type TravelInsights, type SeasonalPricePattern } from '../services/TravelDataService';
+import { createActionTemplate, ValidationPatterns, ResponseCreators } from './base/ActionTemplate';
+import { TravelDataService } from '../services/TravelDataService';
 
 interface InsightRequest {
   type: 'seasonal' | 'market' | 'events' | 'strategy' | 'overview';
@@ -62,168 +63,210 @@ interface StrategyInsight {
   budgetOptimization: string[];
 }
 
-export const travelInsightsAction: Action = {
-  name: "TRAVEL_INSIGHTS",
-  similes: [
-    "TRAVEL_ANALYSIS",
-    "SEASONAL_INSIGHTS",
-    "TRAVEL_TRENDS",
-    "BOOKING_STRATEGY",
-    "TRAVEL_PLANNING",
-    "MARKET_ANALYSIS",
-    "TRAVEL_ADVICE",
-    "SEASONAL_TRAVEL",
-    "TRAVEL_PATTERNS",
-    "DESTINATION_INSIGHTS"
-  ],
-  description: "Provides comprehensive travel insights, seasonal analysis, market trends, and strategic booking advice",
+export const travelInsightsAction: Action = createActionTemplate({
+  name: 'TRAVEL_INSIGHTS',
+  description: 'Provides comprehensive travel insights, seasonal analysis, market trends, and strategic booking advice with Bitcoin-enabled travel philosophy',
+  similes: ['TRAVEL_ANALYSIS', 'SEASONAL_INSIGHTS', 'TRAVEL_TRENDS', 'BOOKING_STRATEGY', 'TRAVEL_PLANNING', 'MARKET_ANALYSIS', 'TRAVEL_ADVICE', 'SEASONAL_TRAVEL', 'TRAVEL_PATTERNS', 'DESTINATION_INSIGHTS'],
   
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
-    const text = message.content.text.toLowerCase();
-    
-    // Insight and analysis keywords
-    const insightKeywords = [
-      'insights', 'analysis', 'trends', 'patterns', 'advice', 'strategy',
-      'planning', 'forecast', 'outlook', 'overview', 'summary'
-    ];
-    
-    // Travel and seasonal keywords
-    const travelKeywords = [
-      'travel', 'seasonal', 'season', 'weather', 'timing', 'when to',
-      'best time', 'worst time', 'market', 'booking', 'vacation'
-    ];
-    
-    // Specific insight requests
-    const specificKeywords = [
-      'what\'s the best', 'when should i', 'how do prices', 'trends in',
-      'seasonal patterns', 'market conditions', 'booking advice', 'travel tips'
-    ];
-    
-    const hasInsightKeyword = insightKeywords.some(keyword => text.includes(keyword));
-    const hasTravelKeyword = travelKeywords.some(keyword => text.includes(keyword));
-    const hasSpecificKeyword = specificKeywords.some(keyword => text.includes(keyword));
-    
-    // Activate if user wants insights/analysis or specific travel advice
-    return (hasInsightKeyword && hasTravelKeyword) || hasSpecificKeyword;
+  examples: [
+    [
+      {
+        name: '{{user}}',
+        content: { text: 'What are the best travel insights for Monaco this season?' },
+      },
+      {
+        name: 'Satoshi',
+        content: {
+          text: 'Monaco seasonal insights: Currently winter (optimal savings season). Best months: Apr-May (25% savings, mild weather), Sept-Oct (35% savings, warm ocean). Avoid: May (Grand Prix +300%), Jul-Aug (peak +150%). Winter strategy: Book 3-6 months ahead for maximum value. Bitcoin wealth creates booking flexibility.',
+          thought: 'User wants seasonal travel insights for Monaco. I need to analyze current season, identify optimal booking windows, highlight event impacts, and provide strategic guidance while maintaining Bitcoin-enabled travel philosophy.',
+          actions: ['TRAVEL_INSIGHTS'],
+        },
+      },
+    ],
+    [
+      {
+        name: '{{user}}',
+        content: { text: 'Give me travel market analysis and trends for French Riviera' },
+      },
+      {
+        name: 'Satoshi',
+        content: {
+          text: 'French Riviera market analysis: Trend - stable (75% confidence), luxury segment resilient, remote work driving extended stays. Demand drivers: European travel recovery, sustainable preferences. Strategy: Book 6-12 months ahead for peak season, shoulder seasons offer 40% savings. Sound money, smart timing.',
+          thought: 'User requesting comprehensive market analysis for French Riviera. I need to analyze current trends, identify demand drivers, assess price directions, and provide strategic recommendations with Bitcoin travel philosophy.',
+          actions: ['TRAVEL_INSIGHTS'],
+        },
+      },
+    ],
+    [
+      {
+        name: '{{user}}',
+        content: { text: 'What\'s the best travel strategy for luxury hotels this year?' },
+      },
+      {
+        name: 'Satoshi',
+        content: {
+          text: 'Luxury travel strategy 2024: Optimal window - 6-12 months ahead for peak access. Best value: Apr-May, Sept-Oct (30% savings). Market trend: stable with luxury resilience. Key: Direct booking benefits, VIP recognition, package deals. Bitcoin enables premium positioning and flexible timing.',
+          thought: 'User seeking luxury travel strategy insights. I need to analyze optimal booking windows, identify value periods, assess market conditions, and provide strategic guidance for maximizing luxury travel experiences with Bitcoin wealth.',
+          actions: ['TRAVEL_INSIGHTS'],
+        },
+      },
+    ],
+  ],
+  
+  validateFn: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+    const text = message.content?.text?.toLowerCase() || '';
+    return ValidationPatterns.isTravelInsightsRequest(text);
   },
 
-  handler: async (
+  handlerFn: async (
     runtime: IAgentRuntime,
     message: Memory,
     state: State,
     options: any,
-    callback: HandlerCallback
-  ): Promise<void> => {
+    callback?: HandlerCallback
+  ): Promise<boolean> => {
+    logger.info('Travel insights action triggered');
+    
+    const thoughtProcess = 'User is requesting travel insights and strategic analysis. I need to analyze seasonal patterns, market trends, event impacts, and provide strategic guidance while maintaining Bitcoin-enabled travel philosophy.';
+    
     try {
-      elizaLogger.info(`[TravelInsightsAction] Processing travel insights request: ${message.content.text}`);
-      
-      // Get the TravelDataService
       const travelService = runtime.getService('travel-data') as TravelDataService;
+      
       if (!travelService) {
-        elizaLogger.error('[TravelInsightsAction] TravelDataService not available');
-        await callback({
-          text: "❌ Travel insights service is currently unavailable. Please try again later.",
-          content: { error: "TravelDataService not found" }
-        });
-        return;
+        logger.warn('TravelDataService not available');
+        
+        const fallbackResponse = ResponseCreators.createErrorResponse(
+          'TRAVEL_INSIGHTS',
+          'Travel insights service unavailable',
+          'Travel insights service temporarily unavailable. Like Bitcoin price analysis, luxury travel insights require comprehensive data flows.'
+        );
+        
+        if (callback) {
+          await callback(fallbackResponse);
+        }
+        return false;
       }
 
-      // Parse insight request
-      const insightRequest = await parseInsightRequest(runtime, message.content.text);
-      elizaLogger.info(`[TravelInsightsAction] Parsed insight request:`, insightRequest);
+      // Parse insight request from message
+      const messageText = message.content?.text || '';
+      const insightRequest = parseInsightRequest(messageText);
 
       // Get travel insights data
       const travelInsights = travelService.getTravelInsights();
       if (!travelInsights) {
-        elizaLogger.warn('[TravelInsightsAction] No travel insights available, forcing update');
-        await travelService.forceUpdate();
+        logger.warn('No travel insights available');
+        
+        const noDataResponse = ResponseCreators.createErrorResponse(
+          'TRAVEL_INSIGHTS',
+          'Travel insights data unavailable',
+          'Travel insights data temporarily unavailable. Like blockchain synchronization, comprehensive analysis requires complete data sets.'
+        );
+        
+        if (callback) {
+          await callback(noDataResponse);
+        }
+        return false;
       }
 
       // Generate comprehensive insights
-      const insights = await generateTravelInsights(travelService, insightRequest);
+      const insights = generateTravelInsights(travelService, insightRequest);
       
       // Generate insights response
-      const response = await generateInsightsResponse(insightRequest, insights);
-      
-      elizaLogger.info(`[TravelInsightsAction] Generated insights response`);
-      
-      await callback({
-        text: response,
-        content: {
-          action: "travel_insights",
+      const responseText = generateInsightsResponse(insightRequest, insights);
+
+      const response = ResponseCreators.createStandardResponse(
+        thoughtProcess,
+        responseText,
+        'TRAVEL_INSIGHTS',
+        {
           request: insightRequest,
-          insights: {
-            type: insights.type,
-            keyTakeaways: insights.keyTakeaways,
-            recommendationCount: insights.recommendations.length
-          }
+          insightType: insights.type,
+          keyTakeaways: insights.keyTakeaways,
+          recommendationCount: insights.recommendations.length,
+          seasonal: insights.insights.seasonal ? 'included' : 'not included',
+          market: insights.insights.market ? 'included' : 'not included',
+          events: insights.insights.events ? 'included' : 'not included',
+          strategy: insights.insights.strategy ? 'included' : 'not included'
         }
-      });
+      );
+
+      if (callback) {
+        await callback(response);
+      }
+
+      logger.info('Travel insights delivered successfully');
+      return true;
 
     } catch (error) {
-      elizaLogger.error('[TravelInsightsAction] Error processing travel insights:', error);
-      await callback({
-        text: "❌ I encountered an error while generating travel insights. Please try again.",
-        content: { error: error.message }
-      });
+      logger.error('Failed to process travel insights:', (error as Error).message);
+      
+      const errorResponse = ResponseCreators.createErrorResponse(
+        'TRAVEL_INSIGHTS',
+        (error as Error).message,
+        'Travel insights analysis failed. Like Bitcoin network analysis, sometimes comprehensive insights require patience and multiple data sources.'
+      );
+      
+      if (callback) {
+        await callback(errorResponse);
+      }
+      
+      return false;
     }
   },
+});
 
-  examples: []
-};
-
-async function parseInsightRequest(runtime: IAgentRuntime, text: string): Promise<InsightRequest> {
-  try {
-    const text_lower = text.toLowerCase();
-    const request: InsightRequest = { type: 'overview' };
-    
-    // Determine insight type
-    if (text_lower.includes('seasonal') || text_lower.includes('season') || text_lower.includes('weather')) {
-      request.type = 'seasonal';
-    } else if (text_lower.includes('market') || text_lower.includes('trends') || text_lower.includes('pricing')) {
-      request.type = 'market';
-    } else if (text_lower.includes('events') || text_lower.includes('festivals') || text_lower.includes('grand prix')) {
-      request.type = 'events';
-    } else if (text_lower.includes('strategy') || text_lower.includes('planning') || text_lower.includes('booking advice')) {
-      request.type = 'strategy';
-    }
-    
-    // Extract specific city
-    if (text_lower.includes('biarritz')) request.city = 'biarritz';
-    else if (text_lower.includes('bordeaux')) request.city = 'bordeaux';
-    else if (text_lower.includes('monaco')) request.city = 'monaco';
-    
-    // Extract timeframe
-    if (text_lower.includes('this month') || text_lower.includes('monthly')) {
-      request.timeframe = 'month';
-    } else if (text_lower.includes('quarter') || text_lower.includes('season')) {
-      request.timeframe = 'quarter';
-    } else if (text_lower.includes('year') || text_lower.includes('annual')) {
-      request.timeframe = 'year';
-    }
-    
-    // Extract interest
-    if (text_lower.includes('budget') || text_lower.includes('cheap') || text_lower.includes('savings')) {
-      request.interest = 'budget';
-    } else if (text_lower.includes('luxury') || text_lower.includes('premium') || text_lower.includes('high-end')) {
-      request.interest = 'luxury';
-    } else if (text_lower.includes('events') || text_lower.includes('festivals') || text_lower.includes('activities')) {
-      request.interest = 'events';
-    } else if (text_lower.includes('weather') || text_lower.includes('climate') || text_lower.includes('temperature')) {
-      request.interest = 'weather';
-    }
-    
-    return request;
-  } catch (error) {
-    elizaLogger.error('[TravelInsightsAction] Error parsing insight request:', error);
-    return { type: 'overview' };
+/**
+ * Parse insight request from message text
+ */
+function parseInsightRequest(text: string): InsightRequest {
+  const request: InsightRequest = { type: 'overview' };
+  
+  // Determine insight type
+  if (text.includes('seasonal') || text.includes('season') || text.includes('weather')) {
+    request.type = 'seasonal';
+  } else if (text.includes('market') || text.includes('trends') || text.includes('pricing')) {
+    request.type = 'market';
+  } else if (text.includes('events') || text.includes('festivals') || text.includes('grand prix')) {
+    request.type = 'events';
+  } else if (text.includes('strategy') || text.includes('planning') || text.includes('booking advice')) {
+    request.type = 'strategy';
   }
+  
+  // Extract specific city
+  if (text.includes('biarritz')) request.city = 'biarritz';
+  else if (text.includes('bordeaux')) request.city = 'bordeaux';
+  else if (text.includes('monaco')) request.city = 'monaco';
+  
+  // Extract timeframe
+  if (text.includes('this month') || text.includes('monthly')) {
+    request.timeframe = 'month';
+  } else if (text.includes('quarter') || text.includes('season')) {
+    request.timeframe = 'quarter';
+  } else if (text.includes('year') || text.includes('annual')) {
+    request.timeframe = 'year';
+  }
+  
+  // Extract interest
+  if (text.includes('budget') || text.includes('cheap') || text.includes('savings')) {
+    request.interest = 'budget';
+  } else if (text.includes('luxury') || text.includes('premium') || text.includes('high-end')) {
+    request.interest = 'luxury';
+  } else if (text.includes('events') || text.includes('festivals') || text.includes('activities')) {
+    request.interest = 'events';
+  } else if (text.includes('weather') || text.includes('climate') || text.includes('temperature')) {
+    request.interest = 'weather';
+  }
+  
+  return request;
 }
 
-async function generateTravelInsights(travelService: TravelDataService, request: InsightRequest): Promise<TravelInsightResponse> {
+/**
+ * Generate comprehensive travel insights
+ */
+function generateTravelInsights(travelService: TravelDataService, request: InsightRequest): TravelInsightResponse {
   const travelInsights = travelService.getTravelInsights();
-  const hotels = travelService.getCuratedHotels();
-  const optimalWindows = travelService.getOptimalBookingWindows();
+  const hotels = travelService.getCuratedHotels() || [];
+  const optimalWindows = travelService.getOptimalBookingWindows() || [];
   
   const response: TravelInsightResponse = {
     type: request.type,
@@ -259,11 +302,14 @@ async function generateTravelInsights(travelService: TravelDataService, request:
   return response;
 }
 
-function generateSeasonalInsights(travelInsights: TravelInsights | null, city?: string): SeasonalInsight {
+/**
+ * Generate seasonal insights
+ */
+function generateSeasonalInsights(travelInsights: any, city?: string): SeasonalInsight {
   const currentMonth = new Date().getMonth() + 1;
   const currentSeason = getCurrentSeasonName(currentMonth);
   
-  // Default seasonal patterns if no insights available
+  // Default seasonal patterns
   const bestMonths = [
     { month: 'April', reason: 'Spring weather, pre-summer rates', savings: 25 },
     { month: 'May', reason: 'Perfect weather, moderate pricing', savings: 20 },
@@ -299,7 +345,10 @@ function generateSeasonalInsights(travelInsights: TravelInsights | null, city?: 
   };
 }
 
-function generateMarketInsights(travelInsights: TravelInsights | null): MarketInsight {
+/**
+ * Generate market insights
+ */
+function generateMarketInsights(travelInsights: any): MarketInsight {
   if (travelInsights?.marketTrends) {
     return {
       trend: travelInsights.marketTrends.trend,
@@ -325,6 +374,9 @@ function generateMarketInsights(travelInsights: TravelInsights | null): MarketIn
   };
 }
 
+/**
+ * Generate event insights
+ */
 function generateEventInsights(city?: string): EventInsight {
   const upcomingEvents = [];
   
@@ -374,7 +426,10 @@ function generateEventInsights(city?: string): EventInsight {
   return { upcomingEvents, avoidanceTips };
 }
 
-function generateStrategyInsights(travelInsights: TravelInsights | null, optimalWindows: any[], interest?: string): StrategyInsight {
+/**
+ * Generate strategy insights
+ */
+function generateStrategyInsights(travelInsights: any, optimalWindows: any[], interest?: string): StrategyInsight {
   const strategies = {
     budget: {
       optimalBookingWindow: '3-6 months ahead for shoulder season',
@@ -416,6 +471,9 @@ function generateStrategyInsights(travelInsights: TravelInsights | null, optimal
   };
 }
 
+/**
+ * Generate recommendations
+ */
 function generateRecommendations(request: InsightRequest, insights: any): string[] {
   const recommendations = [];
   
@@ -442,11 +500,14 @@ function generateRecommendations(request: InsightRequest, insights: any): string
   return recommendations;
 }
 
+/**
+ * Generate key takeaways
+ */
 function generateKeyTakeaways(request: InsightRequest, insights: any): string[] {
   const takeaways = [];
   
   if (insights.seasonal) {
-    takeaways.push(`Best value months offer 25-40% savings vs peak season`);
+    takeaways.push('Best value months offer 25-40% savings vs peak season');
   }
   
   if (insights.market) {
@@ -454,7 +515,7 @@ function generateKeyTakeaways(request: InsightRequest, insights: any): string[] 
   }
   
   if (insights.events) {
-    takeaways.push(`Major events can increase rates by 60-300% - plan accordingly`);
+    takeaways.push('Major events can increase rates by 60-300% - plan accordingly');
   }
   
   if (insights.strategy) {
@@ -466,92 +527,66 @@ function generateKeyTakeaways(request: InsightRequest, insights: any): string[] 
   return takeaways;
 }
 
-async function generateInsightsResponse(request: InsightRequest, insights: TravelInsightResponse): Promise<string> {
-  let response = `📊 **Travel Insights & Strategic Analysis**\n\n`;
+/**
+ * Generate insights response text
+ */
+function generateInsightsResponse(request: InsightRequest, insights: TravelInsightResponse): string {
+  let responseText = '';
   
   // Seasonal insights
   if (insights.insights.seasonal) {
     const seasonal = insights.insights.seasonal;
-    response += `🌤️ **SEASONAL ANALYSIS**\n\n`;
-    response += `📅 **Current Season**: ${seasonal.currentSeason}\n\n`;
+    responseText += `${getCityDisplayName(request.city)} seasonal insights: Currently ${seasonal.currentSeason.toLowerCase()} (${getSeasonDescription(seasonal.currentSeason)}). `;
     
-    response += `✅ **BEST VALUE MONTHS**:\n`;
-    seasonal.bestMonths.slice(0, 3).forEach(month => {
-      response += `• **${month.month}**: ${month.reason} (${month.savings}% savings)\n`;
-    });
+    responseText += `Best months: ${seasonal.bestMonths.slice(0, 2).map(m => `${m.month} (${m.savings}% savings, ${m.reason.toLowerCase()})`).join(', ')}. `;
     
-    response += `\n❌ **AVOID THESE PERIODS**:\n`;
-    seasonal.worstMonths.slice(0, 3).forEach(month => {
-      response += `• **${month.month}**: ${month.reason} (+${month.premiumPercent}% premium)\n`;
-    });
-    response += `\n`;
+    responseText += `Avoid: ${seasonal.worstMonths.slice(0, 2).map(m => `${m.month} (${m.reason.toLowerCase()} +${m.premiumPercent}%)`).join(', ')}. `;
   }
   
   // Market insights
   if (insights.insights.market) {
     const market = insights.insights.market;
-    response += `📈 **MARKET TRENDS**\n\n`;
-    response += `📊 **Trend**: ${market.trend.toUpperCase()} (${market.confidence}% confidence)\n`;
-    response += `🎯 **Outlook**: ${market.priceDirection}\n`;
-    response += `⏰ **Timeframe**: ${market.timeframe}\n\n`;
-    
-    response += `🔍 **Demand Drivers**:\n`;
-    market.demandDrivers.slice(0, 3).forEach(driver => {
-      response += `• ${driver}\n`;
-    });
-    response += `\n`;
-  }
-  
-  // Event insights
-  if (insights.insights.events) {
-    const events = insights.insights.events;
-    response += `🎭 **EVENT IMPACT ANALYSIS**\n\n`;
-    
-    if (events.upcomingEvents.length > 0) {
-      response += `⚠️ **HIGH-IMPACT EVENTS**:\n`;
-      events.upcomingEvents.forEach(event => {
-        response += `• **${event.event}** (${event.city}, ${event.month})\n`;
-        response += `  Rate increase: +${event.priceIncrease}% | ${event.bookingAdvice}\n`;
-      });
-      response += `\n`;
-    }
+    responseText += `Market analysis: Trend - ${market.trend} (${market.confidence}% confidence), ${market.demandDrivers.slice(0, 2).join(', ').toLowerCase()}. `;
   }
   
   // Strategy insights
   if (insights.insights.strategy) {
     const strategy = insights.insights.strategy;
-    response += `🎯 **BOOKING STRATEGY**\n\n`;
-    response += `⏰ **Optimal Window**: ${strategy.optimalBookingWindow}\n`;
-    response += `🔄 **Seasonal Strategy**: ${strategy.seasonalStrategy}\n\n`;
-    
-    response += `💡 **Optimization Tips**:\n`;
-    strategy.budgetOptimization.slice(0, 3).forEach(tip => {
-      response += `• ${tip}\n`;
-    });
-    response += `\n`;
+    responseText += `Strategy: ${strategy.optimalBookingWindow}, ${strategy.seasonalStrategy.toLowerCase()}. `;
   }
   
-  // Key recommendations
-  response += `🎯 **KEY RECOMMENDATIONS**\n\n`;
-  insights.recommendations.slice(0, 4).forEach((rec, index) => {
-    response += `${index + 1}. ${rec}\n`;
-  });
+  // Add Bitcoin travel philosophy
+  const bitcoinQuotes = [
+    'Bitcoin wealth creates booking flexibility.',
+    'Sound money, smart timing.',
+    'Hard money enables premium positioning.',
+    'Stack sats, optimize stays.',
+    'Digital sovereignty, analog luxury.'
+  ];
   
-  // Key takeaways
-  response += `\n💎 **KEY TAKEAWAYS**\n\n`;
-  insights.keyTakeaways.forEach(takeaway => {
-    response += `• ${takeaway}\n`;
-  });
+  responseText += bitcoinQuotes[Math.floor(Math.random() * bitcoinQuotes.length)];
   
-  return response;
+  return responseText;
 }
 
-// Helper functions
+/**
+ * Helper functions
+ */
 function getCurrentSeasonName(month: number): string {
   if ([12, 1, 2].includes(month)) return 'Winter';
   if ([3, 4, 5].includes(month)) return 'Spring';
   if ([6, 7, 8].includes(month)) return 'Summer';
   return 'Fall';
+}
+
+function getSeasonDescription(season: string): string {
+  const descriptions = {
+    'Winter': 'optimal savings season',
+    'Spring': 'shoulder season value',
+    'Summer': 'peak season premium',
+    'Fall': 'shoulder season opportunity'
+  };
+  return descriptions[season as keyof typeof descriptions] || 'seasonal variation';
 }
 
 function getPriceDirection(trend: string): string {
@@ -586,4 +621,16 @@ function getDemandDrivers(trend: string): string[] {
   }
   
   return commonDrivers;
+}
+
+function getCityDisplayName(city?: string): string {
+  if (!city) return 'Multi-destination';
+  
+  const cityMap: { [key: string]: string } = {
+    'biarritz': 'Biarritz',
+    'bordeaux': 'Bordeaux',
+    'monaco': 'Monaco'
+  };
+  
+  return cityMap[city] || city;
 } 

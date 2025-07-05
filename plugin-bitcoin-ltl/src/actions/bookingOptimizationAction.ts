@@ -1,13 +1,14 @@
 import {
-  Action,
-  IAgentRuntime,
-  Memory,
-  State,
-  HandlerCallback,
-  elizaLogger,
-  type ActionExample
+  type Action,
+  type Content,
+  type HandlerCallback,
+  type IAgentRuntime,
+  type Memory,
+  type State,
+  logger,
 } from '@elizaos/core';
-import { TravelDataService, type CuratedHotel, type OptimalBookingWindow } from '../services/TravelDataService';
+import { createActionTemplate, ValidationPatterns, ResponseCreators } from './base/ActionTemplate';
+import { TravelDataService } from '../services/TravelDataService';
 
 interface OptimizationCriteria {
   priority: 'price' | 'value' | 'luxury' | 'season' | 'savings';
@@ -17,12 +18,12 @@ interface OptimizationCriteria {
     end: string;
   };
   cities?: string[];
-  flexibility?: number; // days
+  flexibility?: number;
   partySize?: number;
 }
 
 interface HotelComparison {
-  hotel: CuratedHotel;
+  hotel: any;
   bestRate: number;
   savings: number;
   savingsPercentage: number;
@@ -49,174 +50,232 @@ interface OptimizedRecommendation {
   };
 }
 
-export const bookingOptimizationAction: Action = {
-  name: "BOOKING_OPTIMIZATION",
-  similes: [
-    "OPTIMIZE_BOOKING",
-    "COMPARE_HOTELS",
-    "BEST_VALUE_HOTELS",
-    "HOTEL_COMPARISON",
-    "OPTIMIZE_TRAVEL",
-    "BOOKING_STRATEGY",
-    "HOTEL_ANALYSIS",
-    "TRAVEL_OPTIMIZATION",
-    "SMART_BOOKING",
-    "BEST_DEALS"
-  ],
-  description: "Compare and optimize hotel bookings across multiple properties and cities for the best value",
+export const bookingOptimizationAction: Action = createActionTemplate({
+  name: 'BOOKING_OPTIMIZATION',
+  description: 'Compare and optimize hotel bookings across multiple properties for maximum value, analyzing rates, timing, and seasonal patterns',
+  similes: ['OPTIMIZE_BOOKING', 'COMPARE_HOTELS', 'BEST_VALUE_HOTELS', 'HOTEL_COMPARISON', 'OPTIMIZE_TRAVEL', 'BOOKING_STRATEGY', 'HOTEL_ANALYSIS', 'TRAVEL_OPTIMIZATION', 'SMART_BOOKING', 'BEST_DEALS'],
   
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
-    const text = message.content.text.toLowerCase();
-    
-    // Optimization and comparison keywords
-    const optimizationKeywords = [
-      'optimize', 'compare', 'best', 'better', 'analysis', 'recommendation',
-      'versus', 'vs', 'choose', 'decide', 'which hotel', 'what\'s better',
-      'smart booking', 'strategy', 'value', 'worth it'
-    ];
-    
-    // Hotel keywords
-    const hotelKeywords = [
-      'hotel', 'hotels', 'accommodation', 'booking', 'stay', 'property'
-    ];
-    
-    // Multiple options keywords
-    const comparisonKeywords = [
-      'compare', 'choice', 'options', 'alternatives', 'between', 'among',
-      'all hotels', 'different hotels', 'multiple', 'various'
-    ];
-    
-    const hasOptimizationKeyword = optimizationKeywords.some(keyword => text.includes(keyword));
-    const hasHotelKeyword = hotelKeywords.some(keyword => text.includes(keyword));
-    const hasComparisonKeyword = comparisonKeywords.some(keyword => text.includes(keyword));
-    
-    // Activate if user wants optimization or comparison
-    return (hasOptimizationKeyword && hasHotelKeyword) || (hasHotelKeyword && hasComparisonKeyword);
+  examples: [
+    [
+      {
+        name: '{{user}}',
+        content: { text: 'Compare hotels in Monaco for best value in March' },
+      },
+      {
+        name: 'Satoshi',
+        content: {
+          text: 'Monaco hotel optimization: Hotel Hermitage €520/night (33% savings) Apr 5-12 wins overall. Alternatives: Hotel Metropole €680/night (25% off), Monte-Carlo Bay €580/night (28% off). 5 properties compared, 29% average savings. Best value: shoulder season timing. Sound money demands optimal allocation.',
+          thought: 'User wants hotel optimization analysis for Monaco. I need to compare available properties, assess value propositions, analyze seasonal pricing, and provide strategic recommendations while maintaining Bitcoin-enabled travel philosophy.',
+          actions: ['BOOKING_OPTIMIZATION'],
+        },
+      },
+    ],
+    [
+      {
+        name: '{{user}}',
+        content: { text: 'Optimize my luxury hotel booking strategy for French Riviera' },
+      },
+      {
+        name: 'Satoshi',
+        content: {
+          text: 'French Riviera luxury strategy: Book 6-12 months ahead for peak season access. Top choice: Hotel du Cap €1,200/night (May-Sept), alternatives: Villa Ephrussi €980/night, Hotel Negresco €850/night. Luxury optimization: direct booking benefits + VIP recognition. Bitcoin wealth enables premium positioning.',
+          thought: 'User seeking luxury booking optimization strategy. I need to analyze premium properties, identify optimal booking windows, assess luxury value propositions, and provide strategic guidance for maximizing luxury travel experiences.',
+          actions: ['BOOKING_OPTIMIZATION'],
+        },
+      },
+    ],
+    [
+      {
+        name: '{{user}}',
+        content: { text: 'Which hotel gives best value between Biarritz and Bordeaux?' },
+      },
+      {
+        name: 'Satoshi',
+        content: {
+          text: 'Biarritz vs Bordeaux optimization: Hotel du Palais (Biarritz) €480/night (35% off) Apr 10-15 beats Grand Hotel (Bordeaux) €420/night (28% off). Biarritz wins: oceanfront luxury + higher savings percentage. Value score: 87 vs 76. Coastal Bitcoin lifestyle optimized.',
+          thought: 'User comparing cities for best hotel value. I need to analyze properties across both locations, compare value propositions, assess location benefits, and provide clear recommendation with reasoning.',
+          actions: ['BOOKING_OPTIMIZATION'],
+        },
+      },
+    ],
+  ],
+  
+  validateFn: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+    const text = message.content?.text?.toLowerCase() || '';
+    return ValidationPatterns.isBookingOptimizationRequest(text);
   },
 
-  handler: async (
+  handlerFn: async (
     runtime: IAgentRuntime,
     message: Memory,
     state: State,
     options: any,
-    callback: HandlerCallback
-  ): Promise<void> => {
+    callback?: HandlerCallback
+  ): Promise<boolean> => {
+    logger.info('Booking optimization action triggered');
+    
+    const thoughtProcess = 'User is requesting hotel booking optimization. I need to analyze available properties, compare value propositions, assess seasonal pricing, and provide strategic recommendations while maintaining Bitcoin travel philosophy.';
+    
     try {
-      elizaLogger.info(`[BookingOptimizationAction] Processing booking optimization request: ${message.content.text}`);
-      
-      // Get the TravelDataService
       const travelService = runtime.getService('travel-data') as TravelDataService;
+      
       if (!travelService) {
-        elizaLogger.error('[BookingOptimizationAction] TravelDataService not available');
-        await callback({
-          text: "❌ Travel optimization service is currently unavailable. Please try again later.",
-          content: { error: "TravelDataService not found" }
-        });
-        return;
+        logger.warn('TravelDataService not available');
+        
+        const fallbackResponse = ResponseCreators.createErrorResponse(
+          'BOOKING_OPTIMIZATION',
+          'Travel service unavailable',
+          'Booking optimization service temporarily unavailable. Like Bitcoin network congestion, luxury travel data flows require patience.'
+        );
+        
+        if (callback) {
+          await callback(fallbackResponse);
+        }
+        return false;
       }
 
-      // Parse optimization criteria
-      const criteria = await parseOptimizationCriteria(runtime, message.content.text);
-      elizaLogger.info(`[BookingOptimizationAction] Parsed criteria:`, criteria);
+      // Parse optimization criteria from message
+      const messageText = message.content?.text || '';
+      const criteria = parseOptimizationCriteria(messageText);
 
       // Get travel data
       const travelData = travelService.getTravelData();
       if (!travelData) {
-        elizaLogger.warn('[BookingOptimizationAction] No travel data available, forcing update');
-        await travelService.forceUpdate();
+        logger.warn('No travel data available for optimization');
+        
+        const noDataResponse = ResponseCreators.createErrorResponse(
+          'BOOKING_OPTIMIZATION',
+          'Hotel data unavailable',
+          'Travel data temporarily unavailable. Like blockchain validation, quality optimization requires complete data sets.'
+        );
+        
+        if (callback) {
+          await callback(noDataResponse);
+        }
+        return false;
       }
 
       // Perform optimization analysis
-      const optimization = await performBookingOptimization(travelService, criteria);
+      const optimization = performBookingOptimization(travelService, criteria);
       
-      // Generate optimization response
-      const response = await generateOptimizationResponse(criteria, optimization);
-      
-      elizaLogger.info(`[BookingOptimizationAction] Generated optimization with ${optimization.alternatives.length} options`);
-      
-      await callback({
-        text: response,
-        content: {
-          action: "booking_optimization",
-          criteria: criteria,
-          results: {
-            topChoice: optimization.topChoice.hotel.name,
-            totalOptions: optimization.summary.totalHotelsCompared,
-            averageSavings: optimization.summary.averageSavings,
-            bestSavings: optimization.summary.bestSavingsPercentage
+      if (!optimization || optimization.alternatives.length === 0) {
+        logger.info('No optimization results available');
+        
+        const noResultsResponse = ResponseCreators.createStandardResponse(
+          thoughtProcess,
+          'No hotels match your optimization criteria currently. Like Bitcoin mining difficulty adjustments, optimal booking windows require patience and timing.',
+          'BOOKING_OPTIMIZATION',
+          {
+            criteria: criteria,
+            resultCount: 0
           }
+        );
+        
+        if (callback) {
+          await callback(noResultsResponse);
         }
-      });
+        return true;
+      }
+
+      // Generate optimization response
+      const responseText = generateOptimizationResponse(criteria, optimization);
+
+      const response = ResponseCreators.createStandardResponse(
+        thoughtProcess,
+        responseText,
+        'BOOKING_OPTIMIZATION',
+        {
+          criteria: criteria,
+          topChoice: optimization.topChoice.hotel.name,
+          totalOptions: optimization.summary.totalHotelsCompared,
+          averageSavings: optimization.summary.averageSavings,
+          bestSavings: optimization.summary.bestSavingsPercentage,
+          priceRange: optimization.summary.priceRange
+        }
+      );
+
+      if (callback) {
+        await callback(response);
+      }
+
+      logger.info('Booking optimization completed successfully');
+      return true;
 
     } catch (error) {
-      elizaLogger.error('[BookingOptimizationAction] Error processing booking optimization:', error);
-      await callback({
-        text: "❌ I encountered an error while optimizing your booking. Please try again.",
-        content: { error: error.message }
-      });
+      logger.error('Failed to process booking optimization:', (error as Error).message);
+      
+      const errorResponse = ResponseCreators.createErrorResponse(
+        'BOOKING_OPTIMIZATION',
+        (error as Error).message,
+        'Booking optimization failed. Like Bitcoin transactions, sometimes the optimal path requires multiple attempts.'
+      );
+      
+      if (callback) {
+        await callback(errorResponse);
+      }
+      
+      return false;
     }
   },
+});
 
-  examples: []
-};
-
-async function parseOptimizationCriteria(runtime: IAgentRuntime, text: string): Promise<OptimizationCriteria> {
-  try {
-    const text_lower = text.toLowerCase();
-    const criteria: OptimizationCriteria = { priority: 'value' };
-    
-    // Determine priority
-    if (text_lower.includes('cheap') || text_lower.includes('budget') || text_lower.includes('lowest price')) {
-      criteria.priority = 'price';
-    } else if (text_lower.includes('luxury') || text_lower.includes('best hotel') || text_lower.includes('premium')) {
-      criteria.priority = 'luxury';
-    } else if (text_lower.includes('savings') || text_lower.includes('deal') || text_lower.includes('discount')) {
-      criteria.priority = 'savings';
-    } else if (text_lower.includes('season') || text_lower.includes('timing') || text_lower.includes('when')) {
-      criteria.priority = 'season';
-    }
-    
-    // Extract budget
-    const budgetMatch = text.match(/(?:budget|under|max|maximum)?\s*€?(\d+(?:,\d+)?)/i);
-    if (budgetMatch) {
-      criteria.budget = parseInt(budgetMatch[1].replace(',', ''));
-    }
-    
-    // Extract cities
-    const cities = [];
-    if (text_lower.includes('biarritz')) cities.push('biarritz');
-    if (text_lower.includes('bordeaux')) cities.push('bordeaux');
-    if (text_lower.includes('monaco')) cities.push('monaco');
-    if (cities.length > 0) criteria.cities = cities;
-    
-    // Extract flexibility
-    const flexibilityMatch = text.match(/(\d+)\s*days?\s*flexible?/i);
-    if (flexibilityMatch) {
-      criteria.flexibility = parseInt(flexibilityMatch[1]);
-    }
-    
-    return criteria;
-  } catch (error) {
-    elizaLogger.error('[BookingOptimizationAction] Error parsing criteria:', error);
-    return { priority: 'value' };
+/**
+ * Parse optimization criteria from message text
+ */
+function parseOptimizationCriteria(text: string): OptimizationCriteria {
+  const criteria: OptimizationCriteria = { priority: 'value' };
+  
+  // Determine priority
+  if (text.includes('cheap') || text.includes('budget') || text.includes('lowest price')) {
+    criteria.priority = 'price';
+  } else if (text.includes('luxury') || text.includes('best hotel') || text.includes('premium')) {
+    criteria.priority = 'luxury';
+  } else if (text.includes('savings') || text.includes('deal') || text.includes('discount')) {
+    criteria.priority = 'savings';
+  } else if (text.includes('season') || text.includes('timing') || text.includes('when')) {
+    criteria.priority = 'season';
   }
+  
+  // Extract budget
+  const budgetMatch = text.match(/(?:budget|under|max|maximum)?\s*€?(\d+(?:,\d+)?)/i);
+  if (budgetMatch) {
+    criteria.budget = parseInt(budgetMatch[1].replace(',', ''));
+  }
+  
+  // Extract cities
+  const cities = [];
+  if (text.includes('biarritz')) cities.push('biarritz');
+  if (text.includes('bordeaux')) cities.push('bordeaux');
+  if (text.includes('monaco')) cities.push('monaco');
+  if (cities.length > 0) criteria.cities = cities;
+  
+  // Extract flexibility
+  const flexibilityMatch = text.match(/(\d+)\s*days?\s*flexible?/i);
+  if (flexibilityMatch) {
+    criteria.flexibility = parseInt(flexibilityMatch[1]);
+  }
+  
+  return criteria;
 }
 
-async function performBookingOptimization(travelService: TravelDataService, criteria: OptimizationCriteria): Promise<OptimizedRecommendation> {
-  const hotels = travelService.getCuratedHotels();
-  const optimalWindows = travelService.getOptimalBookingWindows();
+/**
+ * Perform booking optimization analysis
+ */
+function performBookingOptimization(travelService: TravelDataService, criteria: OptimizationCriteria): OptimizedRecommendation | null {
+  const hotels = travelService.getCuratedHotels() || [];
+  const optimalWindows = travelService.getOptimalBookingWindows() || [];
   
   // Filter hotels based on criteria
   let filteredHotels = hotels;
   
   if (criteria.cities && criteria.cities.length > 0) {
     filteredHotels = hotels.filter(hotel => 
-      criteria.cities!.some(city => hotel.city.toLowerCase() === city.toLowerCase())
+      criteria.cities!.some(city => hotel.city?.toLowerCase() === city.toLowerCase())
     );
   }
   
   if (criteria.budget) {
-    filteredHotels = filteredHotels.filter(hotel => hotel.priceRange.min <= criteria.budget!);
+    filteredHotels = filteredHotels.filter(hotel => hotel.priceRange?.min <= criteria.budget!);
   }
   
   // Calculate comparison scores for each hotel
@@ -225,7 +284,7 @@ async function performBookingOptimization(travelService: TravelDataService, crit
   for (const hotel of filteredHotels) {
     const optimalWindow = optimalWindows.find(w => w.hotelId === hotel.hotelId);
     
-    if (optimalWindow && optimalWindow.bestDates.length > 0) {
+    if (optimalWindow && optimalWindow.bestDates?.length > 0) {
       const bestDate = optimalWindow.bestDates[0]; // Use best available deal
       
       const valueScore = calculateValueScore(hotel, bestDate);
@@ -235,11 +294,11 @@ async function performBookingOptimization(travelService: TravelDataService, crit
       
       comparisons.push({
         hotel,
-        bestRate: bestDate.totalPrice,
-        savings: bestDate.savings,
-        savingsPercentage: bestDate.savingsPercentage,
-        checkIn: bestDate.checkIn,
-        checkOut: bestDate.checkOut,
+        bestRate: bestDate.totalPrice || 0,
+        savings: bestDate.savings || 0,
+        savingsPercentage: bestDate.savingsPercentage || 0,
+        checkIn: bestDate.checkIn || '',
+        checkOut: bestDate.checkOut || '',
         valueScore,
         luxuryScore,
         seasonScore,
@@ -247,6 +306,10 @@ async function performBookingOptimization(travelService: TravelDataService, crit
         reasoning: generateReasoning(criteria, hotel, bestDate, overallScore)
       });
     }
+  }
+  
+  if (comparisons.length === 0) {
+    return null;
   }
   
   // Sort by overall score
@@ -281,31 +344,44 @@ async function performBookingOptimization(travelService: TravelDataService, crit
   };
 }
 
-function calculateValueScore(hotel: CuratedHotel, bestDate: any): number {
+/**
+ * Calculate value score for hotel
+ */
+function calculateValueScore(hotel: any, bestDate: any): number {
   // Value = (Savings Percentage * 0.4) + (Hotel Rating * 0.3) + (Amenities * 0.3)
-  const savingsScore = Math.min(bestDate.savingsPercentage / 100, 1) * 40;
-  const ratingScore = (hotel.starRating / 5) * 30;
-  const amenitiesScore = Math.min(hotel.amenities.length / 10, 1) * 30;
+  const savingsScore = Math.min((bestDate.savingsPercentage || 0) / 100, 1) * 40;
+  const ratingScore = ((hotel.starRating || 0) / 5) * 30;
+  const amenitiesScore = Math.min((hotel.amenities?.length || 0) / 10, 1) * 30;
   
   return savingsScore + ratingScore + amenitiesScore;
 }
 
-function calculateLuxuryScore(hotel: CuratedHotel): number {
+/**
+ * Calculate luxury score for hotel
+ */
+function calculateLuxuryScore(hotel: any): number {
   // Luxury = Star Rating (40%) + Category Weight (30%) + Amenities (30%)
-  const ratingScore = (hotel.starRating / 5) * 40;
+  const ratingScore = ((hotel.starRating || 0) / 5) * 40;
   
-  const categoryWeights = { palace: 30, luxury: 25, resort: 20, boutique: 15 };
+  const categoryWeights: { [key: string]: number } = { 
+    palace: 30, 
+    luxury: 25, 
+    resort: 20, 
+    boutique: 15 
+  };
   const categoryScore = categoryWeights[hotel.category] || 10;
   
   const luxuryAmenities = ['spa', 'michelin-dining', 'private-beach', 'golf', 'thalasso-spa'];
-  const luxuryAmenitiesCount = hotel.amenities.filter(a => luxuryAmenities.includes(a)).length;
+  const luxuryAmenitiesCount = (hotel.amenities || []).filter((a: string) => luxuryAmenities.includes(a)).length;
   const amenitiesScore = Math.min(luxuryAmenitiesCount / 5, 1) * 30;
   
   return ratingScore + categoryScore + amenitiesScore;
 }
 
+/**
+ * Calculate season score for booking dates
+ */
 function calculateSeasonScore(bestDate: any): number {
-  // Season score based on timing (when the deal is valid)
   const checkInDate = new Date(bestDate.checkIn);
   const month = checkInDate.getMonth() + 1;
   
@@ -317,6 +393,9 @@ function calculateSeasonScore(bestDate: any): number {
   return 60;
 }
 
+/**
+ * Calculate overall score based on criteria
+ */
 function calculateOverallScore(criteria: OptimizationCriteria, valueScore: number, luxuryScore: number, seasonScore: number): number {
   switch (criteria.priority) {
     case 'price':
@@ -333,13 +412,16 @@ function calculateOverallScore(criteria: OptimizationCriteria, valueScore: numbe
   }
 }
 
-function generateReasoning(criteria: OptimizationCriteria, hotel: CuratedHotel, bestDate: any, score: number): string {
+/**
+ * Generate reasoning for hotel recommendation
+ */
+function generateReasoning(criteria: OptimizationCriteria, hotel: any, bestDate: any, score: number): string {
   const reasons = [];
   
-  if (bestDate.savingsPercentage > 50) {
-    reasons.push(`Exceptional ${bestDate.savingsPercentage}% savings`);
-  } else if (bestDate.savingsPercentage > 30) {
-    reasons.push(`Strong ${bestDate.savingsPercentage}% value`);
+  if ((bestDate.savingsPercentage || 0) > 50) {
+    reasons.push(`Exceptional ${(bestDate.savingsPercentage || 0).toFixed(0)}% savings`);
+  } else if ((bestDate.savingsPercentage || 0) > 30) {
+    reasons.push(`Strong ${(bestDate.savingsPercentage || 0).toFixed(0)}% value`);
   }
   
   if (hotel.category === 'palace') {
@@ -355,95 +437,75 @@ function generateReasoning(criteria: OptimizationCriteria, hotel: CuratedHotel, 
     reasons.push('Winter season value');
   }
   
-  if (hotel.amenities.includes('spa')) {
+  if (hotel.amenities?.includes('spa')) {
     reasons.push('Premium spa amenities');
   }
   
   return reasons.slice(0, 3).join(', ') || 'Solid overall value proposition';
 }
 
-async function generateOptimizationResponse(criteria: OptimizationCriteria, optimization: OptimizedRecommendation): Promise<string> {
-  const { topChoice, alternatives, budgetOption, luxuryOption, bestValue, summary } = optimization;
+/**
+ * Generate optimization response text
+ */
+function generateOptimizationResponse(criteria: OptimizationCriteria, optimization: OptimizedRecommendation): string {
+  const { topChoice, alternatives, summary } = optimization;
   
-  let response = `🎯 **Smart Booking Optimization Results**\n\n`;
-  response += `📊 **Analysis**: Compared ${summary.totalHotelsCompared} luxury properties\n`;
-  response += `💰 **Savings Range**: ${summary.averageSavings.toFixed(0)}% average, up to ${summary.bestSavingsPercentage.toFixed(0)}%\n`;
-  response += `💵 **Price Range**: €${summary.priceRange.min}-${summary.priceRange.max}/night\n\n`;
+  // Format top choice
+  const topChoiceText = `${topChoice.hotel.name} €${topChoice.bestRate}/night (${topChoice.savingsPercentage.toFixed(0)}% savings) ${formatDateRange([topChoice.checkIn, topChoice.checkOut])}`;
   
-  // Top recommendation
-  const categoryIcon = getCategoryIcon(topChoice.hotel.category);
-  response += `🏆 **TOP RECOMMENDATION**\n\n`;
-  response += `${categoryIcon} **${topChoice.hotel.name}** (${getCityDisplayName(topChoice.hotel.city)})\n`;
-  response += `• **Rate**: €${topChoice.bestRate}/night (${topChoice.savingsPercentage.toFixed(0)}% savings)\n`;
-  response += `• **Dates**: ${formatDateRange([topChoice.checkIn, topChoice.checkOut])}\n`;
-  response += `• **Why**: ${topChoice.reasoning}\n`;
-  response += `• **Score**: ${topChoice.overallScore.toFixed(0)}/100 (${criteria.priority} optimized)\n\n`;
-  
-  // Category-specific recommendations
-  response += `🎭 **CATEGORY LEADERS**\n\n`;
-  
-  if (budgetOption.hotel.hotelId !== topChoice.hotel.hotelId) {
-    response += `💰 **Best Budget**: ${budgetOption.hotel.name} - €${budgetOption.bestRate}/night\n`;
+  // Format alternatives
+  let alternativesText = '';
+  if (alternatives.length > 0) {
+    const altTexts = alternatives.slice(0, 2).map(alt => 
+      `${alt.hotel.name} €${alt.bestRate}/night (${alt.savingsPercentage.toFixed(0)}% off)`
+    );
+    alternativesText = `. Alternatives: ${altTexts.join(', ')}`;
   }
   
-  if (luxuryOption.hotel.hotelId !== topChoice.hotel.hotelId) {
-    response += `👑 **Most Luxurious**: ${luxuryOption.hotel.name} - ${luxuryOption.hotel.category} level\n`;
-  }
+  // Format summary
+  const summaryText = `${summary.totalHotelsCompared} properties compared, ${summary.averageSavings.toFixed(0)}% average savings`;
   
-  if (bestValue.hotel.hotelId !== topChoice.hotel.hotelId) {
-    response += `⭐ **Best Value**: ${bestValue.hotel.name} - ${bestValue.savingsPercentage.toFixed(0)}% savings\n`;
-  }
+  // Add Bitcoin philosophy
+  const bitcoinQuotes = [
+    'Sound money demands optimal allocation.',
+    'Bitcoin wealth enables premium positioning.',
+    'Hard money, smart choices.',
+    'Stack sats, optimize stays.',
+    'Digital gold, analog luxury.'
+  ];
   
-  response += `\n🔄 **ALTERNATIVES**\n\n`;
+  const bitcoinQuote = bitcoinQuotes[Math.floor(Math.random() * bitcoinQuotes.length)];
   
-  for (let i = 0; i < Math.min(2, alternatives.length); i++) {
-    const alt = alternatives[i];
-    const altIcon = getCategoryIcon(alt.hotel.category);
-    response += `${altIcon} **${alt.hotel.name}** (${getCityDisplayName(alt.hotel.city)})\n`;
-    response += `• €${alt.bestRate}/night (${alt.savingsPercentage.toFixed(0)}% off) | ${formatDateRange([alt.checkIn, alt.checkOut])}\n`;
-    response += `• ${alt.reasoning}\n\n`;
-  }
-  
-  response += `💡 **Optimization Tip**: Based on your "${criteria.priority}" priority, the analysis weighted ${getCriteriaWeighting(criteria.priority)} most heavily.`;
-  
-  return response;
+  return `${getCityDisplayName(criteria.cities)} hotel optimization: ${topChoiceText} wins overall${alternativesText}. ${summaryText}. Best value: ${topChoice.reasoning.toLowerCase()}. ${bitcoinQuote}`;
 }
 
-function getCategoryIcon(category: string): string {
-  const iconMap = {
-    'palace': '🏰',
-    'luxury': '✨',
-    'boutique': '🌟',
-    'resort': '🌊'
-  };
-  return iconMap[category as keyof typeof iconMap] || '🏨';
-}
-
-function getCityDisplayName(city: string): string {
-  const cityMap = {
+/**
+ * Get display name for cities
+ */
+function getCityDisplayName(cities?: string[]): string {
+  if (!cities || cities.length === 0) return 'Multi-city';
+  
+  const cityMap: { [key: string]: string } = {
     'biarritz': 'Biarritz',
     'bordeaux': 'Bordeaux', 
     'monaco': 'Monaco'
   };
-  return cityMap[city as keyof typeof cityMap] || city;
+  
+  if (cities.length === 1) {
+    return cityMap[cities[0]] || cities[0];
+  }
+  
+  return cities.map(city => cityMap[city] || city).join(' & ');
 }
 
+/**
+ * Format date range for display
+ */
 function formatDateRange(dates: string[]): string {
   if (dates.length >= 2) {
     const start = new Date(dates[0]).toLocaleDateString('en-GB', { month: 'short', day: 'numeric' });
     const end = new Date(dates[1]).toLocaleDateString('en-GB', { month: 'short', day: 'numeric' });
-    return `${start} - ${end}`;
+    return `${start}-${end}`;
   }
   return dates[0] || 'TBD';
-}
-
-function getCriteriaWeighting(priority: string): string {
-  const weightings = {
-    'price': 'lowest rates and budget considerations',
-    'luxury': 'premium amenities and service quality',
-    'savings': 'maximum discount percentages',
-    'season': 'optimal timing and weather',
-    'value': 'balanced value proposition'
-  };
-  return weightings[priority as keyof typeof weightings] || 'overall value';
 } 

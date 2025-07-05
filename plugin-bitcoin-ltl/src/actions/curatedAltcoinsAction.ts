@@ -1,59 +1,113 @@
 import {
   type Action,
+  type Content,
+  type HandlerCallback,
   type IAgentRuntime,
   type Memory,
   type State,
-  type HandlerCallback,
-  type ActionExample,
   logger,
 } from '@elizaos/core';
+import { createActionTemplate, ValidationPatterns, ResponseCreators } from './base/ActionTemplate';
 import { RealTimeDataService, type CuratedAltcoinsData } from '../services/RealTimeDataService';
 
-export const curatedAltcoinsAction: Action = {
+export const curatedAltcoinsAction: Action = createActionTemplate({
   name: 'CURATED_ALTCOINS',
-  similes: [
-    'ALTCOIN_ANALYSIS',
-    'CURATED_COINS',
-    'ALTCOIN_PERFORMANCE',
-    'PORTFOLIO_COINS',
-    'SELECTED_ALTCOINS'
+  description: 'Comprehensive analysis of curated altcoin portfolio performance including ETH, SOL, SUI, HYPE, DeFi tokens, memecoins, and Layer 1 categorization',
+  similes: ['ALTCOIN_ANALYSIS', 'PORTFOLIO_COINS', 'ALTCOIN_PERFORMANCE', 'CURATED_COINS', 'DEFI_TOKENS'],
+  
+  examples: [
+    [
+      {
+        name: '{{user}}',
+        content: { text: 'How are the altcoins performing?' },
+      },
+      {
+        name: 'Satoshi',
+        content: {
+          text: 'ETH: $3,420 (+2.1%). SOL: $198 (+5.7%). SUI: $4.32 (+12.3%). HYPE: $28.91 (+8.4%). The degenerates are pumping while Bitcoin consolidates. DeFi season building momentum. Portfolio avg: +4.2%.',
+          thought: 'User is asking about altcoin performance. I need to analyze the curated portfolio covering major Layer 1s, DeFi tokens, and memecoins, then provide performance metrics with market sentiment analysis and categorical insights.',
+          actions: ['CURATED_ALTCOINS'],
+        },
+      },
+    ],
+    [
+      {
+        name: '{{user}}',
+        content: { text: 'What\'s pumping in our portfolio?' },
+      },
+      {
+        name: 'Satoshi',
+        content: {
+          text: 'PEPE: +15.7%, MOG: +23.1%, FARTCOIN: +89.4%. Meme season in full swing. ETH and SOL holding steady while the casino coins print. Memecoins pumping hard - degeneracy in full swing. Risk accordingly.',
+          thought: 'User wants to know about top performers. I should focus on the strongest performers in the curated portfolio, identify if it\'s meme season or DeFi season, and provide context about market rotation and risk management.',
+          actions: ['CURATED_ALTCOINS'],
+        },
+      },
+    ],
+    [
+      {
+        name: '{{user}}',
+        content: { text: 'Show me Hyperliquid performance' },
+      },
+      {
+        name: 'Satoshi',
+        content: {
+          text: 'HYPE: $28.91 (+8.4% 24h). The Hyperliquid thesis playing out - decentralized perps exchange capturing market share from centralized casinos. DeFi infrastructure proving its value in the new financial system.',
+          thought: 'User is asking specifically about Hyperliquid. I should provide detailed performance data and contextualize it within the broader DeFi narrative and thesis validation for decentralized perpetual exchanges.',
+          actions: ['CURATED_ALTCOINS'],
+        },
+      },
+    ],
   ],
-  description: 'Analyzes performance of curated altcoins from LiveTheLifeTV portfolio including ETH, SOL, SUI, HYPE, and memecoins',
-  validate: async (runtime: IAgentRuntime, message: Memory) => {
-    const triggers = [
-      'altcoin', 'altcoins', 'eth', 'ethereum', 'solana', 'sol', 'sui', 'hyperliquid', 'hype',
-      'chainlink', 'link', 'uniswap', 'uni', 'aave', 'ondo', 'ethena', 'ena', 
-      'berachain', 'bera', 'avalanche', 'avax', 'stacks', 'stx', 'dogecoin', 'doge',
-      'pepe', 'mog', 'bittensor', 'tao', 'render', 'rndr', 'fartcoin', 'railgun',
-      'portfolio', 'curated', 'performance', 'gains', 'pumping', 'mooning'
-    ];
-    
-    const content = message.content.text.toLowerCase();
-    return triggers.some(trigger => content.includes(trigger));
+  
+  validateFn: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+    const text = message.content?.text?.toLowerCase() || '';
+    return ValidationPatterns.isAltcoinRequest(text);
   },
-  handler: async (
+
+  handlerFn: async (
     runtime: IAgentRuntime,
     message: Memory,
     state: State,
     options: any,
     callback?: HandlerCallback
   ): Promise<boolean> => {
+    logger.info('Curated altcoins action triggered');
+    
+    // Initial thought process
+    const thoughtProcess = 'User is requesting altcoin analysis. I need to analyze the curated portfolio performance covering Layer 1s, DeFi protocols, and memecoins, then categorize performance trends and provide market sentiment analysis with actionable insights.';
+    
     try {
       const service = runtime.getService('real-time-data') as RealTimeDataService;
       
       if (!service) {
-        logger.error('RealTimeDataService not available for curated altcoins action');
+        logger.warn('RealTimeDataService not available for curated altcoins');
+        
+        const fallbackResponse = ResponseCreators.createErrorResponse(
+          'CURATED_ALTCOINS',
+          'Real-time data service unavailable',
+          'Curated altcoins data service temporarily unavailable. Markets updating every minute - the casino never sleeps. Price discovery continues independently.'
+        );
+        
+        if (callback) {
+          await callback(fallbackResponse);
+        }
         return false;
       }
 
       const curatedData = service.getCuratedAltcoinsData();
       
       if (!curatedData) {
+        logger.warn('No curated altcoins data available');
+        
+        const noDataResponse = ResponseCreators.createErrorResponse(
+          'CURATED_ALTCOINS',
+          'Curated altcoins data unavailable',
+          'Curated altcoins data not available right now. Markets updating every minute. The portfolio continues performing regardless of our monitoring.'
+        );
+        
         if (callback) {
-          callback({
-            text: "Curated altcoins data not available right now. Markets updating every minute.",
-            content: { error: "Data unavailable" }
-          });
+          await callback(noDataResponse);
         }
         return false;
       }
@@ -61,73 +115,67 @@ export const curatedAltcoinsAction: Action = {
       // Analyze the curated data
       const analysis = analyzeCuratedAltcoins(curatedData);
       
+      // Format analysis for delivery
       const responseText = formatCuratedAnalysis(analysis, curatedData);
 
-      if (callback) {
-        callback({
-          text: responseText,
-          content: {
-            analysis,
-            timestamp: new Date().toISOString(),
-            source: 'curated-altcoins'
+      const response = ResponseCreators.createStandardResponse(
+        thoughtProcess,
+        responseText,
+        'CURATED_ALTCOINS',
+        {
+          analysis,
+          timestamp: new Date().toISOString(),
+          source: 'curated-altcoins',
+          portfolioMetrics: {
+            totalPositive: analysis.totalPositive,
+            totalNegative: analysis.totalNegative,
+            avgPerformance: analysis.avgPerformance,
+            marketSentiment: analysis.marketSentiment
+          },
+          categoryPerformance: {
+            memecoins: analysis.memecoinsPerformance,
+            defi: analysis.defiPerformance,
+            layer1: analysis.layer1Performance
           }
-        });
+        }
+      );
+
+      if (callback) {
+        await callback(response);
       }
 
+      logger.info('Curated altcoins analysis delivered successfully');
       return true;
+      
     } catch (error) {
-      logger.error('Error in curated altcoins action:', error);
-      if (callback) {
-        callback({
-          text: "Error analyzing curated altcoins. Markets are volatile beasts.",
-          content: { error: error.message }
-        });
+      logger.error('Failed to analyze curated altcoins:', (error as Error).message);
+      
+      // Enhanced error handling with context-specific responses
+      let errorMessage = 'Altcoin analysis systems operational. Markets are volatile beasts - price discovery continues.';
+      
+      const errorMsg = (error as Error).message.toLowerCase();
+      if (errorMsg.includes('rate limit') || errorMsg.includes('429') || errorMsg.includes('too many requests')) {
+        errorMessage = 'Market data rate limited. The casino is overwhelmed with degenerates. Analysis will resume shortly.';
+      } else if (errorMsg.includes('network') || errorMsg.includes('timeout') || errorMsg.includes('fetch')) {
+        errorMessage = 'Market data connectivity issues. Altcoins pump and dump independently of our monitoring. Price discovery decentralized.';
+      } else if (errorMsg.includes('service') || errorMsg.includes('unavailable')) {
+        errorMessage = 'Portfolio analysis service temporarily down. The degenerates continue trading regardless of our monitoring systems.';
       }
+      
+      const errorResponse = ResponseCreators.createErrorResponse(
+        'CURATED_ALTCOINS',
+        (error as Error).message,
+        errorMessage
+      );
+      
+      if (callback) {
+        await callback(errorResponse);
+      }
+      
       return false;
     }
   },
-  examples: [
-    [
-      {
-        name: "{{user}}",
-        content: { text: "How are the altcoins performing?" }
-      },
-      {
-        name: "Satoshi",
-        content: { 
-          text: "ETH: $3,420 (+2.1%). SOL: $198 (+5.7%). SUI: $4.32 (+12.3%). HYPE: $28.91 (+8.4%). The degenerates are pumping while Bitcoin consolidates. DeFi season building momentum.",
-          actions: ["CURATED_ALTCOINS"]
-        }
-      }
-    ],
-    [
-      {
-        name: "{{user}}",
-        content: { text: "What's pumping in our portfolio?" }
-      },
-      {
-        name: "Satoshi",
-        content: {
-          text: "PEPE: +15.7%, MOG: +23.1%, FARTCOIN: +89.4%. Meme season in full swing. ETH and SOL holding steady while the casino coins print. Risk accordingly.",
-          actions: ["CURATED_ALTCOINS"]
-        }
-      }
-    ],
-    [
-      {
-        name: "{{user}}",
-        content: { text: "Show me Hyperliquid performance" }
-      },
-      {
-        name: "Satoshi",
-        content: {
-          text: "HYPE: $28.91 (+8.4% 24h). Volume: $45M. Market cap: $9.7B. The Hyperliquid thesis playing out - decentralized perps exchange capturing market share from centralized casinos.",
-          actions: ["CURATED_ALTCOINS"]
-        }
-      }
-    ]
-  ]
-};
+});
 
 interface CuratedAnalysis {
   topPerformers: Array<{ symbol: string; price: number; change24h: number }>;

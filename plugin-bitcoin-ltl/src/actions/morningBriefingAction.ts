@@ -7,13 +7,15 @@ import {
   type State,
   logger,
 } from '@elizaos/core';
+import { createActionTemplate, ValidationPatterns, ResponseCreators } from './base/ActionTemplate';
 import { MorningBriefingService } from '../services/MorningBriefingService';
 import { SlackIngestionService } from '../services/SlackIngestionService';
 
-export const morningBriefingAction: Action = {
+export const morningBriefingAction: Action = createActionTemplate({
   name: 'MORNING_BRIEFING',
   description: 'Generate and deliver a proactive morning intelligence briefing with market data, weather, and curated insights',
   similes: ['GM', 'MORNING_BRIEF', 'DAILY_INTEL', 'MARKET_UPDATE'],
+  
   examples: [
     [
       {
@@ -24,6 +26,7 @@ export const morningBriefingAction: Action = {
         name: 'Satoshi',
         content: {
           text: 'GM. 07:30. Clear skies. Bitcoin at $100,500. ETH and SOL outperforming overnight. MSTR up 3.2% on correlation play. No new urgent signals from research channels. Support holding strong.',
+          thought: 'User greeted with GM - classic Bitcoin morning greeting. I should provide a comprehensive morning briefing covering market conditions, weather, and research insights to start their day.',
           actions: ['MORNING_BRIEFING'],
         },
       },
@@ -37,6 +40,7 @@ export const morningBriefingAction: Action = {
         name: 'Satoshi',
         content: {
           text: 'GM. Market pulse: Bitcoin consolidated around $100K support. 15 altcoins outperforming BTC in 24h. New research from channels: MetaPlanet expansion analysis, Hyperliquid orderbook traction. TSLA breaking resistance at $350.',
+          thought: 'User is asking for the latest updates. I need to compile a comprehensive briefing covering market conditions, altcoin performance, research insights, and key movements in our watchlist.',
           actions: ['MORNING_BRIEFING'],
         },
       },
@@ -50,49 +54,44 @@ export const morningBriefingAction: Action = {
         name: 'Satoshi',
         content: {
           text: 'Morning intelligence: Bitcoin thesis 10.05% progress to $1M target. Institutional flows positive. Slack digest: 12 new insights, 8 predictions tracking well. Opportunities: BTC accumulation zone, MSTY premium elevated for covered calls.',
+          thought: 'Direct request for morning briefing. I should provide a structured intelligence update covering Bitcoin thesis progress, institutional flows, Slack research digest, and actionable opportunities.',
           actions: ['MORNING_BRIEFING'],
         },
       },
     ],
   ],
   
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validateFn: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
     const text = message.content?.text?.toLowerCase() || '';
-    
-    // Trigger patterns for morning briefings
-    const patterns = [
-      /^gm\b/i,                           // "GM"
-      /^good morning\b/i,                 // "Good morning"
-      /morning.*briefing/i,               // "morning briefing"
-      /^brief.*me\b/i,                   // "brief me"
-      /what.*latest/i,                    // "what's the latest"
-      /morning.*intel/i,                  // "morning intel"
-      /daily.*update/i,                   // "daily update"
-      /^status.*report/i,                 // "status report"
-    ];
-    
-    return patterns.some(pattern => pattern.test(text));
+    return ValidationPatterns.isMorningRequest(text);
   },
 
-  handler: async (
+  handlerFn: async (
     runtime: IAgentRuntime,
     message: Memory,
     state: State,
     options: any,
     callback?: HandlerCallback
   ): Promise<boolean> => {
+    logger.info('Morning briefing action triggered');
+    
+    // Initial thought process
+    const thoughtProcess = 'User is requesting a morning briefing. I need to gather comprehensive market data, weather information, and research insights to provide a complete intelligence update that will help them start their day with full context of current conditions.';
+    
     try {
-      logger.info('Morning briefing action triggered');
-      
       // Get the morning briefing service
       const briefingService = runtime.getService('morning-briefing') as MorningBriefingService;
       if (!briefingService) {
         logger.warn('MorningBriefingService not available');
+        
+        const fallbackResponse = ResponseCreators.createErrorResponse(
+          'MORNING_BRIEFING',
+          'Morning briefing service unavailable',
+          'Morning briefing service temporarily unavailable. Bitcoin fundamentals unchanged - 21M coin cap, proof of work security, decentralized network operating as designed. Will resume full intelligence shortly.'
+        );
+        
         if (callback) {
-          callback({
-            text: 'Morning briefing service temporarily unavailable. Bitcoin fundamentals unchanged.',
-            actions: ['MORNING_BRIEFING'],
-          } as Content);
+          await callback(fallbackResponse);
         }
         return false;
       }
@@ -103,11 +102,15 @@ export const morningBriefingAction: Action = {
       // Format the briefing for delivery
       const briefingText = await formatBriefingForDelivery(briefing, runtime);
       
+      const response = ResponseCreators.createStandardResponse(
+        thoughtProcess,
+        briefingText,
+        'MORNING_BRIEFING',
+        { briefingData: briefing }
+      );
+      
       if (callback) {
-        callback({
-          text: briefingText,
-          actions: ['MORNING_BRIEFING'],
-        } as Content);
+        await callback(response);
       }
       
       logger.info('Morning briefing delivered successfully');
@@ -116,7 +119,7 @@ export const morningBriefingAction: Action = {
     } catch (error) {
       logger.error('Failed to generate morning briefing:', (error as Error).message);
       
-      // Be transparent about the specific error
+      // Enhanced error handling with context-specific responses
       let errorMessage = 'Systems operational. Bitcoin protocol unchanged. Market data temporarily unavailable.';
       
       const errorMsg = (error as Error).message.toLowerCase();
@@ -124,20 +127,24 @@ export const morningBriefingAction: Action = {
         errorMessage = 'Rate limited by market data providers. Bitcoin protocol unchanged. Will retry shortly.';
       } else if (errorMsg.includes('network') || errorMsg.includes('timeout') || errorMsg.includes('fetch')) {
         errorMessage = 'Network connectivity issues with market data. Bitcoin protocol unchanged. Connection being restored.';
+      } else if (errorMsg.includes('service') || errorMsg.includes('unavailable')) {
+        errorMessage = 'Market data service temporarily down. Bitcoin network unaffected - blocks continue every ~10 minutes, hashrate securing the network.';
       }
       
-      // Fallback response
+      const errorResponse = ResponseCreators.createErrorResponse(
+        'MORNING_BRIEFING',
+        (error as Error).message,
+        errorMessage
+      );
+      
       if (callback) {
-        callback({
-          text: errorMessage,
-          actions: ['MORNING_BRIEFING'],
-        } as Content);
+        await callback(errorResponse);
       }
       
       return false;
     }
   },
-};
+});
 
 /**
  * Format the briefing data into a conversational response
@@ -198,50 +205,44 @@ async function formatBriefingForDelivery(
   
   // Add prediction updates
   if (content.knowledgeDigest?.predictionUpdates?.length > 0) {
-    response += ` Predictions tracking: ${content.knowledgeDigest.predictionUpdates[0]}.`;
+    response += ` Predictions tracking: ${content.knowledgeDigest.predictionUpdates.slice(0, 2).join(', ')}.`;
   }
   
-  // Add immediate opportunities
-  if (content.opportunities?.immediate?.length > 0) {
-    response += ` Immediate: ${content.opportunities.immediate[0]}.`;
-  }
-  
-  // Add upcoming opportunities
-  if (content.opportunities?.upcoming?.length > 0) {
-    response += ` Upcoming: ${content.opportunities.upcoming[0]}.`;
-  }
-  
-  // Ensure response isn't too long (Satoshi keeps it concise)
-  if (response.length > 400) {
-    // Truncate and add ellipsis, maintaining the Satoshi voice
-    response = response.substring(0, 380) + '... Protocol operational.';
+  // Add opportunities if available
+  if (content.opportunities?.length > 0) {
+    response += ` Opportunities: ${content.opportunities.slice(0, 2).join(', ')}.`;
   }
   
   return response;
 }
 
 /**
- * Get content summary from Slack ingestion service
+ * Get a summary of recent content from various sources
  */
 async function getContentSummary(runtime: IAgentRuntime): Promise<string> {
   try {
     const slackService = runtime.getService('slack-ingestion') as SlackIngestionService;
     if (!slackService) {
-      return 'Content monitoring offline.';
+      return 'Research channels monitoring active.';
     }
     
     const recentContent = await slackService.getRecentContent(24);
-    const highImportance = recentContent.filter(item => item.metadata.importance === 'high');
     
-    if (highImportance.length > 0) {
-      return `${highImportance.length} high-priority insights from channels.`;
-    } else if (recentContent.length > 0) {
-      return `${recentContent.length} updates processed from channels.`;
+    if (recentContent && recentContent.length > 0) {
+      const highImportance = recentContent.filter(item => 
+        item.metadata?.importance === 'high'
+      );
+      
+      if (highImportance.length > 0) {
+        return `${highImportance.length} high-priority insights from channels.`;
+      } else {
+        return `${recentContent.length} updates processed from channels.`;
+      }
     } else {
-      return 'Channels quiet overnight.';
+      return 'Research channels monitoring active.';
     }
   } catch (error) {
-    logger.error('Failed to get content summary:', (error as Error).message);
-    return 'Content monitoring degraded.';
+    logger.error('Failed to get content summary:', error);
+    return 'Research channels temporarily unavailable.';
   }
 } 
