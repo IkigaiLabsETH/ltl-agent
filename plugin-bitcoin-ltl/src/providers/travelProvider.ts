@@ -5,7 +5,7 @@ import {
   Memory,
   State,
 } from "@elizaos/core";
-import { TravelDataService } from "../services/TravelDataService";
+import { TravelDataService, PerfectDayOpportunity } from "../services/TravelDataService";
 
 /**
  * Travel Provider - Injects contextual travel information and booking opportunities
@@ -50,6 +50,9 @@ export const travelProvider: Provider = {
       const travelInsights = travelService.getTravelInsights();
       const bookingWindows = travelService.getOptimalBookingWindows();
       const curatedHotels = travelService.getCuratedHotels();
+      
+      // Get perfect day opportunities
+      const perfectDays = await travelService.getPerfectDayOpportunities();
 
       if (!travelData) {
         elizaLogger.debug("[TravelProvider] No travel data available yet");
@@ -84,12 +87,13 @@ export const travelProvider: Provider = {
         curatedHotels,
         bestDeals,
         seasonalRecommendations,
+        perfectDays,
         currentSeason,
         travelData.lastUpdated,
       );
 
       elizaLogger.debug(
-        `[TravelProvider] Providing context for ${curatedHotels.length} hotels, ${bestDeals.length} current deals`,
+        `[TravelProvider] Providing context for ${curatedHotels.length} hotels, ${bestDeals.length} current deals, ${perfectDays.length} perfect day opportunities`,
       );
 
       return {
@@ -98,6 +102,7 @@ export const travelProvider: Provider = {
           travelAvailable: true,
           hotelsCount: curatedHotels.length,
           currentDeals: bestDeals.length,
+          perfectDayCount: perfectDays.length,
           lastUpdated: travelData.lastUpdated,
           currentSeason: currentSeason,
           bestDestinations: seasonalRecommendations.map((r) => r.city),
@@ -105,6 +110,7 @@ export const travelProvider: Provider = {
           // Include data in values for access
           hotels: curatedHotels,
           deals: bestDeals,
+          perfectDays: perfectDays,
           insights: travelInsights,
           bookingWindows: bookingWindows,
           seasonalRecommendations: seasonalRecommendations,
@@ -208,6 +214,7 @@ function buildTravelContext(
   hotels: any[],
   deals: any[],
   seasonalRecommendations: any[],
+  perfectDays: PerfectDayOpportunity[],
   currentSeason: string,
   lastUpdated: Date,
 ): string {
@@ -223,6 +230,22 @@ function buildTravelContext(
   context.push(`🌍 LUXURY DESTINATIONS AVAILABLE: ${cities.join(", ")}`);
   context.push(`📍 Total curated hotels: ${hotels.length}`);
   context.push("");
+
+  // Perfect day opportunities
+  if (perfectDays.length > 0) {
+    context.push("🎯 PERFECT DAY OPPORTUNITIES:");
+    perfectDays.slice(0, 3).forEach((opportunity, index) => {
+      const urgencyEmoji = opportunity.urgency === 'high' ? '🚨' : 
+                          opportunity.urgency === 'medium' ? '⚠️' : '📊';
+      
+      context.push(`${urgencyEmoji} ${opportunity.hotelName} (${opportunity.perfectDate})`);
+      context.push(`   💰 €${opportunity.currentRate}/night (${opportunity.savingsPercentage.toFixed(1)}% below average)`);
+      context.push(`   📈 Average rate: €${opportunity.averageRate}/night`);
+      context.push(`   🎯 Confidence: ${(opportunity.confidenceScore * 100).toFixed(0)}%`);
+      context.push(`   ⚡ ${opportunity.urgency.toUpperCase()} urgency`);
+      context.push("");
+    });
+  }
 
   // Current best deals
   if (deals.length > 0) {
@@ -252,13 +275,14 @@ function buildTravelContext(
   context.push("📊 BOOKING INSIGHTS:");
   context.push(`• European luxury destinations with Booking.com integration`);
   context.push(`• Real-time rate monitoring and optimization`);
+  context.push(`• Perfect day detection for exceptional savings`);
   context.push(`• Seasonal price analysis and demand forecasting`);
   context.push(`• Optimal booking windows for maximum savings`);
   context.push("");
 
   // Usage note
   context.push(
-    "💡 Ask about specific destinations, dates, or use hotel booking actions for detailed searches.",
+    "💡 Ask about specific destinations, dates, perfect day opportunities, or use hotel booking actions for detailed searches.",
   );
 
   return context.join("\n");

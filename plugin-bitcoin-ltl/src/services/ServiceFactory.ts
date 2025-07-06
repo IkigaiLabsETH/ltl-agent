@@ -7,6 +7,7 @@ import { ETFDataService } from "./ETFDataService";
 import { NFTDataService } from "./NFTDataService";
 import { LifestyleDataService } from "./LifestyleDataService";
 import { TravelDataService } from "./TravelDataService";
+import { CulturalContextService } from "./CulturalContextService";
 import { RealTimeDataService } from "./RealTimeDataService";
 import { MorningBriefingService } from "./MorningBriefingService";
 import { OpportunityAlertService } from "./OpportunityAlertService";
@@ -65,6 +66,7 @@ export class ServiceFactory {
         // Lifestyle and travel services
         LifestyleDataService,
         TravelDataService,
+        CulturalContextService,
 
         // Real-time and aggregation services
         RealTimeDataService,
