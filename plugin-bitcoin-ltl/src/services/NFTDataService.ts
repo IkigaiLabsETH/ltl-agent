@@ -1,7 +1,12 @@
-import { IAgentRuntime, logger } from '@elizaos/core';
+import { IAgentRuntime, elizaLogger } from '@elizaos/core';
 import { BaseDataService } from './BaseDataService';
+import { LoggerWithContext, generateCorrelationId, ComprehensiveErrorHandler } from '../utils';
+import { CentralizedConfigService } from './CentralizedConfigService';
+import axios from 'axios';
 
-// NFT-specific interfaces (extracted from RealTimeDataService)
+/**
+ * NFT Collection Statistics Interface
+ */
 export interface NFTCollectionStats {
   total_supply: number;
   num_owners: number;
@@ -19,6 +24,9 @@ export interface NFTCollectionStats {
   thirty_day_sales: number;
 }
 
+/**
+ * NFT Collection Interface
+ */
 export interface NFTCollection {
   collection: string;
   name: string;
@@ -59,6 +67,9 @@ export interface NFTCollection {
   created_date: string;
 }
 
+/**
+ * NFT Collection Data Interface
+ */
 export interface NFTCollectionData {
   slug: string;
   collection: NFTCollection;
@@ -71,6 +82,9 @@ export interface NFTCollectionData {
   blockchain?: string;
 }
 
+/**
+ * NFT Floor Item Interface
+ */
 export interface NFTFloorItem {
   token_id: string;
   name: string;
@@ -82,6 +96,9 @@ export interface NFTFloorItem {
   opensea_url: string;
 }
 
+/**
+ * NFT Sale Event Interface
+ */
 export interface NFTSaleEvent {
   token_id: string;
   name: string;
@@ -95,6 +112,9 @@ export interface NFTSaleEvent {
   event_type: 'sale' | 'transfer' | 'mint';
 }
 
+/**
+ * NFT Trait Floor Interface
+ */
 export interface NFTTraitFloor {
   trait_type: string;
   trait_value: string;
@@ -102,6 +122,9 @@ export interface NFTTraitFloor {
   count: number;
 }
 
+/**
+ * Curated NFTs Data Interface
+ */
 export interface CuratedNFTsData {
   collections: NFTCollectionData[];
   summary: {
@@ -115,131 +138,179 @@ export interface CuratedNFTsData {
   lastUpdated: Date;
 }
 
+/**
+ * Curated NFTs Cache Interface
+ */
 export interface CuratedNFTsCache {
   data: CuratedNFTsData;
   timestamp: number;
 }
 
+/**
+ * NFT Data Service
+ * Handles all NFT-related data fetching, caching, and analysis
+ */
 export class NFTDataService extends BaseDataService {
   static serviceType = 'nft-data';
-  capabilityDescription = 'Provides real-time NFT collection data and floor prices from OpenSea';
-
-  // Cache configuration
+  
+  private contextLogger: LoggerWithContext;
+  private configService: CentralizedConfigService;
+  private errorHandler: ComprehensiveErrorHandler;
+  private updateInterval: NodeJS.Timeout | null = null;
+  
+  // Cache management
   private curatedNFTsCache: CuratedNFTsCache | null = null;
-  private readonly CURATED_NFTS_CACHE_DURATION = 60 * 1000; // 1 minute (matches website caching)
-
-  // Curated NFT collections (focused on high-value generative art)
+  private readonly CURATED_NFTS_CACHE_DURATION = 60 * 1000; // 1 minute
+  
+  // Curated NFT collections
   private readonly curatedNFTCollections = [
-    { slug: 'qql', category: 'generative-art' as const },
-    { slug: 'meridian-by-matt-deslauriers', category: 'generative-art' as const }
+    'bored-ape-yacht-club',
+    'cryptopunks',
+    'doodles-official',
+    'azuki',
+    'clonex',
+    'meebits',
+    'world-of-women-nft',
+    'cool-cats-nft',
+    'veefriends',
+    'loot-for-adventurers'
   ];
 
   constructor(runtime: IAgentRuntime) {
     super(runtime, 'nftData');
+    this.contextLogger = new LoggerWithContext(generateCorrelationId(), 'NFTDataService');
+    this.configService = runtime.getService<CentralizedConfigService>('centralized-config');
+    this.errorHandler = runtime.getService<ComprehensiveErrorHandler>('comprehensive-error-handler');
+  }
+
+  public get capabilityDescription(): string {
+    return 'Provides comprehensive NFT market data, collection analytics, and curated insights for top NFT collections';
   }
 
   static async start(runtime: IAgentRuntime) {
-    logger.info('NFTDataService starting...');
+    elizaLogger.info('Starting NFTDataService...');
     const service = new NFTDataService(runtime);
     await service.init();
     return service;
   }
 
   static async stop(runtime: IAgentRuntime) {
-    logger.info('NFTDataService stopping...');
-    const service = runtime.getService('nft-data');
-    if (service && service.stop) {
+    elizaLogger.info('Stopping NFTDataService...');
+    const service = runtime.getService('nft-data') as unknown as NFTDataService;
+    if (service) {
       await service.stop();
     }
   }
 
   async start(): Promise<void> {
-    logger.info('NFTDataService starting...');
-    await this.updateData();
-    logger.info('NFTDataService started successfully');
+    this.contextLogger.info('Starting NFT data service...');
+    await this.startRealTimeUpdates();
   }
 
   async init() {
-    logger.info('NFTDataService initialized');
-    
-    // Initial data load
-    await this.updateCuratedNFTsData();
+    this.contextLogger.info('Initializing NFT data service...');
+    await this.updateData();
   }
 
-  async stop() {
-    logger.info('NFTDataService stopped');
-  }
-
-  // Public API methods
-  public getCuratedNFTsData(): CuratedNFTsData | null {
-    if (!this.curatedNFTsCache || !this.isCuratedNFTsCacheValid()) {
-      return null;
+  async stop(): Promise<void> {
+    this.contextLogger.info('Stopping NFT data service...');
+    if (this.updateInterval) {
+      clearInterval(this.updateInterval);
+      this.updateInterval = null;
     }
-    return this.curatedNFTsCache.data;
   }
 
-  public async forceCuratedNFTsUpdate(): Promise<CuratedNFTsData | null> {
-    return await this.fetchCuratedNFTsData();
+  async updateData(): Promise<void> {
+    try {
+      this.contextLogger.info('Updating NFT data...');
+      await this.updateCuratedNFTsData();
+      this.contextLogger.info('NFT data update completed');
+    } catch (error) {
+      this.errorHandler.handleError(error, 'NFTDataService.updateData', 'critical');
+    }
   }
 
-  public async updateCuratedNFTsData(): Promise<void> {
-    // Only fetch if cache is invalid
-    if (!this.isCuratedNFTsCacheValid()) {
+  async forceUpdate(): Promise<void> {
+    this.contextLogger.info('Forcing NFT data update...');
+    await this.updateData();
+  }
+
+  /**
+   * Start real-time updates for NFT data
+   */
+  private async startRealTimeUpdates(): Promise<void> {
+    const updateInterval = this.configService.get('services.nftData.updateInterval', 300000); // 5 minutes
+    
+    this.updateInterval = setInterval(async () => {
+      try {
+        await this.updateData();
+      } catch (error) {
+        this.errorHandler.handleError(error, 'NFTDataService.startRealTimeUpdates', 'high');
+      }
+    }, updateInterval);
+
+    this.contextLogger.info(`NFT data updates scheduled every ${updateInterval}ms`);
+  }
+
+  /**
+   * Update curated NFTs data
+   */
+  private async updateCuratedNFTsData(): Promise<void> {
+    if (this.isCuratedNFTsCacheValid()) {
+      this.contextLogger.debug('Using cached curated NFTs data');
+      return;
+    }
+
+    try {
       const data = await this.fetchCuratedNFTsData();
       if (data) {
         this.curatedNFTsCache = {
           data,
           timestamp: Date.now()
         };
+        this.contextLogger.info('Curated NFTs data updated successfully');
       }
+    } catch (error) {
+      this.errorHandler.handleError(error, 'NFTDataService.updateCuratedNFTsData', 'high');
     }
   }
 
-  // Cache management
+  /**
+   * Check if curated NFTs cache is valid
+   */
   private isCuratedNFTsCacheValid(): boolean {
     if (!this.curatedNFTsCache) return false;
     return Date.now() - this.curatedNFTsCache.timestamp < this.CURATED_NFTS_CACHE_DURATION;
   }
 
-  // Core NFT data fetching methods
+  /**
+   * Fetch curated NFTs data
+   */
   private async fetchCuratedNFTsData(): Promise<CuratedNFTsData | null> {
     try {
-      logger.info('[NFTDataService] Fetching curated NFTs data...');
+      this.contextLogger.info('Fetching curated NFTs data...');
       
-      const openSeaApiKey = this.runtime.getSetting('OPENSEA_API_KEY');
-      if (!openSeaApiKey) {
-        logger.warn('OPENSEA_API_KEY not configured, returning null');
-        return null;
-      }
-
+      const collections: NFTCollectionData[] = [];
       const headers = {
-        'Accept': 'application/json',
-        'X-API-KEY': openSeaApiKey,
-        'User-Agent': 'LiveTheLifeTV/1.0'
+        'X-API-KEY': this.configService.get('apis.opensea.apiKey', ''),
+        'Accept': 'application/json'
       };
 
-      const collections: NFTCollectionData[] = [];
-      
-      for (const collectionInfo of this.curatedNFTCollections.slice(0, 5)) {
+      // Fetch data for each curated collection
+      for (const collectionSlug of this.curatedNFTCollections) {
         try {
-          const collectionData = await this.fetchCollectionData(collectionInfo.slug, headers);
+          const collectionData = await this.fetchEnhancedCollectionData(collectionSlug, headers);
           if (collectionData) {
-            collections.push({
-              slug: collectionInfo.slug,
-              collection: collectionData.collection,
-              stats: collectionData.stats,
-              lastUpdated: new Date(),
-              category: collectionInfo.category,
-              contractAddress: collectionData.contractAddress,
-              blockchain: 'ethereum'
-            });
+            collections.push(collectionData);
           }
         } catch (error) {
-          logger.warn(`Failed to fetch ${collectionInfo.slug}:`, error);
+          this.errorHandler.handleError(error, `NFTDataService.fetchCuratedNFTsData.${collectionSlug}`, 'medium');
         }
-        
-        // Rate limiting
-        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      if (collections.length === 0) {
+        this.contextLogger.warn('No NFT collections data available');
+        return null;
       }
 
       const summary = this.calculateNFTSummary(collections);
@@ -251,78 +322,188 @@ export class NFTDataService extends BaseDataService {
       };
 
     } catch (error) {
-      logger.error('Error in fetchCuratedNFTsData:', error);
+      this.errorHandler.handleError(error, 'NFTDataService.fetchCuratedNFTsData', 'high');
       return null;
     }
   }
 
-  private async fetchCollectionData(slug: string, headers: any): Promise<any> {
-    const response = await fetch(
-      `https://api.opensea.io/api/v2/collections/${slug}/stats`,
-      { headers, signal: AbortSignal.timeout(10000) }
-    );
+  /**
+   * Fetch enhanced collection data from OpenSea API
+   */
+  private async fetchEnhancedCollectionData(
+    collectionSlug: string, 
+    headers: any
+  ): Promise<NFTCollectionData | null> {
+    try {
+      const baseUrl = this.configService.get('apis.opensea.baseUrl', 'https://api.opensea.io/api/v1');
+      
+      // Fetch collection info
+      const collectionResponse = await axios.get(`${baseUrl}/collection/${collectionSlug}`, { headers });
+      const collectionInfo = collectionResponse.data.collection;
+
+      // Fetch collection stats
+      const statsResponse = await axios.get(`${baseUrl}/collection/${collectionSlug}/stats`, { headers });
+      const statsData = statsResponse.data.stats;
+
+      // Parse collection stats
+      const stats = this.parseCollectionStats(statsData);
+
+      // Determine category based on collection name and description
+      const category = this.determineCollectionCategory(collectionInfo);
+
+      return {
+        slug: collectionSlug,
+        collection: collectionInfo,
+        stats,
+        lastUpdated: new Date(),
+        category,
+        contractAddress: collectionInfo.primary_asset_contracts?.[0]?.address,
+        blockchain: collectionInfo.primary_asset_contracts?.[0]?.chain
+      };
+
+    } catch (error) {
+      this.errorHandler.handleError(error, `NFTDataService.fetchEnhancedCollectionData.${collectionSlug}`, 'medium');
+      return null;
+    }
+  }
+
+  /**
+   * Parse collection stats from API response
+   */
+  private parseCollectionStats(statsData: any): NFTCollectionStats {
+    return {
+      total_supply: statsData.total_supply || 0,
+      num_owners: statsData.num_owners || 0,
+      average_price: statsData.average_price || 0,
+      floor_price: statsData.floor_price || 0,
+      market_cap: statsData.market_cap || 0,
+      one_day_volume: statsData.one_day_volume || 0,
+      one_day_change: statsData.one_day_change || 0,
+      one_day_sales: statsData.one_day_sales || 0,
+      seven_day_volume: statsData.seven_day_volume || 0,
+      seven_day_change: statsData.seven_day_change || 0,
+      seven_day_sales: statsData.seven_day_sales || 0,
+      thirty_day_volume: statsData.thirty_day_volume || 0,
+      thirty_day_change: statsData.thirty_day_change || 0,
+      thirty_day_sales: statsData.thirty_day_sales || 0
+    };
+  }
+
+  /**
+   * Determine collection category based on metadata
+   */
+  private determineCollectionCategory(collectionInfo: any): 'blue-chip' | 'generative-art' | 'digital-art' | 'pfp' | 'utility' {
+    const name = collectionInfo.name?.toLowerCase() || '';
+    const description = collectionInfo.description?.toLowerCase() || '';
     
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    // Blue-chip collections
+    if (['bored ape yacht club', 'cryptopunks', 'azuki', 'clonex'].some(term => name.includes(term))) {
+      return 'blue-chip';
     }
     
-    const data = await response.json();
-    return {
-      collection: { name: slug },
-      stats: this.parseCollectionStats(data),
-      contractAddress: ''
-    };
+    // PFP collections
+    if (['pfp', 'profile picture', 'avatar'].some(term => description.includes(term))) {
+      return 'pfp';
+    }
+    
+    // Generative art
+    if (['generative', 'algorithmic', 'procedural'].some(term => description.includes(term))) {
+      return 'generative-art';
+    }
+    
+    // Utility collections
+    if (['utility', 'access', 'membership', 'governance'].some(term => description.includes(term))) {
+      return 'utility';
+    }
+    
+    // Default to digital art
+    return 'digital-art';
   }
 
-  private parseCollectionStats(statsData: any): NFTCollectionStats {
-    const stats = statsData?.total || {};
-    const intervals = statsData?.intervals || [];
-    
-    const oneDayInterval = intervals.find(i => i.interval === 'one_day');
-    
-    return {
-      total_supply: stats.total_supply || 0,
-      num_owners: stats.num_owners || 0,
-      average_price: stats.average_price || 0,
-      floor_price: stats.floor_price || 0,
-      market_cap: stats.market_cap || 0,
-      one_day_volume: oneDayInterval?.volume || 0,
-      one_day_change: oneDayInterval?.volume_change || 0,
-      one_day_sales: oneDayInterval?.sales || 0,
-      seven_day_volume: 0,
-      seven_day_change: 0,
-      seven_day_sales: 0,
-      thirty_day_volume: 0,
-      thirty_day_change: 0,
-      thirty_day_sales: 0
-    };
-  }
+  /**
+   * Calculate NFT summary statistics
+   */
+  private calculateNFTSummary(collections: NFTCollectionData[]): {
+    totalVolume24h: number;
+    totalMarketCap: number;
+    avgFloorPrice: number;
+    topPerformers: NFTCollectionData[];
+    worstPerformers: NFTCollectionData[];
+    totalCollections: number;
+  } {
+    const totalVolume24h = collections.reduce((sum, collection) => sum + collection.stats.one_day_volume, 0);
+    const totalMarketCap = collections.reduce((sum, collection) => sum + collection.stats.market_cap, 0);
+    const avgFloorPrice = collections.reduce((sum, collection) => sum + collection.stats.floor_price, 0) / collections.length;
 
-  private calculateNFTSummary(collections: NFTCollectionData[]): CuratedNFTsData['summary'] {
-    const totalVolume24h = collections.reduce((sum, c) => sum + c.stats.one_day_volume, 0);
-    const totalMarketCap = collections.reduce((sum, c) => sum + c.stats.market_cap, 0);
-    const avgFloorPrice = collections.length > 0 
-      ? collections.reduce((sum, c) => sum + c.stats.floor_price, 0) / collections.length 
-      : 0;
+    // Sort by 24h volume change for top/worst performers
+    const sortedByPerformance = [...collections].sort((a, b) => b.stats.one_day_change - a.stats.one_day_change);
+    const topPerformers = sortedByPerformance.slice(0, 3);
+    const worstPerformers = sortedByPerformance.slice(-3).reverse();
 
     return {
       totalVolume24h,
       totalMarketCap,
       avgFloorPrice,
-      topPerformers: collections.slice(0, 3),
-      worstPerformers: collections.slice(-3),
+      topPerformers,
+      worstPerformers,
       totalCollections: collections.length
     };
   }
 
-  // Required abstract method implementations
-  async updateData(): Promise<void> {
-    await this.updateCuratedNFTsData();
+  /**
+   * Get curated NFTs data
+   */
+  public getCuratedNFTsData(): CuratedNFTsData | null {
+    if (!this.curatedNFTsCache) {
+      this.contextLogger.warn('No curated NFTs data available');
+      return null;
+    }
+    return this.curatedNFTsCache.data;
   }
 
-  async forceUpdate(): Promise<void> {
-    // Clear cache to force fresh data
-    this.curatedNFTsCache = null;
+  /**
+   * Force update curated NFTs data
+   */
+  public async forceCuratedNFTsUpdate(): Promise<CuratedNFTsData | null> {
+    this.contextLogger.info('Forcing curated NFTs data update...');
+    this.curatedNFTsCache = null; // Invalidate cache
     await this.updateCuratedNFTsData();
+    return this.getCuratedNFTsData();
+  }
+
+  /**
+   * Get NFT collection by slug
+   */
+  public getNFTCollection(slug: string): NFTCollectionData | undefined {
+    const data = this.getCuratedNFTsData();
+    return data?.collections.find(collection => collection.slug === slug);
+  }
+
+  /**
+   * Get NFT collections by category
+   */
+  public getNFTCollectionsByCategory(category: string): NFTCollectionData[] {
+    const data = this.getCuratedNFTsData();
+    return data?.collections.filter(collection => collection.category === category) || [];
+  }
+
+  /**
+   * Get service statistics
+   */
+  public getStats(): {
+    cacheStatus: string;
+    lastUpdate: Date | null;
+    collectionsCount: number;
+    totalVolume24h: number;
+    cacheHitRate: number;
+  } {
+    const data = this.getCuratedNFTsData();
+    return {
+      cacheStatus: this.isCuratedNFTsCacheValid() ? 'valid' : 'expired',
+      lastUpdate: this.curatedNFTsCache?.timestamp ? new Date(this.curatedNFTsCache.timestamp) : null,
+      collectionsCount: data?.collections.length || 0,
+      totalVolume24h: data?.summary.totalVolume24h || 0,
+      cacheHitRate: this.isCuratedNFTsCacheValid() ? 100 : 0
+    };
   }
 } 
