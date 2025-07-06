@@ -171,12 +171,22 @@ export abstract class BaseDataService extends Service {
   protected backoffUntil = 0;
   
   // Enhanced rate limiting properties
-  protected adaptiveRateLimitDelay = 3000; // Start with 3s, will adapt
+  protected adaptiveRateLimitDelay = 15000; // Start with 15s, will adapt
   protected rateLimitHistory: number[] = []; // Track recent response times
   protected lastRateLimitReset = Date.now();
   protected rateLimitWindow = 60000; // 1 minute window
   protected requestsInWindow = 0;
-  protected maxRequestsPerWindow = 30; // Conservative limit for public API
+  protected maxRequestsPerWindow = 10; // Very conservative limit for public API
+  
+  // Circuit breaker for rate limiting
+  protected rateLimitCircuitBreaker = {
+    isOpen: false,
+    failureCount: 0,
+    lastFailureTime: 0,
+    openUntil: 0,
+    threshold: 3, // Open circuit after 3 consecutive rate limit errors
+    timeout: 300000, // 5 minutes timeout
+  };
 
   // Enhanced error handling and monitoring
   protected circuitBreaker: CircuitBreaker;
@@ -204,8 +214,8 @@ export abstract class BaseDataService extends Service {
     );
 
     // Initialize enhanced rate limiting
-    this.adaptiveRateLimitDelay = this.serviceConfig.rateLimitDelay || 3000;
-    this.maxRequestsPerWindow = this.serviceConfig.maxRequestsPerWindow || 30;
+    this.adaptiveRateLimitDelay = this.serviceConfig.rateLimitDelay || 15000;
+    this.maxRequestsPerWindow = this.serviceConfig.maxRequestsPerWindow || 10;
     this.rateLimitWindow = this.serviceConfig.rateLimitWindow || 60000;
 
     this.serviceHealth = {
@@ -380,6 +390,17 @@ export abstract class BaseDataService extends Service {
       );
     }
 
+    // Check if rate limit circuit breaker is open
+    if (this.isRateLimitCircuitOpen()) {
+      const remainingTime = this.rateLimitCircuitBreaker.openUntil - Date.now();
+      throw new DataServiceError(
+        `Rate limit circuit breaker is open, retry after ${Math.round(remainingTime)}ms`,
+        "RATE_LIMIT_CIRCUIT_OPEN",
+        true,
+        this.constructor.name,
+      );
+    }
+
     return new Promise((resolve, reject) => {
       const requestWrapper = async () => {
         const startTime = Date.now();
@@ -406,6 +427,7 @@ export abstract class BaseDataService extends Service {
           const responseTime = Date.now() - startTime;
           this.updateResponseTime(responseTime);
           this.updateAdaptiveRateLimit(responseTime, false);
+          this.recordRateLimitSuccess(); // Record success
 
           resolve(result);
         } catch (error) {
@@ -414,6 +436,11 @@ export abstract class BaseDataService extends Service {
           this.serviceHealth.lastFailureTime = Date.now();
           const responseTime = Date.now() - startTime;
           this.updateAdaptiveRateLimit(responseTime, true);
+
+          // Check if this is a rate limit error
+          if (error instanceof Error && error.message.includes('429')) {
+            this.recordRateLimitFailure();
+          }
 
           // Enhanced error logging with correlation
           elizaLogger.error(
@@ -551,21 +578,21 @@ export abstract class BaseDataService extends Service {
     }
 
     if (wasError) {
-      // Increase delay on errors
+      // Increase delay more aggressively on errors
       this.adaptiveRateLimitDelay = Math.min(
-        this.adaptiveRateLimitDelay * 1.5,
-        30000, // Max 30s
+        this.adaptiveRateLimitDelay * 2, // Double the delay on errors
+        120000, // Max 2 minutes
       );
       elizaLogger.warn(
         `[${this.constructor.name}:${this.correlationId}] Rate limit delay increased to ${this.adaptiveRateLimitDelay}ms due to error`,
       );
     } else {
-      // Gradually decrease delay on success
+      // Gradually decrease delay on success, but be more conservative
       const avgResponseTime = this.rateLimitHistory.reduce((a, b) => a + b, 0) / this.rateLimitHistory.length;
-      if (avgResponseTime < 1000 && this.adaptiveRateLimitDelay > 2000) {
+      if (avgResponseTime < 2000 && this.adaptiveRateLimitDelay > 10000) {
         this.adaptiveRateLimitDelay = Math.max(
-          this.adaptiveRateLimitDelay * 0.9,
-          2000, // Min 2s
+          this.adaptiveRateLimitDelay * 0.8, // Reduce by 20% on success
+          10000, // Min 10s for public API
         );
         elizaLogger.debug(
           `[${this.constructor.name}:${this.correlationId}] Rate limit delay decreased to ${this.adaptiveRateLimitDelay}ms`,
@@ -587,6 +614,51 @@ export abstract class BaseDataService extends Service {
    */
   private incrementRequestCount(): void {
     this.requestsInWindow++;
+  }
+
+  /**
+   * Check if rate limit circuit breaker is open
+   */
+  private isRateLimitCircuitOpen(): boolean {
+    if (!this.rateLimitCircuitBreaker.isOpen) {
+      return false;
+    }
+
+    // Check if timeout has passed
+    if (Date.now() > this.rateLimitCircuitBreaker.openUntil) {
+      this.rateLimitCircuitBreaker.isOpen = false;
+      this.rateLimitCircuitBreaker.failureCount = 0;
+      elizaLogger.info(
+        `[${this.constructor.name}:${this.correlationId}] Rate limit circuit breaker closed`,
+      );
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Record a rate limit failure
+   */
+  private recordRateLimitFailure(): void {
+    this.rateLimitCircuitBreaker.failureCount++;
+    this.rateLimitCircuitBreaker.lastFailureTime = Date.now();
+
+    if (this.rateLimitCircuitBreaker.failureCount >= this.rateLimitCircuitBreaker.threshold) {
+      this.rateLimitCircuitBreaker.isOpen = true;
+      this.rateLimitCircuitBreaker.openUntil = Date.now() + this.rateLimitCircuitBreaker.timeout;
+      elizaLogger.warn(
+        `[${this.constructor.name}:${this.correlationId}] Rate limit circuit breaker opened for ${this.rateLimitCircuitBreaker.timeout}ms`,
+      );
+    }
+  }
+
+  /**
+   * Record a successful request (reset circuit breaker)
+   */
+  private recordRateLimitSuccess(): void {
+    this.rateLimitCircuitBreaker.failureCount = 0;
+    this.rateLimitCircuitBreaker.isOpen = false;
   }
 
   // Abstract methods that must be implemented by subclasses

@@ -468,10 +468,10 @@ export class RealTimeDataService extends BaseDataService {
     const coingeckoApiKey = this.runtime.getSetting("COINGECKO_API_KEY");
     if (!coingeckoApiKey || coingeckoApiKey.startsWith("REPLACE_WITH_YOUR_ACTUAL") || coingeckoApiKey.startsWith("your_")) {
       // Use very conservative rate limiting for public API
-      this.serviceConfig.rateLimitDelay = 5000; // 5 seconds between requests
-      this.serviceConfig.maxRequestsPerWindow = 20; // 20 requests per minute
+      this.serviceConfig.rateLimitDelay = 15000; // 15 seconds between requests
+      this.serviceConfig.maxRequestsPerWindow = 10; // 10 requests per minute
       this.serviceConfig.rateLimitWindow = 60000; // 1 minute window
-      console.log("[RealTimeDataService] Using public CoinGecko API with conservative rate limiting (5s delay, 20 req/min)");
+      console.log("[RealTimeDataService] Using public CoinGecko API with very conservative rate limiting (15s delay, 10 req/min)");
     } else {
       // Use standard rate limiting for pro API
       this.serviceConfig.rateLimitDelay = 2000; // 2 seconds between requests
@@ -2535,24 +2535,27 @@ export class RealTimeDataService extends BaseDataService {
    */
   private async handleRateLimitError(response: Response, context: string): Promise<void> {
     const retryAfter = response.headers.get('Retry-After');
-    let backoffTime = 30000; // Default 30s
+    let backoffTime = 60000; // Default 60s (increased from 30s)
 
     if (retryAfter) {
       // Parse Retry-After header (can be seconds or HTTP date)
       const retryAfterValue = parseInt(retryAfter);
       if (!isNaN(retryAfterValue)) {
         backoffTime = retryAfterValue * 1000;
+        // Add extra buffer for safety
+        backoffTime = Math.max(backoffTime, 30000); // Minimum 30s
       } else {
         // Try to parse as HTTP date
         const retryDate = new Date(retryAfter);
         if (!isNaN(retryDate.getTime())) {
           backoffTime = Math.max(0, retryDate.getTime() - Date.now());
+          backoffTime = Math.max(backoffTime, 30000); // Minimum 30s
         }
       }
     } else {
-      // Exponential backoff based on consecutive failures
-      const baseBackoff = Math.min(Math.pow(2, this.consecutiveFailures) * 5000, 300000);
-      const jitter = Math.random() * 10000; // 0-10s jitter
+      // More aggressive exponential backoff based on consecutive failures
+      const baseBackoff = Math.min(Math.pow(2, this.consecutiveFailures + 2) * 10000, 300000); // Start with 40s, max 5min
+      const jitter = Math.random() * 20000; // 0-20s jitter
       backoffTime = baseBackoff + jitter;
     }
 
@@ -2560,8 +2563,8 @@ export class RealTimeDataService extends BaseDataService {
       `[RealTimeDataService] Rate limited in ${context}, backing off for ${Math.round(backoffTime)}ms`,
     );
 
-    // Update adaptive rate limiting
-    this.adaptiveRateLimitDelay = Math.min(this.adaptiveRateLimitDelay * 2, 60000); // Max 60s
+    // Update adaptive rate limiting more aggressively for 429 errors
+    this.adaptiveRateLimitDelay = Math.min(this.adaptiveRateLimitDelay * 3, 180000); // Triple the delay, max 3 minutes
 
     await new Promise(resolve => setTimeout(resolve, backoffTime));
   }
