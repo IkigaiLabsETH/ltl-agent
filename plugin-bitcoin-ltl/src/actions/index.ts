@@ -23,6 +23,18 @@ import { bookingOptimizationAction } from "./bookingOptimizationAction";
 import { travelInsightsAction } from "./travelInsightsAction";
 import { enhancedKnowledgeSearchAction } from "./enhanced-knowledge-search";
 
+// Core Actions - Newly refactored
+import { helloWorldAction } from "./helloWorldAction";
+import { bitcoinAnalysisAction } from "./bitcoinAnalysisAction";
+import { bitcoinThesisStatusAction } from "./bitcoinThesisStatusAction";
+import { resetMemoryAction, checkMemoryHealthAction } from "./memoryManagementActions";
+import { sovereignLivingAction } from "./sovereignLivingAction";
+import { investmentStrategyAction } from "./investmentStrategyAction";
+import { validateEnvironmentAction } from "./validateEnvironmentAction";
+import { freedomMathematicsAction } from "./freedomMathematicsAction";
+import { altcoinBTCPerformanceAction } from "./altcoinBTCPerformanceAction";
+import { cryptoPriceLookupAction } from "./cryptoPriceLookupAction";
+
 // Core Actions
 export { morningBriefingAction };
 export { knowledgeDigestAction };
@@ -32,6 +44,19 @@ export { bitcoinPriceAction };
 export { altcoinPriceAction };
 export { weatherAction };
 export { enhancedKnowledgeSearchAction };
+
+// Newly refactored core actions
+export { helloWorldAction };
+export { bitcoinAnalysisAction };
+export { bitcoinThesisStatusAction };
+export { resetMemoryAction };
+export { checkMemoryHealthAction };
+export { sovereignLivingAction };
+export { investmentStrategyAction };
+export { validateEnvironmentAction };
+export { freedomMathematicsAction };
+export { altcoinBTCPerformanceAction };
+export { cryptoPriceLookupAction };
 
 // Market Analysis Actions
 export { curatedAltcoinsAction };
@@ -66,6 +91,74 @@ export interface ActionRegistryEntry {
 // Organized Action Registry
 export const actionRegistry: Record<string, ActionRegistryEntry> = {
   // Core Actions - High Priority
+  HELLO_WORLD: {
+    action: helloWorldAction,
+    category: "core",
+    priority: "high",
+    description: "Simple greeting action for testing and demonstration purposes",
+    tags: ["greeting", "hello", "introduction", "test"],
+    isCore: true,
+  },
+
+  BITCOIN_MARKET_ANALYSIS: {
+    action: bitcoinAnalysisAction,
+    category: "core",
+    priority: "high",
+    description: "Comprehensive Bitcoin market analysis including price, trends, and thesis progress",
+    tags: ["bitcoin", "analysis", "market", "thesis", "price"],
+    isCore: true,
+    dependencies: ["bitcoin-data-service"],
+  },
+
+  BITCOIN_THESIS_STATUS: {
+    action: bitcoinThesisStatusAction,
+    category: "core",
+    priority: "high",
+    description: "Detailed status update on the 100K BTC Holders wealth creation thesis",
+    tags: ["bitcoin", "thesis", "100k", "holders", "wealth"],
+    isCore: true,
+    dependencies: ["bitcoin-data-service"],
+  },
+
+  RESET_AGENT_MEMORY: {
+    action: resetMemoryAction,
+    category: "system",
+    priority: "high",
+    description: "Resets the agent's memory following ElizaOS best practices",
+    tags: ["memory", "reset", "database", "system"],
+    isCore: true,
+    dependencies: ["bitcoin-data-service"],
+  },
+
+  CHECK_MEMORY_HEALTH: {
+    action: checkMemoryHealthAction,
+    category: "system",
+    priority: "medium",
+    description: "Checks the health and status of the agent's memory system",
+    tags: ["memory", "health", "database", "system"],
+    isCore: true,
+    dependencies: ["bitcoin-data-service"],
+  },
+
+  SOVEREIGN_LIVING_ADVICE: {
+    action: sovereignLivingAction,
+    category: "lifestyle",
+    priority: "medium",
+    description: "Sovereign living advice including biohacking protocols, nutrition, and lifestyle optimization",
+    tags: ["sovereign", "biohacking", "health", "lifestyle", "nutrition"],
+    isCore: true,
+  },
+
+  INVESTMENT_STRATEGY_ADVICE: {
+    action: investmentStrategyAction,
+    category: "investment",
+    priority: "high",
+    description: "Bitcoin-focused investment strategy and portfolio optimization guidance",
+    tags: ["investment", "strategy", "portfolio", "bitcoin", "msty", "freedom"],
+    isCore: true,
+    dependencies: ["bitcoin-data-service"],
+  },
+
   MORNING_BRIEFING: {
     action: morningBriefingAction,
     category: "core",
@@ -198,8 +291,8 @@ export const actionRegistry: Record<string, ActionRegistryEntry> = {
     action: trendingCoinsAction,
     category: "market",
     priority: "medium",
-    description: "Trending cryptocurrency identification and analysis",
-    tags: ["trending", "coins", "momentum", "analysis"],
+    description: "Trending cryptocurrency analysis and insights",
+    tags: ["trending", "crypto", "analysis", "market"],
     dependencies: ["real-time-data-service"],
   },
 
@@ -207,8 +300,8 @@ export const actionRegistry: Record<string, ActionRegistryEntry> = {
     action: stockMarketAction,
     category: "market",
     priority: "medium",
-    description: "Stock market analysis and watchlist monitoring",
-    tags: ["stocks", "market", "watchlist", "analysis"],
+    description: "Stock market data and analysis",
+    tags: ["stocks", "market", "analysis", "equities"],
     dependencies: ["stock-data-service"],
   },
 
@@ -216,60 +309,60 @@ export const actionRegistry: Record<string, ActionRegistryEntry> = {
     action: etfFlowAction,
     category: "market",
     priority: "medium",
-    description: "ETF flow tracking and analysis",
-    tags: ["etf", "flows", "institutional", "analysis"],
-    dependencies: ["etf-service"],
+    description: "ETF flow analysis and institutional movement tracking",
+    tags: ["etf", "flow", "institutional", "analysis"],
+    dependencies: ["etf-data-service"],
   },
 
   // NFT Actions
   CURATED_NFTS: {
     action: curatedNFTsAction,
     category: "nft",
-    priority: "low",
+    priority: "medium",
     description: "Curated NFT collections and market analysis",
-    tags: ["nft", "collections", "curation", "analysis"],
-    dependencies: ["nft-service"],
+    tags: ["nft", "collections", "curation", "market"],
+    dependencies: ["nft-data-service"],
   },
 
-  // Travel Actions
+  // Travel & Booking Actions
   HOTEL_SEARCH: {
     action: hotelSearchAction,
     category: "travel",
-    priority: "low",
-    description: "Hotel search and booking optimization",
+    priority: "medium",
+    description: "Hotel search and booking assistance",
     tags: ["hotel", "search", "booking", "travel"],
-    dependencies: ["travel-service"],
+    dependencies: ["travel-data-service"],
   },
 
   HOTEL_DEAL_ALERT: {
     action: hotelDealAlertAction,
     category: "travel",
-    priority: "low",
-    description: "Hotel deal alerts and notifications",
+    priority: "medium",
+    description: "Hotel deal alerts and price monitoring",
     tags: ["hotel", "deals", "alerts", "travel"],
-    dependencies: ["travel-service"],
+    dependencies: ["travel-data-service"],
   },
 
   BOOKING_OPTIMIZATION: {
     action: bookingOptimizationAction,
     category: "travel",
-    priority: "low",
+    priority: "medium",
     description: "Travel booking optimization and recommendations",
     tags: ["booking", "optimization", "travel", "recommendations"],
-    dependencies: ["travel-service"],
+    dependencies: ["travel-data-service"],
   },
 
   TRAVEL_INSIGHTS: {
     action: travelInsightsAction,
     category: "travel",
-    priority: "low",
-    description: "Travel insights and destination recommendations",
-    tags: ["travel", "insights", "destinations", "recommendations"],
-    dependencies: ["travel-service"],
+    priority: "medium",
+    description: "Travel insights and destination analysis",
+    tags: ["travel", "insights", "destinations", "analysis"],
+    dependencies: ["travel-data-service"],
   },
 };
 
-// Helper functions
+// Utility functions for action management
 export const getActionsByCategory = (
   category: string,
 ): ActionRegistryEntry[] => {
