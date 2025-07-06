@@ -513,10 +513,16 @@ export class ComprehensiveErrorHandler {
       constructor: error.constructor.name,
     };
 
-    // Extract additional properties
+    // Extract additional properties safely
     Object.getOwnPropertyNames(error).forEach((prop) => {
       if (prop !== "name" && prop !== "message" && prop !== "stack") {
-        metadata[prop] = (error as any)[prop];
+        try {
+          const value = (error as any)[prop];
+          // Safely serialize the value to avoid circular references
+          metadata[prop] = this.safeSerializeObject(value);
+        } catch (accessError) {
+          metadata[prop] = '[Error accessing property]';
+        }
       }
     });
 
@@ -542,20 +548,69 @@ export class ComprehensiveErrorHandler {
       metadata: error.metadata,
     };
 
+    // Safely serialize the log data to avoid circular references
+    const safeLogData = this.safeSerializeObject(logData);
+
     switch (error.severity) {
       case ErrorSeverity.CRITICAL:
-        this.logger.error(`CRITICAL ERROR: ${error.message}`, logData);
+        this.logger.error(`CRITICAL ERROR: ${error.message}`, safeLogData);
         break;
       case ErrorSeverity.HIGH:
-        this.logger.error(`HIGH SEVERITY ERROR: ${error.message}`, logData);
+        this.logger.error(`HIGH SEVERITY ERROR: ${error.message}`, safeLogData);
         break;
       case ErrorSeverity.MEDIUM:
-        this.logger.warn(`MEDIUM SEVERITY ERROR: ${error.message}`, logData);
+        this.logger.warn(`MEDIUM SEVERITY ERROR: ${error.message}`, safeLogData);
         break;
       case ErrorSeverity.LOW:
-        this.logger.info(`LOW SEVERITY ERROR: ${error.message}`, logData);
+        this.logger.info(`LOW SEVERITY ERROR: ${error.message}`, safeLogData);
         break;
     }
+  }
+
+  /**
+   * Safely serialize an object to avoid circular references
+   */
+  private safeSerializeObject(obj: any): any {
+    try {
+      // Try to serialize and deserialize to detect circular references
+      JSON.stringify(obj);
+      return obj;
+    } catch (error) {
+      // If serialization fails, create a safe version
+      return this.removeCircularReferences(obj);
+    }
+  }
+
+  /**
+   * Remove circular references from an object
+   */
+  private removeCircularReferences(obj: any, seen = new WeakSet()): any {
+    if (obj === null || typeof obj !== 'object') {
+      return obj;
+    }
+
+    if (seen.has(obj)) {
+      return '[Circular Reference]';
+    }
+
+    seen.add(obj);
+
+    if (Array.isArray(obj)) {
+      return obj.map(item => this.removeCircularReferences(item, seen));
+    }
+
+    const result: any = {};
+    for (const key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        try {
+          result[key] = this.removeCircularReferences(obj[key], seen);
+        } catch (error) {
+          result[key] = '[Error accessing property]';
+        }
+      }
+    }
+
+    return result;
   }
 
   /**

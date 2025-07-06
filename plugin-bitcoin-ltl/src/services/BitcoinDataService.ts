@@ -87,7 +87,7 @@ export class BitcoinDataService extends BaseDataService {
         "[BitcoinDataService] Data update completed successfully",
       );
     } catch (error) {
-      elizaLogger.error("[BitcoinDataService] Error updating data:", error);
+      elizaLogger.error("[BitcoinDataService] Error updating data:", error instanceof Error ? error.message : String(error));
     }
   }
 
@@ -121,7 +121,7 @@ export class BitcoinDataService extends BaseDataService {
       );
       return result;
     } catch (error) {
-      elizaLogger.error("[BitcoinDataService] Error in force update:", error);
+      elizaLogger.error("[BitcoinDataService] Error in force update:", error instanceof Error ? error.message : String(error));
       throw error;
     }
   }

@@ -337,7 +337,7 @@ export class AltcoinDataService extends BaseDataService {
     try {
       this.marketData = await this.fetchMarketData();
     } catch (error) {
-      logger.error("Error updating market data:", error);
+      logger.error("Error updating market data:", error instanceof Error ? error.message : String(error));
     }
   }
 
@@ -506,7 +506,7 @@ export class AltcoinDataService extends BaseDataService {
 
       return [...marketData, ...stockData];
     } catch (error) {
-      logger.error("Error fetching market data:", error);
+      logger.error("Error fetching market data:", error instanceof Error ? error.message : String(error));
       return this.getFallbackMarketData();
     }
   }
@@ -568,7 +568,7 @@ export class AltcoinDataService extends BaseDataService {
             source: "Alpha Vantage",
           };
         } catch (error) {
-          logger.error(`Error fetching data for ${symbol}:`, error);
+          logger.error(`Error fetching data for ${symbol}:`, error instanceof Error ? error.message : String(error));
           return null;
         }
       });
@@ -576,7 +576,7 @@ export class AltcoinDataService extends BaseDataService {
       const results = await Promise.all(stockPromises);
       return results.filter(Boolean) as MarketData[];
     } catch (error) {
-      logger.error("Error fetching stock data:", error);
+      logger.error("Error fetching stock data:", error instanceof Error ? error.message : String(error));
       return this.getFallbackStockData();
     }
   }
@@ -626,7 +626,7 @@ export class AltcoinDataService extends BaseDataService {
       );
       return result;
     } catch (error) {
-      logger.error("Error fetching curated altcoins data:", error);
+      logger.error("Error fetching curated altcoins data:", error instanceof Error ? error.message : String(error));
       logger.info("[AltcoinDataService] Using fallback curated altcoins data");
       return this.getFallbackCuratedAltcoinsData();
     }
@@ -804,7 +804,6 @@ export class AltcoinDataService extends BaseDataService {
         error: error instanceof Error ? error.message : "Unknown error",
         stack: error instanceof Error ? error.stack : undefined,
         type: typeof error,
-        details: error,
       });
       return null;
     }
@@ -922,7 +921,7 @@ export class AltcoinDataService extends BaseDataService {
       );
       return result;
     } catch (error) {
-      logger.error("Error in fetchDexScreenerData:", error);
+      logger.error("Error in fetchDexScreenerData:", error instanceof Error ? error.message : String(error));
       return null;
     }
   }
@@ -999,7 +998,7 @@ export class AltcoinDataService extends BaseDataService {
       );
       return result;
     } catch (error) {
-      logger.error("Error in fetchTopMoversData:", error);
+      logger.error("Error in fetchTopMoversData:", error instanceof Error ? error.message : String(error));
       logger.info("[AltcoinDataService] Using fallback top movers data");
       return this.getFallbackTopMoversData();
     }
@@ -1051,7 +1050,7 @@ export class AltcoinDataService extends BaseDataService {
       );
       return result;
     } catch (error) {
-      logger.error("Error in fetchTrendingCoinsData:", error);
+      logger.error("Error in fetchTrendingCoinsData:", error instanceof Error ? error.message : String(error));
       logger.info("[AltcoinDataService] Using fallback trending coins data");
       return this.getFallbackTrendingCoinsData();
     }
