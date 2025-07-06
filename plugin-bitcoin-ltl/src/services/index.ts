@@ -56,3 +56,6 @@ export { ConfigurationService } from "./ConfigurationService";
 
 // Phase 3: Knowledge Base Integration
 export { KnowledgeBaseService } from "./KnowledgeBaseService";
+
+// Phase 4: Advanced Intelligence
+export { AdvancedMarketIntelligenceService } from "./AdvancedMarketIntelligenceService";

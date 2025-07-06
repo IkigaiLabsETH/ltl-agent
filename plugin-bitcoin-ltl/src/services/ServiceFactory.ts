@@ -22,6 +22,7 @@ import { MarketIntelligenceService } from "./MarketIntelligenceService";
 import { InstitutionalAdoptionService } from "./InstitutionalAdoptionService";
 import { ConfigurationService } from "./ConfigurationService";
 import { KnowledgeBaseService } from "./KnowledgeBaseService";
+import { AdvancedMarketIntelligenceService } from "./AdvancedMarketIntelligenceService";
 
 // Pretty formatting
 import { 
@@ -96,6 +97,7 @@ export class ServiceFactory {
         MarketIntelligenceService,
         InstitutionalAdoptionService,
         KnowledgeBaseService,
+        AdvancedMarketIntelligenceService,
 
         // Market data services
         StockDataService,

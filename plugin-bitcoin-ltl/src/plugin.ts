@@ -74,6 +74,8 @@ import {
   cryptoPriceLookupAction,
   bitcoinMorningBriefingAction,
   bitcoinKnowledgeAction,
+  satoshiReasoningAction,
+  advancedSatoshiReasoningAction,
 } from "./actions";
 
 // Import culinary actions from individual files
@@ -221,6 +223,12 @@ const bitcoinPlugin: Plugin = {
     // New Bitcoin Intelligence Actions (Phase 2 & 3)
     bitcoinMorningBriefingAction,
     bitcoinKnowledgeAction,
+    
+    // Phase 4: Satoshi Reasoning
+    satoshiReasoningAction,
+    
+    // Phase 4.5: Advanced Intelligence
+    advancedSatoshiReasoningAction,
   ],
 
   events: {
