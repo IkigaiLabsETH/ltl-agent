@@ -623,10 +623,16 @@ export class RealTimeDataService extends BaseDataService {
           btc7d = btcCoin.price_change_percentage_7d_in_currency || 0;
           btc30d = btcCoin.price_change_percentage_30d_in_currency || 0;
         }
-        let summary = `\n₿ BITCOIN PERFORMANCE:`;
-        summary += `\n• 24h: ${btc24h > 0 ? "+" : ""}${btc24h.toFixed(2)}%`;
-        summary += `\n• 7d: ${btc7d > 0 ? "+" : ""}${btc7d.toFixed(2)}%`;
-        summary += `\n• 30d: ${btc30d > 0 ? "+" : ""}${btc30d.toFixed(2)}%`;
+        
+        // Only show Bitcoin performance if we have meaningful data
+        let summary = "";
+        if (btc24h !== 0 || btc7d !== 0 || btc30d !== 0) {
+          summary += `\n₿ BITCOIN PERFORMANCE:`;
+          summary += `\n• 24h: ${btc24h > 0 ? "+" : ""}${btc24h.toFixed(2)}%`;
+          summary += `\n• 7d: ${btc7d > 0 ? "+" : ""}${btc7d.toFixed(2)}%`;
+          summary += `\n• 30d: ${btc30d > 0 ? "+" : ""}${btc30d.toFixed(2)}%`;
+        }
+        
         // 24h Outperformers
         const top24h = [...data.outperforming]
           .filter(
@@ -684,7 +690,11 @@ export class RealTimeDataService extends BaseDataService {
             summary += `\n${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFixed(2)}% (vs BTC ${btc30d > 0 ? "+" : ""}${btc30d.toFixed(2)}%, +${coin.btc_relative_performance_30d?.toFixed(2)}% better)`;
           });
         }
-        console.log(summary + "\n");
+        
+        // Only log if we have meaningful content
+        if (summary.trim()) {
+          console.log(summary + "\n");
+        }
       }
 
       console.log("[RealTimeDataService] ✅ Data update cycle completed");
