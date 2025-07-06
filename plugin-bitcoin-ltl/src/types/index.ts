@@ -192,7 +192,7 @@ export interface ETFMarketData {
 }
 
 // Market data types
-export * from './marketTypes';
+export * from "./marketTypes";
 
 // Error types and handling
-export * from './errorTypes'; 
+export * from "./errorTypes";

@@ -1,8 +1,12 @@
-import { IAgentRuntime, elizaLogger } from '@elizaos/core';
-import { BaseDataService } from './BaseDataService';
-import { LoggerWithContext, generateCorrelationId, ComprehensiveErrorHandler } from '../utils';
-import { CentralizedConfigService } from './CentralizedConfigService';
-import axios from 'axios';
+import { IAgentRuntime, elizaLogger } from "@elizaos/core";
+import { BaseDataService } from "./BaseDataService";
+import {
+  LoggerWithContext,
+  generateCorrelationId,
+  ComprehensiveErrorHandler,
+} from "../utils";
+import { CentralizedConfigService } from "./CentralizedConfigService";
+import axios from "axios";
 
 /**
  * NFT Collection Statistics Interface
@@ -75,7 +79,7 @@ export interface NFTCollectionData {
   collection: NFTCollection;
   stats: NFTCollectionStats;
   lastUpdated: Date;
-  category: 'blue-chip' | 'generative-art' | 'digital-art' | 'pfp' | 'utility';
+  category: "blue-chip" | "generative-art" | "digital-art" | "pfp" | "utility";
   floorItems?: NFTFloorItem[];
   recentSales?: NFTSaleEvent[];
   contractAddress?: string;
@@ -109,7 +113,7 @@ export interface NFTSaleEvent {
   seller: string;
   transaction_hash: string;
   timestamp: string;
-  event_type: 'sale' | 'transfer' | 'mint';
+  event_type: "sale" | "transfer" | "mint";
 }
 
 /**
@@ -151,69 +155,75 @@ export interface CuratedNFTsCache {
  * Handles all NFT-related data fetching, caching, and analysis
  */
 export class NFTDataService extends BaseDataService {
-  static serviceType = 'nft-data';
-  
+  static serviceType = "nft-data";
+
   private contextLogger: LoggerWithContext;
   private configService: CentralizedConfigService;
   private errorHandler: ComprehensiveErrorHandler;
   private updateInterval: NodeJS.Timeout | null = null;
-  
+
   // Cache management
   private curatedNFTsCache: CuratedNFTsCache | null = null;
   private readonly CURATED_NFTS_CACHE_DURATION = 60 * 1000; // 1 minute
-  
+
   // Curated NFT collections
   private readonly curatedNFTCollections = [
-    'bored-ape-yacht-club',
-    'cryptopunks',
-    'doodles-official',
-    'azuki',
-    'clonex',
-    'meebits',
-    'world-of-women-nft',
-    'cool-cats-nft',
-    'veefriends',
-    'loot-for-adventurers'
+    "bored-ape-yacht-club",
+    "cryptopunks",
+    "doodles-official",
+    "azuki",
+    "clonex",
+    "meebits",
+    "world-of-women-nft",
+    "cool-cats-nft",
+    "veefriends",
+    "loot-for-adventurers",
   ];
 
   constructor(runtime: IAgentRuntime) {
-    super(runtime, 'nftData');
-    this.contextLogger = new LoggerWithContext(generateCorrelationId(), 'NFTDataService');
-    this.configService = runtime.getService<CentralizedConfigService>('centralized-config');
-    this.errorHandler = runtime.getService<ComprehensiveErrorHandler>('comprehensive-error-handler');
+    super(runtime, "nftData");
+    this.contextLogger = new LoggerWithContext(
+      generateCorrelationId(),
+      "NFTDataService",
+    );
+    this.configService =
+      runtime.getService<CentralizedConfigService>("centralized-config");
+    this.errorHandler = runtime.getService<ComprehensiveErrorHandler>(
+      "comprehensive-error-handler",
+    );
   }
 
   public get capabilityDescription(): string {
-    return 'Provides comprehensive NFT market data, collection analytics, and curated insights for top NFT collections';
+    return "Provides comprehensive NFT market data, collection analytics, and curated insights for top NFT collections";
   }
 
   static async start(runtime: IAgentRuntime) {
-    elizaLogger.info('Starting NFTDataService...');
+    elizaLogger.info("Starting NFTDataService...");
     const service = new NFTDataService(runtime);
     await service.init();
     return service;
   }
 
   static async stop(runtime: IAgentRuntime) {
-    elizaLogger.info('Stopping NFTDataService...');
-    const service = runtime.getService('nft-data') as unknown as NFTDataService;
+    elizaLogger.info("Stopping NFTDataService...");
+    const service = runtime.getService("nft-data") as unknown as NFTDataService;
     if (service) {
       await service.stop();
     }
   }
 
   async start(): Promise<void> {
-    this.contextLogger.info('Starting NFT data service...');
+    this.contextLogger.info("Starting NFT data service...");
     await this.startRealTimeUpdates();
   }
 
   async init() {
-    this.contextLogger.info('Initializing NFT data service...');
+    this.contextLogger.info("Initializing NFT data service...");
     await this.updateData();
   }
 
   async stop(): Promise<void> {
-    this.contextLogger.info('Stopping NFT data service...');
+    this.contextLogger.info("Stopping NFT data service...");
     if (this.updateInterval) {
       clearInterval(this.updateInterval);
       this.updateInterval = null;
@@ -222,16 +232,20 @@ export class NFTDataService extends BaseDataService {
 
   async updateData(): Promise<void> {
     try {
-      this.contextLogger.info('Updating NFT data...');
+      this.contextLogger.info("Updating NFT data...");
       await this.updateCuratedNFTsData();
-      this.contextLogger.info('NFT data update completed');
+      this.contextLogger.info("NFT data update completed");
     } catch (error) {
-      this.errorHandler.handleError(error, 'NFTDataService.updateData', 'critical');
+      this.errorHandler.handleError(
+        error,
+        "NFTDataService.updateData",
+        "critical",
+      );
     }
   }
 
   async forceUpdate(): Promise<void> {
-    this.contextLogger.info('Forcing NFT data update...');
+    this.contextLogger.info("Forcing NFT data update...");
     await this.updateData();
   }
 
@@ -239,17 +253,26 @@ export class NFTDataService extends BaseDataService {
    * Start real-time updates for NFT data
    */
   private async startRealTimeUpdates(): Promise<void> {
-    const updateInterval = this.configService.get('services.nftData.updateInterval', 300000); // 5 minutes
-    
+    const updateInterval = this.configService.get(
+      "services.nftData.updateInterval",
+      300000,
+    ); // 5 minutes
+
     this.updateInterval = setInterval(async () => {
       try {
         await this.updateData();
       } catch (error) {
-        this.errorHandler.handleError(error, 'NFTDataService.startRealTimeUpdates', 'high');
+        this.errorHandler.handleError(
+          error,
+          "NFTDataService.startRealTimeUpdates",
+          "high",
+        );
       }
     }, updateInterval);
 
-    this.contextLogger.info(`NFT data updates scheduled every ${updateInterval}ms`);
+    this.contextLogger.info(
+      `NFT data updates scheduled every ${updateInterval}ms`,
+    );
   }
 
   /**
@@ -257,7 +280,7 @@ export class NFTDataService extends BaseDataService {
    */
   private async updateCuratedNFTsData(): Promise<void> {
     if (this.isCuratedNFTsCacheValid()) {
-      this.contextLogger.debug('Using cached curated NFTs data');
+      this.contextLogger.debug("Using cached curated NFTs data");
       return;
     }
 
@@ -266,12 +289,16 @@ export class NFTDataService extends BaseDataService {
       if (data) {
         this.curatedNFTsCache = {
           data,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         };
-        this.contextLogger.info('Curated NFTs data updated successfully');
+        this.contextLogger.info("Curated NFTs data updated successfully");
       }
     } catch (error) {
-      this.errorHandler.handleError(error, 'NFTDataService.updateCuratedNFTsData', 'high');
+      this.errorHandler.handleError(
+        error,
+        "NFTDataService.updateCuratedNFTsData",
+        "high",
+      );
     }
   }
 
@@ -280,7 +307,10 @@ export class NFTDataService extends BaseDataService {
    */
   private isCuratedNFTsCacheValid(): boolean {
     if (!this.curatedNFTsCache) return false;
-    return Date.now() - this.curatedNFTsCache.timestamp < this.CURATED_NFTS_CACHE_DURATION;
+    return (
+      Date.now() - this.curatedNFTsCache.timestamp <
+      this.CURATED_NFTS_CACHE_DURATION
+    );
   }
 
   /**
@@ -288,28 +318,35 @@ export class NFTDataService extends BaseDataService {
    */
   private async fetchCuratedNFTsData(): Promise<CuratedNFTsData | null> {
     try {
-      this.contextLogger.info('Fetching curated NFTs data...');
-      
+      this.contextLogger.info("Fetching curated NFTs data...");
+
       const collections: NFTCollectionData[] = [];
       const headers = {
-        'X-API-KEY': this.configService.get('apis.opensea.apiKey', ''),
-        'Accept': 'application/json'
+        "X-API-KEY": this.configService.get("apis.opensea.apiKey", ""),
+        Accept: "application/json",
       };
 
       // Fetch data for each curated collection
       for (const collectionSlug of this.curatedNFTCollections) {
         try {
-          const collectionData = await this.fetchEnhancedCollectionData(collectionSlug, headers);
+          const collectionData = await this.fetchEnhancedCollectionData(
+            collectionSlug,
+            headers,
+          );
           if (collectionData) {
             collections.push(collectionData);
           }
         } catch (error) {
-          this.errorHandler.handleError(error, `NFTDataService.fetchCuratedNFTsData.${collectionSlug}`, 'medium');
+          this.errorHandler.handleError(
+            error,
+            `NFTDataService.fetchCuratedNFTsData.${collectionSlug}`,
+            "medium",
+          );
         }
       }
 
       if (collections.length === 0) {
-        this.contextLogger.warn('No NFT collections data available');
+        this.contextLogger.warn("No NFT collections data available");
         return null;
       }
 
@@ -318,11 +355,14 @@ export class NFTDataService extends BaseDataService {
       return {
         collections,
         summary,
-        lastUpdated: new Date()
+        lastUpdated: new Date(),
       };
-
     } catch (error) {
-      this.errorHandler.handleError(error, 'NFTDataService.fetchCuratedNFTsData', 'high');
+      this.errorHandler.handleError(
+        error,
+        "NFTDataService.fetchCuratedNFTsData",
+        "high",
+      );
       return null;
     }
   }
@@ -331,18 +371,27 @@ export class NFTDataService extends BaseDataService {
    * Fetch enhanced collection data from OpenSea API
    */
   private async fetchEnhancedCollectionData(
-    collectionSlug: string, 
-    headers: any
+    collectionSlug: string,
+    headers: any,
   ): Promise<NFTCollectionData | null> {
     try {
-      const baseUrl = this.configService.get('apis.opensea.baseUrl', 'https://api.opensea.io/api/v1');
-      
+      const baseUrl = this.configService.get(
+        "apis.opensea.baseUrl",
+        "https://api.opensea.io/api/v1",
+      );
+
       // Fetch collection info
-      const collectionResponse = await axios.get(`${baseUrl}/collection/${collectionSlug}`, { headers });
+      const collectionResponse = await axios.get(
+        `${baseUrl}/collection/${collectionSlug}`,
+        { headers },
+      );
       const collectionInfo = collectionResponse.data.collection;
 
       // Fetch collection stats
-      const statsResponse = await axios.get(`${baseUrl}/collection/${collectionSlug}/stats`, { headers });
+      const statsResponse = await axios.get(
+        `${baseUrl}/collection/${collectionSlug}/stats`,
+        { headers },
+      );
       const statsData = statsResponse.data.stats;
 
       // Parse collection stats
@@ -358,11 +407,14 @@ export class NFTDataService extends BaseDataService {
         lastUpdated: new Date(),
         category,
         contractAddress: collectionInfo.primary_asset_contracts?.[0]?.address,
-        blockchain: collectionInfo.primary_asset_contracts?.[0]?.chain
+        blockchain: collectionInfo.primary_asset_contracts?.[0]?.chain,
       };
-
     } catch (error) {
-      this.errorHandler.handleError(error, `NFTDataService.fetchEnhancedCollectionData.${collectionSlug}`, 'medium');
+      this.errorHandler.handleError(
+        error,
+        `NFTDataService.fetchEnhancedCollectionData.${collectionSlug}`,
+        "medium",
+      );
       return null;
     }
   }
@@ -385,39 +437,57 @@ export class NFTDataService extends BaseDataService {
       seven_day_sales: statsData.seven_day_sales || 0,
       thirty_day_volume: statsData.thirty_day_volume || 0,
       thirty_day_change: statsData.thirty_day_change || 0,
-      thirty_day_sales: statsData.thirty_day_sales || 0
+      thirty_day_sales: statsData.thirty_day_sales || 0,
     };
   }
 
   /**
    * Determine collection category based on metadata
    */
-  private determineCollectionCategory(collectionInfo: any): 'blue-chip' | 'generative-art' | 'digital-art' | 'pfp' | 'utility' {
-    const name = collectionInfo.name?.toLowerCase() || '';
-    const description = collectionInfo.description?.toLowerCase() || '';
-    
+  private determineCollectionCategory(
+    collectionInfo: any,
+  ): "blue-chip" | "generative-art" | "digital-art" | "pfp" | "utility" {
+    const name = collectionInfo.name?.toLowerCase() || "";
+    const description = collectionInfo.description?.toLowerCase() || "";
+
     // Blue-chip collections
-    if (['bored ape yacht club', 'cryptopunks', 'azuki', 'clonex'].some(term => name.includes(term))) {
-      return 'blue-chip';
+    if (
+      ["bored ape yacht club", "cryptopunks", "azuki", "clonex"].some((term) =>
+        name.includes(term),
+      )
+    ) {
+      return "blue-chip";
     }
-    
+
     // PFP collections
-    if (['pfp', 'profile picture', 'avatar'].some(term => description.includes(term))) {
-      return 'pfp';
+    if (
+      ["pfp", "profile picture", "avatar"].some((term) =>
+        description.includes(term),
+      )
+    ) {
+      return "pfp";
     }
-    
+
     // Generative art
-    if (['generative', 'algorithmic', 'procedural'].some(term => description.includes(term))) {
-      return 'generative-art';
+    if (
+      ["generative", "algorithmic", "procedural"].some((term) =>
+        description.includes(term),
+      )
+    ) {
+      return "generative-art";
     }
-    
+
     // Utility collections
-    if (['utility', 'access', 'membership', 'governance'].some(term => description.includes(term))) {
-      return 'utility';
+    if (
+      ["utility", "access", "membership", "governance"].some((term) =>
+        description.includes(term),
+      )
+    ) {
+      return "utility";
     }
-    
+
     // Default to digital art
-    return 'digital-art';
+    return "digital-art";
   }
 
   /**
@@ -431,12 +501,24 @@ export class NFTDataService extends BaseDataService {
     worstPerformers: NFTCollectionData[];
     totalCollections: number;
   } {
-    const totalVolume24h = collections.reduce((sum, collection) => sum + collection.stats.one_day_volume, 0);
-    const totalMarketCap = collections.reduce((sum, collection) => sum + collection.stats.market_cap, 0);
-    const avgFloorPrice = collections.reduce((sum, collection) => sum + collection.stats.floor_price, 0) / collections.length;
+    const totalVolume24h = collections.reduce(
+      (sum, collection) => sum + collection.stats.one_day_volume,
+      0,
+    );
+    const totalMarketCap = collections.reduce(
+      (sum, collection) => sum + collection.stats.market_cap,
+      0,
+    );
+    const avgFloorPrice =
+      collections.reduce(
+        (sum, collection) => sum + collection.stats.floor_price,
+        0,
+      ) / collections.length;
 
     // Sort by 24h volume change for top/worst performers
-    const sortedByPerformance = [...collections].sort((a, b) => b.stats.one_day_change - a.stats.one_day_change);
+    const sortedByPerformance = [...collections].sort(
+      (a, b) => b.stats.one_day_change - a.stats.one_day_change,
+    );
     const topPerformers = sortedByPerformance.slice(0, 3);
     const worstPerformers = sortedByPerformance.slice(-3).reverse();
 
@@ -446,7 +528,7 @@ export class NFTDataService extends BaseDataService {
       avgFloorPrice,
       topPerformers,
       worstPerformers,
-      totalCollections: collections.length
+      totalCollections: collections.length,
     };
   }
 
@@ -455,7 +537,7 @@ export class NFTDataService extends BaseDataService {
    */
   public getCuratedNFTsData(): CuratedNFTsData | null {
     if (!this.curatedNFTsCache) {
-      this.contextLogger.warn('No curated NFTs data available');
+      this.contextLogger.warn("No curated NFTs data available");
       return null;
     }
     return this.curatedNFTsCache.data;
@@ -465,7 +547,7 @@ export class NFTDataService extends BaseDataService {
    * Force update curated NFTs data
    */
   public async forceCuratedNFTsUpdate(): Promise<CuratedNFTsData | null> {
-    this.contextLogger.info('Forcing curated NFTs data update...');
+    this.contextLogger.info("Forcing curated NFTs data update...");
     this.curatedNFTsCache = null; // Invalidate cache
     await this.updateCuratedNFTsData();
     return this.getCuratedNFTsData();
@@ -476,7 +558,7 @@ export class NFTDataService extends BaseDataService {
    */
   public getNFTCollection(slug: string): NFTCollectionData | undefined {
     const data = this.getCuratedNFTsData();
-    return data?.collections.find(collection => collection.slug === slug);
+    return data?.collections.find((collection) => collection.slug === slug);
   }
 
   /**
@@ -484,7 +566,11 @@ export class NFTDataService extends BaseDataService {
    */
   public getNFTCollectionsByCategory(category: string): NFTCollectionData[] {
     const data = this.getCuratedNFTsData();
-    return data?.collections.filter(collection => collection.category === category) || [];
+    return (
+      data?.collections.filter(
+        (collection) => collection.category === category,
+      ) || []
+    );
   }
 
   /**
@@ -499,11 +585,13 @@ export class NFTDataService extends BaseDataService {
   } {
     const data = this.getCuratedNFTsData();
     return {
-      cacheStatus: this.isCuratedNFTsCacheValid() ? 'valid' : 'expired',
-      lastUpdate: this.curatedNFTsCache?.timestamp ? new Date(this.curatedNFTsCache.timestamp) : null,
+      cacheStatus: this.isCuratedNFTsCacheValid() ? "valid" : "expired",
+      lastUpdate: this.curatedNFTsCache?.timestamp
+        ? new Date(this.curatedNFTsCache.timestamp)
+        : null,
       collectionsCount: data?.collections.length || 0,
       totalVolume24h: data?.summary.totalVolume24h || 0,
-      cacheHitRate: this.isCuratedNFTsCacheValid() ? 100 : 0
+      cacheHitRate: this.isCuratedNFTsCacheValid() ? 100 : 0,
     };
   }
-} 
+}

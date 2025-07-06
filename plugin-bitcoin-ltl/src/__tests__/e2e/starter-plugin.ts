@@ -1,4 +1,4 @@
-import { type Content, type HandlerCallback } from '@elizaos/core';
+import { type Content, type HandlerCallback } from "@elizaos/core";
 
 /**
  * E2E (End-to-End) Test Suite for ElizaOS Plugins
@@ -90,8 +90,8 @@ interface State {
 }
 
 export const StarterPluginTestSuite: TestSuite = {
-  name: 'plugin_starter_test_suite',
-  description: 'E2E tests for the starter plugin',
+  name: "plugin_starter_test_suite",
+  description: "E2E tests for the starter plugin",
 
   tests: [
     /**
@@ -101,18 +101,18 @@ export const StarterPluginTestSuite: TestSuite = {
      * within the runtime environment.
      */
     {
-      name: 'example_test',
+      name: "example_test",
       fn: async (runtime) => {
         // Test the character name
-        if (runtime.character.name !== 'Eliza') {
+        if (runtime.character.name !== "Eliza") {
           throw new Error(
-            `Expected character name to be "Eliza" but got "${runtime.character.name}"`
+            `Expected character name to be "Eliza" but got "${runtime.character.name}"`,
           );
         }
         // Verify the plugin is loaded properly
-        const service = runtime.getService('starter');
+        const service = runtime.getService("starter");
         if (!service) {
-          throw new Error('Starter service not found');
+          throw new Error("Starter service not found");
         }
       },
     },
@@ -124,12 +124,14 @@ export const StarterPluginTestSuite: TestSuite = {
      * This is important to ensure actions are available for the agent to use.
      */
     {
-      name: 'should_have_hello_world_action',
+      name: "should_have_hello_world_action",
       fn: async (runtime) => {
         // Access actions through runtime.actions instead of getPlugin
-        const actionExists = runtime.actions?.some((a) => a.name === 'HELLO_WORLD');
+        const actionExists = runtime.actions?.some(
+          (a) => a.name === "HELLO_WORLD",
+        );
         if (!actionExists) {
-          throw new Error('Hello world action not found in runtime actions');
+          throw new Error("Hello world action not found in runtime actions");
         }
       },
     },
@@ -146,16 +148,16 @@ export const StarterPluginTestSuite: TestSuite = {
      * a user message and verify the agent's response.
      */
     {
-      name: 'hello_world_action_test',
+      name: "hello_world_action_test",
       fn: async (runtime) => {
         // Create a test message asking the agent to say hello
         const testMessage: Memory = {
-          entityId: '12345678-1234-1234-1234-123456789012' as UUID,
-          roomId: '12345678-1234-1234-1234-123456789012' as UUID,
+          entityId: "12345678-1234-1234-1234-123456789012" as UUID,
+          roomId: "12345678-1234-1234-1234-123456789012" as UUID,
           content: {
-            text: 'Can you say hello?',
-            source: 'test',
-            actions: ['HELLO_WORLD'], // Specify which action we expect to trigger
+            text: "Can you say hello?",
+            source: "test",
+            actions: ["HELLO_WORLD"], // Specify which action we expect to trigger
           },
         };
 
@@ -163,27 +165,29 @@ export const StarterPluginTestSuite: TestSuite = {
         const testState: State = {
           values: {},
           data: {},
-          text: '',
+          text: "",
         };
 
-        let responseText = '';
+        let responseText = "";
         let responseReceived = false;
 
         // Find the hello world action in runtime.actions
-        const helloWorldAction = runtime.actions?.find((a) => a.name === 'HELLO_WORLD');
+        const helloWorldAction = runtime.actions?.find(
+          (a) => a.name === "HELLO_WORLD",
+        );
         if (!helloWorldAction) {
-          throw new Error('Hello world action not found in runtime actions');
+          throw new Error("Hello world action not found in runtime actions");
         }
 
         // Create a callback that captures the agent's response
         // This simulates how the runtime would handle the action's response
         const callback: HandlerCallback = async (response: Content) => {
           responseReceived = true;
-          responseText = response.text || '';
+          responseText = response.text || "";
 
           // Verify the response includes the expected action
-          if (!response.actions?.includes('HELLO_WORLD')) {
-            throw new Error('Response did not include HELLO_WORLD action');
+          if (!response.actions?.includes("HELLO_WORLD")) {
+            throw new Error("Response did not include HELLO_WORLD action");
           }
 
           // Return Promise<Memory[]> as required by the HandlerCallback interface
@@ -191,16 +195,24 @@ export const StarterPluginTestSuite: TestSuite = {
         };
 
         // Execute the action - this simulates the runtime calling the action
-        await helloWorldAction.handler(runtime, testMessage, testState, {}, callback);
+        await helloWorldAction.handler(
+          runtime,
+          testMessage,
+          testState,
+          {},
+          callback,
+        );
 
         // Verify we received a response
         if (!responseReceived) {
-          throw new Error('Hello world action did not produce a response');
+          throw new Error("Hello world action did not produce a response");
         }
 
         // Verify the response contains "hello world" (case-insensitive)
-        if (!responseText.toLowerCase().includes('hello world')) {
-          throw new Error(`Expected response to contain "hello world" but got: "${responseText}"`);
+        if (!responseText.toLowerCase().includes("hello world")) {
+          throw new Error(
+            `Expected response to contain "hello world" but got: "${responseText}"`,
+          );
         }
 
         // Success! The agent responded with "hello world" as expected
@@ -214,15 +226,15 @@ export const StarterPluginTestSuite: TestSuite = {
      * Providers are used to fetch external data or compute values.
      */
     {
-      name: 'hello_world_provider_test',
+      name: "hello_world_provider_test",
       fn: async (runtime) => {
         // Create a test message
         const testMessage: Memory = {
-          entityId: '12345678-1234-1234-1234-123456789012' as UUID,
-          roomId: '12345678-1234-1234-1234-123456789012' as UUID,
+          entityId: "12345678-1234-1234-1234-123456789012" as UUID,
+          roomId: "12345678-1234-1234-1234-123456789012" as UUID,
           content: {
-            text: 'What can you provide?',
-            source: 'test',
+            text: "What can you provide?",
+            source: "test",
           },
         };
 
@@ -230,22 +242,30 @@ export const StarterPluginTestSuite: TestSuite = {
         const testState: State = {
           values: {},
           data: {},
-          text: '',
+          text: "",
         };
 
         // Find the hello world provider in runtime.providers
         const helloWorldProvider = runtime.providers?.find(
-          (p) => p.name === 'HELLO_WORLD_PROVIDER'
+          (p) => p.name === "HELLO_WORLD_PROVIDER",
         );
         if (!helloWorldProvider) {
-          throw new Error('Hello world provider not found in runtime providers');
+          throw new Error(
+            "Hello world provider not found in runtime providers",
+          );
         }
 
         // Test the provider
-        const result = await helloWorldProvider.get(runtime, testMessage, testState);
+        const result = await helloWorldProvider.get(
+          runtime,
+          testMessage,
+          testState,
+        );
 
-        if (result.text !== 'I am a provider') {
-          throw new Error(`Expected provider to return "I am a provider", got "${result.text}"`);
+        if (result.text !== "I am a provider") {
+          throw new Error(
+            `Expected provider to return "I am a provider", got "${result.text}"`,
+          );
         }
       },
     },
@@ -257,20 +277,20 @@ export const StarterPluginTestSuite: TestSuite = {
      * Services run background tasks or manage long-lived resources.
      */
     {
-      name: 'starter_service_test',
+      name: "starter_service_test",
       fn: async (runtime) => {
         // Get the service from the runtime
-        const service = runtime.getService('starter');
+        const service = runtime.getService("starter");
         if (!service) {
-          throw new Error('Starter service not found');
+          throw new Error("Starter service not found");
         }
 
         // Check service capability description
         if (
           service.capabilityDescription !==
-          'This is a starter service which is attached to the agent through the starter plugin.'
+          "This is a starter service which is attached to the agent through the starter plugin."
         ) {
-          throw new Error('Incorrect service capability description');
+          throw new Error("Incorrect service capability description");
         }
 
         // Test service stop method

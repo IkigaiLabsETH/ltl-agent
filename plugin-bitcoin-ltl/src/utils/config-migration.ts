@@ -1,5 +1,5 @@
-import { IAgentRuntime } from '@elizaos/core';
-import { CentralizedConfigService } from '../services/CentralizedConfigService';
+import { IAgentRuntime } from "@elizaos/core";
+import { CentralizedConfigService } from "../services/CentralizedConfigService";
 
 /**
  * Configuration Migration Utility
@@ -9,7 +9,8 @@ export class ConfigMigrationUtility {
   private configService: CentralizedConfigService;
 
   constructor(runtime: IAgentRuntime) {
-    this.configService = runtime.getService<CentralizedConfigService>('centralized-config');
+    this.configService =
+      runtime.getService<CentralizedConfigService>("centralized-config");
   }
 
   /**
@@ -17,10 +18,10 @@ export class ConfigMigrationUtility {
    * This allows gradual migration of services
    */
   getConfigWithFallback(
-    configPath: string, 
-    runtime: IAgentRuntime, 
-    runtimeKey: string, 
-    defaultValue?: any
+    configPath: string,
+    runtime: IAgentRuntime,
+    runtimeKey: string,
+    defaultValue?: any,
   ): any {
     try {
       // Try centralized config first
@@ -44,58 +45,137 @@ export class ConfigMigrationUtility {
   /**
    * Get API key with fallback
    */
-  getApiKey(apiName: string, runtime: IAgentRuntime, runtimeKey: string): string | undefined {
-    return this.getConfigWithFallback(`apis.${apiName}.apiKey`, runtime, runtimeKey);
+  getApiKey(
+    apiName: string,
+    runtime: IAgentRuntime,
+    runtimeKey: string,
+  ): string | undefined {
+    return this.getConfigWithFallback(
+      `apis.${apiName}.apiKey`,
+      runtime,
+      runtimeKey,
+    );
   }
 
   /**
    * Get API base URL with fallback
    */
-  getApiBaseUrl(apiName: string, runtime: IAgentRuntime, runtimeKey: string, defaultValue: string): string {
-    return this.getConfigWithFallback(`apis.${apiName}.baseUrl`, runtime, runtimeKey, defaultValue);
+  getApiBaseUrl(
+    apiName: string,
+    runtime: IAgentRuntime,
+    runtimeKey: string,
+    defaultValue: string,
+  ): string {
+    return this.getConfigWithFallback(
+      `apis.${apiName}.baseUrl`,
+      runtime,
+      runtimeKey,
+      defaultValue,
+    );
   }
 
   /**
    * Get service configuration with fallback
    */
-  getServiceConfig(serviceName: string, configKey: string, runtime: IAgentRuntime, runtimeKey: string, defaultValue: any): any {
-    return this.getConfigWithFallback(`services.${serviceName}.${configKey}`, runtime, runtimeKey, defaultValue);
+  getServiceConfig(
+    serviceName: string,
+    configKey: string,
+    runtime: IAgentRuntime,
+    runtimeKey: string,
+    defaultValue: any,
+  ): any {
+    return this.getConfigWithFallback(
+      `services.${serviceName}.${configKey}`,
+      runtime,
+      runtimeKey,
+      defaultValue,
+    );
   }
 
   /**
    * Get feature flag with fallback
    */
-  getFeatureFlag(featureName: string, runtime: IAgentRuntime, runtimeKey: string, defaultValue: boolean = false): boolean {
-    const value = this.getConfigWithFallback(`features.${featureName}`, runtime, runtimeKey, defaultValue);
-    return typeof value === 'string' ? value === 'true' : Boolean(value);
+  getFeatureFlag(
+    featureName: string,
+    runtime: IAgentRuntime,
+    runtimeKey: string,
+    defaultValue: boolean = false,
+  ): boolean {
+    const value = this.getConfigWithFallback(
+      `features.${featureName}`,
+      runtime,
+      runtimeKey,
+      defaultValue,
+    );
+    return typeof value === "string" ? value === "true" : Boolean(value);
   }
 
   /**
    * Get performance configuration with fallback
    */
-  getPerformanceConfig(configKey: string, runtime: IAgentRuntime, runtimeKey: string, defaultValue: any): any {
-    return this.getConfigWithFallback(`performance.${configKey}`, runtime, runtimeKey, defaultValue);
+  getPerformanceConfig(
+    configKey: string,
+    runtime: IAgentRuntime,
+    runtimeKey: string,
+    defaultValue: any,
+  ): any {
+    return this.getConfigWithFallback(
+      `performance.${configKey}`,
+      runtime,
+      runtimeKey,
+      defaultValue,
+    );
   }
 
   /**
    * Get security configuration with fallback
    */
-  getSecurityConfig(configKey: string, runtime: IAgentRuntime, runtimeKey: string, defaultValue: any): any {
-    return this.getConfigWithFallback(`security.${configKey}`, runtime, runtimeKey, defaultValue);
+  getSecurityConfig(
+    configKey: string,
+    runtime: IAgentRuntime,
+    runtimeKey: string,
+    defaultValue: any,
+  ): any {
+    return this.getConfigWithFallback(
+      `security.${configKey}`,
+      runtime,
+      runtimeKey,
+      defaultValue,
+    );
   }
 
   /**
    * Get caching configuration with fallback
    */
-  getCachingConfig(configKey: string, runtime: IAgentRuntime, runtimeKey: string, defaultValue: any): any {
-    return this.getConfigWithFallback(`caching.${configKey}`, runtime, runtimeKey, defaultValue);
+  getCachingConfig(
+    configKey: string,
+    runtime: IAgentRuntime,
+    runtimeKey: string,
+    defaultValue: any,
+  ): any {
+    return this.getConfigWithFallback(
+      `caching.${configKey}`,
+      runtime,
+      runtimeKey,
+      defaultValue,
+    );
   }
 
   /**
    * Get logging configuration with fallback
    */
-  getLoggingConfig(configKey: string, runtime: IAgentRuntime, runtimeKey: string, defaultValue: any): any {
-    return this.getConfigWithFallback(`logging.${configKey}`, runtime, runtimeKey, defaultValue);
+  getLoggingConfig(
+    configKey: string,
+    runtime: IAgentRuntime,
+    runtimeKey: string,
+    defaultValue: any,
+  ): any {
+    return this.getConfigWithFallback(
+      `logging.${configKey}`,
+      runtime,
+      runtimeKey,
+      defaultValue,
+    );
   }
 
   /**
@@ -109,67 +189,67 @@ export class ConfigMigrationUtility {
   } {
     const configPaths = [
       // API configurations
-      'apis.coingecko.apiKey',
-      'apis.coingecko.baseUrl',
-      'apis.blockchain.baseUrl',
-      'apis.mempool.baseUrl',
-      'apis.alternative.baseUrl',
-      'apis.news.apiKey',
-      'apis.news.baseUrl',
-      'apis.opensea.apiKey',
-      'apis.opensea.baseUrl',
-      'apis.twitter.apiKey',
-      'apis.twitter.baseUrl',
-      'apis.telegram.apiKey',
-      'apis.telegram.baseUrl',
-      'apis.discord.apiKey',
-      'apis.discord.baseUrl',
-      
+      "apis.coingecko.apiKey",
+      "apis.coingecko.baseUrl",
+      "apis.blockchain.baseUrl",
+      "apis.mempool.baseUrl",
+      "apis.alternative.baseUrl",
+      "apis.news.apiKey",
+      "apis.news.baseUrl",
+      "apis.opensea.apiKey",
+      "apis.opensea.baseUrl",
+      "apis.twitter.apiKey",
+      "apis.twitter.baseUrl",
+      "apis.telegram.apiKey",
+      "apis.telegram.baseUrl",
+      "apis.discord.apiKey",
+      "apis.discord.baseUrl",
+
       // Service configurations
-      'services.bitcoinNetwork.enabled',
-      'services.bitcoinNetwork.updateInterval',
-      'services.marketData.enabled',
-      'services.marketData.updateInterval',
-      'services.realTimeData.enabled',
-      'services.realTimeData.updateInterval',
-      'services.newsData.enabled',
-      'services.newsData.updateInterval',
-      'services.nftData.enabled',
-      'services.nftData.updateInterval',
-      'services.socialSentiment.enabled',
-      'services.socialSentiment.updateInterval',
-      
+      "services.bitcoinNetwork.enabled",
+      "services.bitcoinNetwork.updateInterval",
+      "services.marketData.enabled",
+      "services.marketData.updateInterval",
+      "services.realTimeData.enabled",
+      "services.realTimeData.updateInterval",
+      "services.newsData.enabled",
+      "services.newsData.updateInterval",
+      "services.nftData.enabled",
+      "services.nftData.updateInterval",
+      "services.socialSentiment.enabled",
+      "services.socialSentiment.updateInterval",
+
       // Feature flags
-      'features.enableRealTimeUpdates',
-      'features.enablePredictiveAnalytics',
-      'features.enableAdvancedCharts',
-      'features.enableNotifications',
-      'features.enableDataExport',
-      
+      "features.enableRealTimeUpdates",
+      "features.enablePredictiveAnalytics",
+      "features.enableAdvancedCharts",
+      "features.enableNotifications",
+      "features.enableDataExport",
+
       // Performance configurations
-      'performance.enableMetrics',
-      'performance.enableHealthChecks',
-      'performance.enableCircuitBreakers',
-      
+      "performance.enableMetrics",
+      "performance.enableHealthChecks",
+      "performance.enableCircuitBreakers",
+
       // Security configurations
-      'security.enableRateLimiting',
-      'security.enableRequestValidation',
-      
+      "security.enableRateLimiting",
+      "security.enableRequestValidation",
+
       // Caching configurations
-      'caching.enabled',
-      'caching.defaultTtl',
-      'caching.redis.enabled',
-      
+      "caching.enabled",
+      "caching.defaultTtl",
+      "caching.redis.enabled",
+
       // Logging configurations
-      'logging.level',
-      'logging.enableCorrelationIds',
-      'logging.enablePerformanceTracking'
+      "logging.level",
+      "logging.enableCorrelationIds",
+      "logging.enablePerformanceTracking",
     ];
 
     const migrated: string[] = [];
     const pending: string[] = [];
 
-    configPaths.forEach(path => {
+    configPaths.forEach((path) => {
       try {
         const value = this.configService.get(path);
         if (value !== undefined && value !== null) {
@@ -189,7 +269,7 @@ export class ConfigMigrationUtility {
       migrated,
       pending,
       total,
-      migrationPercentage
+      migrationPercentage,
     };
   }
 
@@ -198,7 +278,7 @@ export class ConfigMigrationUtility {
    */
   generateMigrationReport(): string {
     const status = this.validateMigrationStatus();
-    
+
     return `
 # Configuration Migration Report
 
@@ -209,17 +289,18 @@ export class ConfigMigrationUtility {
 - **Migration Percentage**: ${status.migrationPercentage.toFixed(1)}%
 
 ## Migrated Configurations
-${status.migrated.map(path => `- ✅ ${path}`).join('\n')}
+${status.migrated.map((path) => `- ✅ ${path}`).join("\n")}
 
 ## Pending Migrations
-${status.pending.map(path => `- ⏳ ${path}`).join('\n')}
+${status.pending.map((path) => `- ⏳ ${path}`).join("\n")}
 
 ## Recommendations
-${status.migrationPercentage >= 80 ? 
-  '🎉 Excellent progress! Most configurations are migrated.' :
-  status.migrationPercentage >= 50 ?
-  '📈 Good progress! Continue migrating remaining configurations.' :
-  '🚧 Migration in progress. Focus on high-priority configurations first.'
+${
+  status.migrationPercentage >= 80
+    ? "🎉 Excellent progress! Most configurations are migrated."
+    : status.migrationPercentage >= 50
+      ? "📈 Good progress! Continue migrating remaining configurations."
+      : "🚧 Migration in progress. Focus on high-priority configurations first."
 }
     `;
   }
@@ -239,7 +320,7 @@ ${status.migrationPercentage >= 80 ?
       totalServices: 15,
       servicesUsingCentralizedConfig: 3, // NFTDataService, NewsDataService, SocialSentimentService
       servicesUsingRuntimeSettings: 10, // Most existing services
-      mixedUsageServices: 2 // Services using both patterns
+      mixedUsageServices: 2, // Services using both patterns
     };
   }
 }
@@ -253,31 +334,95 @@ export const configMigrationHelpers = {
    */
   createServiceHelper(runtime: IAgentRuntime, serviceName: string) {
     const migrationUtility = new ConfigMigrationUtility(runtime);
-    
+
     return {
-      getApiKey: (apiName: string, runtimeKey: string) => 
+      getApiKey: (apiName: string, runtimeKey: string) =>
         migrationUtility.getApiKey(apiName, runtime, runtimeKey),
-      
-      getApiBaseUrl: (apiName: string, runtimeKey: string, defaultValue: string) => 
-        migrationUtility.getApiBaseUrl(apiName, runtime, runtimeKey, defaultValue),
-      
-      getServiceConfig: (configKey: string, runtimeKey: string, defaultValue: any) => 
-        migrationUtility.getServiceConfig(serviceName, configKey, runtime, runtimeKey, defaultValue),
-      
-      getFeatureFlag: (featureName: string, runtimeKey: string, defaultValue: boolean = false) => 
-        migrationUtility.getFeatureFlag(featureName, runtime, runtimeKey, defaultValue),
-      
-      getPerformanceConfig: (configKey: string, runtimeKey: string, defaultValue: any) => 
-        migrationUtility.getPerformanceConfig(configKey, runtime, runtimeKey, defaultValue),
-      
-      getSecurityConfig: (configKey: string, runtimeKey: string, defaultValue: any) => 
-        migrationUtility.getSecurityConfig(configKey, runtime, runtimeKey, defaultValue),
-      
-      getCachingConfig: (configKey: string, runtimeKey: string, defaultValue: any) => 
-        migrationUtility.getCachingConfig(configKey, runtime, runtimeKey, defaultValue),
-      
-      getLoggingConfig: (configKey: string, runtimeKey: string, defaultValue: any) => 
-        migrationUtility.getLoggingConfig(configKey, runtime, runtimeKey, defaultValue)
+
+      getApiBaseUrl: (
+        apiName: string,
+        runtimeKey: string,
+        defaultValue: string,
+      ) =>
+        migrationUtility.getApiBaseUrl(
+          apiName,
+          runtime,
+          runtimeKey,
+          defaultValue,
+        ),
+
+      getServiceConfig: (
+        configKey: string,
+        runtimeKey: string,
+        defaultValue: any,
+      ) =>
+        migrationUtility.getServiceConfig(
+          serviceName,
+          configKey,
+          runtime,
+          runtimeKey,
+          defaultValue,
+        ),
+
+      getFeatureFlag: (
+        featureName: string,
+        runtimeKey: string,
+        defaultValue: boolean = false,
+      ) =>
+        migrationUtility.getFeatureFlag(
+          featureName,
+          runtime,
+          runtimeKey,
+          defaultValue,
+        ),
+
+      getPerformanceConfig: (
+        configKey: string,
+        runtimeKey: string,
+        defaultValue: any,
+      ) =>
+        migrationUtility.getPerformanceConfig(
+          configKey,
+          runtime,
+          runtimeKey,
+          defaultValue,
+        ),
+
+      getSecurityConfig: (
+        configKey: string,
+        runtimeKey: string,
+        defaultValue: any,
+      ) =>
+        migrationUtility.getSecurityConfig(
+          configKey,
+          runtime,
+          runtimeKey,
+          defaultValue,
+        ),
+
+      getCachingConfig: (
+        configKey: string,
+        runtimeKey: string,
+        defaultValue: any,
+      ) =>
+        migrationUtility.getCachingConfig(
+          configKey,
+          runtime,
+          runtimeKey,
+          defaultValue,
+        ),
+
+      getLoggingConfig: (
+        configKey: string,
+        runtimeKey: string,
+        defaultValue: any,
+      ) =>
+        migrationUtility.getLoggingConfig(
+          configKey,
+          runtime,
+          runtimeKey,
+          defaultValue,
+        ),
     };
   },
 
@@ -291,21 +436,24 @@ export const configMigrationHelpers = {
   } {
     const issues: string[] = [];
     const recommendations: string[] = [];
-    
+
     // Check for common configuration issues
-    const configService = runtime.getService<CentralizedConfigService>('centralized-config');
-    
+    const configService =
+      runtime.getService<CentralizedConfigService>("centralized-config");
+
     if (!configService) {
-      issues.push('CentralizedConfigService not found');
-      recommendations.push('Ensure CentralizedConfigService is properly registered');
+      issues.push("CentralizedConfigService not found");
+      recommendations.push(
+        "Ensure CentralizedConfigService is properly registered",
+      );
     }
-    
+
     // Add more validation logic as needed
-    
+
     return {
       isValid: issues.length === 0,
       issues,
-      recommendations
+      recommendations,
     };
-  }
-}; 
+  },
+};

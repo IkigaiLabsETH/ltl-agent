@@ -2,23 +2,19 @@
  * Utils Index - Export all utility functions and classes
  */
 
-export { 
-  LoggerWithContext, 
-  PerformanceTracker, 
+export {
+  LoggerWithContext,
+  PerformanceTracker,
   generateCorrelationId,
   ProviderCache,
   providerCache,
   fetchWithTimeout,
   retryOperation,
   validateElizaOSEnvironment,
-  ElizaOSErrorHandler
-} from './helpers';
+  ElizaOSErrorHandler,
+} from "./helpers";
 
-export { 
-  BitcoinDataError, 
-  RateLimitError, 
-  NetworkError 
-} from './errors';
+export { BitcoinDataError, RateLimitError, NetworkError } from "./errors";
 
 export {
   RequestBatcher,
@@ -27,30 +23,30 @@ export {
   type BatchRequest,
   type BatchResponse,
   type BatchConfig,
-  type QueuedRequest
-} from './request-batching';
+  type QueuedRequest,
+} from "./request-batching";
 
 export {
   ComprehensiveErrorHandler,
   globalErrorHandler,
   type ErrorSeverity,
   type ErrorCategory,
-  type RecoveryStrategy
-} from './comprehensive-error-handling';
+  type RecoveryStrategy,
+} from "./comprehensive-error-handling";
 
 export {
   ConfigMigrationUtility,
-  configMigrationHelpers
-} from './config-migration';
+  configMigrationHelpers,
+} from "./config-migration";
 
 // Network utilities
-export * from './networkUtils';
+export * from "./networkUtils";
 
 // Environment utilities
-export * from './environmentUtils';
+export * from "./environmentUtils";
 
 // Logging utilities
-export * from './loggingUtils';
+export * from "./loggingUtils";
 
 // Cache utilities
-export * from './cacheUtils'; 
+export * from "./cacheUtils";

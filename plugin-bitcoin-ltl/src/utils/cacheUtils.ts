@@ -2,7 +2,10 @@
  * Simple in-memory cache for providers
  */
 export class ProviderCache {
-  private cache = new Map<string, { data: any; timestamp: number; ttl: number }>();
+  private cache = new Map<
+    string,
+    { data: any; timestamp: number; ttl: number }
+  >();
 
   set(key: string, data: any, ttlMs: number = 60000): void {
     this.cache.set(key, {
@@ -38,4 +41,4 @@ export class ProviderCache {
 }
 
 // Global cache instance for providers
-export const providerCache = new ProviderCache(); 
+export const providerCache = new ProviderCache();

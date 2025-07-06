@@ -1,17 +1,26 @@
-import { describe, expect, it, vi, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
-import { starterPlugin, StarterService } from '../index';
-import { ModelType, logger } from '@elizaos/core';
-import dotenv from 'dotenv';
+import {
+  describe,
+  expect,
+  it,
+  vi,
+  beforeEach,
+  afterEach,
+  beforeAll,
+  afterAll,
+} from "vitest";
+import { starterPlugin, StarterService } from "../index";
+import { ModelType, logger } from "@elizaos/core";
+import dotenv from "dotenv";
 
 // Setup environment variables
 dotenv.config();
 
 // Need to spy on logger for documentation
 beforeAll(() => {
-  vi.spyOn(logger, 'info');
-  vi.spyOn(logger, 'error');
-  vi.spyOn(logger, 'warn');
-  vi.spyOn(logger, 'debug');
+  vi.spyOn(logger, "info");
+  vi.spyOn(logger, "error");
+  vi.spyOn(logger, "warn");
+  vi.spyOn(logger, "debug");
 });
 
 afterAll(() => {
@@ -27,8 +36,8 @@ function createRealRuntime() {
     if (serviceType === StarterService.serviceType) {
       return new StarterService({
         character: {
-          name: 'Test Character',
-          system: 'You are a helpful assistant for testing.',
+          name: "Test Character",
+          system: "You are a helpful assistant for testing.",
         },
       } as any);
     }
@@ -37,8 +46,8 @@ function createRealRuntime() {
 
   return {
     character: {
-      name: 'Test Character',
-      system: 'You are a helpful assistant for testing.',
+      name: "Test Character",
+      system: "You are a helpful assistant for testing.",
       plugins: [],
       settings: {},
     },
@@ -73,28 +82,33 @@ function createRealRuntime() {
   };
 }
 
-describe('Plugin Configuration', () => {
-  it('should have correct plugin metadata', () => {
-    expect(starterPlugin.name).toBe('bitcoin-ltl');
-    expect(starterPlugin.description).toBe('Bitcoin-native AI agent plugin for LiveTheLifeTV - provides Bitcoin market data, thesis tracking, and sovereign living insights');
+describe("Plugin Configuration", () => {
+  it("should have correct plugin metadata", () => {
+    expect(starterPlugin.name).toBe("bitcoin-ltl");
+    expect(starterPlugin.description).toBe(
+      "Bitcoin-native AI agent plugin for LiveTheLifeTV - provides Bitcoin market data, thesis tracking, and sovereign living insights",
+    );
     expect(starterPlugin.config).toBeDefined();
   });
 
-  it('should include the EXAMPLE_PLUGIN_VARIABLE in config', () => {
-    expect(starterPlugin.config).toHaveProperty('EXAMPLE_PLUGIN_VARIABLE');
+  it("should include the EXAMPLE_PLUGIN_VARIABLE in config", () => {
+    expect(starterPlugin.config).toHaveProperty("EXAMPLE_PLUGIN_VARIABLE");
   });
 
-  it('should initialize properly', async () => {
+  it("should initialize properly", async () => {
     const originalEnv = process.env.EXAMPLE_PLUGIN_VARIABLE;
 
     try {
-      process.env.EXAMPLE_PLUGIN_VARIABLE = 'test-value';
+      process.env.EXAMPLE_PLUGIN_VARIABLE = "test-value";
 
       // Initialize with config - using real runtime
       const runtime = createRealRuntime();
 
       if (starterPlugin.init) {
-        await starterPlugin.init({ EXAMPLE_PLUGIN_VARIABLE: 'test-value' }, runtime as any);
+        await starterPlugin.init(
+          { EXAMPLE_PLUGIN_VARIABLE: "test-value" },
+          runtime as any,
+        );
         expect(true).toBe(true); // If we got here, init succeeded
       }
     } finally {
@@ -102,58 +116,67 @@ describe('Plugin Configuration', () => {
     }
   });
 
-  it('should have a valid config', () => {
+  it("should have a valid config", () => {
     expect(starterPlugin.config).toBeDefined();
     if (starterPlugin.config) {
       // Check if the config has expected EXAMPLE_PLUGIN_VARIABLE property
-      expect(Object.keys(starterPlugin.config)).toContain('EXAMPLE_PLUGIN_VARIABLE');
+      expect(Object.keys(starterPlugin.config)).toContain(
+        "EXAMPLE_PLUGIN_VARIABLE",
+      );
     }
   });
 });
 
-describe('Plugin Models', () => {
-  it('should have TEXT_SMALL model defined', () => {
+describe("Plugin Models", () => {
+  it("should have TEXT_SMALL model defined", () => {
     expect(starterPlugin.models?.[ModelType.TEXT_SMALL]).toBeDefined();
     if (starterPlugin.models) {
-      expect(typeof starterPlugin.models[ModelType.TEXT_SMALL]).toBe('function');
+      expect(typeof starterPlugin.models[ModelType.TEXT_SMALL]).toBe(
+        "function",
+      );
     }
   });
 
-  it('should have TEXT_LARGE model defined', () => {
+  it("should have TEXT_LARGE model defined", () => {
     expect(starterPlugin.models?.[ModelType.TEXT_LARGE]).toBeDefined();
     if (starterPlugin.models) {
-      expect(typeof starterPlugin.models[ModelType.TEXT_LARGE]).toBe('function');
+      expect(typeof starterPlugin.models[ModelType.TEXT_LARGE]).toBe(
+        "function",
+      );
     }
   });
 
-  it('should return a response from TEXT_SMALL model', async () => {
+  it("should return a response from TEXT_SMALL model", async () => {
     if (starterPlugin.models?.[ModelType.TEXT_SMALL]) {
       const runtime = createRealRuntime();
-      const result = await starterPlugin.models[ModelType.TEXT_SMALL](runtime as any, {
-        prompt: 'test',
-      });
+      const result = await starterPlugin.models[ModelType.TEXT_SMALL](
+        runtime as any,
+        {
+          prompt: "test",
+        },
+      );
 
       // Check that we get a non-empty string response
       expect(result).toBeTruthy();
-      expect(typeof result).toBe('string');
+      expect(typeof result).toBe("string");
       expect(result.length).toBeGreaterThan(10);
     }
   });
 });
 
-describe('StarterService', () => {
-  it('should start the service', async () => {
+describe("StarterService", () => {
+  it("should start the service", async () => {
     const runtime = createRealRuntime();
     const startResult = await StarterService.start(runtime as any);
 
     expect(startResult).toBeDefined();
-    expect(startResult.constructor.name).toBe('StarterService');
+    expect(startResult.constructor.name).toBe("StarterService");
 
     // Test real functionality - check stop method is available
-    expect(typeof startResult.stop).toBe('function');
+    expect(typeof startResult.stop).toBe("function");
   });
 
-  it('should stop the service', async () => {
+  it("should stop the service", async () => {
     const runtime = createRealRuntime();
 
     // Register a real service first
@@ -161,7 +184,7 @@ describe('StarterService', () => {
     runtime.registerService(StarterService.serviceType, service);
 
     // Spy on the real service's stop method
-    const stopSpy = vi.spyOn(service, 'stop');
+    const stopSpy = vi.spyOn(service, "stop");
 
     // Call the static stop method
     await StarterService.stop(runtime as any);
@@ -170,7 +193,7 @@ describe('StarterService', () => {
     expect(stopSpy).toHaveBeenCalled();
   });
 
-  it('should throw an error when stopping a non-existent service', async () => {
+  it("should throw an error when stopping a non-existent service", async () => {
     const runtime = createRealRuntime();
     // Don't register a service, so getService will return null
 
@@ -178,7 +201,9 @@ describe('StarterService', () => {
     const originalGetService = runtime.getService;
     runtime.getService = () => null;
 
-    await expect(StarterService.stop(runtime as any)).rejects.toThrow('Bitcoin data service not found');
+    await expect(StarterService.stop(runtime as any)).rejects.toThrow(
+      "Bitcoin data service not found",
+    );
 
     // Restore original getService function
     runtime.getService = originalGetService;

@@ -1,7 +1,10 @@
-import { IAgentRuntime, elizaLogger } from '@elizaos/core';
-import { BaseDataService } from './BaseDataService';
-import { LoggerWithContext, generateCorrelationId } from '../utils/helpers';
-import { handleError, ErrorCategory } from '../utils/comprehensive-error-handling';
+import { IAgentRuntime, elizaLogger } from "@elizaos/core";
+import { BaseDataService } from "./BaseDataService";
+import { LoggerWithContext, generateCorrelationId } from "../utils/helpers";
+import {
+  handleError,
+  ErrorCategory,
+} from "../utils/comprehensive-error-handling";
 
 /**
  * Performance metric types
@@ -12,7 +15,14 @@ export interface PerformanceMetric {
   value: number;
   unit: string;
   timestamp: number;
-  category: 'api' | 'database' | 'cache' | 'memory' | 'cpu' | 'network' | 'custom';
+  category:
+    | "api"
+    | "database"
+    | "cache"
+    | "memory"
+    | "cpu"
+    | "network"
+    | "custom";
   metadata?: Record<string, any>;
 }
 
@@ -23,7 +33,7 @@ export interface PerformanceThreshold {
   metric: string;
   warning: number;
   critical: number;
-  action?: 'alert' | 'restart' | 'scale';
+  action?: "alert" | "restart" | "scale";
 }
 
 /**
@@ -62,8 +72,8 @@ export interface ServicePerformance {
  * Tracks system performance, provides real-time insights, and generates reports
  */
 export class PerformanceMonitorService extends BaseDataService {
-  static serviceType = 'performance-monitor';
-  
+  static serviceType = "performance-monitor";
+
   private contextLogger: LoggerWithContext;
   private metrics: Map<string, PerformanceMetric[]> = new Map();
   private thresholds: PerformanceThreshold[] = [];
@@ -74,40 +84,45 @@ export class PerformanceMonitorService extends BaseDataService {
   private alertCallbacks: ((alert: string) => void)[] = [];
 
   constructor(runtime: IAgentRuntime) {
-    super(runtime, 'bitcoinData');
-    this.contextLogger = new LoggerWithContext(generateCorrelationId(), 'PerformanceMonitor');
+    super(runtime, "bitcoinData");
+    this.contextLogger = new LoggerWithContext(
+      generateCorrelationId(),
+      "PerformanceMonitor",
+    );
     this.initializeThresholds();
   }
 
   public get capabilityDescription(): string {
-    return 'Comprehensive performance monitoring with real-time metrics, threshold alerts, and performance reporting';
+    return "Comprehensive performance monitoring with real-time metrics, threshold alerts, and performance reporting";
   }
 
   static async start(runtime: IAgentRuntime) {
-    elizaLogger.info('Starting PerformanceMonitorService...');
+    elizaLogger.info("Starting PerformanceMonitorService...");
     return new PerformanceMonitorService(runtime);
   }
 
   static async stop(runtime: IAgentRuntime) {
-    elizaLogger.info('Stopping PerformanceMonitorService...');
-    const service = runtime.getService('performance-monitor') as PerformanceMonitorService;
+    elizaLogger.info("Stopping PerformanceMonitorService...");
+    const service = runtime.getService(
+      "performance-monitor",
+    ) as PerformanceMonitorService;
     if (service) {
       await service.stop();
     }
   }
 
   async start(): Promise<void> {
-    this.contextLogger.info('PerformanceMonitorService starting...');
+    this.contextLogger.info("PerformanceMonitorService starting...");
     this.startTime = Date.now();
     this.startMonitoring();
   }
 
   async init() {
-    this.contextLogger.info('PerformanceMonitorService initialized');
+    this.contextLogger.info("PerformanceMonitorService initialized");
   }
 
   async stop() {
-    this.contextLogger.info('PerformanceMonitorService stopping...');
+    this.contextLogger.info("PerformanceMonitorService stopping...");
     this.stopMonitoring();
   }
 
@@ -116,11 +131,21 @@ export class PerformanceMonitorService extends BaseDataService {
    */
   private initializeThresholds(): void {
     this.thresholds = [
-      { metric: 'api_response_time', warning: 1000, critical: 5000, action: 'alert' },
-      { metric: 'error_rate', warning: 0.05, critical: 0.1, action: 'alert' },
-      { metric: 'memory_usage', warning: 0.8, critical: 0.95, action: 'alert' },
-      { metric: 'cpu_usage', warning: 0.7, critical: 0.9, action: 'alert' },
-      { metric: 'cache_hit_rate', warning: 0.7, critical: 0.5, action: 'alert' }
+      {
+        metric: "api_response_time",
+        warning: 1000,
+        critical: 5000,
+        action: "alert",
+      },
+      { metric: "error_rate", warning: 0.05, critical: 0.1, action: "alert" },
+      { metric: "memory_usage", warning: 0.8, critical: 0.95, action: "alert" },
+      { metric: "cpu_usage", warning: 0.7, critical: 0.9, action: "alert" },
+      {
+        metric: "cache_hit_rate",
+        warning: 0.7,
+        critical: 0.5,
+        action: "alert",
+      },
     ];
   }
 
@@ -138,7 +163,7 @@ export class PerformanceMonitorService extends BaseDataService {
       this.checkThresholds();
     }, 30000); // Collect metrics every 30 seconds
 
-    this.contextLogger.info('Performance monitoring started');
+    this.contextLogger.info("Performance monitoring started");
   }
 
   /**
@@ -150,17 +175,17 @@ export class PerformanceMonitorService extends BaseDataService {
       this.monitoringInterval = null;
     }
     this.isMonitoring = false;
-    this.contextLogger.info('Performance monitoring stopped');
+    this.contextLogger.info("Performance monitoring stopped");
   }
 
   /**
    * Record a performance metric
    */
-  recordMetric(metric: Omit<PerformanceMetric, 'timestamp'>): void {
+  recordMetric(metric: Omit<PerformanceMetric, "timestamp">): void {
     try {
       const fullMetric: PerformanceMetric = {
         ...metric,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       if (!this.metrics.has(metric.id)) {
@@ -175,15 +200,15 @@ export class PerformanceMonitorService extends BaseDataService {
         metricHistory.splice(0, metricHistory.length - 1000);
       }
 
-      this.contextLogger.debug('Performance metric recorded', {
+      this.contextLogger.debug("Performance metric recorded", {
         metric: metric.id,
         value: metric.value,
-        category: metric.category
+        category: metric.category,
       });
     } catch (error) {
-      this.contextLogger.error('Failed to record performance metric', {
+      this.contextLogger.error("Failed to record performance metric", {
         metric: metric.id,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -191,15 +216,19 @@ export class PerformanceMonitorService extends BaseDataService {
   /**
    * Record API performance
    */
-  recordApiPerformance(serviceName: string, responseTime: number, success: boolean): void {
+  recordApiPerformance(
+    serviceName: string,
+    responseTime: number,
+    success: boolean,
+  ): void {
     // Record response time
     this.recordMetric({
       id: `${serviceName}_response_time`,
       name: `${serviceName} Response Time`,
       value: responseTime,
-      unit: 'ms',
-      category: 'api',
-      metadata: { serviceName, success }
+      unit: "ms",
+      category: "api",
+      metadata: { serviceName, success },
     });
 
     // Update service performance
@@ -211,9 +240,9 @@ export class PerformanceMonitorService extends BaseDataService {
         id: `${serviceName}_error`,
         name: `${serviceName} Error`,
         value: 1,
-        unit: 'count',
-        category: 'api',
-        metadata: { serviceName }
+        unit: "count",
+        category: "api",
+        metadata: { serviceName },
       });
     }
   }
@@ -223,40 +252,48 @@ export class PerformanceMonitorService extends BaseDataService {
    */
   recordCachePerformance(hit: boolean, key: string): void {
     this.recordMetric({
-      id: 'cache_hit',
-      name: 'Cache Hit',
+      id: "cache_hit",
+      name: "Cache Hit",
       value: hit ? 1 : 0,
-      unit: 'boolean',
-      category: 'cache',
-      metadata: { key }
+      unit: "boolean",
+      category: "cache",
+      metadata: { key },
     });
   }
 
   /**
    * Record database performance
    */
-  recordDatabasePerformance(operation: string, duration: number, success: boolean): void {
+  recordDatabasePerformance(
+    operation: string,
+    duration: number,
+    success: boolean,
+  ): void {
     this.recordMetric({
       id: `db_${operation}`,
       name: `Database ${operation}`,
       value: duration,
-      unit: 'ms',
-      category: 'database',
-      metadata: { operation, success }
+      unit: "ms",
+      category: "database",
+      metadata: { operation, success },
     });
   }
 
   /**
    * Update service performance data
    */
-  private updateServicePerformance(serviceName: string, responseTime: number, success: boolean): void {
+  private updateServicePerformance(
+    serviceName: string,
+    responseTime: number,
+    success: boolean,
+  ): void {
     const current = this.servicePerformance.get(serviceName) || {
       serviceName,
       requestCount: 0,
       averageResponseTime: 0,
       errorCount: 0,
       lastRequestTime: 0,
-      uptime: 0
+      uptime: 0,
     };
 
     current.requestCount++;
@@ -264,8 +301,10 @@ export class PerformanceMonitorService extends BaseDataService {
     current.uptime = Date.now() - this.startTime;
 
     // Update average response time
-    current.averageResponseTime = 
-      (current.averageResponseTime * (current.requestCount - 1) + responseTime) / current.requestCount;
+    current.averageResponseTime =
+      (current.averageResponseTime * (current.requestCount - 1) +
+        responseTime) /
+      current.requestCount;
 
     if (!success) {
       current.errorCount++;
@@ -282,62 +321,64 @@ export class PerformanceMonitorService extends BaseDataService {
       // Memory usage
       const memoryUsage = process.memoryUsage();
       this.recordMetric({
-        id: 'memory_usage',
-        name: 'Memory Usage',
+        id: "memory_usage",
+        name: "Memory Usage",
         value: memoryUsage.heapUsed / memoryUsage.heapTotal,
-        unit: 'percentage',
-        category: 'memory',
+        unit: "percentage",
+        category: "memory",
         metadata: {
           heapUsed: memoryUsage.heapUsed,
           heapTotal: memoryUsage.heapTotal,
           external: memoryUsage.external,
-          rss: memoryUsage.rss
-        }
+          rss: memoryUsage.rss,
+        },
       });
 
       // CPU usage (approximation)
       const cpuUsage = process.cpuUsage();
       this.recordMetric({
-        id: 'cpu_usage',
-        name: 'CPU Usage',
+        id: "cpu_usage",
+        name: "CPU Usage",
         value: (cpuUsage.user + cpuUsage.system) / 1000000, // Convert to seconds
-        unit: 'seconds',
-        category: 'cpu',
-        metadata: { user: cpuUsage.user, system: cpuUsage.system }
+        unit: "seconds",
+        category: "cpu",
+        metadata: { user: cpuUsage.user, system: cpuUsage.system },
       });
 
       // Uptime
       this.recordMetric({
-        id: 'uptime',
-        name: 'Uptime',
+        id: "uptime",
+        name: "Uptime",
         value: process.uptime(),
-        unit: 'seconds',
-        category: 'custom',
-        metadata: { startTime: this.startTime }
+        unit: "seconds",
+        category: "custom",
+        metadata: { startTime: this.startTime },
       });
 
       // Active connections (if available)
-      if (process.env.NODE_ENV === 'production') {
+      if (process.env.NODE_ENV === "production") {
         this.recordMetric({
-          id: 'active_connections',
-          name: 'Active Connections',
+          id: "active_connections",
+          name: "Active Connections",
           value: 0, // Would need to be implemented based on server type
-          unit: 'count',
-          category: 'network'
+          unit: "count",
+          category: "network",
         });
       }
     } catch (error) {
       await handleError(
-        error instanceof Error ? error : new Error('System metrics collection failed'),
+        error instanceof Error
+          ? error
+          : new Error("System metrics collection failed"),
         {
           correlationId: this.correlationId,
-          component: 'PerformanceMonitorService',
-          operation: 'collectSystemMetrics'
-        }
+          component: "PerformanceMonitorService",
+          operation: "collectSystemMetrics",
+        },
       );
-      
-      this.contextLogger.error('Failed to collect system metrics', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+
+      this.contextLogger.error("Failed to collect system metrics", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -349,31 +390,39 @@ export class PerformanceMonitorService extends BaseDataService {
     try {
       for (const threshold of this.thresholds) {
         const recentMetrics = this.getRecentMetrics(threshold.metric, 5); // Last 5 metrics
-        
+
         if (recentMetrics.length === 0) {
           continue;
         }
 
-        const averageValue = recentMetrics.reduce((sum, m) => sum + m.value, 0) / recentMetrics.length;
-        
+        const averageValue =
+          recentMetrics.reduce((sum, m) => sum + m.value, 0) /
+          recentMetrics.length;
+
         if (averageValue >= threshold.critical) {
-          await this.triggerAlert(`CRITICAL: ${threshold.metric} is ${averageValue} (threshold: ${threshold.critical})`, 'critical');
+          await this.triggerAlert(
+            `CRITICAL: ${threshold.metric} is ${averageValue} (threshold: ${threshold.critical})`,
+            "critical",
+          );
         } else if (averageValue >= threshold.warning) {
-          await this.triggerAlert(`WARNING: ${threshold.metric} is ${averageValue} (threshold: ${threshold.warning})`, 'warning');
+          await this.triggerAlert(
+            `WARNING: ${threshold.metric} is ${averageValue} (threshold: ${threshold.warning})`,
+            "warning",
+          );
         }
       }
     } catch (error) {
       await handleError(
-        error instanceof Error ? error : new Error('Threshold check failed'),
+        error instanceof Error ? error : new Error("Threshold check failed"),
         {
           correlationId: this.correlationId,
-          component: 'PerformanceMonitorService',
-          operation: 'checkThresholds'
-        }
+          component: "PerformanceMonitorService",
+          operation: "checkThresholds",
+        },
       );
-      
-      this.contextLogger.error('Failed to check performance thresholds', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+
+      this.contextLogger.error("Failed to check performance thresholds", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -381,7 +430,10 @@ export class PerformanceMonitorService extends BaseDataService {
   /**
    * Get recent metrics for a specific metric type
    */
-  private getRecentMetrics(metricId: string, count: number): PerformanceMetric[] {
+  private getRecentMetrics(
+    metricId: string,
+    count: number,
+  ): PerformanceMetric[] {
     const metrics = this.metrics.get(metricId) || [];
     return metrics.slice(-count);
   }
@@ -389,34 +441,37 @@ export class PerformanceMonitorService extends BaseDataService {
   /**
    * Trigger performance alert
    */
-  private async triggerAlert(message: string, severity: 'warning' | 'critical'): Promise<void> {
+  private async triggerAlert(
+    message: string,
+    severity: "warning" | "critical",
+  ): Promise<void> {
     try {
       this.contextLogger.warn(`Performance Alert: ${message}`, { severity });
-      
+
       // Notify alert callbacks
       for (const callback of this.alertCallbacks) {
         try {
           callback(message);
         } catch (error) {
-          this.contextLogger.error('Alert callback failed', {
-            error: error instanceof Error ? error.message : 'Unknown error'
+          this.contextLogger.error("Alert callback failed", {
+            error: error instanceof Error ? error.message : "Unknown error",
           });
         }
       }
 
       // Record alert metric
       this.recordMetric({
-        id: 'performance_alert',
-        name: 'Performance Alert',
-        value: severity === 'critical' ? 2 : 1,
-        unit: 'severity',
-        category: 'custom',
-        metadata: { message, severity }
+        id: "performance_alert",
+        name: "Performance Alert",
+        value: severity === "critical" ? 2 : 1,
+        unit: "severity",
+        category: "custom",
+        metadata: { message, severity },
       });
     } catch (error) {
-      this.contextLogger.error('Failed to trigger performance alert', {
+      this.contextLogger.error("Failed to trigger performance alert", {
         message,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -424,37 +479,42 @@ export class PerformanceMonitorService extends BaseDataService {
   /**
    * Generate performance report
    */
-  async generateReport(duration: number = 3600000): Promise<PerformanceReport> { // Default 1 hour
+  async generateReport(duration: number = 3600000): Promise<PerformanceReport> {
+    // Default 1 hour
     try {
       const endTime = Date.now();
       const startTime = endTime - duration;
-      
+
       const allMetrics: PerformanceMetric[] = [];
       for (const metrics of this.metrics.values()) {
-        allMetrics.push(...metrics.filter(m => m.timestamp >= startTime));
+        allMetrics.push(...metrics.filter((m) => m.timestamp >= startTime));
       }
 
       // Calculate summary statistics
-      const apiMetrics = allMetrics.filter(m => m.category === 'api');
-      const errorMetrics = allMetrics.filter(m => m.id.includes('error'));
-      const cacheMetrics = allMetrics.filter(m => m.category === 'cache');
-      const memoryMetrics = allMetrics.filter(m => m.id === 'memory_usage');
+      const apiMetrics = allMetrics.filter((m) => m.category === "api");
+      const errorMetrics = allMetrics.filter((m) => m.id.includes("error"));
+      const cacheMetrics = allMetrics.filter((m) => m.category === "cache");
+      const memoryMetrics = allMetrics.filter((m) => m.id === "memory_usage");
 
       const summary = {
         totalRequests: apiMetrics.length,
-        averageResponseTime: apiMetrics.length > 0 
-          ? apiMetrics.reduce((sum, m) => sum + m.value, 0) / apiMetrics.length 
-          : 0,
-        errorRate: apiMetrics.length > 0 
-          ? errorMetrics.length / apiMetrics.length 
-          : 0,
-        cacheHitRate: cacheMetrics.length > 0 
-          ? cacheMetrics.filter(m => m.value === 1).length / cacheMetrics.length 
-          : 0,
-        memoryUsage: memoryMetrics.length > 0 
-          ? memoryMetrics[memoryMetrics.length - 1].value 
-          : 0,
-        cpuUsage: 0 // Would need to be calculated from CPU metrics
+        averageResponseTime:
+          apiMetrics.length > 0
+            ? apiMetrics.reduce((sum, m) => sum + m.value, 0) /
+              apiMetrics.length
+            : 0,
+        errorRate:
+          apiMetrics.length > 0 ? errorMetrics.length / apiMetrics.length : 0,
+        cacheHitRate:
+          cacheMetrics.length > 0
+            ? cacheMetrics.filter((m) => m.value === 1).length /
+              cacheMetrics.length
+            : 0,
+        memoryUsage:
+          memoryMetrics.length > 0
+            ? memoryMetrics[memoryMetrics.length - 1].value
+            : 0,
+        cpuUsage: 0, // Would need to be calculated from CPU metrics
       };
 
       // Generate alerts and recommendations
@@ -462,22 +522,30 @@ export class PerformanceMonitorService extends BaseDataService {
       const recommendations: string[] = [];
 
       if (summary.errorRate > 0.1) {
-        alerts.push('High error rate detected');
-        recommendations.push('Investigate API endpoints and external service dependencies');
+        alerts.push("High error rate detected");
+        recommendations.push(
+          "Investigate API endpoints and external service dependencies",
+        );
       }
 
       if (summary.averageResponseTime > 2000) {
-        alerts.push('Slow response times detected');
-        recommendations.push('Consider implementing caching or optimizing database queries');
+        alerts.push("Slow response times detected");
+        recommendations.push(
+          "Consider implementing caching or optimizing database queries",
+        );
       }
 
       if (summary.memoryUsage > 0.8) {
-        alerts.push('High memory usage detected');
-        recommendations.push('Consider implementing memory cleanup or scaling resources');
+        alerts.push("High memory usage detected");
+        recommendations.push(
+          "Consider implementing memory cleanup or scaling resources",
+        );
       }
 
       if (summary.cacheHitRate < 0.7) {
-        recommendations.push('Consider expanding cache coverage for frequently accessed data');
+        recommendations.push(
+          "Consider expanding cache coverage for frequently accessed data",
+        );
       }
 
       return {
@@ -486,20 +554,20 @@ export class PerformanceMonitorService extends BaseDataService {
         summary,
         metrics: allMetrics,
         alerts,
-        recommendations
+        recommendations,
       };
     } catch (error) {
       await handleError(
-        error instanceof Error ? error : new Error('Report generation failed'),
+        error instanceof Error ? error : new Error("Report generation failed"),
         {
           correlationId: this.correlationId,
-          component: 'PerformanceMonitorService',
-          operation: 'generateReport',
-          params: { duration }
-        }
+          component: "PerformanceMonitorService",
+          operation: "generateReport",
+          params: { duration },
+        },
       );
-      
-      throw new Error('Failed to generate performance report');
+
+      throw new Error("Failed to generate performance report");
     }
   }
 
@@ -551,7 +619,7 @@ export class PerformanceMonitorService extends BaseDataService {
    * Remove threshold
    */
   removeThreshold(metric: string): void {
-    this.thresholds = this.thresholds.filter(t => t.metric !== metric);
+    this.thresholds = this.thresholds.filter((t) => t.metric !== metric);
   }
 
   /**
@@ -572,7 +640,7 @@ export class PerformanceMonitorService extends BaseDataService {
       totalMetrics,
       activeServices: this.servicePerformance.size,
       uptime: Date.now() - this.startTime,
-      isMonitoring: this.isMonitoring
+      isMonitoring: this.isMonitoring,
     };
   }
 
@@ -583,4 +651,4 @@ export class PerformanceMonitorService extends BaseDataService {
   async forceUpdate(): Promise<any> {
     return this.generateReport();
   }
-} 
+}

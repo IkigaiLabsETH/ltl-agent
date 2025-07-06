@@ -1,32 +1,32 @@
-import { elizaLogger } from '@elizaos/core';
-import { LoggerWithContext, generateCorrelationId } from './helpers';
+import { elizaLogger } from "@elizaos/core";
+import { LoggerWithContext, generateCorrelationId } from "./helpers";
 
 /**
  * Error severity levels
  */
 export enum ErrorSeverity {
-  LOW = 'low',
-  MEDIUM = 'medium',
-  HIGH = 'high',
-  CRITICAL = 'critical'
+  LOW = "low",
+  MEDIUM = "medium",
+  HIGH = "high",
+  CRITICAL = "critical",
 }
 
 /**
  * Error categories for better organization
  */
 export enum ErrorCategory {
-  NETWORK = 'network',
-  API = 'api',
-  VALIDATION = 'validation',
-  AUTHENTICATION = 'authentication',
-  AUTHORIZATION = 'authorization',
-  RATE_LIMIT = 'rate_limit',
-  TIMEOUT = 'timeout',
-  CONFIGURATION = 'configuration',
-  DATABASE = 'database',
-  CACHE = 'cache',
-  BUSINESS_LOGIC = 'business_logic',
-  UNKNOWN = 'unknown'
+  NETWORK = "network",
+  API = "api",
+  VALIDATION = "validation",
+  AUTHENTICATION = "authentication",
+  AUTHORIZATION = "authorization",
+  RATE_LIMIT = "rate_limit",
+  TIMEOUT = "timeout",
+  CONFIGURATION = "configuration",
+  DATABASE = "database",
+  CACHE = "cache",
+  BUSINESS_LOGIC = "business_logic",
+  UNKNOWN = "unknown",
 }
 
 /**
@@ -52,7 +52,7 @@ export interface RecoveryStrategy {
   description: string;
   shouldRetry: boolean;
   maxRetries: number;
-  backoffStrategy: 'fixed' | 'exponential' | 'linear';
+  backoffStrategy: "fixed" | "exponential" | "linear";
   backoffDelay: number;
   fallbackAction?: string;
   circuitBreaker?: boolean;
@@ -95,9 +95,9 @@ export interface ErrorHandlerConfig {
  * Circuit breaker state
  */
 export enum CircuitBreakerState {
-  CLOSED = 'closed',
-  OPEN = 'open',
-  HALF_OPEN = 'half_open'
+  CLOSED = "closed",
+  OPEN = "open",
+  HALF_OPEN = "half_open",
 }
 
 /**
@@ -114,7 +114,7 @@ export class CircuitBreaker {
     private readonly name: string,
     private readonly threshold: number = 5,
     private readonly timeout: number = 60000,
-    private readonly successThreshold: number = 2
+    private readonly successThreshold: number = 2,
   ) {}
 
   async execute<T>(operation: () => Promise<T>): Promise<T> {
@@ -122,7 +122,9 @@ export class CircuitBreaker {
       if (Date.now() >= this.nextAttemptTime) {
         this.state = CircuitBreakerState.HALF_OPEN;
         this.successCount = 0;
-        elizaLogger.info(`[CircuitBreaker:${this.name}] Moving to HALF_OPEN state`);
+        elizaLogger.info(
+          `[CircuitBreaker:${this.name}] Moving to HALF_OPEN state`,
+        );
       } else {
         throw new Error(`Circuit breaker is OPEN for ${this.name}`);
       }
@@ -140,12 +142,14 @@ export class CircuitBreaker {
 
   private onSuccess(): void {
     this.successCount++;
-    
+
     if (this.state === CircuitBreakerState.HALF_OPEN) {
       if (this.successCount >= this.successThreshold) {
         this.state = CircuitBreakerState.CLOSED;
         this.failureCount = 0;
-        elizaLogger.info(`[CircuitBreaker:${this.name}] Moving to CLOSED state`);
+        elizaLogger.info(
+          `[CircuitBreaker:${this.name}] Moving to CLOSED state`,
+        );
       }
     } else {
       this.failureCount = 0;
@@ -155,24 +159,36 @@ export class CircuitBreaker {
   private onFailure(): void {
     this.failureCount++;
     this.lastFailureTime = Date.now();
-    
-    if (this.state === CircuitBreakerState.CLOSED && this.failureCount >= this.threshold) {
+
+    if (
+      this.state === CircuitBreakerState.CLOSED &&
+      this.failureCount >= this.threshold
+    ) {
       this.state = CircuitBreakerState.OPEN;
       this.nextAttemptTime = Date.now() + this.timeout;
-      elizaLogger.warn(`[CircuitBreaker:${this.name}] Moving to OPEN state due to ${this.failureCount} failures`);
+      elizaLogger.warn(
+        `[CircuitBreaker:${this.name}] Moving to OPEN state due to ${this.failureCount} failures`,
+      );
     } else if (this.state === CircuitBreakerState.HALF_OPEN) {
       this.state = CircuitBreakerState.OPEN;
       this.nextAttemptTime = Date.now() + this.timeout;
-      elizaLogger.warn(`[CircuitBreaker:${this.name}] Moving back to OPEN state due to failure`);
+      elizaLogger.warn(
+        `[CircuitBreaker:${this.name}] Moving back to OPEN state due to failure`,
+      );
     }
   }
 
-  getState(): { state: CircuitBreakerState; failureCount: number; successCount: number; nextAttemptTime: number } {
+  getState(): {
+    state: CircuitBreakerState;
+    failureCount: number;
+    successCount: number;
+    nextAttemptTime: number;
+  } {
     return {
       state: this.state,
       failureCount: this.failureCount,
       successCount: this.successCount,
-      nextAttemptTime: this.nextAttemptTime
+      nextAttemptTime: this.nextAttemptTime,
     };
   }
 }
@@ -195,10 +211,13 @@ export class ComprehensiveErrorHandler {
       enableRecoveryStrategies: true,
       enableCircuitBreakers: true,
       maxErrorHistory: 1000,
-      ...config
+      ...config,
     };
 
-    this.logger = new LoggerWithContext(generateCorrelationId(), 'ComprehensiveErrorHandler');
+    this.logger = new LoggerWithContext(
+      generateCorrelationId(),
+      "ComprehensiveErrorHandler",
+    );
     this.initializeRecoveryStrategies();
   }
 
@@ -207,70 +226,70 @@ export class ComprehensiveErrorHandler {
    */
   private initializeRecoveryStrategies(): void {
     this.recoveryStrategies.set(ErrorCategory.NETWORK, {
-      name: 'Network Retry',
-      description: 'Retry network operations with exponential backoff',
+      name: "Network Retry",
+      description: "Retry network operations with exponential backoff",
       shouldRetry: true,
       maxRetries: 3,
-      backoffStrategy: 'exponential',
+      backoffStrategy: "exponential",
       backoffDelay: 1000,
       circuitBreaker: true,
       circuitBreakerThreshold: 5,
-      circuitBreakerTimeout: 60000
+      circuitBreakerTimeout: 60000,
     });
 
     this.recoveryStrategies.set(ErrorCategory.API, {
-      name: 'API Retry',
-      description: 'Retry API calls with exponential backoff',
+      name: "API Retry",
+      description: "Retry API calls with exponential backoff",
       shouldRetry: true,
       maxRetries: 3,
-      backoffStrategy: 'exponential',
+      backoffStrategy: "exponential",
       backoffDelay: 2000,
       circuitBreaker: true,
       circuitBreakerThreshold: 3,
-      circuitBreakerTimeout: 30000
+      circuitBreakerTimeout: 30000,
     });
 
     this.recoveryStrategies.set(ErrorCategory.RATE_LIMIT, {
-      name: 'Rate Limit Wait',
-      description: 'Wait for rate limit to reset',
+      name: "Rate Limit Wait",
+      description: "Wait for rate limit to reset",
       shouldRetry: true,
       maxRetries: 1,
-      backoffStrategy: 'fixed',
+      backoffStrategy: "fixed",
       backoffDelay: 60000,
-      circuitBreaker: false
+      circuitBreaker: false,
     });
 
     this.recoveryStrategies.set(ErrorCategory.TIMEOUT, {
-      name: 'Timeout Retry',
-      description: 'Retry operations that timed out',
+      name: "Timeout Retry",
+      description: "Retry operations that timed out",
       shouldRetry: true,
       maxRetries: 2,
-      backoffStrategy: 'linear',
+      backoffStrategy: "linear",
       backoffDelay: 5000,
       circuitBreaker: true,
       circuitBreakerThreshold: 3,
-      circuitBreakerTimeout: 30000
+      circuitBreakerTimeout: 30000,
     });
 
     this.recoveryStrategies.set(ErrorCategory.VALIDATION, {
-      name: 'Validation Error',
-      description: 'Validation errors should not be retried',
+      name: "Validation Error",
+      description: "Validation errors should not be retried",
       shouldRetry: false,
       maxRetries: 0,
-      backoffStrategy: 'fixed',
+      backoffStrategy: "fixed",
       backoffDelay: 0,
-      circuitBreaker: false
+      circuitBreaker: false,
     });
 
     this.recoveryStrategies.set(ErrorCategory.AUTHENTICATION, {
-      name: 'Authentication Error',
-      description: 'Authentication errors require re-authentication',
+      name: "Authentication Error",
+      description: "Authentication errors require re-authentication",
       shouldRetry: false,
       maxRetries: 0,
-      backoffStrategy: 'fixed',
+      backoffStrategy: "fixed",
       backoffDelay: 0,
-      fallbackAction: 'reauthenticate',
-      circuitBreaker: false
+      fallbackAction: "reauthenticate",
+      circuitBreaker: false,
     });
   }
 
@@ -280,22 +299,22 @@ export class ComprehensiveErrorHandler {
   async handleError(
     error: Error,
     context: Partial<ErrorContext>,
-    operation?: () => Promise<any>
+    operation?: () => Promise<any>,
   ): Promise<ComprehensiveError> {
     const errorId = generateCorrelationId();
     const timestamp = new Date();
-    
+
     // Create comprehensive error context
     const fullContext: ErrorContext = {
       correlationId: context.correlationId || generateCorrelationId(),
-      component: context.component || 'unknown',
-      operation: context.operation || 'unknown',
+      component: context.component || "unknown",
+      operation: context.operation || "unknown",
       timestamp,
       params: context.params,
       stack: error.stack,
       userAgent: context.userAgent,
       requestId: context.requestId,
-      sessionId: context.sessionId
+      sessionId: context.sessionId,
     };
 
     // Analyze error
@@ -314,7 +333,7 @@ export class ComprehensiveErrorHandler {
       recoveryStrategy,
       metadata: this.extractMetadata(error),
       timestamp,
-      resolved: false
+      resolved: false,
     };
 
     // Log error
@@ -324,28 +343,41 @@ export class ComprehensiveErrorHandler {
     this.addToHistory(comprehensiveError);
 
     // Attempt recovery if enabled
-    if (this.config.enableRecoveryStrategies && operation && recoveryStrategy.shouldRetry) {
+    if (
+      this.config.enableRecoveryStrategies &&
+      operation &&
+      recoveryStrategy.shouldRetry
+    ) {
       try {
-        const result = await this.attemptRecovery(comprehensiveError, operation);
+        const result = await this.attemptRecovery(
+          comprehensiveError,
+          operation,
+        );
         comprehensiveError.resolved = true;
         comprehensiveError.resolutionTime = new Date();
-        comprehensiveError.resolutionStrategy = 'retry_success';
-        
-        this.logger.info('Error resolved through recovery strategy', {
+        comprehensiveError.resolutionStrategy = "retry_success";
+
+        this.logger.info("Error resolved through recovery strategy", {
           errorId,
           strategy: recoveryStrategy.name,
-          attempts: recoveryStrategy.maxRetries
+          attempts: recoveryStrategy.maxRetries,
         });
-        
+
         return comprehensiveError;
       } catch (recoveryError) {
         comprehensiveError.metadata.recoveryFailed = true;
-        comprehensiveError.metadata.recoveryError = recoveryError instanceof Error ? recoveryError.message : 'Unknown recovery error';
-        
-        this.logger.error('Recovery strategy failed', {
+        comprehensiveError.metadata.recoveryError =
+          recoveryError instanceof Error
+            ? recoveryError.message
+            : "Unknown recovery error";
+
+        this.logger.error("Recovery strategy failed", {
           errorId,
           strategy: recoveryStrategy.name,
-          recoveryError: recoveryError instanceof Error ? recoveryError.message : 'Unknown error'
+          recoveryError:
+            recoveryError instanceof Error
+              ? recoveryError.message
+              : "Unknown error",
         });
       }
     }
@@ -365,43 +397,47 @@ export class ComprehensiveErrorHandler {
     const message = error.message.toLowerCase();
     const name = error.name.toLowerCase();
 
-    if (name.includes('network') || message.includes('network') || message.includes('fetch')) {
+    if (
+      name.includes("network") ||
+      message.includes("network") ||
+      message.includes("fetch")
+    ) {
       return ErrorCategory.NETWORK;
     }
 
-    if (name.includes('timeout') || message.includes('timeout')) {
+    if (name.includes("timeout") || message.includes("timeout")) {
       return ErrorCategory.TIMEOUT;
     }
 
-    if (message.includes('rate limit') || message.includes('429')) {
+    if (message.includes("rate limit") || message.includes("429")) {
       return ErrorCategory.RATE_LIMIT;
     }
 
-    if (message.includes('unauthorized') || message.includes('401')) {
+    if (message.includes("unauthorized") || message.includes("401")) {
       return ErrorCategory.AUTHENTICATION;
     }
 
-    if (message.includes('forbidden') || message.includes('403')) {
+    if (message.includes("forbidden") || message.includes("403")) {
       return ErrorCategory.AUTHORIZATION;
     }
 
-    if (message.includes('validation') || message.includes('invalid')) {
+    if (message.includes("validation") || message.includes("invalid")) {
       return ErrorCategory.VALIDATION;
     }
 
-    if (message.includes('api') || message.includes('endpoint')) {
+    if (message.includes("api") || message.includes("endpoint")) {
       return ErrorCategory.API;
     }
 
-    if (message.includes('database') || message.includes('db')) {
+    if (message.includes("database") || message.includes("db")) {
       return ErrorCategory.DATABASE;
     }
 
-    if (message.includes('cache')) {
+    if (message.includes("cache")) {
       return ErrorCategory.CACHE;
     }
 
-    if (message.includes('config')) {
+    if (message.includes("config")) {
       return ErrorCategory.CONFIGURATION;
     }
 
@@ -411,35 +447,46 @@ export class ComprehensiveErrorHandler {
   /**
    * Determine error severity
    */
-  private determineSeverity(error: Error, category: ErrorCategory): ErrorSeverity {
+  private determineSeverity(
+    error: Error,
+    category: ErrorCategory,
+  ): ErrorSeverity {
     const message = error.message.toLowerCase();
 
     // Critical errors
-    if (category === ErrorCategory.AUTHENTICATION || 
-        category === ErrorCategory.AUTHORIZATION ||
-        message.includes('critical') ||
-        message.includes('fatal')) {
+    if (
+      category === ErrorCategory.AUTHENTICATION ||
+      category === ErrorCategory.AUTHORIZATION ||
+      message.includes("critical") ||
+      message.includes("fatal")
+    ) {
       return ErrorSeverity.CRITICAL;
     }
 
     // High severity errors
-    if (category === ErrorCategory.DATABASE ||
-        category === ErrorCategory.CONFIGURATION ||
-        message.includes('connection') ||
-        message.includes('timeout')) {
+    if (
+      category === ErrorCategory.DATABASE ||
+      category === ErrorCategory.CONFIGURATION ||
+      message.includes("connection") ||
+      message.includes("timeout")
+    ) {
       return ErrorSeverity.HIGH;
     }
 
     // Medium severity errors
-    if (category === ErrorCategory.API ||
-        category === ErrorCategory.NETWORK ||
-        message.includes('retry')) {
+    if (
+      category === ErrorCategory.API ||
+      category === ErrorCategory.NETWORK ||
+      message.includes("retry")
+    ) {
       return ErrorSeverity.MEDIUM;
     }
 
     // Low severity errors
-    if (category === ErrorCategory.VALIDATION ||
-        category === ErrorCategory.RATE_LIMIT) {
+    if (
+      category === ErrorCategory.VALIDATION ||
+      category === ErrorCategory.RATE_LIMIT
+    ) {
       return ErrorSeverity.LOW;
     }
 
@@ -450,7 +497,10 @@ export class ComprehensiveErrorHandler {
    * Get recovery strategy for error category
    */
   private getRecoveryStrategy(category: ErrorCategory): RecoveryStrategy {
-    return this.recoveryStrategies.get(category) || this.recoveryStrategies.get(ErrorCategory.UNKNOWN)!;
+    return (
+      this.recoveryStrategies.get(category) ||
+      this.recoveryStrategies.get(ErrorCategory.UNKNOWN)!
+    );
   }
 
   /**
@@ -460,12 +510,12 @@ export class ComprehensiveErrorHandler {
     const metadata: Record<string, any> = {
       name: error.name,
       stack: error.stack,
-      constructor: error.constructor.name
+      constructor: error.constructor.name,
     };
 
     // Extract additional properties
-    Object.getOwnPropertyNames(error).forEach(prop => {
-      if (prop !== 'name' && prop !== 'message' && prop !== 'stack') {
+    Object.getOwnPropertyNames(error).forEach((prop) => {
+      if (prop !== "name" && prop !== "message" && prop !== "stack") {
         metadata[prop] = (error as any)[prop];
       }
     });
@@ -489,7 +539,7 @@ export class ComprehensiveErrorHandler {
       operation: error.context.operation,
       correlationId: error.context.correlationId,
       strategy: error.recoveryStrategy.name,
-      metadata: error.metadata
+      metadata: error.metadata,
     };
 
     switch (error.severity) {
@@ -513,7 +563,7 @@ export class ComprehensiveErrorHandler {
    */
   private addToHistory(error: ComprehensiveError): void {
     this.errorHistory.push(error);
-    
+
     // Maintain history size
     if (this.errorHistory.length > this.config.maxErrorHistory) {
       this.errorHistory = this.errorHistory.slice(-this.config.maxErrorHistory);
@@ -523,9 +573,12 @@ export class ComprehensiveErrorHandler {
   /**
    * Attempt recovery using circuit breaker and retry logic
    */
-  private async attemptRecovery(error: ComprehensiveError, operation: () => Promise<any>): Promise<any> {
+  private async attemptRecovery(
+    error: ComprehensiveError,
+    operation: () => Promise<any>,
+  ): Promise<any> {
     const strategy = error.recoveryStrategy;
-    
+
     // Use circuit breaker if enabled
     if (strategy.circuitBreaker && this.config.enableCircuitBreakers) {
       const circuitBreaker = this.getCircuitBreaker(error.context.component);
@@ -534,44 +587,47 @@ export class ComprehensiveErrorHandler {
 
     // Simple retry logic
     let lastError: Error;
-    
+
     for (let attempt = 0; attempt < strategy.maxRetries; attempt++) {
       try {
         return await operation();
       } catch (retryError) {
         lastError = retryError as Error;
-        
+
         if (attempt === strategy.maxRetries - 1) {
           throw lastError;
         }
-        
+
         // Calculate delay based on strategy
         const delay = this.calculateBackoffDelay(strategy, attempt);
-        await new Promise(resolve => setTimeout(resolve, delay));
-        
-        this.logger.warn('Retry attempt failed, retrying', {
+        await new Promise((resolve) => setTimeout(resolve, delay));
+
+        this.logger.warn("Retry attempt failed, retrying", {
           errorId: error.id,
           attempt: attempt + 1,
           maxRetries: strategy.maxRetries,
           delay,
-          error: lastError.message
+          error: lastError.message,
         });
       }
     }
-    
+
     throw lastError!;
   }
 
   /**
    * Calculate backoff delay based on strategy
    */
-  private calculateBackoffDelay(strategy: RecoveryStrategy, attempt: number): number {
+  private calculateBackoffDelay(
+    strategy: RecoveryStrategy,
+    attempt: number,
+  ): number {
     switch (strategy.backoffStrategy) {
-      case 'fixed':
+      case "fixed":
         return strategy.backoffDelay;
-      case 'linear':
+      case "linear":
         return strategy.backoffDelay * (attempt + 1);
-      case 'exponential':
+      case "exponential":
         return strategy.backoffDelay * Math.pow(2, attempt);
       default:
         return strategy.backoffDelay;
@@ -587,11 +643,11 @@ export class ComprehensiveErrorHandler {
       const circuitBreaker = new CircuitBreaker(
         component,
         strategy.circuitBreakerThreshold || 5,
-        strategy.circuitBreakerTimeout || 60000
+        strategy.circuitBreakerTimeout || 60000,
       );
       this.circuitBreakers.set(component, circuitBreaker);
     }
-    
+
     return this.circuitBreakers.get(component)!;
   }
 
@@ -611,29 +667,30 @@ export class ComprehensiveErrorHandler {
         severity: error.severity,
         context: error.context,
         metadata: error.metadata,
-        timestamp: error.timestamp.toISOString()
+        timestamp: error.timestamp.toISOString(),
       };
 
       const response = await fetch(this.config.errorReportingEndpoint, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.config.errorReportingApiKey}`
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.config.errorReportingApiKey}`,
         },
-        body: JSON.stringify(reportData)
+        body: JSON.stringify(reportData),
       });
 
       if (!response.ok) {
-        this.logger.warn('Failed to report error to external service', {
+        this.logger.warn("Failed to report error to external service", {
           errorId: error.id,
           status: response.status,
-          statusText: response.statusText
+          statusText: response.statusText,
         });
       }
     } catch (reportError) {
-      this.logger.warn('Failed to report error to external service', {
+      this.logger.warn("Failed to report error to external service", {
         errorId: error.id,
-        reportError: reportError instanceof Error ? reportError.message : 'Unknown error'
+        reportError:
+          reportError instanceof Error ? reportError.message : "Unknown error",
       });
     }
   }
@@ -650,24 +707,29 @@ export class ComprehensiveErrorHandler {
   } {
     const errorsByCategory: Record<ErrorCategory, number> = {} as any;
     const errorsBySeverity: Record<ErrorSeverity, number> = {} as any;
-    
+
     // Initialize counters
-    Object.values(ErrorCategory).forEach(category => {
+    Object.values(ErrorCategory).forEach((category) => {
       errorsByCategory[category] = 0;
     });
-    
-    Object.values(ErrorSeverity).forEach(severity => {
+
+    Object.values(ErrorSeverity).forEach((severity) => {
       errorsBySeverity[severity] = 0;
     });
 
     // Count errors
-    this.errorHistory.forEach(error => {
+    this.errorHistory.forEach((error) => {
       errorsByCategory[error.category]++;
       errorsBySeverity[error.severity]++;
     });
 
-    const resolvedErrors = this.errorHistory.filter(error => error.resolved).length;
-    const resolutionRate = this.errorHistory.length > 0 ? resolvedErrors / this.errorHistory.length : 0;
+    const resolvedErrors = this.errorHistory.filter(
+      (error) => error.resolved,
+    ).length;
+    const resolutionRate =
+      this.errorHistory.length > 0
+        ? resolvedErrors / this.errorHistory.length
+        : 0;
 
     const circuitBreakerStates: Record<string, CircuitBreakerState> = {};
     this.circuitBreakers.forEach((breaker, name) => {
@@ -679,7 +741,7 @@ export class ComprehensiveErrorHandler {
       errorsByCategory,
       errorsBySeverity,
       resolutionRate,
-      circuitBreakerStates
+      circuitBreakerStates,
     };
   }
 
@@ -709,7 +771,7 @@ export const globalErrorHandler = new ComprehensiveErrorHandler();
 export async function handleError(
   error: Error,
   context: Partial<ErrorContext>,
-  operation?: () => Promise<any>
+  operation?: () => Promise<any>,
 ): Promise<ComprehensiveError> {
   return globalErrorHandler.handleError(error, context, operation);
-} 
+}

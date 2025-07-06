@@ -1,6 +1,10 @@
-import { IAgentRuntime, Action, elizaLogger } from '@elizaos/core';
-import { LoggerWithContext, generateCorrelationId, PerformanceTracker } from '../utils/helpers';
-import { z } from 'zod';
+import { IAgentRuntime, Action, elizaLogger } from "@elizaos/core";
+import {
+  LoggerWithContext,
+  generateCorrelationId,
+  PerformanceTracker,
+} from "../utils/helpers";
+import { z } from "zod";
 
 /**
  * Base action configuration schema
@@ -65,12 +69,15 @@ export abstract class BaseAction implements Action {
   constructor(runtime: IAgentRuntime, config?: Partial<BaseActionConfig>) {
     this.runtime = runtime;
     this.correlationId = generateCorrelationId();
-    this.contextLogger = new LoggerWithContext(this.correlationId, this.constructor.name);
-    
+    this.contextLogger = new LoggerWithContext(
+      this.correlationId,
+      this.constructor.name,
+    );
+
     // Merge default config with provided config
     this.config = BaseActionConfigSchema.parse({
       ...this.getDefaultConfig(),
-      ...config
+      ...config,
     });
   }
 
@@ -115,8 +122,11 @@ export abstract class BaseAction implements Action {
       startTime,
       config: this.config,
       logger: this.contextLogger,
-      performanceTracker: new PerformanceTracker(this.contextLogger, this.constructor.name),
-      runtime: this.runtime
+      performanceTracker: new PerformanceTracker(
+        this.contextLogger,
+        this.constructor.name,
+      ),
+      runtime: this.runtime,
     };
 
     try {
@@ -126,21 +136,24 @@ export abstract class BaseAction implements Action {
         if (!validation.valid) {
           return {
             success: false,
-            error: `Validation failed: ${validation.errors.join(', ')}`,
+            error: `Validation failed: ${validation.errors.join(", ")}`,
             duration: Date.now() - startTime,
             timestamp: new Date(),
             correlationId: this.correlationId,
-            metadata: { validationErrors: validation.errors, warnings: validation.warnings }
+            metadata: {
+              validationErrors: validation.errors,
+              warnings: validation.warnings,
+            },
           };
         }
       }
 
       // Log action start
       if (this.config.enableLogging) {
-        this.contextLogger.info('Action execution started', {
+        this.contextLogger.info("Action execution started", {
           action: this.constructor.name,
           params: this.sanitizeParams(params),
-          config: this.config
+          config: this.config,
         });
       }
 
@@ -149,17 +162,17 @@ export abstract class BaseAction implements Action {
 
       // Log successful completion
       if (this.config.enableLogging) {
-        this.contextLogger.info('Action execution completed successfully', {
+        this.contextLogger.info("Action execution completed successfully", {
           action: this.constructor.name,
           duration: Date.now() - startTime,
-          resultSize: this.getResultSize(result)
+          resultSize: this.getResultSize(result),
         });
       }
 
       // Track performance
       context.performanceTracker.finish(true, {
         resultSize: this.getResultSize(result),
-        params: this.sanitizeParams(params)
+        params: this.sanitizeParams(params),
       });
 
       return {
@@ -167,39 +180,39 @@ export abstract class BaseAction implements Action {
         data: result,
         duration: Date.now() - startTime,
         timestamp: new Date(),
-        correlationId: this.correlationId
+        correlationId: this.correlationId,
       };
-
     } catch (error) {
       const duration = Date.now() - startTime;
-      
+
       // Log error
       if (this.config.enableLogging) {
-        this.contextLogger.error('Action execution failed', {
+        this.contextLogger.error("Action execution failed", {
           action: this.constructor.name,
-          error: error instanceof Error ? error.message : 'Unknown error',
+          error: error instanceof Error ? error.message : "Unknown error",
           stack: error instanceof Error ? error.stack : undefined,
           duration,
-          params: this.sanitizeParams(params)
+          params: this.sanitizeParams(params),
         });
       }
 
       // Track performance failure
       context.performanceTracker.finish(false, {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        duration
+        error: error instanceof Error ? error.message : "Unknown error",
+        duration,
       });
 
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
         duration,
         timestamp: new Date(),
         correlationId: this.correlationId,
         metadata: {
-          errorType: error instanceof Error ? error.constructor.name : 'Unknown',
-          stack: error instanceof Error ? error.stack : undefined
-        }
+          errorType:
+            error instanceof Error ? error.constructor.name : "Unknown",
+          stack: error instanceof Error ? error.stack : undefined,
+        },
       };
     }
   }
@@ -207,30 +220,39 @@ export abstract class BaseAction implements Action {
   /**
    * Abstract method that subclasses must implement
    */
-  protected abstract executeAction(params: any, context: ActionContext): Promise<any>;
+  protected abstract executeAction(
+    params: any,
+    context: ActionContext,
+  ): Promise<any>;
 
   /**
    * Validate action parameters
    * Override in subclasses to add specific validation
    */
-  protected async validateParams(params: any, context: ActionContext): Promise<ValidationResult> {
+  protected async validateParams(
+    params: any,
+    context: ActionContext,
+  ): Promise<ValidationResult> {
     const errors: string[] = [];
     const warnings: string[] = [];
 
     // Basic validation
     if (!params) {
-      errors.push('Parameters are required');
+      errors.push("Parameters are required");
     }
 
     // Add specific validation in subclasses
-    const specificValidation = await this.validateSpecificParams(params, context);
+    const specificValidation = await this.validateSpecificParams(
+      params,
+      context,
+    );
     errors.push(...specificValidation.errors);
     warnings.push(...specificValidation.warnings);
 
     return {
       valid: errors.length === 0,
       errors,
-      warnings
+      warnings,
     };
   }
 
@@ -238,7 +260,10 @@ export abstract class BaseAction implements Action {
    * Validate specific parameters for this action
    * Override in subclasses
    */
-  protected async validateSpecificParams(params: any, context: ActionContext): Promise<ValidationResult> {
+  protected async validateSpecificParams(
+    params: any,
+    context: ActionContext,
+  ): Promise<ValidationResult> {
     return { valid: true, errors: [], warnings: [] };
   }
 
@@ -249,12 +274,12 @@ export abstract class BaseAction implements Action {
     if (!params) return params;
 
     const sanitized = { ...params };
-    
+
     // Remove sensitive fields
-    const sensitiveFields = ['password', 'apiKey', 'token', 'secret', 'key'];
-    sensitiveFields.forEach(field => {
+    const sensitiveFields = ["password", "apiKey", "token", "secret", "key"];
+    sensitiveFields.forEach((field) => {
       if (field in sanitized) {
-        sanitized[field] = '[REDACTED]';
+        sanitized[field] = "[REDACTED]";
       }
     });
 
@@ -266,7 +291,7 @@ export abstract class BaseAction implements Action {
    */
   protected getResultSize(result: any): number {
     if (!result) return 0;
-    
+
     try {
       return JSON.stringify(result).length;
     } catch {
@@ -281,14 +306,14 @@ export abstract class BaseAction implements Action {
     if (!this.config.cacheEnabled) return null;
 
     try {
-      const cacheService = this.runtime.getService('cache-manager') as any;
-      if (cacheService && typeof cacheService.get === 'function') {
+      const cacheService = this.runtime.getService("cache-manager") as any;
+      if (cacheService && typeof cacheService.get === "function") {
         return await cacheService.get(key);
       }
     } catch (error) {
-      this.contextLogger.warn('Failed to get cached result', {
+      this.contextLogger.warn("Failed to get cached result", {
         key,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
 
@@ -302,14 +327,14 @@ export abstract class BaseAction implements Action {
     if (!this.config.cacheEnabled) return;
 
     try {
-      const cacheService = this.runtime.getService('cache-manager') as any;
-      if (cacheService && typeof cacheService.set === 'function') {
+      const cacheService = this.runtime.getService("cache-manager") as any;
+      if (cacheService && typeof cacheService.set === "function") {
         await cacheService.set(key, data, this.config.cacheTtl);
       }
     } catch (error) {
-      this.contextLogger.warn('Failed to cache result', {
+      this.contextLogger.warn("Failed to cache result", {
         key,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -329,7 +354,7 @@ export abstract class BaseAction implements Action {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32-bit integer
     }
     return Math.abs(hash).toString(36);
@@ -339,17 +364,17 @@ export abstract class BaseAction implements Action {
    * Get configuration value
    */
   protected getConfig<T = any>(key: string, defaultValue?: T): T {
-    const keys = key.split('.');
+    const keys = key.split(".");
     let value: any = this.config;
-    
+
     for (const k of keys) {
-      if (value && typeof value === 'object' && k in value) {
+      if (value && typeof value === "object" && k in value) {
         value = value[k];
       } else {
         return defaultValue as T;
       }
     }
-    
+
     return value as T;
   }
 
@@ -365,33 +390,33 @@ export abstract class BaseAction implements Action {
    */
   protected async retryOperation<T>(
     operation: () => Promise<T>,
-    context: ActionContext
+    context: ActionContext,
   ): Promise<T> {
     let lastError: Error;
-    
+
     for (let attempt = 0; attempt < this.config.maxRetries; attempt++) {
       try {
         return await operation();
       } catch (error) {
         lastError = error as Error;
-        
+
         if (attempt === this.config.maxRetries - 1) {
           throw lastError;
         }
-        
+
         // Wait before retry with exponential backoff
         const delay = Math.pow(2, attempt) * 1000;
-        await new Promise(resolve => setTimeout(resolve, delay));
-        
-        this.contextLogger.warn('Operation failed, retrying', {
+        await new Promise((resolve) => setTimeout(resolve, delay));
+
+        this.contextLogger.warn("Operation failed, retrying", {
           attempt: attempt + 1,
           maxRetries: this.config.maxRetries,
           delay,
-          error: lastError.message
+          error: lastError.message,
         });
       }
     }
-    
+
     throw lastError!;
   }
 
@@ -406,7 +431,7 @@ export abstract class BaseAction implements Action {
     return {
       name: this.constructor.name,
       config: this.config,
-      correlationId: this.correlationId
+      correlationId: this.correlationId,
     };
   }
-} 
+}
