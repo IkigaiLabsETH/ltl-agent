@@ -150,6 +150,10 @@ export interface CuratedNFTsCache {
   timestamp: number;
 }
 
+const USE_OPENSEA_API = typeof process !== 'undefined' && process.env.USE_OPENSEA_API !== undefined
+  ? process.env.USE_OPENSEA_API === 'true'
+  : true;
+
 /**
  * NFT Data Service
  * Handles all NFT-related data fetching, caching, and analysis
@@ -161,6 +165,7 @@ export class NFTDataService extends BaseDataService {
   private configService: CentralizedConfigService;
   private errorHandler: ComprehensiveErrorHandler;
   private updateInterval: NodeJS.Timeout | null = null;
+  private useOpenSeaApi: boolean;
 
   // Cache management
   private curatedNFTsCache: CuratedNFTsCache | null = null;
@@ -190,6 +195,7 @@ export class NFTDataService extends BaseDataService {
     // Safely get the config service with retry logic
     this.configService = this.getConfigServiceSafely(runtime);
     this.errorHandler = new ComprehensiveErrorHandler();
+    this.useOpenSeaApi = this.runtime?.getSetting?.('USE_OPENSEA_API') ?? USE_OPENSEA_API;
   }
 
   /**
@@ -367,6 +373,11 @@ export class NFTDataService extends BaseDataService {
    * Fetch curated NFTs data
    */
   private async fetchCuratedNFTsData(): Promise<CuratedNFTsData | null> {
+    if (!this.useOpenSeaApi) {
+      this.contextLogger.info('OpenSea API is disabled by config (USE_OPENSEA_API=false). Returning default value.');
+      return null;
+    }
+
     try {
       this.contextLogger.info("Fetching curated NFTs data...");
 
@@ -433,6 +444,11 @@ export class NFTDataService extends BaseDataService {
     collectionSlug: string,
     headers: any,
   ): Promise<NFTCollectionData | null> {
+    if (!this.useOpenSeaApi) {
+      this.contextLogger.info('OpenSea API is disabled by config (USE_OPENSEA_API=false). Returning default value.');
+      return null;
+    }
+
     try {
       // Add null check for configService
       const baseUrl = this.configService 
