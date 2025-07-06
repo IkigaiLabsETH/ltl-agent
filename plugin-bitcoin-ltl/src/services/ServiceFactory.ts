@@ -45,6 +45,10 @@ export class ServiceFactory {
     runtime: IAgentRuntime,
     config: Record<string, any>,
   ): Promise<void> {
+    console.log("[DEBUG] ServiceFactory.initializeServices() - Starting");
+    console.log("[DEBUG] Runtime provided:", !!runtime);
+    console.log("[DEBUG] Config keys:", Object.keys(config));
+    
     if (this.isInitialized) {
       logger.warn(warning("Services already initialized, skipping..."));
       return;
@@ -54,16 +58,24 @@ export class ServiceFactory {
 
     try {
       // Initialize configuration manager first
+      console.log("[DEBUG] Importing ConfigurationManager...");
       const { initializeConfigurationManager } = await import(
         "./ConfigurationManager"
       );
+      console.log("[DEBUG] ConfigurationManager imported successfully");
+      console.log("[DEBUG] initializeConfigurationManager function:", typeof initializeConfigurationManager);
+      
+      console.log("[DEBUG] Calling initializeConfigurationManager...");
       await initializeConfigurationManager(runtime);
+      console.log("[DEBUG] initializeConfigurationManager completed successfully");
       logger.info(success("Configuration manager initialized successfully"));
 
       // Set environment variables from config
+      console.log("[DEBUG] Setting environment variables from config...");
       for (const [key, value] of Object.entries(config)) {
         if (value) process.env[key] = value;
       }
+      console.log("[DEBUG] Environment variables set");
       
       // Initialize services in dependency order
       const serviceClasses = [
@@ -129,6 +141,12 @@ export class ServiceFactory {
       // Log service status
       this.logServiceStatus();
     } catch (error) {
+      console.log("[DEBUG] ServiceFactory.initializeServices() - Error occurred:", error);
+      console.log("[DEBUG] Error type:", typeof error);
+      console.log("[DEBUG] Error name:", error instanceof Error ? error.name : 'Not an Error object');
+      console.log("[DEBUG] Error message:", error instanceof Error ? error.message : String(error));
+      console.log("[DEBUG] Error stack:", error instanceof Error ? error.stack : 'No stack trace');
+      
       logger.error(errorFormat("Critical error during service initialization:"), error);
       throw error;
     }
