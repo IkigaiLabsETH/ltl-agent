@@ -312,12 +312,12 @@ var init_chunk_DOYRZZI4 = __esm({
             "[ConfigurationManager] Service configuration loaded successfully"
           );
           this.logConfigurationSummary();
-        } catch (error) {
+        } catch (error3) {
           elizaLogger.error(
             "[ConfigurationManager] Failed to initialize configuration:",
-            error
+            error3
           );
-          throw new Error(`Configuration initialization failed: ${error.message}`);
+          throw new Error(`Configuration initialization failed: ${error3.message}`);
         }
       }
       /**
@@ -346,12 +346,12 @@ var init_chunk_DOYRZZI4 = __esm({
           elizaLogger.info(
             `[ConfigurationManager] Updated configuration for ${serviceName}`
           );
-        } catch (error) {
+        } catch (error3) {
           elizaLogger.error(
             `[ConfigurationManager] Failed to update configuration for ${serviceName}:`,
-            error
+            error3
           );
-          throw error;
+          throw error3;
         }
       }
       /**
@@ -494,10 +494,10 @@ var init_chunk_DOYRZZI4 = __esm({
               Object.assign(runtimeConfig, pluginSettings);
             }
           }
-        } catch (error) {
+        } catch (error3) {
           elizaLogger.warn(
             "[ConfigurationManager] Failed to load runtime configuration:",
-            error
+            error3
           );
         }
         return runtimeConfig;
@@ -652,16 +652,16 @@ async function retryOperation(operation, maxRetries = 3, baseDelay = 1e3) {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       return await operation();
-    } catch (error) {
-      const isRetryable = error instanceof BitcoinDataError2 && error.retryable;
+    } catch (error3) {
+      const isRetryable = error3 instanceof BitcoinDataError2 && error3.retryable;
       const isLastAttempt = attempt === maxRetries;
       if (!isRetryable || isLastAttempt) {
-        throw error;
+        throw error3;
       }
       const delay = baseDelay * Math.pow(2, attempt - 1);
       logger2.warn(
         `Operation failed (attempt ${attempt}/${maxRetries}), retrying in ${delay}ms...`,
-        error
+        error3
       );
       await new Promise((resolve) => setTimeout(resolve, delay));
     }
@@ -690,14 +690,14 @@ async function fetchWithTimeout(url2, options = {}) {
       );
     }
     return response;
-  } catch (error) {
-    if (error.name === "AbortError") {
+  } catch (error3) {
+    if (error3.name === "AbortError") {
       throw new NetworkError2("Request timeout");
     }
-    if (error instanceof BitcoinDataError2) {
-      throw error;
+    if (error3 instanceof BitcoinDataError2) {
+      throw error3;
     }
-    throw new NetworkError2(`Network error: ${error.message}`);
+    throw new NetworkError2(`Network error: ${error3.message}`);
   } finally {
     clearTimeout(timeoutId);
   }
@@ -10379,17 +10379,17 @@ var init_chunk_EKEHSMW7 = __esm({
         module.exports = iterate;
         function iterate(list, iterator2, state, callback) {
           var key = state["keyedList"] ? state["keyedList"][state.index] : state.index;
-          state.jobs[key] = runJob(iterator2, key, list[key], function(error, output) {
+          state.jobs[key] = runJob(iterator2, key, list[key], function(error3, output) {
             if (!(key in state.jobs)) {
               return;
             }
             delete state.jobs[key];
-            if (error) {
+            if (error3) {
               abort(state);
             } else {
               state.results[key] = output;
             }
-            callback(error, state.results);
+            callback(error3, state.results);
           });
         }
         function runJob(iterator2, key, item, callback) {
@@ -10447,9 +10447,9 @@ var init_chunk_EKEHSMW7 = __esm({
         function parallel(list, iterator2, callback) {
           var state = initState(list);
           while (state.index < (state["keyedList"] || list).length) {
-            iterate(list, iterator2, state, function(error, result) {
-              if (error) {
-                callback(error, result);
+            iterate(list, iterator2, state, function(error3, result) {
+              if (error3) {
+                callback(error3, result);
                 return;
               }
               if (Object.keys(state.jobs).length === 0) {
@@ -10473,9 +10473,9 @@ var init_chunk_EKEHSMW7 = __esm({
         module.exports.descending = descending;
         function serialOrdered(list, iterator2, sortMethod, callback) {
           var state = initState(list, sortMethod);
-          iterate(list, iterator2, state, function iteratorHandler(error, result) {
-            if (error) {
-              callback(error, result);
+          iterate(list, iterator2, state, function iteratorHandler(error3, result) {
+            if (error3) {
+              callback(error3, result);
               return;
             }
             state.index++;
@@ -11592,10 +11592,10 @@ var init_chunk_EKEHSMW7 = __esm({
             this.pipe(request);
             if (cb) {
               var onResponse;
-              var callback = function(error, responce) {
+              var callback = function(error3, responce) {
                 request.removeListener("error", callback);
                 request.removeListener("response", onResponse);
-                return cb.call(this, error, responce);
+                return cb.call(this, error3, responce);
               };
               onResponse = callback.bind(this, null);
               request.on("error", callback);
@@ -12112,14 +12112,14 @@ var init_chunk_EKEHSMW7 = __esm({
             } else {
               exports.storage.removeItem("debug");
             }
-          } catch (error) {
+          } catch (error3) {
           }
         }
         function load() {
           let r;
           try {
             r = exports.storage.getItem("debug") || exports.storage.getItem("DEBUG");
-          } catch (error) {
+          } catch (error3) {
           }
           if (!r && typeof process !== "undefined" && "env" in process) {
             r = process.env.DEBUG;
@@ -12129,7 +12129,7 @@ var init_chunk_EKEHSMW7 = __esm({
         function localstorage() {
           try {
             return localStorage;
-          } catch (error) {
+          } catch (error3) {
           }
         }
         module.exports = require_common()(exports);
@@ -12137,8 +12137,8 @@ var init_chunk_EKEHSMW7 = __esm({
         formatters.j = function(v) {
           try {
             return JSON.stringify(v);
-          } catch (error) {
-            return "[UnexpectedJSONParseError]: " + error.message;
+          } catch (error3) {
+            return "[UnexpectedJSONParseError]: " + error3.message;
           }
         };
       }
@@ -12352,7 +12352,7 @@ var init_chunk_EKEHSMW7 = __esm({
               221
             ];
           }
-        } catch (error) {
+        } catch (error3) {
         }
         exports.inspectOpts = Object.keys(process.env).filter((key) => {
           return /^debug_/i.test(key);
@@ -12442,7 +12442,7 @@ var init_chunk_EKEHSMW7 = __esm({
           if (!debug) {
             try {
               debug = require_src()("follow-redirects");
-            } catch (error) {
+            } catch (error3) {
             }
             if (typeof debug !== "function") {
               debug = function() {
@@ -12473,8 +12473,8 @@ var init_chunk_EKEHSMW7 = __esm({
         var useNativeURL = false;
         try {
           assert(new URL2(""));
-        } catch (error) {
-          useNativeURL = error.code === "ERR_INVALID_URL";
+        } catch (error3) {
+          useNativeURL = error3.code === "ERR_INVALID_URL";
         }
         var preservedUrlFields = [
           "auth",
@@ -12548,9 +12548,9 @@ var init_chunk_EKEHSMW7 = __esm({
           this._currentRequest.abort();
           this.emit("abort");
         };
-        RedirectableRequest.prototype.destroy = function(error) {
-          destroyRequest(this._currentRequest, error);
-          destroy.call(this, error);
+        RedirectableRequest.prototype.destroy = function(error3) {
+          destroyRequest(this._currentRequest, error3);
+          destroy.call(this, error3);
           return this;
         };
         RedirectableRequest.prototype.write = function(data, encoding, callback) {
@@ -12717,10 +12717,10 @@ var init_chunk_EKEHSMW7 = __esm({
             var i = 0;
             var self2 = this;
             var buffers = this._requestBodyBuffers;
-            (function writeNext(error) {
+            (function writeNext(error3) {
               if (request === self2._currentRequest) {
-                if (error) {
-                  self2.emit("error", error);
+                if (error3) {
+                  self2.emit("error", error3);
                 } else if (i < buffers.length) {
                   var buffer = buffers[i++];
                   if (!request.finished) {
@@ -12919,12 +12919,12 @@ var init_chunk_EKEHSMW7 = __esm({
           });
           return CustomError;
         }
-        function destroyRequest(request, error) {
+        function destroyRequest(request, error3) {
           for (var event of events) {
             request.removeListener(event, eventHandlers[event]);
           }
           request.on("error", noop2);
-          request.destroy(error);
+          request.destroy(error3);
         }
         function isSubdomain(subdomain, domain) {
           assert(isString2(subdomain) && isString2(domain));
@@ -13002,9 +13002,9 @@ var init_chunk_EKEHSMW7 = __esm({
           const result = await operation();
           this.onSuccess();
           return result;
-        } catch (error) {
+        } catch (error3) {
           this.onFailure();
-          throw error;
+          throw error3;
         }
       }
       onSuccess() {
@@ -13089,7 +13089,7 @@ var init_chunk_EKEHSMW7 = __esm({
         try {
           const configManager = getConfigurationManager();
           this.serviceConfig = configManager.getServiceConfig(this.configKey);
-        } catch (error) {
+        } catch (error3) {
           elizaLogger2.warn(
             `[${this.constructor.name}:${this.correlationId}] Configuration manager not available, using defaults`
           );
@@ -13109,7 +13109,7 @@ var init_chunk_EKEHSMW7 = __esm({
             this.serviceConfig = newConfig;
             this.onConfigurationChanged(newConfig);
           });
-        } catch (error) {
+        } catch (error3) {
           elizaLogger2.debug(
             `[${this.constructor.name}:${this.correlationId}] Configuration watching not available`
           );
@@ -13219,20 +13219,20 @@ var init_chunk_EKEHSMW7 = __esm({
               this.serviceHealth.lastSuccessTime = Date.now();
               this.updateResponseTime(Date.now() - startTime);
               resolve(result);
-            } catch (error) {
+            } catch (error3) {
               this.serviceHealth.totalRequests++;
               this.serviceHealth.totalFailures++;
               this.serviceHealth.lastFailureTime = Date.now();
               elizaLogger2.error(
                 `[${this.constructor.name}:${this.correlationId}] Request failed:`,
                 {
-                  error: error.message,
-                  type: error.constructor.name,
+                  error: error3.message,
+                  type: error3.constructor.name,
                   correlationId: this.correlationId,
                   timestamp: (/* @__PURE__ */ new Date()).toISOString()
                 }
               );
-              reject(error);
+              reject(error3);
             }
           };
           this.requestQueue.push(requestWrapper);
@@ -13276,12 +13276,12 @@ var init_chunk_EKEHSMW7 = __esm({
               this.lastRequestTime = Date.now();
               await request();
               this.consecutiveFailures = 0;
-            } catch (error) {
+            } catch (error3) {
               this.consecutiveFailures++;
               const maxFailures = this.serviceConfig.circuitBreakerThreshold || 5;
               elizaLogger2.error(
                 `[${this.constructor.name}:${this.correlationId}] Request failed (${this.consecutiveFailures}/${maxFailures}):`,
-                error
+                error3
               );
               if (this.consecutiveFailures >= maxFailures) {
                 const baseBackoff = Math.min(
@@ -13359,8 +13359,8 @@ var init_chunk_EKEHSMW7 = __esm({
       }
     };
     ElizaOSErrorHandler = class {
-      static handleCommonErrors(error, context) {
-        const message = error.message.toLowerCase();
+      static handleCommonErrors(error3, context) {
+        const message = error3.message.toLowerCase();
         if (message.includes("embedding") && message.includes("dimension")) {
           const match = message.match(/expected (\d+), got (\d+)/);
           if (match) {
@@ -13371,7 +13371,7 @@ var init_chunk_EKEHSMW7 = __esm({
           }
         }
         if (message.includes("database") || message.includes("connection") || message.includes("pglite")) {
-          return new DatabaseConnectionError(error);
+          return new DatabaseConnectionError(error3);
         }
         if (message.includes("port") && message.includes("already in use")) {
           const match = message.match(/port (\d+)/);
@@ -13382,20 +13382,20 @@ var init_chunk_EKEHSMW7 = __esm({
         if (message.includes("api key") || message.includes("unauthorized")) {
           return new MissingAPIKeyError("REQUIRED_API_KEY", context);
         }
-        return error;
+        return error3;
       }
-      static logStructuredError(error, contextLogger, context = {}) {
-        if (error instanceof ElizaOSError) {
-          contextLogger.error(`[${error.code}] ${error.message}`, {
+      static logStructuredError(error3, contextLogger, context = {}) {
+        if (error3 instanceof ElizaOSError) {
+          contextLogger.error(`[${error3.code}] ${error3.message}`, {
             ...context,
-            resolution: error.resolution,
-            errorType: error.name
+            resolution: error3.resolution,
+            errorType: error3.name
           });
         } else {
-          contextLogger.error(`Unexpected error: ${error.message}`, {
+          contextLogger.error(`Unexpected error: ${error3.message}`, {
             ...context,
-            errorType: error.name,
-            stack: error.stack
+            errorType: error3.name,
+            stack: error3.stack
           });
         }
       }
@@ -13534,19 +13534,19 @@ var init_chunk_EKEHSMW7 = __esm({
                 duration,
                 statusCode: 200
               });
-            } catch (error) {
+            } catch (error3) {
               const duration = Date.now() - requestStart;
               request.resolve({
                 id: request.id,
                 success: false,
-                error: error instanceof Error ? error.message : "Unknown error",
+                error: error3 instanceof Error ? error3.message : "Unknown error",
                 duration,
-                statusCode: error instanceof Response ? error.status : void 0
+                statusCode: error3 instanceof Response ? error3.status : void 0
               });
             }
           });
           await Promise.all(promises);
-        } catch (error) {
+        } catch (error3) {
           batch.forEach((request) => {
             request.resolve({
               id: request.id,
@@ -13578,9 +13578,9 @@ var init_chunk_EKEHSMW7 = __esm({
               throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             return await response.json();
-          } catch (error) {
-            lastError = error;
-            if (error instanceof Error && error.name === "AbortError") {
+          } catch (error3) {
+            lastError = error3;
+            if (error3 instanceof Error && error3.name === "AbortError") {
               throw new Error(
                 `Request timeout after ${request.timeout || 1e4}ms`
               );
@@ -13677,9 +13677,9 @@ var init_chunk_EKEHSMW7 = __esm({
           const result = await operation();
           this.onSuccess();
           return result;
-        } catch (error) {
+        } catch (error3) {
           this.onFailure();
-          throw error;
+          throw error3;
         }
       }
       onSuccess() {
@@ -13812,7 +13812,7 @@ var init_chunk_EKEHSMW7 = __esm({
       /**
        * Handle an error with comprehensive analysis and recovery
        */
-      async handleError(error, context, operation) {
+      async handleError(error3, context, operation) {
         const errorId = generateCorrelationId();
         const timestamp = /* @__PURE__ */ new Date();
         const fullContext = {
@@ -13821,23 +13821,23 @@ var init_chunk_EKEHSMW7 = __esm({
           operation: context.operation || "unknown",
           timestamp,
           params: context.params,
-          stack: error.stack,
+          stack: error3.stack,
           userAgent: context.userAgent,
           requestId: context.requestId,
           sessionId: context.sessionId
         };
-        const category = this.categorizeError(error);
-        const severity = this.determineSeverity(error, category);
+        const category = this.categorizeError(error3);
+        const severity = this.determineSeverity(error3, category);
         const recoveryStrategy = this.getRecoveryStrategy(category);
         const comprehensiveError = {
           id: errorId,
-          message: error.message,
-          originalError: error,
+          message: error3.message,
+          originalError: error3,
           category,
           severity,
           context: fullContext,
           recoveryStrategy,
-          metadata: this.extractMetadata(error),
+          metadata: this.extractMetadata(error3),
           timestamp,
           resolved: false
         };
@@ -13876,9 +13876,9 @@ var init_chunk_EKEHSMW7 = __esm({
       /**
        * Categorize error based on its type and message
        */
-      categorizeError(error) {
-        const message = error.message.toLowerCase();
-        const name = error.name.toLowerCase();
+      categorizeError(error3) {
+        const message = error3.message.toLowerCase();
+        const name = error3.name.toLowerCase();
         if (name.includes("network") || message.includes("network") || message.includes("fetch")) {
           return "network";
         }
@@ -13914,8 +13914,8 @@ var init_chunk_EKEHSMW7 = __esm({
       /**
        * Determine error severity
        */
-      determineSeverity(error, category) {
-        const message = error.message.toLowerCase();
+      determineSeverity(error3, category) {
+        const message = error3.message.toLowerCase();
         if (category === "authentication" || category === "authorization" || message.includes("critical") || message.includes("fatal")) {
           return "critical";
         }
@@ -13942,15 +13942,15 @@ var init_chunk_EKEHSMW7 = __esm({
       /**
        * Extract metadata from error
        */
-      extractMetadata(error) {
+      extractMetadata(error3) {
         const metadata = {
-          name: error.name,
-          stack: error.stack,
-          constructor: error.constructor.name
+          name: error3.name,
+          stack: error3.stack,
+          constructor: error3.constructor.name
         };
-        Object.getOwnPropertyNames(error).forEach((prop) => {
+        Object.getOwnPropertyNames(error3).forEach((prop) => {
           if (prop !== "name" && prop !== "message" && prop !== "stack") {
-            metadata[prop] = error[prop];
+            metadata[prop] = error3[prop];
           }
         });
         return metadata;
@@ -13958,40 +13958,40 @@ var init_chunk_EKEHSMW7 = __esm({
       /**
        * Log error with appropriate level
        */
-      logError(error) {
+      logError(error3) {
         if (!this.config.enableDetailedLogging) {
           return;
         }
         const logData = {
-          errorId: error.id,
-          category: error.category,
-          severity: error.severity,
-          component: error.context.component,
-          operation: error.context.operation,
-          correlationId: error.context.correlationId,
-          strategy: error.recoveryStrategy.name,
-          metadata: error.metadata
+          errorId: error3.id,
+          category: error3.category,
+          severity: error3.severity,
+          component: error3.context.component,
+          operation: error3.context.operation,
+          correlationId: error3.context.correlationId,
+          strategy: error3.recoveryStrategy.name,
+          metadata: error3.metadata
         };
-        switch (error.severity) {
+        switch (error3.severity) {
           case "critical":
-            this.logger.error(`CRITICAL ERROR: ${error.message}`, logData);
+            this.logger.error(`CRITICAL ERROR: ${error3.message}`, logData);
             break;
           case "high":
-            this.logger.error(`HIGH SEVERITY ERROR: ${error.message}`, logData);
+            this.logger.error(`HIGH SEVERITY ERROR: ${error3.message}`, logData);
             break;
           case "medium":
-            this.logger.warn(`MEDIUM SEVERITY ERROR: ${error.message}`, logData);
+            this.logger.warn(`MEDIUM SEVERITY ERROR: ${error3.message}`, logData);
             break;
           case "low":
-            this.logger.info(`LOW SEVERITY ERROR: ${error.message}`, logData);
+            this.logger.info(`LOW SEVERITY ERROR: ${error3.message}`, logData);
             break;
         }
       }
       /**
        * Add error to history
        */
-      addToHistory(error) {
-        this.errorHistory.push(error);
+      addToHistory(error3) {
+        this.errorHistory.push(error3);
         if (this.errorHistory.length > this.config.maxErrorHistory) {
           this.errorHistory = this.errorHistory.slice(-this.config.maxErrorHistory);
         }
@@ -13999,10 +13999,10 @@ var init_chunk_EKEHSMW7 = __esm({
       /**
        * Attempt recovery using circuit breaker and retry logic
        */
-      async attemptRecovery(error, operation) {
-        const strategy = error.recoveryStrategy;
+      async attemptRecovery(error3, operation) {
+        const strategy = error3.recoveryStrategy;
         if (strategy.circuitBreaker && this.config.enableCircuitBreakers) {
-          const circuitBreaker = this.getCircuitBreaker(error.context.component);
+          const circuitBreaker = this.getCircuitBreaker(error3.context.component);
           return await circuitBreaker.execute(operation);
         }
         let lastError;
@@ -14017,7 +14017,7 @@ var init_chunk_EKEHSMW7 = __esm({
             const delay = this.calculateBackoffDelay(strategy, attempt);
             await new Promise((resolve) => setTimeout(resolve, delay));
             this.logger.warn("Retry attempt failed, retrying", {
-              errorId: error.id,
+              errorId: error3.id,
               attempt: attempt + 1,
               maxRetries: strategy.maxRetries,
               delay,
@@ -14063,19 +14063,19 @@ var init_chunk_EKEHSMW7 = __esm({
       /**
        * Report error to external service
        */
-      async reportError(error) {
+      async reportError(error3) {
         if (!this.config.errorReportingEndpoint) {
           return;
         }
         try {
           const reportData = {
-            id: error.id,
-            message: error.message,
-            category: error.category,
-            severity: error.severity,
-            context: error.context,
-            metadata: error.metadata,
-            timestamp: error.timestamp.toISOString()
+            id: error3.id,
+            message: error3.message,
+            category: error3.category,
+            severity: error3.severity,
+            context: error3.context,
+            metadata: error3.metadata,
+            timestamp: error3.timestamp.toISOString()
           };
           const response = await fetch(this.config.errorReportingEndpoint, {
             method: "POST",
@@ -14087,14 +14087,14 @@ var init_chunk_EKEHSMW7 = __esm({
           });
           if (!response.ok) {
             this.logger.warn("Failed to report error to external service", {
-              errorId: error.id,
+              errorId: error3.id,
               status: response.status,
               statusText: response.statusText
             });
           }
         } catch (reportError) {
           this.logger.warn("Failed to report error to external service", {
-            errorId: error.id,
+            errorId: error3.id,
             reportError: reportError instanceof Error ? reportError.message : "Unknown error"
           });
         }
@@ -14111,12 +14111,12 @@ var init_chunk_EKEHSMW7 = __esm({
         Object.values(ErrorSeverity).forEach((severity) => {
           errorsBySeverity[severity] = 0;
         });
-        this.errorHistory.forEach((error) => {
-          errorsByCategory[error.category]++;
-          errorsBySeverity[error.severity]++;
+        this.errorHistory.forEach((error3) => {
+          errorsByCategory[error3.category]++;
+          errorsBySeverity[error3.severity]++;
         });
         const resolvedErrors = this.errorHistory.filter(
-          (error) => error.resolved
+          (error3) => error3.resolved
         ).length;
         const resolutionRate = this.errorHistory.length > 0 ? resolvedErrors / this.errorHistory.length : 0;
         const circuitBreakerStates = {};
@@ -14210,8 +14210,8 @@ var init_chunk_EKEHSMW7 = __esm({
       }
     };
     ElizaOSErrorHandler2 = class {
-      static handleCommonErrors(error, context) {
-        const message = error.message.toLowerCase();
+      static handleCommonErrors(error3, context) {
+        const message = error3.message.toLowerCase();
         if (message.includes("embedding") && message.includes("dimension")) {
           const match = message.match(/expected (\d+), got (\d+)/);
           if (match) {
@@ -14222,7 +14222,7 @@ var init_chunk_EKEHSMW7 = __esm({
           }
         }
         if (message.includes("database") || message.includes("connection") || message.includes("pglite")) {
-          return new DatabaseConnectionError2(error);
+          return new DatabaseConnectionError2(error3);
         }
         if (message.includes("port") && (message.includes("use") || message.includes("bind"))) {
           const portMatch = message.match(/port (\d+)/);
@@ -14233,18 +14233,18 @@ var init_chunk_EKEHSMW7 = __esm({
         if (message.includes("api key") || message.includes("unauthorized") || message.includes("401")) {
           return new MissingAPIKeyError2("API_KEY", context);
         }
-        return error;
+        return error3;
       }
-      static logStructuredError(error, contextLogger, context = {}) {
-        if (error instanceof ElizaOSError2) {
-          contextLogger.error(`ElizaOS Issue: ${error.message}`, {
-            code: error.code,
-            resolution: error.resolution,
+      static logStructuredError(error3, contextLogger, context = {}) {
+        if (error3 instanceof ElizaOSError2) {
+          contextLogger.error(`ElizaOS Issue: ${error3.message}`, {
+            code: error3.code,
+            resolution: error3.resolution,
             context
           });
         } else {
-          contextLogger.error(`Unexpected error: ${error.message}`, {
-            stack: error.stack,
+          contextLogger.error(`Unexpected error: ${error3.message}`, {
+            stack: error3.stack,
             context
           });
         }
@@ -14359,8 +14359,8 @@ var init_chunk_EKEHSMW7 = __esm({
           elizaLogger3.info(
             "[BitcoinDataService] Data update completed successfully"
           );
-        } catch (error) {
-          elizaLogger3.error("[BitcoinDataService] Error updating data:", error);
+        } catch (error3) {
+          elizaLogger3.error("[BitcoinDataService] Error updating data:", error3);
         }
       }
       /**
@@ -14388,9 +14388,9 @@ var init_chunk_EKEHSMW7 = __esm({
             "[BitcoinDataService] Force update completed successfully"
           );
           return result;
-        } catch (error) {
-          elizaLogger3.error("[BitcoinDataService] Error in force update:", error);
-          throw error;
+        } catch (error3) {
+          elizaLogger3.error("[BitcoinDataService] Error in force update:", error3);
+          throw error3;
         }
       }
       /**
@@ -14424,9 +14424,9 @@ var init_chunk_EKEHSMW7 = __esm({
               };
             }
           }
-        } catch (error) {
+        } catch (error3) {
           const enhancedError = ElizaOSErrorHandler.handleCommonErrors(
-            error,
+            error3,
             "MemoryReset"
           );
           elizaLogger3.error("Failed to reset memory:", enhancedError.message);
@@ -14462,9 +14462,9 @@ var init_chunk_EKEHSMW7 = __esm({
                   `Database directory is large (${(dirSize / 1024 / 1024).toFixed(0)}MB). Consider cleanup.`
                 );
               }
-            } catch (error) {
+            } catch (error3) {
               issues.push(
-                `Could not check database directory size: ${error.message}`
+                `Could not check database directory size: ${error3.message}`
               );
             }
           }
@@ -14479,8 +14479,8 @@ var init_chunk_EKEHSMW7 = __esm({
             stats,
             issues
           };
-        } catch (error) {
-          issues.push(`Memory health check failed: ${error.message}`);
+        } catch (error3) {
+          issues.push(`Memory health check failed: ${error3.message}`);
           return {
             healthy: false,
             stats,
@@ -14546,8 +14546,8 @@ var init_chunk_EKEHSMW7 = __esm({
             "bitcoin-price"
           );
           return price;
-        } catch (error) {
-          elizaLogger3.error("Error fetching Bitcoin price:", error);
+        } catch (error3) {
+          elizaLogger3.error("Error fetching Bitcoin price:", error3);
           const fallbackData = await this.getFromMemory("bitcoin-price", 1);
           if (fallbackData.length > 0) {
             elizaLogger3.warn(
@@ -14660,8 +14660,8 @@ var init_chunk_EKEHSMW7 = __esm({
             `[BitcoinDataService] Enhanced market data updated: $${marketData.price.toLocaleString()}`
           );
           return marketData;
-        } catch (error) {
-          elizaLogger3.error("Error fetching enhanced market data:", error);
+        } catch (error3) {
+          elizaLogger3.error("Error fetching enhanced market data:", error3);
           const fallbackData = await this.getFromMemory("bitcoin-market-data", 1);
           if (fallbackData.length > 0) {
             elizaLogger3.warn(
@@ -14759,8 +14759,8 @@ var init_chunk_EKEHSMW7 = __esm({
             `[BitcoinDataService] Retrieved ${recentHistory.length} thesis progress entries from last ${days} days`
           );
           return recentHistory;
-        } catch (error) {
-          elizaLogger3.error("Error retrieving thesis progress history:", error);
+        } catch (error3) {
+          elizaLogger3.error("Error retrieving thesis progress history:", error3);
           return [];
         }
       }
@@ -14781,8 +14781,8 @@ var init_chunk_EKEHSMW7 = __esm({
             `[BitcoinDataService] Retrieved ${recentHistory.length} freedom math entries from last ${days} days`
           );
           return recentHistory;
-        } catch (error) {
-          elizaLogger3.error("Error retrieving freedom math history:", error);
+        } catch (error3) {
+          elizaLogger3.error("Error retrieving freedom math history:", error3);
           return [];
         }
       }
@@ -14918,10 +14918,10 @@ var init_chunk_EKEHSMW7 = __esm({
               "[BitcoinNetworkDataService] \u26A0\uFE0F Failed to fetch Bitcoin data - APIs may be down"
             );
           }
-        } catch (error) {
+        } catch (error3) {
           console.error(
             "[BitcoinNetworkDataService] \u274C Error updating Bitcoin data:",
-            error
+            error3
           );
         }
       }
@@ -14990,8 +14990,8 @@ var init_chunk_EKEHSMW7 = __esm({
             lastUpdated: /* @__PURE__ */ new Date()
           };
           return response;
-        } catch (error) {
-          console.error("Error fetching comprehensive Bitcoin data:", error);
+        } catch (error3) {
+          console.error("Error fetching comprehensive Bitcoin data:", error3);
           return null;
         }
       }
@@ -15017,8 +15017,8 @@ var init_chunk_EKEHSMW7 = __esm({
             usd: Number(data.bitcoin?.usd) || null,
             change24h: Number(data.bitcoin?.usd_24h_change) || null
           };
-        } catch (error) {
-          console.error("Error fetching Bitcoin price data:", error);
+        } catch (error3) {
+          console.error("Error fetching Bitcoin price data:", error3);
           return null;
         }
       }
@@ -15065,8 +15065,8 @@ var init_chunk_EKEHSMW7 = __esm({
               estimatedDate: halvingDate.toISOString()
             }
           };
-        } catch (error) {
-          console.error("Error fetching Bitcoin network data:", error);
+        } catch (error3) {
+          console.error("Error fetching Bitcoin network data:", error3);
           return null;
         }
       }
@@ -15090,8 +15090,8 @@ var init_chunk_EKEHSMW7 = __esm({
             };
           }
           return null;
-        } catch (error) {
-          console.error("Error fetching Blockchain.info data:", error);
+        } catch (error3) {
+          console.error("Error fetching Blockchain.info data:", error3);
           return null;
         }
       }
@@ -15132,8 +15132,8 @@ var init_chunk_EKEHSMW7 = __esm({
             }
           }
           return Object.keys(results).length > 0 ? results : null;
-        } catch (error) {
-          console.error("Error fetching Mempool.space network data:", error);
+        } catch (error3) {
+          console.error("Error fetching Mempool.space network data:", error3);
           return null;
         }
       }
@@ -15152,8 +15152,8 @@ var init_chunk_EKEHSMW7 = __esm({
             };
           }
           return null;
-        } catch (error) {
-          console.error("Error fetching Blockstream data:", error);
+        } catch (error3) {
+          console.error("Error fetching Blockstream data:", error3);
           return null;
         }
       }
@@ -15171,8 +15171,8 @@ var init_chunk_EKEHSMW7 = __esm({
             };
           }
           return null;
-        } catch (error) {
-          console.error("Error fetching Bitcoin sentiment data:", error);
+        } catch (error3) {
+          console.error("Error fetching Bitcoin sentiment data:", error3);
           return null;
         }
       }
@@ -15207,8 +15207,8 @@ var init_chunk_EKEHSMW7 = __esm({
             miningRevenue24h: null
             // We'll need another endpoint for this
           };
-        } catch (error) {
-          console.error("Error fetching Bitcoin mempool data:", error);
+        } catch (error3) {
+          console.error("Error fetching Bitcoin mempool data:", error3);
           return null;
         }
       }
@@ -15410,8 +15410,8 @@ var init_chunk_EKEHSMW7 = __esm({
             `[StockDataService] Stock data updated: ${curatedStocksData.length} curated stocks, MAG7 avg: ${performance.mag7Average.toFixed(2)}%`
           );
           return result;
-        } catch (error) {
-          logger5.error("[StockDataService] Error fetching stock data:", error);
+        } catch (error3) {
+          logger5.error("[StockDataService] Error fetching stock data:", error3);
           return null;
         }
       }
@@ -15427,10 +15427,10 @@ var init_chunk_EKEHSMW7 = __esm({
                 stock.name,
                 stock.sector
               );
-            } catch (error) {
+            } catch (error3) {
               logger5.warn(
                 `[StockDataService] Failed to fetch ${stock.symbol}:`,
-                error
+                error3
               );
               return null;
             }
@@ -15503,8 +15503,8 @@ var init_chunk_EKEHSMW7 = __esm({
             }
           }
           return null;
-        } catch (error) {
-          logger5.error(`[StockDataService] Error fetching ${symbol}:`, error);
+        } catch (error3) {
+          logger5.error(`[StockDataService] Error fetching ${symbol}:`, error3);
           return null;
         }
       }
@@ -15549,10 +15549,10 @@ var init_chunk_EKEHSMW7 = __esm({
             volume: meta.regularMarketVolume || 0,
             marketCap: meta.marketCap || 0
           };
-        } catch (error) {
+        } catch (error3) {
           logger5.warn(
             `[StockDataService] Yahoo Finance failed for ${symbol}:`,
-            error
+            error3
           );
           return null;
         }
@@ -15588,10 +15588,10 @@ var init_chunk_EKEHSMW7 = __esm({
             changePercent,
             volume: parseInt(quote["06. volume"]) || 0
           };
-        } catch (error) {
+        } catch (error3) {
           logger5.warn(
             `[StockDataService] Alpha Vantage failed for ${symbol}:`,
-            error
+            error3
           );
           return null;
         }
@@ -15630,8 +15630,8 @@ var init_chunk_EKEHSMW7 = __esm({
             change,
             changePercent
           };
-        } catch (error) {
-          logger5.warn(`[StockDataService] Finnhub failed for ${symbol}:`, error);
+        } catch (error3) {
+          logger5.warn(`[StockDataService] Finnhub failed for ${symbol}:`, error3);
           return null;
         }
       }
@@ -15654,10 +15654,10 @@ var init_chunk_EKEHSMW7 = __esm({
                 lastUpdate: data.lastUpdate
               });
             }
-          } catch (error) {
+          } catch (error3) {
             logger5.warn(
               `[StockDataService] Failed to fetch index ${index.symbol}:`,
-              error
+              error3
             );
           }
         }
@@ -16046,16 +16046,16 @@ var init_chunk_EKEHSMW7 = __esm({
     });
     Object.defineProperties(AxiosError, descriptors);
     Object.defineProperty(prototype, "isAxiosError", { value: true });
-    AxiosError.from = (error, code, config, request, response, customProps) => {
+    AxiosError.from = (error3, code, config, request, response, customProps) => {
       const axiosError = Object.create(prototype);
-      utils_default.toFlatObject(error, axiosError, function filter2(obj) {
+      utils_default.toFlatObject(error3, axiosError, function filter2(obj) {
         return obj !== Error.prototype;
       }, (prop) => {
         return prop !== "isAxiosError";
       });
-      AxiosError.call(axiosError, error.message, code, config, request, response);
-      axiosError.cause = error;
-      axiosError.name = error.name;
+      AxiosError.call(axiosError, error3.message, code, config, request, response);
+      axiosError.cause = error3;
+      axiosError.name = error3.name;
       customProps && Object.assign(axiosError, customProps);
       return axiosError;
     };
@@ -16567,8 +16567,8 @@ var init_chunk_EKEHSMW7 = __esm({
         const maxRate = internals.maxRate;
         const readableHighWaterMark = this.readableHighWaterMark;
         const timeWindow = internals.timeWindow;
-        const divider = 1e3 / timeWindow;
-        const bytesThreshold = maxRate / divider;
+        const divider3 = 1e3 / timeWindow;
+        const bytesThreshold = maxRate / divider3;
         const minChunkSize = internals.minChunkSize !== false ? Math.max(internals.minChunkSize, bytesThreshold * 0.01) : 0;
         const pushChunk = (_chunk, _callback) => {
           const bytes = Buffer.byteLength(_chunk);
@@ -17926,15 +17926,15 @@ var init_chunk_EKEHSMW7 = __esm({
           const onRejected = requestInterceptorChain[i++];
           try {
             newConfig = onFulfilled(newConfig);
-          } catch (error) {
-            onRejected.call(this, error);
+          } catch (error3) {
+            onRejected.call(this, error3);
             break;
           }
         }
         try {
           promise = dispatchRequest.call(this, newConfig);
-        } catch (error) {
-          return Promise.reject(error);
+        } catch (error3) {
+          return Promise.reject(error3);
         }
         i = 0;
         len = responseInterceptorChain.length;
@@ -18336,8 +18336,8 @@ var init_chunk_EKEHSMW7 = __esm({
       async updateMarketData() {
         try {
           this.marketData = await this.fetchMarketData();
-        } catch (error) {
-          logger6.error("Error updating market data:", error);
+        } catch (error3) {
+          logger6.error("Error updating market data:", error3);
         }
       }
       async updateCuratedAltcoinsData() {
@@ -18460,8 +18460,8 @@ var init_chunk_EKEHSMW7 = __esm({
           await new Promise((resolve) => setTimeout(resolve, 2e3));
           const stockData = await this.fetchStockData();
           return [...marketData, ...stockData];
-        } catch (error) {
-          logger6.error("Error fetching market data:", error);
+        } catch (error3) {
+          logger6.error("Error fetching market data:", error3);
           return this.getFallbackMarketData();
         }
       }
@@ -18510,15 +18510,15 @@ var init_chunk_EKEHSMW7 = __esm({
                 lastUpdate: /* @__PURE__ */ new Date(),
                 source: "Alpha Vantage"
               };
-            } catch (error) {
-              logger6.error(`Error fetching data for ${symbol}:`, error);
+            } catch (error3) {
+              logger6.error(`Error fetching data for ${symbol}:`, error3);
               return null;
             }
           });
           const results = await Promise.all(stockPromises);
           return results.filter(Boolean);
-        } catch (error) {
-          logger6.error("Error fetching stock data:", error);
+        } catch (error3) {
+          logger6.error("Error fetching stock data:", error3);
           return this.getFallbackStockData();
         }
       }
@@ -18559,8 +18559,8 @@ var init_chunk_EKEHSMW7 = __esm({
             `[AltcoinDataService] Fetched curated altcoins data for ${this.curatedCoinIds.length} coins`
           );
           return result;
-        } catch (error) {
-          logger6.error("Error fetching curated altcoins data:", error);
+        } catch (error3) {
+          logger6.error("Error fetching curated altcoins data:", error3);
           logger6.info("[AltcoinDataService] Using fallback curated altcoins data");
           return this.getFallbackCuratedAltcoinsData();
         }
@@ -18573,7 +18573,7 @@ var init_chunk_EKEHSMW7 = __esm({
           );
           try {
             return await this.requestLocks.get(lockKey);
-          } catch (error) {
+          } catch (error3) {
             this.requestLocks.delete(lockKey);
           }
         }
@@ -18689,12 +18689,12 @@ var init_chunk_EKEHSMW7 = __esm({
             `[AltcoinDataService] \u2705 Fetched top 200 vs BTC data: ${outperformingCount}/${totalCoins} outperforming Bitcoin (7d), avg relative: ${averageRelativePerformance.toFixed(2)}%`
           );
           return result;
-        } catch (error) {
+        } catch (error3) {
           logger6.error("[AltcoinDataService] \u274C Error in fetchTop100VsBtcData:", {
-            error: error instanceof Error ? error.message : "Unknown error",
-            stack: error instanceof Error ? error.stack : void 0,
-            type: typeof error,
-            details: error
+            error: error3 instanceof Error ? error3.message : "Unknown error",
+            stack: error3 instanceof Error ? error3.stack : void 0,
+            type: typeof error3,
+            details: error3
           });
           return null;
         }
@@ -18749,10 +18749,10 @@ var init_chunk_EKEHSMW7 = __esm({
                   poolsCount: pools.length,
                   liquidityRatio
                 };
-              } catch (error) {
+              } catch (error3) {
                 logger6.warn(
                   `Failed to fetch pool data for token ${token.tokenAddress}:`,
-                  error
+                  error3
                 );
                 return null;
               }
@@ -18773,8 +18773,8 @@ var init_chunk_EKEHSMW7 = __esm({
             `[AltcoinDataService] Fetched DEXScreener data: ${topTokens.length} top tokens, ${trendingTokens.length} trending`
           );
           return result;
-        } catch (error) {
-          logger6.error("Error in fetchDexScreenerData:", error);
+        } catch (error3) {
+          logger6.error("Error in fetchDexScreenerData:", error3);
           return null;
         }
       }
@@ -18830,8 +18830,8 @@ var init_chunk_EKEHSMW7 = __esm({
             `[AltcoinDataService] Fetched top movers: ${topGainers.length} gainers, ${topLosers.length} losers`
           );
           return result;
-        } catch (error) {
-          logger6.error("Error in fetchTopMoversData:", error);
+        } catch (error3) {
+          logger6.error("Error in fetchTopMoversData:", error3);
           logger6.info("[AltcoinDataService] Using fallback top movers data");
           return this.getFallbackTopMoversData();
         }
@@ -18872,8 +18872,8 @@ var init_chunk_EKEHSMW7 = __esm({
             `[AltcoinDataService] Fetched trending coins: ${trending.length} coins`
           );
           return result;
-        } catch (error) {
-          logger6.error("Error in fetchTrendingCoinsData:", error);
+        } catch (error3) {
+          logger6.error("Error in fetchTrendingCoinsData:", error3);
           logger6.info("[AltcoinDataService] Using fallback trending coins data");
           return this.getFallbackTrendingCoinsData();
         }
@@ -19250,8 +19250,8 @@ var init_chunk_EKEHSMW7 = __esm({
         const updateInterval = 5 * 60 * 1e3;
         setInterval(() => {
           if (this.isMarketHours()) {
-            this.updateData().catch((error) => {
-              logger7.error("Error in scheduled ETF data update:", error);
+            this.updateData().catch((error3) => {
+              logger7.error("Error in scheduled ETF data update:", error3);
             });
           }
         }, updateInterval);
@@ -19287,8 +19287,8 @@ var init_chunk_EKEHSMW7 = __esm({
             this.updateETFHoldings()
           ]);
           logger7.info("ETF data updated successfully");
-        } catch (error) {
-          logger7.error("Error updating ETF data:", error);
+        } catch (error3) {
+          logger7.error("Error updating ETF data:", error3);
         }
       }
       /**
@@ -19327,9 +19327,9 @@ var init_chunk_EKEHSMW7 = __esm({
             timestamp: Date.now()
           });
           return marketData;
-        } catch (error) {
-          logger7.error("Error fetching ETF market data:", error);
-          throw error;
+        } catch (error3) {
+          logger7.error("Error fetching ETF market data:", error3);
+          throw error3;
         }
       }
       /**
@@ -19348,9 +19348,9 @@ var init_chunk_EKEHSMW7 = __esm({
             timestamp: Date.now()
           });
           return flowData;
-        } catch (error) {
-          logger7.error("Error fetching ETF flow data:", error);
-          throw error;
+        } catch (error3) {
+          logger7.error("Error fetching ETF flow data:", error3);
+          throw error3;
         }
       }
       /**
@@ -19365,8 +19365,8 @@ var init_chunk_EKEHSMW7 = __esm({
                 data: marketData,
                 timestamp: Date.now()
               });
-            } catch (error) {
-              logger7.error(`Error updating market data for ${etf.ticker}:`, error);
+            } catch (error3) {
+              logger7.error(`Error updating market data for ${etf.ticker}:`, error3);
             }
           }
         });
@@ -19382,8 +19382,8 @@ var init_chunk_EKEHSMW7 = __esm({
               data: flowData,
               timestamp: Date.now()
             });
-          } catch (error) {
-            logger7.error("Error updating ETF flow data:", error);
+          } catch (error3) {
+            logger7.error("Error updating ETF flow data:", error3);
           }
         });
       }
@@ -19399,8 +19399,8 @@ var init_chunk_EKEHSMW7 = __esm({
                 data: holdings,
                 timestamp: Date.now()
               });
-            } catch (error) {
-              logger7.error(`Error updating holdings for ${etf.ticker}:`, error);
+            } catch (error3) {
+              logger7.error(`Error updating holdings for ${etf.ticker}:`, error3);
             }
           }
         });
@@ -19459,8 +19459,8 @@ var init_chunk_EKEHSMW7 = __esm({
             }
           }
           return null;
-        } catch (error) {
-          logger7.error(`Error fetching market data for ${ticker}:`, error);
+        } catch (error3) {
+          logger7.error(`Error fetching market data for ${ticker}:`, error3);
           return null;
         }
       }
@@ -19492,8 +19492,8 @@ var init_chunk_EKEHSMW7 = __esm({
             }
           }
           return flowData;
-        } catch (error) {
-          logger7.error("Error fetching ETF flow data:", error);
+        } catch (error3) {
+          logger7.error("Error fetching ETF flow data:", error3);
           return flowData;
         }
       }
@@ -19516,8 +19516,8 @@ var init_chunk_EKEHSMW7 = __esm({
             };
           }
           return null;
-        } catch (error) {
-          logger7.error(`Error fetching holdings for ${ticker}:`, error);
+        } catch (error3) {
+          logger7.error(`Error fetching holdings for ${ticker}:`, error3);
           return null;
         }
       }
@@ -19537,8 +19537,8 @@ var init_chunk_EKEHSMW7 = __esm({
           }
           const data = await response.json();
           return data.bitcoin.usd;
-        } catch (error) {
-          logger7.error("Error fetching Bitcoin price:", error);
+        } catch (error3) {
+          logger7.error("Error fetching Bitcoin price:", error3);
           return 0;
         }
       }
@@ -19764,8 +19764,8 @@ var init_chunk_EKEHSMW7 = __esm({
           this.contextLogger.info("Updating NFT data...");
           await this.updateCuratedNFTsData();
           this.contextLogger.info("NFT data update completed");
-        } catch (error) {
-          this.errorHandler.handleError(error, {
+        } catch (error3) {
+          this.errorHandler.handleError(error3, {
             component: "NFTDataService",
             operation: "updateData"
           });
@@ -19786,8 +19786,8 @@ var init_chunk_EKEHSMW7 = __esm({
         this.updateInterval = setInterval(async () => {
           try {
             await this.updateData();
-          } catch (error) {
-            this.errorHandler.handleError(error, {
+          } catch (error3) {
+            this.errorHandler.handleError(error3, {
               component: "NFTDataService",
               operation: "startRealTimeUpdates"
             });
@@ -19814,8 +19814,8 @@ var init_chunk_EKEHSMW7 = __esm({
             };
             this.contextLogger.info("Curated NFTs data updated successfully");
           }
-        } catch (error) {
-          this.errorHandler.handleError(error, {
+        } catch (error3) {
+          this.errorHandler.handleError(error3, {
             component: "NFTDataService",
             operation: "updateCuratedNFTsData"
           });
@@ -19848,8 +19848,8 @@ var init_chunk_EKEHSMW7 = __esm({
               if (collectionData) {
                 collections.push(collectionData);
               }
-            } catch (error) {
-              this.errorHandler.handleError(error, {
+            } catch (error3) {
+              this.errorHandler.handleError(error3, {
                 component: "NFTDataService",
                 operation: `fetchCuratedNFTsData.${collectionSlug}`
               });
@@ -19865,8 +19865,8 @@ var init_chunk_EKEHSMW7 = __esm({
             summary,
             lastUpdated: /* @__PURE__ */ new Date()
           };
-        } catch (error) {
-          this.errorHandler.handleError(error, {
+        } catch (error3) {
+          this.errorHandler.handleError(error3, {
             component: "NFTDataService",
             operation: "fetchCuratedNFTsData"
           });
@@ -19903,8 +19903,8 @@ var init_chunk_EKEHSMW7 = __esm({
             contractAddress: collectionInfo.primary_asset_contracts?.[0]?.address,
             blockchain: collectionInfo.primary_asset_contracts?.[0]?.chain
           };
-        } catch (error) {
-          this.errorHandler.handleError(error, {
+        } catch (error3) {
+          this.errorHandler.handleError(error3, {
             component: "NFTDataService",
             operation: `fetchEnhancedCollectionData.${collectionSlug}`
           });
@@ -20426,8 +20426,8 @@ var init_chunk_EKEHSMW7 = __esm({
         if (googleVerificationAvailable) {
           try {
             restaurantStatus = await this.verifyRestaurantStatus(selectedRestaurant);
-          } catch (error) {
-            logger8.warn(`[LifestyleDataService] Google verification failed: ${error.message}`);
+          } catch (error3) {
+            logger8.warn(`[LifestyleDataService] Google verification failed: ${error3.message}`);
             restaurantStatus = {
               verificationSource: "unavailable",
               lastUpdated: /* @__PURE__ */ new Date(),
@@ -20486,12 +20486,12 @@ var init_chunk_EKEHSMW7 = __esm({
             verificationSource: "google",
             message: `Currently ${googleData.currentStatus.toLowerCase()}`
           };
-        } catch (error) {
-          logger8.error(`[LifestyleDataService] Error verifying restaurant status: ${error.message}`);
+        } catch (error3) {
+          logger8.error(`[LifestyleDataService] Error verifying restaurant status: ${error3.message}`);
           return {
             verificationSource: "unavailable",
             lastUpdated: /* @__PURE__ */ new Date(),
-            message: `Error verifying status: ${error.message}`
+            message: `Error verifying status: ${error3.message}`
           };
         }
       }
@@ -20504,8 +20504,8 @@ var init_chunk_EKEHSMW7 = __esm({
         try {
           logger8.info(`[LifestyleDataService] Google Places API integration not yet implemented for place ID: ${placeId}`);
           return null;
-        } catch (error) {
-          logger8.error(`[LifestyleDataService] Error fetching Google restaurant data: ${error.message}`);
+        } catch (error3) {
+          logger8.error(`[LifestyleDataService] Error fetching Google restaurant data: ${error3.message}`);
           return null;
         }
       }
@@ -20595,8 +20595,8 @@ var init_chunk_EKEHSMW7 = __esm({
                   if (marineResponse.ok) {
                     marineData = await marineResponse.json();
                   }
-                } catch (error) {
-                  logger8.warn(`Failed to fetch marine data for ${cityKey}:`, error);
+                } catch (error3) {
+                  logger8.warn(`Failed to fetch marine data for ${cityKey}:`, error3);
                 }
               }
               let airQualityData = null;
@@ -20608,10 +20608,10 @@ var init_chunk_EKEHSMW7 = __esm({
                 if (airQualityResponse.ok) {
                   airQualityData = await airQualityResponse.json();
                 }
-              } catch (error) {
+              } catch (error3) {
                 logger8.warn(
                   `Failed to fetch air quality data for ${cityKey}:`,
-                  error
+                  error3
                 );
               }
               return {
@@ -20622,8 +20622,8 @@ var init_chunk_EKEHSMW7 = __esm({
                 airQuality: airQualityData,
                 lastUpdated: /* @__PURE__ */ new Date()
               };
-            } catch (error) {
-              logger8.error(`Error fetching weather for ${cityKey}:`, error);
+            } catch (error3) {
+              logger8.error(`Error fetching weather for ${cityKey}:`, error3);
               return null;
             }
           });
@@ -20637,8 +20637,8 @@ var init_chunk_EKEHSMW7 = __esm({
               if (result2) {
                 cityWeatherData.push(result2);
               }
-            } catch (error) {
-              logger8.error(`Error processing weather for city ${i}:`, error);
+            } catch (error3) {
+              logger8.error(`Error processing weather for city ${i}:`, error3);
             }
           }
           if (cityWeatherData.length === 0) {
@@ -20712,8 +20712,8 @@ var init_chunk_EKEHSMW7 = __esm({
             `[LifestyleDataService] Fetched weather data: ${cityWeatherData.length} cities, avg temp: ${averageTemp.toFixed(1)}\xB0C, best weather: ${bestWeatherCity}`
           );
           return result;
-        } catch (error) {
-          logger8.error("Error in fetchWeatherData:", error);
+        } catch (error3) {
+          logger8.error("Error in fetchWeatherData:", error3);
           return null;
         }
       }
@@ -21360,9 +21360,9 @@ var init_chunk_EKEHSMW7 = __esm({
           this.logInfo(
             `Travel data updated: ${this.curatedHotels.length} hotels, ${currentRates?.length || 0} rates analyzed`
           );
-        } catch (error) {
-          this.logError("Failed to update travel data", error);
-          throw error;
+        } catch (error3) {
+          this.logError("Failed to update travel data", error3);
+          throw error3;
         }
       }
       async forceUpdate() {
@@ -21396,8 +21396,8 @@ var init_chunk_EKEHSMW7 = __esm({
             await this.delay(1e3);
           }
           return rates;
-        } catch (error) {
-          this.logError("Error fetching hotel rates", error);
+        } catch (error3) {
+          this.logError("Error fetching hotel rates", error3);
           return this.generateSimulatedRates();
         }
       }
@@ -21433,8 +21433,8 @@ var init_chunk_EKEHSMW7 = __esm({
             currentDate.setDate(currentDate.getDate() + 7);
           }
           return rates;
-        } catch (error) {
-          this.logError(`Error fetching rates for ${hotel.name}`, error);
+        } catch (error3) {
+          this.logError(`Error fetching rates for ${hotel.name}`, error3);
           return [];
         }
       }
@@ -21482,8 +21482,8 @@ var init_chunk_EKEHSMW7 = __esm({
           }
           const data = await response.json();
           return this.parseBookingComResponse(data, hotel, checkIn, checkOut);
-        } catch (error) {
-          this.logError(`Error querying Booking.com API for ${hotel.name}`, error);
+        } catch (error3) {
+          this.logError(`Error querying Booking.com API for ${hotel.name}`, error3);
           return null;
         }
       }
@@ -21594,10 +21594,10 @@ var init_chunk_EKEHSMW7 = __esm({
             if (window2) {
               windows.push(window2);
             }
-          } catch (error) {
+          } catch (error3) {
             this.logError(
               `Error analyzing optimal booking for ${hotel.name}`,
-              error
+              error3
             );
           }
         }
@@ -21660,8 +21660,8 @@ var init_chunk_EKEHSMW7 = __esm({
             },
             lastAnalyzed: /* @__PURE__ */ new Date()
           };
-        } catch (error) {
-          this.logError(`Error analyzing optimal booking for ${hotel.name}`, error);
+        } catch (error3) {
+          this.logError(`Error analyzing optimal booking for ${hotel.name}`, error3);
           return null;
         }
       }
@@ -21821,8 +21821,8 @@ var init_chunk_EKEHSMW7 = __esm({
       logWarning(message) {
         logger9.warn(`[${this.serviceName}] ${message}`);
       }
-      logError(message, error) {
-        logger9.error(`[${this.serviceName}] ${message}`, error);
+      logError(message, error3) {
+        logger9.error(`[${this.serviceName}] ${message}`, error3);
       }
       // Perfect Day Detection Methods
       async detectPerfectDays() {
@@ -21845,8 +21845,8 @@ var init_chunk_EKEHSMW7 = __esm({
                   urgency: opp.savingsPercentage >= 25 ? "high" : opp.savingsPercentage >= 15 ? "medium" : "low"
                 }));
               }
-            } catch (error) {
-              logger9.warn("Google Hotels scraping failed, falling back to seasonal data:", error);
+            } catch (error3) {
+              logger9.warn("Google Hotels scraping failed, falling back to seasonal data:", error3);
             }
           }
           logger9.info("Using seasonal rate service for perfect day detection");
@@ -21856,8 +21856,8 @@ var init_chunk_EKEHSMW7 = __esm({
             seasonalOpportunities.push(...hotelOpportunities);
           }
           return seasonalOpportunities.sort((a, b) => b.savingsPercentage - a.savingsPercentage).slice(0, 10);
-        } catch (error) {
-          logger9.error("Error detecting perfect days:", error);
+        } catch (error3) {
+          logger9.error("Error detecting perfect days:", error3);
           return this.generateFallbackPerfectDays();
         }
       }
@@ -21912,8 +21912,8 @@ var init_chunk_EKEHSMW7 = __esm({
                 urgency: opp.savingsPercentage >= 25 ? "high" : opp.savingsPercentage >= 15 ? "medium" : "low"
               })));
               logger9.info(`Found ${realTimeOpportunities.length} real-time perfect day opportunities`);
-            } catch (error) {
-              logger9.warn("Google Hotels scraping failed for hybrid detection:", error);
+            } catch (error3) {
+              logger9.warn("Google Hotels scraping failed for hybrid detection:", error3);
             }
           }
           for (const hotel of this.curatedHotels) {
@@ -21921,8 +21921,8 @@ var init_chunk_EKEHSMW7 = __esm({
             seasonalOpportunities.push(...hotelOpportunities);
           }
           return this.mergeAndRankOpportunities(realTimeOpportunities, seasonalOpportunities);
-        } catch (error) {
-          logger9.error("Error in hybrid perfect day detection:", error);
+        } catch (error3) {
+          logger9.error("Error in hybrid perfect day detection:", error3);
           return this.generateFallbackPerfectDays();
         }
       }
@@ -21994,8 +21994,8 @@ var init_chunk_EKEHSMW7 = __esm({
             marketInsights,
             lastUpdated: /* @__PURE__ */ new Date()
           };
-        } catch (error) {
-          logger9.error("Error generating enhanced travel data:", error);
+        } catch (error3) {
+          logger9.error("Error generating enhanced travel data:", error3);
           return this.getFallbackEnhancedTravelData();
         }
       }
@@ -22123,9 +22123,9 @@ var init_chunk_EKEHSMW7 = __esm({
             travelInsights,
             lastUpdated: /* @__PURE__ */ new Date()
           };
-        } catch (error) {
-          logger9.error("Error getting comprehensive travel data:", error);
-          throw error;
+        } catch (error3) {
+          logger9.error("Error getting comprehensive travel data:", error3);
+          throw error3;
         }
       }
       /**
@@ -22140,8 +22140,8 @@ var init_chunk_EKEHSMW7 = __esm({
           };
           await this.runtime.setCache("travel_data", cache);
           logger9.info("Travel data cached successfully");
-        } catch (error) {
-          logger9.error("Error caching travel data:", error);
+        } catch (error3) {
+          logger9.error("Error caching travel data:", error3);
         }
       }
       /**
@@ -22154,8 +22154,8 @@ var init_chunk_EKEHSMW7 = __esm({
             return cache.data;
           }
           return null;
-        } catch (error) {
-          logger9.warn("Error getting cached travel data:", error);
+        } catch (error3) {
+          logger9.warn("Error getting cached travel data:", error3);
           return null;
         }
       }
@@ -22867,12 +22867,12 @@ var init_chunk_EKEHSMW7 = __esm({
           this.contextLogger.info(
             `Updated real-time data: ${this.marketData.length} market items, ${this.newsItems.length} news items`
           );
-        } catch (error) {
+        } catch (error3) {
           this.contextLogger.error(
             "Failed to update real-time data:",
-            error.message
+            error3.message
           );
-          throw error;
+          throw error3;
         }
       }
       async forceUpdate() {
@@ -22884,8 +22884,8 @@ var init_chunk_EKEHSMW7 = __esm({
         this.updateInterval = setInterval(async () => {
           try {
             await this.updateAllData();
-          } catch (error) {
-            console.error("Error updating real-time data:", error);
+          } catch (error3) {
+            console.error("Error updating real-time data:", error3);
           }
         }, this.UPDATE_INTERVAL);
       }
@@ -22914,8 +22914,8 @@ var init_chunk_EKEHSMW7 = __esm({
               if (i < updateTasks.length - 1) {
                 await new Promise((resolve) => setTimeout(resolve, 4e3));
               }
-            } catch (error) {
-              console.error(`Update task ${i} failed:`, error);
+            } catch (error3) {
+              console.error(`Update task ${i} failed:`, error3);
             }
           }
           if (this.top100VsBtcCache && this.top100VsBtcCache.data) {
@@ -22982,15 +22982,15 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
             console.log(summary + "\n");
           }
           console.log("[RealTimeDataService] \u2705 Data update cycle completed");
-        } catch (error) {
-          console.error("[RealTimeDataService] \u274C Error updating data:", error);
+        } catch (error3) {
+          console.error("[RealTimeDataService] \u274C Error updating data:", error3);
         }
       }
       async updateMarketData() {
         try {
           this.marketData = await this.fetchMarketData();
-        } catch (error) {
-          console.error("Error updating market data:", error);
+        } catch (error3) {
+          console.error("Error updating market data:", error3);
         }
       }
       async updateBitcoinData() {
@@ -23039,32 +23039,32 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
               "[RealTimeDataService] \u26A0\uFE0F Failed to fetch Bitcoin data - APIs may be down"
             );
           }
-        } catch (error) {
+        } catch (error3) {
           console.error(
             "[RealTimeDataService] \u274C Error updating Bitcoin data:",
-            error
+            error3
           );
         }
       }
       async updateNews() {
         try {
           this.newsItems = await this.fetchNewsData();
-        } catch (error) {
-          console.error("Error updating news data:", error);
+        } catch (error3) {
+          console.error("Error updating news data:", error3);
         }
       }
       async updateSocialSentiment() {
         try {
           this.socialSentiment = await this.fetchSocialSentiment();
-        } catch (error) {
-          console.error("Error updating social sentiment:", error);
+        } catch (error3) {
+          console.error("Error updating social sentiment:", error3);
         }
       }
       async updateEconomicIndicators() {
         try {
           this.economicIndicators = await this.fetchEconomicIndicators();
-        } catch (error) {
-          console.error("Error updating economic indicators:", error);
+        } catch (error3) {
+          console.error("Error updating economic indicators:", error3);
         }
       }
       async fetchMarketData() {
@@ -23116,8 +23116,8 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
           await new Promise((resolve) => setTimeout(resolve, 2e3));
           const stockData = await this.fetchStockData();
           return [...marketData, ...stockData];
-        } catch (error) {
-          console.error("Error fetching market data:", error);
+        } catch (error3) {
+          console.error("Error fetching market data:", error3);
           return this.getFallbackMarketData();
         }
       }
@@ -23166,15 +23166,15 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
                 lastUpdate: /* @__PURE__ */ new Date(),
                 source: "Alpha Vantage"
               };
-            } catch (error) {
-              console.error(`Error fetching data for ${symbol}:`, error);
+            } catch (error3) {
+              console.error(`Error fetching data for ${symbol}:`, error3);
               return null;
             }
           });
           const results = await Promise.all(stockPromises);
           return results.filter(Boolean);
-        } catch (error) {
-          console.error("Error fetching stock data:", error);
+        } catch (error3) {
+          console.error("Error fetching stock data:", error3);
           return this.getFallbackStockData();
         }
       }
@@ -23212,8 +23212,8 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
               article.title + " " + article.description
             )
           }));
-        } catch (error) {
-          console.error("Error fetching news data:", error);
+        } catch (error3) {
+          console.error("Error fetching news data:", error3);
           return this.getFallbackNewsData();
         }
       }
@@ -23249,8 +23249,8 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
               ]
             }
           ];
-        } catch (error) {
-          console.error("Error fetching social sentiment:", error);
+        } catch (error3) {
+          console.error("Error fetching social sentiment:", error3);
           return this.getFallbackSocialSentiment();
         }
       }
@@ -23279,8 +23279,8 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
               // Next FOMC meeting
             }
           ];
-        } catch (error) {
-          console.error("Error fetching economic indicators:", error);
+        } catch (error3) {
+          console.error("Error fetching economic indicators:", error3);
           return [];
         }
       }
@@ -23617,8 +23617,8 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
             lastUpdated: /* @__PURE__ */ new Date()
           };
           return response;
-        } catch (error) {
-          console.error("Error fetching comprehensive Bitcoin data:", error);
+        } catch (error3) {
+          console.error("Error fetching comprehensive Bitcoin data:", error3);
           return null;
         }
       }
@@ -23641,8 +23641,8 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
             usd: Number(data.bitcoin?.usd) || null,
             change24h: Number(data.bitcoin?.usd_24h_change) || null
           };
-        } catch (error) {
-          console.error("Error fetching Bitcoin price data:", error);
+        } catch (error3) {
+          console.error("Error fetching Bitcoin price data:", error3);
           return null;
         }
       }
@@ -23686,8 +23686,8 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
               estimatedDate: halvingDate.toISOString()
             }
           };
-        } catch (error) {
-          console.error("Error fetching Bitcoin network data:", error);
+        } catch (error3) {
+          console.error("Error fetching Bitcoin network data:", error3);
           return null;
         }
       }
@@ -23711,8 +23711,8 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
             };
           }
           return null;
-        } catch (error) {
-          console.error("Error fetching Blockchain.info data:", error);
+        } catch (error3) {
+          console.error("Error fetching Blockchain.info data:", error3);
           return null;
         }
       }
@@ -23753,8 +23753,8 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
             }
           }
           return Object.keys(results).length > 0 ? results : null;
-        } catch (error) {
-          console.error("Error fetching Mempool.space network data:", error);
+        } catch (error3) {
+          console.error("Error fetching Mempool.space network data:", error3);
           return null;
         }
       }
@@ -23773,8 +23773,8 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
             };
           }
           return null;
-        } catch (error) {
-          console.error("Error fetching Blockstream data:", error);
+        } catch (error3) {
+          console.error("Error fetching Blockstream data:", error3);
           return null;
         }
       }
@@ -23789,8 +23789,8 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
             };
           }
           return null;
-        } catch (error) {
-          console.error("Error fetching Bitcoin sentiment data:", error);
+        } catch (error3) {
+          console.error("Error fetching Bitcoin sentiment data:", error3);
           return null;
         }
       }
@@ -23822,8 +23822,8 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
             miningRevenue24h: null
             // We'll need another endpoint for this
           };
-        } catch (error) {
-          console.error("Error fetching Bitcoin mempool data:", error);
+        } catch (error3) {
+          console.error("Error fetching Bitcoin mempool data:", error3);
           return null;
         }
       }
@@ -23880,8 +23880,8 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
             `[RealTimeDataService] Fetched curated altcoins data for ${this.curatedCoinIds.length} coins`
           );
           return result;
-        } catch (error) {
-          console.error("Error fetching curated altcoins data:", error);
+        } catch (error3) {
+          console.error("Error fetching curated altcoins data:", error3);
           console.info(
             "[RealTimeDataService] Using fallback curated altcoins data"
           );
@@ -24009,12 +24009,12 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
             `[RealTimeDataService] \u2705 Fetched top 200 vs BTC data: ${outperformingCount}/${totalCoins} outperforming Bitcoin (7d), avg relative: ${averageRelativePerformance.toFixed(2)}%`
           );
           return result;
-        } catch (error) {
+        } catch (error3) {
           console.error("[RealTimeDataService] \u274C Error in fetchTop100VsBtcData:", {
-            error: error instanceof Error ? error.message : "Unknown error",
-            stack: error instanceof Error ? error.stack : void 0,
-            type: typeof error,
-            details: error
+            error: error3 instanceof Error ? error3.message : "Unknown error",
+            stack: error3 instanceof Error ? error3.stack : void 0,
+            type: typeof error3,
+            details: error3
           });
           return null;
         }
@@ -24085,10 +24085,10 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
                   poolsCount: pools.length,
                   liquidityRatio
                 };
-              } catch (error) {
+              } catch (error3) {
                 console.warn(
                   `Failed to fetch pool data for token ${token.tokenAddress}:`,
-                  error
+                  error3
                 );
                 return null;
               }
@@ -24109,8 +24109,8 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
             `[RealTimeDataService] Fetched DEXScreener data: ${topTokens.length} top tokens, ${trendingTokens.length} trending`
           );
           return result;
-        } catch (error) {
-          console.error("Error in fetchDexScreenerData:", error);
+        } catch (error3) {
+          console.error("Error in fetchDexScreenerData:", error3);
           return null;
         }
       }
@@ -24176,8 +24176,8 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
             `[RealTimeDataService] Fetched top movers: ${topGainers.length} gainers, ${topLosers.length} losers`
           );
           return result;
-        } catch (error) {
-          console.error("Error in fetchTopMoversData:", error);
+        } catch (error3) {
+          console.error("Error in fetchTopMoversData:", error3);
           return null;
         }
       }
@@ -24227,8 +24227,8 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
             `[RealTimeDataService] Fetched trending coins: ${trending.length} coins`
           );
           return result;
-        } catch (error) {
-          console.error("Error in fetchTrendingCoinsData:", error);
+        } catch (error3) {
+          console.error("Error in fetchTrendingCoinsData:", error3);
           return null;
         }
       }
@@ -24280,8 +24280,8 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
               collections.push(
                 ...batchResults.filter(Boolean)
               );
-            } catch (error) {
-              console.error(`Error processing batch ${i}:`, error);
+            } catch (error3) {
+              console.error(`Error processing batch ${i}:`, error3);
             }
             if (i + batchSize < this.curatedNFTCollections.length) {
               await new Promise((resolve) => setTimeout(resolve, 1e3));
@@ -24297,8 +24297,8 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
             `[RealTimeDataService] Enhanced NFTs data: ${collections.length} collections, total 24h volume: ${summary.totalVolume24h.toFixed(2)} ETH`
           );
           return result;
-        } catch (error) {
-          console.error("Error in fetchCuratedNFTsData:", error);
+        } catch (error3) {
+          console.error("Error in fetchCuratedNFTsData:", error3);
           return null;
         }
       }
@@ -24346,10 +24346,10 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
             contractAddress: collectionData.contracts?.[0]?.address,
             blockchain: collectionData.contracts?.[0]?.chain || "ethereum"
           };
-        } catch (error) {
+        } catch (error3) {
           console.error(
             `Error fetching collection data for ${collectionInfo.slug}:`,
-            error
+            error3
           );
           return null;
         }
@@ -24455,10 +24455,10 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
           if (!lastBriefingDate || now.getDate() !== lastBriefingDate.getDate() && now.getHours() >= this.briefingConfig.deliveryTime.hour) {
             await this.generateMorningBriefing();
           }
-        } catch (error) {
+        } catch (error3) {
           elizaLogger6.error(
             `[MorningBriefingService:${this.correlationId}] Error updating data:`,
-            error
+            error3
           );
         }
       }
@@ -24468,12 +24468,12 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
       async forceUpdate() {
         try {
           return await this.generateMorningBriefing();
-        } catch (error) {
+        } catch (error3) {
           elizaLogger6.error(
             `[MorningBriefingService:${this.correlationId}] Error in force update:`,
-            error
+            error3
           );
-          throw error;
+          throw error3;
         }
       }
       /**
@@ -24577,12 +24577,12 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
           );
           this.lastBriefing = /* @__PURE__ */ new Date();
           return briefing;
-        } catch (error) {
+        } catch (error3) {
           elizaLogger6.error(
             `[MorningBriefingService:${this.correlationId}] Failed to generate morning briefing:`,
-            error
+            error3
           );
-          throw error;
+          throw error3;
         }
       }
       async getWeatherData() {
@@ -24653,10 +24653,10 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
             // Open-Meteo doesn't provide humidity in current endpoint
             windSpeed: Math.round(primaryCity.weather.current?.wind_speed_10m || 0)
           };
-        } catch (error) {
+        } catch (error3) {
           elizaLogger6.error(
             `[MorningBriefingService:${this.correlationId}] Error fetching weather data:`,
-            error
+            error3
           );
           return null;
         }
@@ -24682,10 +24682,10 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
               elizaLogger6.info(
                 `[MorningBriefingService:${this.correlationId}] Stock data loaded for morning briefing`
               );
-            } catch (error) {
+            } catch (error3) {
               elizaLogger6.warn(
                 `[MorningBriefingService:${this.correlationId}] Failed to get stock data:`,
-                error
+                error3
               );
             }
           }
@@ -24798,10 +24798,10 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
                   `[MorningBriefingService:${this.correlationId}] Real altcoin data loaded: ${top100VsBtcData.outperformingCount}/${top100VsBtcData.totalCoins} outperforming BTC (${outperformingPercent.toFixed(1)}%)`
                 );
               }
-            } catch (error) {
+            } catch (error3) {
               elizaLogger6.warn(
                 `[MorningBriefingService:${this.correlationId}] Failed to get real altcoin data, using fallback:`,
-                error
+                error3
               );
             }
           }
@@ -24830,10 +24830,10 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
             }
           };
           return marketPulse;
-        } catch (error) {
+        } catch (error3) {
           elizaLogger6.error(
             `[MorningBriefingService:${this.correlationId}] Failed to get market pulse:`,
-            error
+            error3
           );
           return null;
         }
@@ -24884,10 +24884,10 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
             contentSummary
           };
           return knowledgeDigest;
-        } catch (error) {
+        } catch (error3) {
           elizaLogger6.error(
             `[MorningBriefingService:${this.correlationId}] Failed to get knowledge digest:`,
-            error
+            error3
           );
           return null;
         }
@@ -25031,10 +25031,10 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
             lastBriefing: this.lastBriefing,
             totalGenerated: recentBriefings.length
           };
-        } catch (error) {
+        } catch (error3) {
           elizaLogger6.error(
             `[MorningBriefingService:${this.correlationId}] Failed to get briefing history:`,
-            error
+            error3
           );
           return {
             lastBriefing: this.lastBriefing,
@@ -25234,10 +25234,10 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
           for (const opportunity of opportunities) {
             await this.triggerAlert(opportunity);
           }
-        } catch (error) {
+        } catch (error3) {
           this.contextLogger.error(
             "Failed to process content for opportunities:",
-            error.message
+            error3.message
           );
         }
       }
@@ -25371,10 +25371,10 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
         try {
           await this.cleanupExpiredAlerts();
           await this.updateAlertPerformance();
-        } catch (error) {
+        } catch (error3) {
           this.contextLogger.error(
             "Failed to check for opportunities:",
-            error.message
+            error3.message
           );
         }
       }
@@ -25477,12 +25477,12 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
           this.contextLogger.info(
             `Updated opportunity alert data: ${this.activeAlerts.length} active alerts`
           );
-        } catch (error) {
+        } catch (error3) {
           this.contextLogger.error(
             "Failed to update opportunity alert data:",
-            error.message
+            error3.message
           );
-          throw error;
+          throw error3;
         }
       }
       async forceUpdate() {
@@ -25688,10 +25688,10 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
               );
             }
           }
-        } catch (error) {
+        } catch (error3) {
           this.contextLogger.error(
             "Failed to track prediction:",
-            error.message
+            error3.message
           );
         }
       }
@@ -25713,10 +25713,10 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
           this.contextLogger.info(
             `Tracking opportunity alert as prediction: ${prediction.asset}`
           );
-        } catch (error) {
+        } catch (error3) {
           this.contextLogger.error(
             "Failed to track opportunity alert:",
-            error.message
+            error3.message
           );
         }
       }
@@ -25744,10 +25744,10 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
             prediction.predictedPrice = parseFloat(priceMatch[1].replace(/,/g, ""));
           }
           return prediction;
-        } catch (error) {
+        } catch (error3) {
           this.contextLogger.error(
             "Failed to extract prediction:",
-            error.message
+            error3.message
           );
           return null;
         }
@@ -25829,10 +25829,10 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
             await this.checkForEarlyCompletion(prediction);
           }
           await this.updateMetrics();
-        } catch (error) {
+        } catch (error3) {
           this.contextLogger.error(
             "Failed to evaluate predictions:",
-            error.message
+            error3.message
           );
         }
       }
@@ -25852,10 +25852,10 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
           this.contextLogger.info(
             `Evaluated expired prediction: ${prediction.asset} (${accuracy.toFixed(2)} accuracy)`
           );
-        } catch (error) {
+        } catch (error3) {
           this.contextLogger.error(
             "Failed to evaluate expired prediction:",
-            error.message
+            error3.message
           );
         }
       }
@@ -25888,10 +25888,10 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
             profitabilityMetrics: this.calculateProfitabilityMetrics(allOutcomes),
             recentPerformance: this.calculateRecentPerformance(allOutcomes)
           };
-        } catch (error) {
+        } catch (error3) {
           this.contextLogger.error(
             "Failed to update metrics:",
-            error.message
+            error3.message
           );
         }
       }
@@ -26144,12 +26144,12 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
           this.contextLogger.info(
             `Updated performance tracking data: ${this.predictions.size} predictions, ${this.outcomes.size} outcomes`
           );
-        } catch (error) {
+        } catch (error3) {
           this.contextLogger.error(
             "Failed to update performance tracking data:",
-            error.message
+            error3.message
           );
-          throw error;
+          throw error3;
         }
       }
       async forceUpdate() {
@@ -26207,10 +26207,10 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
           if (this.dailyContent.has(today) && this.dailyContent.get(today).length >= 10) {
             await this.generateDailyDigest(today);
           }
-        } catch (error) {
+        } catch (error3) {
           elizaLogger9.error(
             `[KnowledgeDigestService:${this.correlationId}] Error updating data:`,
-            error
+            error3
           );
         }
       }
@@ -26221,12 +26221,12 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
         try {
           const today = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
           return await this.generateDailyDigest(today);
-        } catch (error) {
+        } catch (error3) {
           elizaLogger9.error(
             `[KnowledgeDigestService:${this.correlationId}] Error in force update:`,
-            error
+            error3
           );
-          throw error;
+          throw error3;
         }
       }
       /**
@@ -26265,10 +26265,10 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
           elizaLogger9.info(
             `[KnowledgeDigestService:${this.correlationId}] Loaded ${recentDigests.length} digests from memory`
           );
-        } catch (error) {
+        } catch (error3) {
           elizaLogger9.error(
             `[KnowledgeDigestService:${this.correlationId}] Failed to load digest history:`,
-            error
+            error3
           );
         }
       }
@@ -26283,10 +26283,10 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
           if (this.dailyContent.get(today).length >= threshold) {
             await this.generateDailyDigest(today);
           }
-        } catch (error) {
+        } catch (error3) {
           elizaLogger9.error(
             `[KnowledgeDigestService:${this.correlationId}] Failed to add content to digest:`,
-            error
+            error3
           );
         }
       }
@@ -26313,12 +26313,12 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
           this.digestCache.set(targetDate, digest);
           await this.storeInMemory(digest, "knowledge-digest");
           return digest;
-        } catch (error) {
+        } catch (error3) {
           elizaLogger9.error(
             `[KnowledgeDigestService:${this.correlationId}] Failed to generate daily digest:`,
-            error
+            error3
           );
-          throw error;
+          throw error3;
         }
       }
       async extractTopTopics(content) {
@@ -26509,10 +26509,10 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
             return await this.generateDailyDigest(targetDate);
           }
           return null;
-        } catch (error) {
+        } catch (error3) {
           elizaLogger9.error(
             `[KnowledgeDigestService:${this.correlationId}] Failed to get digest:`,
-            error
+            error3
           );
           return null;
         }
@@ -26594,10 +26594,10 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
           elizaLogger9.info(
             `[KnowledgeDigestService:${this.correlationId}] Cleanup completed: removed ${removedContent} content entries and ${removedDigests} digests`
           );
-        } catch (error) {
+        } catch (error3) {
           elizaLogger9.error(
             `[KnowledgeDigestService:${this.correlationId}] Error during cleanup:`,
-            error
+            error3
           );
         }
       }
@@ -26654,9 +26654,9 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
               `Updated data: processed ${processedItems.length} new content items`
             );
           }
-        } catch (error) {
+        } catch (error3) {
           const enhancedError = ElizaOSErrorHandler.handleCommonErrors(
-            error,
+            error3,
             "ContentIngestionUpdate"
           );
           this.contextLogger.error(
@@ -26680,9 +26680,9 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
             const processedItem = await this.analyzeContent(item);
             processedItems.push(processedItem);
             this.contextLogger.info(`Processed content item: ${item.id}`);
-          } catch (error) {
+          } catch (error3) {
             const enhancedError = ElizaOSErrorHandler.handleCommonErrors(
-              error,
+              error3,
               "ContentProcessing"
             );
             this.contextLogger.error(
@@ -26718,10 +26718,10 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
             processed: true,
             insights
           };
-        } catch (error) {
+        } catch (error3) {
           this.contextLogger.error(
             `Content analysis failed for ${item.id}:`,
-            error.message
+            error3.message
           );
           return {
             ...item,
@@ -27034,10 +27034,10 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
         setInterval(async () => {
           try {
             await this.checkAllChannels();
-          } catch (error) {
+          } catch (error3) {
             this.contextLogger.error(
               "Error during channel monitoring:",
-              error.message
+              error3.message
             );
           }
         }, checkInterval);
@@ -27048,10 +27048,10 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
         for (const channel of this.channels) {
           try {
             await this.checkChannel(channel);
-          } catch (error) {
+          } catch (error3) {
             this.contextLogger.error(
               `Error checking channel ${channel.channelName}:`,
-              error.message
+              error3.message
             );
           }
         }
@@ -27075,10 +27075,10 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
             );
             await this.processAndStoreContent(contentItems);
           }
-        } catch (error) {
+        } catch (error3) {
           this.contextLogger.error(
             `Failed to check channel ${channel.channelName}:`,
-            error.message
+            error3.message
           );
         }
       }
@@ -27117,10 +27117,10 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
               channel
             );
             contentItems.push(contentItem);
-          } catch (error) {
+          } catch (error3) {
             this.contextLogger.error(
               `Failed to convert message ${message.ts}:`,
-              error.message
+              error3.message
             );
           }
         }
@@ -27164,9 +27164,9 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
           this.contextLogger.info(
             `Processed and stored ${processedItems.length} content items from Slack`
           );
-        } catch (error) {
+        } catch (error3) {
           const enhancedError = ElizaOSErrorHandler.handleCommonErrors(
-            error,
+            error3,
             "SlackContentProcessing"
           );
           this.contextLogger.error(
@@ -27189,10 +27189,10 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
               channel
             );
             allContent.push(...contentItems);
-          } catch (error) {
+          } catch (error3) {
             this.contextLogger.error(
               `Failed to ingest from channel ${channel.channelName}:`,
-              error.message
+              error3.message
             );
           }
         }
@@ -27257,10 +27257,10 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
               );
               newContent.push(...contentItems);
             }
-          } catch (error) {
+          } catch (error3) {
             this.contextLogger.error(
               `Failed to check channel ${channel.channelName}:`,
-              error.message
+              error3.message
             );
           }
         }
@@ -27354,12 +27354,12 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
           this.contextLogger.info(
             `Updated scheduler data: ${this.scheduledTasks.size} tasks, ${this.activeTimers.size} active timers`
           );
-        } catch (error) {
+        } catch (error3) {
           this.contextLogger.error(
             "Failed to update scheduler data:",
-            error.message
+            error3.message
           );
-          throw error;
+          throw error3;
         }
       }
       async forceUpdate() {
@@ -27428,7 +27428,7 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
             if (!service) {
               missingServices.push(serviceName);
             }
-          } catch (error) {
+          } catch (error3) {
             missingServices.push(serviceName);
           }
         }
@@ -27623,8 +27623,8 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
           } else {
             throw new Error("Morning briefing service not available");
           }
-        } catch (error) {
-          await this.handleTaskError(taskId, error);
+        } catch (error3) {
+          await this.handleTaskError(taskId, error3);
         }
       }
       async executeKnowledgeDigest(taskId) {
@@ -27643,8 +27643,8 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
           } else {
             throw new Error("Knowledge digest service not available");
           }
-        } catch (error) {
-          await this.handleTaskError(taskId, error);
+        } catch (error3) {
+          await this.handleTaskError(taskId, error3);
         }
       }
       async executeOpportunityAlertCheck(taskId) {
@@ -27670,8 +27670,8 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
           } else {
             throw new Error("Opportunity alert service not available");
           }
-        } catch (error) {
-          await this.handleTaskError(taskId, error);
+        } catch (error3) {
+          await this.handleTaskError(taskId, error3);
         }
       }
       async executePerformanceReport(taskId) {
@@ -27689,8 +27689,8 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
           } else {
             throw new Error("Performance tracking service not available");
           }
-        } catch (error) {
-          await this.handleTaskError(taskId, error);
+        } catch (error3) {
+          await this.handleTaskError(taskId, error3);
         }
       }
       async executeContentIngestionCheck(taskId) {
@@ -27709,8 +27709,8 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
             await this.updateTaskStatus(taskId, "completed");
             this.contextLogger.info("Content ingestion services not available");
           }
-        } catch (error) {
-          await this.handleTaskError(taskId, error);
+        } catch (error3) {
+          await this.handleTaskError(taskId, error3);
         }
       }
       async updateTaskStatus(taskId, status, result) {
@@ -27729,14 +27729,14 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
         this.scheduledTasks.set(taskId, task);
         this.updateMetrics();
       }
-      async handleTaskError(taskId, error) {
+      async handleTaskError(taskId, error3) {
         const task = this.scheduledTasks.get(taskId);
         if (!task) return;
         task.retryCount++;
-        task.error = error.message;
+        task.error = error3.message;
         this.contextLogger.error(
           `Task ${task.name} failed (attempt ${task.retryCount}):`,
-          error.message
+          error3.message
         );
         if (task.retryCount < task.maxRetries) {
           const retryDelay = Math.pow(2, task.retryCount) * 1e3;
@@ -27818,10 +27818,10 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
           await this.executeMorningBriefing(taskId);
           const task = this.scheduledTasks.get(taskId);
           return task?.result || null;
-        } catch (error) {
+        } catch (error3) {
           this.contextLogger.error(
             "Failed to trigger manual briefing:",
-            error.message
+            error3.message
           );
           return null;
         }
@@ -27836,10 +27836,10 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
           await this.executeKnowledgeDigest(taskId);
           const task = this.scheduledTasks.get(taskId);
           return task?.result || null;
-        } catch (error) {
+        } catch (error3) {
           this.contextLogger.error(
             "Failed to trigger manual digest:",
-            error.message
+            error3.message
           );
           return null;
         }
@@ -27902,22 +27902,22 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
               logger10.info(
                 `[ServiceFactory] \u2705 ${ServiceClass.name} started successfully`
               );
-            } catch (error) {
+            } catch (error3) {
               logger10.error(
                 `[ServiceFactory] \u274C Failed to start ${ServiceClass.name}:`,
-                error
+                error3
               );
             }
           }
           this.isInitialized = true;
           logger10.info("[ServiceFactory] \u{1F389} All services initialized successfully");
           this.logServiceStatus();
-        } catch (error) {
+        } catch (error3) {
           logger10.error(
             "[ServiceFactory] Critical error during service initialization:",
-            error
+            error3
           );
-          throw error;
+          throw error3;
         }
       }
       /**
@@ -27946,10 +27946,10 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
                   `[ServiceFactory] \u2705 ${service.constructor.name} stopped`
                 );
               }
-            } catch (error) {
+            } catch (error3) {
               logger10.error(
                 `[ServiceFactory] \u274C Error stopping ${service.constructor.name}:`,
-                error
+                error3
               );
             }
           }
@@ -27963,7 +27963,7 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
        * Log current service status
        */
       static logServiceStatus() {
-        const serviceStatus = Array.from(this.serviceInstances.entries()).map(
+        const serviceStatus3 = Array.from(this.serviceInstances.entries()).map(
           ([type, service]) => ({
             type,
             name: service.constructor.name,
@@ -27971,8 +27971,8 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
           })
         );
         logger10.info("[ServiceFactory] Service Status Summary:", {
-          totalServices: serviceStatus.length,
-          services: serviceStatus
+          totalServices: serviceStatus3.length,
+          services: serviceStatus3
         });
       }
       /**
@@ -27987,10 +27987,10 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
               await service.healthCheck();
             }
             serviceHealth[type] = { status: "healthy" };
-          } catch (error) {
+          } catch (error3) {
             serviceHealth[type] = {
               status: "unhealthy",
-              error: error instanceof Error ? error.message : "Unknown error"
+              error: error3 instanceof Error ? error3.message : "Unknown error"
             };
             allHealthy = false;
           }
@@ -29184,8 +29184,8 @@ async function formatDealsResponse(deals, params, culturalService) {
 \u{1F31F} **SEASONAL HIGHLIGHT**: ${seasonalInsights[0]}`;
         }
       }
-    } catch (error) {
-      logger17.warn(`Failed to add cultural context: ${error}`);
+    } catch (error3) {
+      logger17.warn(`Failed to add cultural context: ${error3}`);
     }
   }
   const bitcoinQuotes = [
@@ -29320,8 +29320,8 @@ async function performBookingOptimization(travelService, culturalService, criter
     try {
       const insight = await culturalService.enhancePerfectDayOpportunity(perfectDay);
       culturalInsights.push(insight);
-    } catch (error) {
-      logger18.warn(`Failed to enhance perfect day with cultural context: ${error}`);
+    } catch (error3) {
+      logger18.warn(`Failed to enhance perfect day with cultural context: ${error3}`);
     }
   }
   const culturalValue = culturalInsights.length > 0 ? culturalInsights[0].enhancedRecommendation.wealthPreservation.slice(0, 2) : ["Cultural preservation through luxury tourism", "Multi-generational appeal with cultural significance"];
@@ -29577,8 +29577,8 @@ async function generateTravelInsights(travelService, culturalService, request) {
           `Bitcoin lifestyle integration: ${lifestyleIntegration[0] || "sound money principles with luxury"}`
         );
       }
-    } catch (error) {
-      logger19.warn(`Failed to add cultural context for ${request.city}: ${error}`);
+    } catch (error3) {
+      logger19.warn(`Failed to add cultural context for ${request.city}: ${error3}`);
     }
   }
   return response;
@@ -29614,8 +29614,8 @@ async function generatePerfectDayInsights(travelService, city) {
         bestOpportunity
       }
     };
-  } catch (error) {
-    logger19.error("Error generating perfect day insights:", error);
+  } catch (error3) {
+    logger19.error("Error generating perfect day insights:", error3);
     return {
       opportunities: [],
       summary: {
@@ -30075,12 +30075,12 @@ async function getBasicAltcoinPrices() {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
     return await response.json();
-  } catch (error) {
+  } catch (error3) {
     elizaLogger132.error(
       "[AltcoinProvider] Failed to fetch basic price data:",
-      error
+      error3
     );
-    throw error;
+    throw error3;
   }
 }
 async function getTrendingCoins() {
@@ -30101,12 +30101,12 @@ async function getTrendingCoins() {
     }
     const data = await response.json();
     return data.coins || [];
-  } catch (error) {
+  } catch (error3) {
     elizaLogger132.error(
       "[AltcoinProvider] Failed to fetch trending coins:",
-      error
+      error3
     );
-    throw error;
+    throw error3;
   }
 }
 async function getGlobalMarketData() {
@@ -30123,12 +30123,12 @@ async function getGlobalMarketData() {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
     return await response.json();
-  } catch (error) {
+  } catch (error3) {
     elizaLogger132.error(
       "[AltcoinProvider] Failed to fetch global market data:",
-      error
+      error3
     );
-    throw error;
+    throw error3;
   }
 }
 async function getTopCoinsMarketData() {
@@ -30148,12 +30148,12 @@ async function getTopCoinsMarketData() {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
     return await response.json();
-  } catch (error) {
+  } catch (error3) {
     elizaLogger132.error(
       "[AltcoinProvider] Failed to fetch top coins market data:",
-      error
+      error3
     );
-    throw error;
+    throw error3;
   }
 }
 function analyzeBitcoinRelativePerformance(topCoins) {
@@ -30962,8 +30962,8 @@ async function getLifestyleData(lifestyleService) {
       travelOpportunitiesCount: travelOpportunities.length,
       currentSeason: getCurrentSeason2()
     };
-  } catch (error) {
-    elizaLogger16.error("[LifestyleProvider] Error getting lifestyle data:", error);
+  } catch (error3) {
+    elizaLogger16.error("[LifestyleProvider] Error getting lifestyle data:", error3);
     return null;
   }
 }
@@ -30981,8 +30981,8 @@ async function buildCulinaryContext(dailyCulinaryService, lifestyleService, home
     if (dailyCulinaryService && serviceAvailability.dailyCulinary) {
       try {
         context.dailyExperience = await dailyCulinaryService.getDailyCulinaryExperience();
-      } catch (error) {
-        elizaLogger16.warn("[LifestyleProvider] Error getting daily culinary experience:", error);
+      } catch (error3) {
+        elizaLogger16.warn("[LifestyleProvider] Error getting daily culinary experience:", error3);
       }
     }
     if (lifestyleService && serviceAvailability.lifestyleData) {
@@ -30991,27 +30991,27 @@ async function buildCulinaryContext(dailyCulinaryService, lifestyleService, home
         if (context.restaurantSuggestion?.restaurant) {
           context.googleVerification = await lifestyleService.verifyRestaurantStatus(context.restaurantSuggestion.restaurant);
         }
-      } catch (error) {
-        elizaLogger16.warn("[LifestyleProvider] Error getting restaurant data:", error);
+      } catch (error3) {
+        elizaLogger16.warn("[LifestyleProvider] Error getting restaurant data:", error3);
       }
     }
     if (homeCookingService && serviceAvailability.homeCooking) {
       try {
         context.homeCooking = await homeCookingService.getDailyCookingExperience();
-      } catch (error) {
-        elizaLogger16.warn("[LifestyleProvider] Error getting home cooking data:", error);
+      } catch (error3) {
+        elizaLogger16.warn("[LifestyleProvider] Error getting home cooking data:", error3);
       }
     }
     if (beverageService && serviceAvailability.beverageKnowledge) {
       try {
         context.beverageInsight = await beverageService.getBeverageInsights();
-      } catch (error) {
-        elizaLogger16.warn("[LifestyleProvider] Error getting beverage data:", error);
+      } catch (error3) {
+        elizaLogger16.warn("[LifestyleProvider] Error getting beverage data:", error3);
       }
     }
     return context;
-  } catch (error) {
-    elizaLogger16.error("[LifestyleProvider] Error building culinary context:", error);
+  } catch (error3) {
+    elizaLogger16.error("[LifestyleProvider] Error building culinary context:", error3);
     return context;
   }
 }
@@ -32229,8 +32229,8 @@ function buildMarketKnowledge(travelService) {
         ]
       }
     ];
-  } catch (error) {
-    logger29.error("Error building market knowledge:", error);
+  } catch (error3) {
+    logger29.error("Error building market knowledge:", error3);
     return [
       {
         trend: "stable",
@@ -33168,26 +33168,26 @@ var init_dist = __esm({
             }
             const buf = this.consume(2);
             if ((buf[0] & 48) !== 0) {
-              const error = this.createError(
+              const error3 = this.createError(
                 RangeError,
                 "RSV2 and RSV3 must be clear",
                 true,
                 1002,
                 "WS_ERR_UNEXPECTED_RSV_2_3"
               );
-              cb(error);
+              cb(error3);
               return;
             }
             const compressed = (buf[0] & 64) === 64;
             if (compressed && !this._extensions[PerMessageDeflate.extensionName]) {
-              const error = this.createError(
+              const error3 = this.createError(
                 RangeError,
                 "RSV1 must be clear",
                 true,
                 1002,
                 "WS_ERR_UNEXPECTED_RSV_1"
               );
-              cb(error);
+              cb(error3);
               return;
             }
             this._fin = (buf[0] & 128) === 128;
@@ -33195,109 +33195,109 @@ var init_dist = __esm({
             this._payloadLength = buf[1] & 127;
             if (this._opcode === 0) {
               if (compressed) {
-                const error = this.createError(
+                const error3 = this.createError(
                   RangeError,
                   "RSV1 must be clear",
                   true,
                   1002,
                   "WS_ERR_UNEXPECTED_RSV_1"
                 );
-                cb(error);
+                cb(error3);
                 return;
               }
               if (!this._fragmented) {
-                const error = this.createError(
+                const error3 = this.createError(
                   RangeError,
                   "invalid opcode 0",
                   true,
                   1002,
                   "WS_ERR_INVALID_OPCODE"
                 );
-                cb(error);
+                cb(error3);
                 return;
               }
               this._opcode = this._fragmented;
             } else if (this._opcode === 1 || this._opcode === 2) {
               if (this._fragmented) {
-                const error = this.createError(
+                const error3 = this.createError(
                   RangeError,
                   `invalid opcode ${this._opcode}`,
                   true,
                   1002,
                   "WS_ERR_INVALID_OPCODE"
                 );
-                cb(error);
+                cb(error3);
                 return;
               }
               this._compressed = compressed;
             } else if (this._opcode > 7 && this._opcode < 11) {
               if (!this._fin) {
-                const error = this.createError(
+                const error3 = this.createError(
                   RangeError,
                   "FIN must be set",
                   true,
                   1002,
                   "WS_ERR_EXPECTED_FIN"
                 );
-                cb(error);
+                cb(error3);
                 return;
               }
               if (compressed) {
-                const error = this.createError(
+                const error3 = this.createError(
                   RangeError,
                   "RSV1 must be clear",
                   true,
                   1002,
                   "WS_ERR_UNEXPECTED_RSV_1"
                 );
-                cb(error);
+                cb(error3);
                 return;
               }
               if (this._payloadLength > 125 || this._opcode === 8 && this._payloadLength === 1) {
-                const error = this.createError(
+                const error3 = this.createError(
                   RangeError,
                   `invalid payload length ${this._payloadLength}`,
                   true,
                   1002,
                   "WS_ERR_INVALID_CONTROL_PAYLOAD_LENGTH"
                 );
-                cb(error);
+                cb(error3);
                 return;
               }
             } else {
-              const error = this.createError(
+              const error3 = this.createError(
                 RangeError,
                 `invalid opcode ${this._opcode}`,
                 true,
                 1002,
                 "WS_ERR_INVALID_OPCODE"
               );
-              cb(error);
+              cb(error3);
               return;
             }
             if (!this._fin && !this._fragmented) this._fragmented = this._opcode;
             this._masked = (buf[1] & 128) === 128;
             if (this._isServer) {
               if (!this._masked) {
-                const error = this.createError(
+                const error3 = this.createError(
                   RangeError,
                   "MASK must be set",
                   true,
                   1002,
                   "WS_ERR_EXPECTED_MASK"
                 );
-                cb(error);
+                cb(error3);
                 return;
               }
             } else if (this._masked) {
-              const error = this.createError(
+              const error3 = this.createError(
                 RangeError,
                 "MASK must be clear",
                 true,
                 1002,
                 "WS_ERR_UNEXPECTED_MASK"
               );
-              cb(error);
+              cb(error3);
               return;
             }
             if (this._payloadLength === 126) this._state = GET_PAYLOAD_LENGTH_16;
@@ -33332,14 +33332,14 @@ var init_dist = __esm({
             const buf = this.consume(8);
             const num = buf.readUInt32BE(0);
             if (num > Math.pow(2, 53 - 32) - 1) {
-              const error = this.createError(
+              const error3 = this.createError(
                 RangeError,
                 "Unsupported WebSocket frame: payload length > 2^53 - 1",
                 false,
                 1009,
                 "WS_ERR_UNSUPPORTED_DATA_PAYLOAD_LENGTH"
               );
-              cb(error);
+              cb(error3);
               return;
             }
             this._payloadLength = num * Math.pow(2, 32) + buf.readUInt32BE(4);
@@ -33355,14 +33355,14 @@ var init_dist = __esm({
             if (this._payloadLength && this._opcode < 8) {
               this._totalPayloadLength += this._payloadLength;
               if (this._totalPayloadLength > this._maxPayload && this._maxPayload > 0) {
-                const error = this.createError(
+                const error3 = this.createError(
                   RangeError,
                   "Max payload size exceeded",
                   false,
                   1009,
                   "WS_ERR_UNSUPPORTED_MESSAGE_LENGTH"
                 );
-                cb(error);
+                cb(error3);
                 return;
               }
             }
@@ -33429,14 +33429,14 @@ var init_dist = __esm({
               if (buf.length) {
                 this._messageLength += buf.length;
                 if (this._messageLength > this._maxPayload && this._maxPayload > 0) {
-                  const error = this.createError(
+                  const error3 = this.createError(
                     RangeError,
                     "Max payload size exceeded",
                     false,
                     1009,
                     "WS_ERR_UNSUPPORTED_MESSAGE_LENGTH"
                   );
-                  cb(error);
+                  cb(error3);
                   return;
                 }
                 this._fragments.push(buf);
@@ -33487,14 +33487,14 @@ var init_dist = __esm({
             } else {
               const buf = concat(fragments, messageLength);
               if (!this._skipUTF8Validation && !isValidUTF8(buf)) {
-                const error = this.createError(
+                const error3 = this.createError(
                   Error,
                   "invalid UTF-8 sequence",
                   true,
                   1007,
                   "WS_ERR_INVALID_UTF8"
                 );
-                cb(error);
+                cb(error3);
                 return;
               }
               if (this._state === INFLATING || this._allowSynchronousEvents) {
@@ -33526,14 +33526,14 @@ var init_dist = __esm({
               } else {
                 const code = data.readUInt16BE(0);
                 if (!isValidStatusCode(code)) {
-                  const error = this.createError(
+                  const error3 = this.createError(
                     RangeError,
                     `invalid status code ${code}`,
                     true,
                     1002,
                     "WS_ERR_INVALID_CLOSE_CODE"
                   );
-                  cb(error);
+                  cb(error3);
                   return;
                 }
                 const buf = new FastBuffer(
@@ -33542,14 +33542,14 @@ var init_dist = __esm({
                   data.length - 2
                 );
                 if (!this._skipUTF8Validation && !isValidUTF8(buf)) {
-                  const error = this.createError(
+                  const error3 = this.createError(
                     Error,
                     "invalid UTF-8 sequence",
                     true,
                     1007,
                     "WS_ERR_INVALID_UTF8"
                   );
-                  cb(error);
+                  cb(error3);
                   return;
                 }
                 this._loop = false;
@@ -34254,10 +34254,10 @@ var init_dist = __esm({
                 callListener(handler, this, event);
               };
             } else if (type === "error") {
-              wrapper = function onError(error) {
+              wrapper = function onError(error3) {
                 const event = new ErrorEvent("error", {
-                  error,
-                  message: error.message
+                  error: error3,
+                  message: error3.message
                 });
                 event[kTarget] = this;
                 callListener(handler, this, event);
@@ -35376,7 +35376,7 @@ var init_dist = __esm({
             const data = !isBinary && duplex._readableState.objectMode ? msg.toString() : msg;
             if (!duplex.push(data)) ws.pause();
           });
-          ws.once("error", function error(err) {
+          ws.once("error", function error3(err) {
             if (duplex.destroyed) return;
             terminateOnDestroy = false;
             duplex.destroy(err);
@@ -35392,7 +35392,7 @@ var init_dist = __esm({
               return;
             }
             let called = false;
-            ws.once("error", function error(err2) {
+            ws.once("error", function error3(err2) {
               called = true;
               callback(err2);
             });
@@ -35738,13 +35738,13 @@ var init_dist = __esm({
               }
             }
             if (this.options.verifyClient) {
-              const info = {
+              const info4 = {
                 origin: req.headers[`${version === 8 ? "sec-websocket-origin" : "origin"}`],
                 secure: !!(req.socket.authorized || req.socket.encrypted),
                 req
               };
               if (this.options.verifyClient.length === 2) {
-                this.options.verifyClient(info, (verified, code, message, headers) => {
+                this.options.verifyClient(info4, (verified, code, message, headers) => {
                   if (!verified) {
                     return abortHandshake(socket, code || 401, message, headers);
                   }
@@ -35760,7 +35760,7 @@ var init_dist = __esm({
                 });
                 return;
               }
-              if (!this.options.verifyClient(info)) return abortHandshake(socket, 401);
+              if (!this.options.verifyClient(info4)) return abortHandshake(socket, 401);
             }
             this.completeUpgrade(extensions, key, protocols, req, socket, head, cb);
           }
@@ -36126,13 +36126,13 @@ var init_dist = __esm({
                 );
               }
               console.log("\u2705 Bitcoin data providers functionality test passed");
-            } catch (error) {
-              if (error.message.includes("timeout") || error.message.includes("network") || error.message.includes("fetch")) {
+            } catch (error3) {
+              if (error3.message.includes("timeout") || error3.message.includes("network") || error3.message.includes("fetch")) {
                 console.log(
                   "\u26A0\uFE0F  Bitcoin data providers test passed with graceful error handling"
                 );
               } else {
-                throw error;
+                throw error3;
               }
             }
           }
@@ -36163,9 +36163,9 @@ var init_dist = __esm({
               );
               console.log(`Database type: ${healthCheck.stats.databaseType}`);
               console.log("\u2705 Memory management service validation passed");
-            } catch (error) {
+            } catch (error3) {
               throw new Error(
-                `Memory management service validation failed: ${error.message}`
+                `Memory management service validation failed: ${error3.message}`
               );
             }
           }
@@ -36352,9 +36352,9 @@ var init_dist = __esm({
               };
             }
           }
-        } catch (error) {
+        } catch (error3) {
           const enhancedError = ElizaOSErrorHandler2.handleCommonErrors(
-            error,
+            error3,
             "MemoryReset"
           );
           logger11.error("Failed to reset memory:", enhancedError.message);
@@ -36390,9 +36390,9 @@ var init_dist = __esm({
                   `Database directory is large (${(dirSize / 1024 / 1024).toFixed(0)}MB). Consider cleanup.`
                 );
               }
-            } catch (error) {
+            } catch (error3) {
               issues.push(
-                `Could not check database directory size: ${error.message}`
+                `Could not check database directory size: ${error3.message}`
               );
             }
           }
@@ -36407,8 +36407,8 @@ var init_dist = __esm({
             stats,
             issues
           };
-        } catch (error) {
-          issues.push(`Memory health check failed: ${error.message}`);
+        } catch (error3) {
+          issues.push(`Memory health check failed: ${error3.message}`);
           return {
             healthy: false,
             stats,
@@ -36447,8 +36447,8 @@ var init_dist = __esm({
           );
           const data = await response.json();
           return data.bitcoin?.usd || 1e5;
-        } catch (error) {
-          logger11.error("Error fetching Bitcoin price:", error);
+        } catch (error3) {
+          logger11.error("Error fetching Bitcoin price:", error3);
           return 1e5;
         }
       }
@@ -36539,8 +36539,8 @@ var init_dist = __esm({
             // Static for Bitcoin
             lastUpdated: (/* @__PURE__ */ new Date()).toISOString()
           };
-        } catch (error) {
-          logger11.error("Error fetching enhanced market data:", error);
+        } catch (error3) {
+          logger11.error("Error fetching enhanced market data:", error3);
           return {
             price: 1e5,
             marketCap: 2e12,
@@ -36900,14 +36900,14 @@ var init_dist = __esm({
         console.log("\u2705 Knowledge Performance Monitor stopped");
       }
       // Track search performance
-      recordSearch(query, responseTime, resultsCount, cacheHit = false, error) {
+      recordSearch(query, responseTime, resultsCount, cacheHit = false, error3) {
         const searchMetric = {
           timestamp: /* @__PURE__ */ new Date(),
           query,
           responseTime,
           resultsCount,
           cacheHit,
-          error
+          error: error3
         };
         this.searchHistory.push(searchMetric);
         if (this.searchHistory.length > this.maxHistorySize) {
@@ -36932,8 +36932,8 @@ var init_dist = __esm({
             this.metrics.indexSize = stats.indexSize || 0;
             this.metrics.lastIndexUpdate = stats.lastUpdate || /* @__PURE__ */ new Date();
           }
-        } catch (error) {
-          console.error("Error updating index metrics:", error);
+        } catch (error3) {
+          console.error("Error updating index metrics:", error3);
         }
       }
       // Update calculated metrics
@@ -37043,25 +37043,25 @@ var init_dist = __esm({
       validate: async (runtime, message, state) => {
         try {
           return await config.validateFn(runtime, message, state);
-        } catch (error) {
-          console.error(`Validation error in ${config.name}:`, error);
+        } catch (error3) {
+          console.error(`Validation error in ${config.name}:`, error3);
           return false;
         }
       },
       handler: async (runtime, message, state, options, callback) => {
         try {
           return await config.handlerFn(runtime, message, state, options, callback);
-        } catch (error) {
-          console.error(`Handler error in ${config.name}:`, error);
+        } catch (error3) {
+          console.error(`Handler error in ${config.name}:`, error3);
           const errorResponse = {
-            thought: `An error occurred while executing ${config.name}: ${error.message}`,
+            thought: `An error occurred while executing ${config.name}: ${error3.message}`,
             text: "I encountered an issue processing your request. Please try again later.",
             actions: [config.name]
           };
           if (callback) {
             await callback(errorResponse);
           }
-          return { success: false, error: error.message };
+          return { success: false, error: error3.message };
         }
       }
     });
@@ -37681,13 +37681,13 @@ var init_dist = __esm({
           }
           logger22.info("Morning briefing delivered successfully");
           return true;
-        } catch (error) {
+        } catch (error3) {
           logger22.error(
             "Failed to generate morning briefing:",
-            error.message
+            error3.message
           );
           let errorMessage = "Systems operational. Bitcoin protocol unchanged. Market data temporarily unavailable.";
-          const errorMsg = error.message.toLowerCase();
+          const errorMsg = error3.message.toLowerCase();
           if (errorMsg.includes("rate limit") || errorMsg.includes("429") || errorMsg.includes("too many requests")) {
             errorMessage = "Rate limited by market data providers. Bitcoin protocol unchanged. Will retry shortly.";
           } else if (errorMsg.includes("network") || errorMsg.includes("timeout") || errorMsg.includes("fetch")) {
@@ -37697,7 +37697,7 @@ var init_dist = __esm({
           }
           const errorResponse = ResponseCreators.createErrorResponse(
             "MORNING_BRIEFING",
-            error.message,
+            error3.message,
             errorMessage
           );
           if (callback) {
@@ -37824,13 +37824,13 @@ var init_dist = __esm({
           }
           logger32.info("Knowledge digest delivered successfully");
           return true;
-        } catch (error) {
+        } catch (error3) {
           logger32.error(
             "Failed to generate knowledge digest:",
-            error.message
+            error3.message
           );
           let errorMessage = "Knowledge synthesis systems operational. Research monitoring continues. Intelligence processing may be delayed.";
-          const errorMsg = error.message.toLowerCase();
+          const errorMsg = error3.message.toLowerCase();
           if (errorMsg.includes("rate limit") || errorMsg.includes("429") || errorMsg.includes("too many requests")) {
             errorMessage = "Research data rate limited. Knowledge synthesis paused temporarily. Intelligence gathering continues at reduced frequency.";
           } else if (errorMsg.includes("network") || errorMsg.includes("timeout") || errorMsg.includes("fetch")) {
@@ -37840,7 +37840,7 @@ var init_dist = __esm({
           }
           const errorResponse = ResponseCreators.createErrorResponse(
             "KNOWLEDGE_DIGEST",
-            error.message,
+            error3.message,
             errorMessage
           );
           if (callback) {
@@ -37988,13 +37988,13 @@ var init_dist = __esm({
           }
           logger42.info("Opportunity alerts delivered successfully");
           return true;
-        } catch (error) {
+        } catch (error3) {
           logger42.error(
             "Failed to get opportunity alerts:",
-            error.message
+            error3.message
           );
           let errorMessage = "Alert systems operational. Manual monitoring continues. Market vigilance maintained.";
-          const errorMsg = error.message.toLowerCase();
+          const errorMsg = error3.message.toLowerCase();
           if (errorMsg.includes("rate limit") || errorMsg.includes("429") || errorMsg.includes("too many requests")) {
             errorMessage = "Alert data rate limited. Opportunity monitoring paused temporarily. Manual vigilance advised for immediate signals.";
           } else if (errorMsg.includes("network") || errorMsg.includes("timeout") || errorMsg.includes("fetch")) {
@@ -38004,7 +38004,7 @@ var init_dist = __esm({
           }
           const errorResponse = ResponseCreators.createErrorResponse(
             "OPPORTUNITY_ALERTS",
-            error.message,
+            error3.message,
             errorMessage
           );
           if (callback) {
@@ -38104,13 +38104,13 @@ var init_dist = __esm({
           }
           logger52.info("Bitcoin network health report delivered successfully");
           return true;
-        } catch (error) {
+        } catch (error3) {
           logger52.error(
             "Failed to get network health data:",
-            error.message
+            error3.message
           );
           let errorMessage = "Network fundamentals operational. Hashrate securing the chain. Blocks continuing every ~10 minutes.";
-          const errorMsg = error.message.toLowerCase();
+          const errorMsg = error3.message.toLowerCase();
           if (errorMsg.includes("rate limit") || errorMsg.includes("429") || errorMsg.includes("too many requests")) {
             errorMessage = "Rate limited by data providers. Bitcoin network unchanged: miners securing blocks, nodes validating transactions. Protocol operational.";
           } else if (errorMsg.includes("network") || errorMsg.includes("timeout") || errorMsg.includes("fetch")) {
@@ -38120,7 +38120,7 @@ var init_dist = __esm({
           }
           const errorResponse = ResponseCreators.createErrorResponse(
             "BITCOIN_NETWORK_HEALTH",
-            error.message,
+            error3.message,
             errorMessage
           );
           if (callback) {
@@ -38174,8 +38174,8 @@ var init_dist = __esm({
                     marketCap = data.bitcoin.usd_market_cap || 2e12;
                   }
                 }
-              } catch (error) {
-                console.warn("[BitcoinPriceAction] Direct API call failed:", error);
+              } catch (error3) {
+                console.warn("[BitcoinPriceAction] Direct API call failed:", error3);
               }
             }
           }
@@ -38191,8 +38191,8 @@ var init_dist = __esm({
             await callback(responseContent);
           }
           return true;
-        } catch (error) {
-          console.error("[BitcoinPriceAction] Error:", error);
+        } catch (error3) {
+          console.error("[BitcoinPriceAction] Error:", error3);
           const errorResponse = {
             thought: "Failed to get Bitcoin price data, providing fallback information.",
             text: "Bitcoin is currently trading around $100,000 USD. (Price data temporarily unavailable)",
@@ -38366,8 +38366,8 @@ var init_dist = __esm({
             await callback(responseContent);
           }
           return true;
-        } catch (error) {
-          console.error("[AltcoinPriceAction] Error:", error);
+        } catch (error3) {
+          console.error("[AltcoinPriceAction] Error:", error3);
           const errorResponse = {
             thought: "Failed to get altcoin price data, providing fallback information.",
             text: "Altcoin price data temporarily unavailable. Markets continue trading.",
@@ -38582,10 +38582,10 @@ var init_dist = __esm({
           }
           logger62.info("Weather analysis delivered successfully");
           return true;
-        } catch (error) {
-          logger62.error("Failed to get weather data:", error.message);
+        } catch (error3) {
+          logger62.error("Failed to get weather data:", error3.message);
           let errorMessage = "Weather monitoring systems operational. Natural patterns continue regardless of our observation capabilities.";
-          const errorMsg = error.message.toLowerCase();
+          const errorMsg = error3.message.toLowerCase();
           if (errorMsg.includes("rate limit") || errorMsg.includes("429") || errorMsg.includes("too many requests")) {
             errorMessage = "Weather data rate limited. Like Bitcoin mining difficulty, natural systems have their own rate limits. Will retry shortly.";
           } else if (errorMsg.includes("network") || errorMsg.includes("timeout") || errorMsg.includes("fetch")) {
@@ -38595,7 +38595,7 @@ var init_dist = __esm({
           }
           const errorResponse = ResponseCreators.createErrorResponse(
             "WEATHER_ANALYSIS",
-            error.message,
+            error3.message,
             errorMessage
           );
           if (callback) {
@@ -38723,13 +38723,13 @@ var init_dist = __esm({
           }
           logger72.info("Curated altcoins analysis delivered successfully");
           return true;
-        } catch (error) {
+        } catch (error3) {
           logger72.error(
             "Failed to analyze curated altcoins:",
-            error.message
+            error3.message
           );
           let errorMessage = "Altcoin analysis systems operational. Markets are volatile beasts - price discovery continues.";
-          const errorMsg = error.message.toLowerCase();
+          const errorMsg = error3.message.toLowerCase();
           if (errorMsg.includes("rate limit") || errorMsg.includes("429") || errorMsg.includes("too many requests")) {
             errorMessage = "Market data rate limited. The casino is overwhelmed with degenerates. Analysis will resume shortly.";
           } else if (errorMsg.includes("network") || errorMsg.includes("timeout") || errorMsg.includes("fetch")) {
@@ -38739,7 +38739,7 @@ var init_dist = __esm({
           }
           const errorResponse = ResponseCreators.createErrorResponse(
             "CURATED_ALTCOINS",
-            error.message,
+            error3.message,
             errorMessage
           );
           if (callback) {
@@ -38864,14 +38864,14 @@ var init_dist = __esm({
           }
           logger82.info("Top 100 vs BTC analysis delivered successfully");
           return true;
-        } catch (error) {
+        } catch (error3) {
           logger82.error(
             "Failed to analyze top 100 vs BTC:",
-            error.message
+            error3.message
           );
           const errorResponse = ResponseCreators.createErrorResponse(
             "TOP100_VS_BTC_ACTION",
-            error.message,
+            error3.message,
             "Performance analysis failed. Bitcoin remains the ultimate benchmark for all digital assets."
           );
           if (callback) {
@@ -39020,14 +39020,14 @@ var init_dist = __esm({
           }
           logger92.info("BTC relative performance analysis delivered successfully");
           return true;
-        } catch (error) {
+        } catch (error3) {
           logger92.error(
             "Failed to analyze BTC relative performance:",
-            error.message
+            error3.message
           );
           const errorResponse = ResponseCreators.createErrorResponse(
             "BTC_RELATIVE_PERFORMANCE",
-            error.message,
+            error3.message,
             "BTC relative performance analysis failed. Market dynamics continue regardless of our monitoring systems."
           );
           if (callback) {
@@ -39174,14 +39174,14 @@ var init_dist = __esm({
           }
           logger102.info("DEXScreener analysis delivered successfully");
           return true;
-        } catch (error) {
+        } catch (error3) {
           logger102.error(
             "Failed to analyze DEXScreener data:",
-            error.message
+            error3.message
           );
           const errorResponse = ResponseCreators.createErrorResponse(
             "DEX_SCREENER_ACTION",
-            error.message,
+            error3.message,
             "Error retrieving DEXScreener data. The degen casino servers might be down."
           );
           if (callback) {
@@ -39318,10 +39318,10 @@ var init_dist = __esm({
           }
           logger112.info("Top movers analysis delivered successfully");
           return true;
-        } catch (error) {
-          logger112.error("Failed to analyze top movers:", error.message);
+        } catch (error3) {
+          logger112.error("Failed to analyze top movers:", error3.message);
           let errorMessage = "Top movers analysis systems operational. The casino continues regardless of our monitoring capabilities.";
-          const errorMsg = error.message.toLowerCase();
+          const errorMsg = error3.message.toLowerCase();
           if (errorMsg.includes("rate limit") || errorMsg.includes("429") || errorMsg.includes("too many requests")) {
             errorMessage = "Market data rate limited. CoinGecko overwhelmed with degenerates. Analysis will resume shortly.";
           } else if (errorMsg.includes("network") || errorMsg.includes("timeout") || errorMsg.includes("fetch")) {
@@ -39331,7 +39331,7 @@ var init_dist = __esm({
           }
           const errorResponse = ResponseCreators.createErrorResponse(
             "TOP_MOVERS_ACTION",
-            error.message,
+            error3.message,
             errorMessage
           );
           if (callback) {
@@ -39473,14 +39473,14 @@ var init_dist = __esm({
           }
           logger12.info("Trending coins analysis delivered successfully");
           return true;
-        } catch (error) {
+        } catch (error3) {
           logger12.error(
             "Failed to analyze trending coins:",
-            error.message
+            error3.message
           );
           const errorResponse = ResponseCreators.createErrorResponse(
             "TRENDING_COINS_ACTION",
-            error.message,
+            error3.message,
             "Error retrieving trending coins data. CoinGecko search trending might be rate limited or community interest is shifting rapidly."
           );
           if (callback) {
@@ -39616,11 +39616,11 @@ var init_dist = __esm({
           }
           logger13.info("Stock market analysis delivered successfully");
           return true;
-        } catch (error) {
-          logger13.error("Failed to analyze stock market:", error.message);
+        } catch (error3) {
+          logger13.error("Failed to analyze stock market:", error3.message);
           const errorResponse = ResponseCreators.createErrorResponse(
             "STOCK_MARKET_ANALYSIS",
-            error.message,
+            error3.message,
             "Market analysis failed. Like network congestion, sometimes data flows require patience and retry mechanisms."
           );
           if (callback) {
@@ -39748,11 +39748,11 @@ var init_dist = __esm({
           }
           logger14.info("ETF flow analysis delivered successfully");
           return true;
-        } catch (error) {
-          logger14.error("Failed to analyze ETF flows:", error.message);
+        } catch (error3) {
+          logger14.error("Failed to analyze ETF flows:", error3.message);
           const errorResponse = ResponseCreators.createErrorResponse(
             "ETF_FLOW_TRACKING",
-            error.message,
+            error3.message,
             "ETF tracking error. Bitcoin ETFs are revolutionizing institutional access to Bitcoin. Since January 2024, these vehicles have absorbed unprecedented amounts of Bitcoin, creating structural demand that outpaces new supply."
           );
           if (callback) {
@@ -39951,11 +39951,11 @@ var init_dist = __esm({
           }
           logger15.info("NFT market analysis delivered successfully");
           return true;
-        } catch (error) {
-          logger15.error("Failed to analyze NFT market:", error.message);
+        } catch (error3) {
+          logger15.error("Failed to analyze NFT market:", error3.message);
           const errorResponse = ResponseCreators.createErrorResponse(
             "CURATED_NFTS_ANALYSIS",
-            error.message,
+            error3.message,
             "NFT analysis failed. Perhaps the market is teaching us that Bitcoin's simplicity is its strength."
           );
           if (callback) {
@@ -40119,11 +40119,11 @@ var init_dist = __esm({
           }
           logger16.info("Hotel search results delivered successfully");
           return true;
-        } catch (error) {
-          logger16.error("Failed to search hotels:", error.message);
+        } catch (error3) {
+          logger16.error("Failed to search hotels:", error3.message);
           const errorResponse = ResponseCreators.createErrorResponse(
             "HOTEL_SEARCH_ACTION",
-            error.message,
+            error3.message,
             "Hotel search failed. Like the Bitcoin network, sometimes connections need time to establish. Try again in a moment."
           );
           if (callback) {
@@ -40269,14 +40269,14 @@ var init_dist = __esm({
           }
           logger17.info("Hotel deal alerts delivered successfully");
           return true;
-        } catch (error) {
+        } catch (error3) {
           logger17.error(
             "Failed to process hotel deal alerts:",
-            error.message
+            error3.message
           );
           const errorResponse = ResponseCreators.createErrorResponse(
             "HOTEL_DEAL_ALERT",
-            error.message,
+            error3.message,
             "Deal monitoring failed. Like Bitcoin's mempool, sometimes transactions need patience to clear."
           );
           if (callback) {
@@ -40426,14 +40426,14 @@ var init_dist = __esm({
           }
           logger18.info("Booking optimization completed successfully");
           return true;
-        } catch (error) {
+        } catch (error3) {
           logger18.error(
             "Failed to process booking optimization:",
-            error.message
+            error3.message
           );
           const errorResponse = ResponseCreators.createErrorResponse(
             "BOOKING_OPTIMIZATION",
-            error.message,
+            error3.message,
             "Booking optimization failed. Like Bitcoin transactions, sometimes the optimal path requires multiple attempts."
           );
           if (callback) {
@@ -40571,14 +40571,14 @@ var init_dist = __esm({
           }
           logger19.info("Travel insights delivered successfully");
           return true;
-        } catch (error) {
+        } catch (error3) {
           logger19.error(
             "Failed to process travel insights:",
-            error.message
+            error3.message
           );
           const errorResponse = ResponseCreators.createErrorResponse(
             "TRAVEL_INSIGHTS",
-            error.message,
+            error3.message,
             "Travel insights analysis failed. Like Bitcoin network analysis, sometimes comprehensive insights require patience and multiple data sources."
           );
           if (callback) {
@@ -40683,8 +40683,8 @@ var init_dist = __esm({
             });
           }
           return true;
-        } catch (error) {
-          console.error("Error in hotel rate intelligence action:", error);
+        } catch (error3) {
+          console.error("Error in hotel rate intelligence action:", error3);
           if (callback) {
             await callback({
               thought: "Encountered an error while analyzing hotel rates",
@@ -40816,8 +40816,8 @@ Would you like me to help you with a broader search or suggest related topics?`,
             });
           }
           return true;
-        } catch (error) {
-          console.error("Enhanced knowledge search error:", error);
+        } catch (error3) {
+          console.error("Enhanced knowledge search error:", error3);
           if (callback) {
             await callback({
               thought: "An error occurred during the enhanced knowledge search.",
@@ -40935,12 +40935,12 @@ Would you like me to help you with a broader search or suggest related topics?`,
             });
           }
           return true;
-        } catch (error) {
-          logger20.error("Error in weekly hotel suggestions action:", error);
+        } catch (error3) {
+          logger20.error("Error in weekly hotel suggestions action:", error3);
           if (callback) {
             await callback({
               text: "\u274C Unable to retrieve weekly hotel suggestions at this time. Please try again later.",
-              thought: `Failed to get weekly hotel suggestions: ${error.message}`,
+              thought: `Failed to get weekly hotel suggestions: ${error3.message}`,
               actions: ["weekly_hotel_suggestions"]
             });
           }
@@ -40965,8 +40965,8 @@ Would you like me to help you with a broader search or suggest related topics?`,
           };
           await callback(responseContent);
           return responseContent;
-        } catch (error) {
-          console.error("[HelloWorldAction] Error:", error);
+        } catch (error3) {
+          console.error("[HelloWorldAction] Error:", error3);
           const errorContent = {
             text: "Hello! I'm here to help with Bitcoin insights and analysis.",
             actions: ["HELLO_WORLD"],
@@ -41061,8 +41061,8 @@ The 100K BTC Holders thesis remains on track with institutional adoption acceler
           };
           await callback(responseContent);
           return responseContent;
-        } catch (error) {
-          logger21.error("Error in Bitcoin market analysis:", error);
+        } catch (error3) {
+          logger21.error("Error in Bitcoin market analysis:", error3);
           const errorContent = {
             text: "Unable to generate Bitcoin market analysis at this time. Please try again later.",
             actions: ["BITCOIN_MARKET_ANALYSIS"],
@@ -41175,8 +41175,8 @@ Thesis tracking ahead of schedule with institutional adoption accelerating. Mult
           };
           await callback(responseContent);
           return responseContent;
-        } catch (error) {
-          logger222.error("Error in Bitcoin thesis status:", error);
+        } catch (error3) {
+          logger222.error("Error in Bitcoin thesis status:", error3);
           const errorContent = {
             text: "Unable to provide Bitcoin thesis status at this time. Please try again later.",
             actions: ["BITCOIN_THESIS_STATUS"],
@@ -41248,9 +41248,9 @@ ${result.message}`;
           };
           await callback(responseContent);
           return responseContent;
-        } catch (error) {
+        } catch (error3) {
           const enhancedError = ElizaOSErrorHandler2.handleCommonErrors(
-            error,
+            error3,
             "ResetMemoryAction"
           );
           const errorText = `\u274C **MEMORY RESET ERROR**
@@ -41329,9 +41329,9 @@ ${healthCheck.issues.map((issue) => `\u2022 ${issue}`).join("\n")}` : "**No issu
           };
           await callback(responseContent);
           return responseContent;
-        } catch (error) {
+        } catch (error3) {
           const enhancedError = ElizaOSErrorHandler2.handleCommonErrors(
-            error,
+            error3,
             "MemoryHealthAction"
           );
           const errorText = `\u274C **MEMORY HEALTH CHECK FAILED**
@@ -41520,8 +41520,8 @@ The truest decentralization starts with the self. Optimize your personal node be
           };
           await callback(responseContent);
           return responseContent;
-        } catch (error) {
-          logger23.error("Error in sovereign living action:", error);
+        } catch (error3) {
+          logger23.error("Error in sovereign living action:", error3);
           const errorContent = {
             text: "Unable to provide sovereign living advice at this time. Truth requires verification through lived experience.",
             actions: ["SOVEREIGN_LIVING_ADVICE"],
@@ -41746,8 +41746,8 @@ Bitcoin is transitioning from speculative asset to reserve asset. Institutional 
           };
           await callback(responseContent);
           return responseContent;
-        } catch (error) {
-          logger24.error("Error in investment strategy action:", error);
+        } catch (error3) {
+          logger24.error("Error in investment strategy action:", error3);
           const errorContent = {
             text: "Unable to provide investment strategy advice at this time. Truth requires verification through mathematical analysis and risk assessment.",
             actions: ["INVESTMENT_STRATEGY_ADVICE"],
@@ -41860,8 +41860,8 @@ Use \`elizaos env edit-local\` to configure missing API keys.` : "**No issues de
           };
           await callback(responseContent);
           return responseContent;
-        } catch (error) {
-          logger25.error("Error in environment validation:", error);
+        } catch (error3) {
+          logger25.error("Error in environment validation:", error3);
           const errorContent = {
             text: "Unable to validate environment configuration at this time. Please check your setup manually.",
             actions: ["VALIDATE_ENVIRONMENT"],
@@ -41969,8 +41969,8 @@ These calculations assume thesis progression occurs. Bitcoin volatility means tw
           };
           await callback(responseContent);
           return responseContent;
-        } catch (error) {
-          logger26.error("Error in freedom mathematics action:", error);
+        } catch (error3) {
+          logger26.error("Error in freedom mathematics action:", error3);
           const errorContent = {
             text: "Unable to calculate freedom mathematics at this time. Mathematical certainty requires reliable data inputs.",
             actions: ["FREEDOM_MATHEMATICS"],
@@ -42077,8 +42077,8 @@ Altcoins are venture capital plays on crypto infrastructure and applications. Bi
           };
           await callback(responseContent);
           return responseContent;
-        } catch (error) {
-          logger27.error("Error in altcoin BTC performance analysis:", error);
+        } catch (error3) {
+          logger27.error("Error in altcoin BTC performance analysis:", error3);
           const errorContent = {
             text: "Unable to analyze altcoin BTC performance at this time. Remember: altcoins are distractions from the main event\u2014Bitcoin. The exit is, and always has been, Bitcoin.",
             actions: ["ALTCOIN_BTC_PERFORMANCE"],
@@ -42245,7 +42245,7 @@ Altcoins are venture capital plays on crypto infrastructure and applications. Bi
             );
             const btcData = await btcResponse.json();
             bitcoinPrice = btcData.bitcoin?.usd || 1e5;
-          } catch (error) {
+          } catch (error3) {
             logger28.warn(
               "Failed to fetch Bitcoin price for comparison, using fallback"
             );
@@ -42269,8 +42269,8 @@ Altcoins are venture capital plays on crypto infrastructure and applications. Bi
           };
           await callback(responseContent);
           return responseContent;
-        } catch (error) {
-          logger28.error("Error in crypto price lookup:", error);
+        } catch (error3) {
+          logger28.error("Error in crypto price lookup:", error3);
           const errorContent = {
             text: `Unable to fetch price data. Remember: prices are temporary, Bitcoin is forever. Focus on building wealth through sound money principles, not price tracking.`,
             actions: ["CRYPTO_PRICE_LOOKUP"],
@@ -42863,10 +42863,10 @@ ${hotel.bitcoinLifestyle.join(" | ")}`,
               console.log(
                 `[BitcoinProvider] Got price from service: $${bitcoinPrice.toLocaleString()}`
               );
-            } catch (error) {
+            } catch (error3) {
               console.warn(
                 "[BitcoinProvider] Service price fetch failed, using fallback:",
-                error.message
+                error3.message
               );
             }
           }
@@ -42903,10 +42903,10 @@ ${hotel.bitcoinLifestyle.join(" | ")}`,
                   `[BitcoinProvider] Direct API failed with status: ${response.status}`
                 );
               }
-            } catch (error) {
+            } catch (error3) {
               console.warn(
                 "[BitcoinProvider] Direct API call failed:",
-                error.message
+                error3.message
               );
             }
           }
@@ -42953,8 +42953,8 @@ ${hotel.bitcoinLifestyle.join(" | ")}`,
               }
             }
           };
-        } catch (error) {
-          console.error("[BitcoinProvider] Critical error:", error);
+        } catch (error3) {
+          console.error("[BitcoinProvider] Critical error:", error3);
           return {
             text: "Bitcoin: $100,000 (price data temporarily unavailable)",
             values: {
@@ -42973,7 +42973,7 @@ ${hotel.bitcoinLifestyle.join(" | ")}`,
                 marketCap: 2e12,
                 volume24h: 5e10,
                 lastUpdated: (/* @__PURE__ */ new Date()).toISOString(),
-                error: error.message
+                error: error3.message
               }
             }
           };
@@ -43007,7 +43007,7 @@ ${hotel.bitcoinLifestyle.join(" | ")}`,
                 hasETFData: true,
                 message: "ETF service available but data methods need implementation"
               };
-            } catch (error) {
+            } catch (error3) {
               etfContext = "ETF data temporarily unavailable. ";
             }
           }
@@ -43054,9 +43054,9 @@ ${hotel.bitcoinLifestyle.join(" | ")}`,
               etfService: !!etfService
             }
           };
-        } catch (error) {
+        } catch (error3) {
           return {
-            text: `Economic indicators temporarily unavailable: ${error.message}`,
+            text: `Economic indicators temporarily unavailable: ${error3.message}`,
             values: { economicDataError: true }
           };
         }
@@ -43158,9 +43158,9 @@ ${hotel.bitcoinLifestyle.join(" | ")}`,
               alerts
             }
           };
-        } catch (error) {
+        } catch (error3) {
           return {
-            text: `Real-time data temporarily unavailable: ${error.message}`,
+            text: `Real-time data temporarily unavailable: ${error3.message}`,
             values: { realTimeDataError: true }
           };
         }
@@ -43251,9 +43251,9 @@ ${hotel.bitcoinLifestyle.join(" | ")}`,
               socialSentiment
             }
           };
-        } catch (error) {
+        } catch (error3) {
           return {
-            text: `News data temporarily unavailable: ${error.message}`,
+            text: `News data temporarily unavailable: ${error3.message}`,
             values: { newsError: true }
           };
         }
@@ -43357,9 +43357,9 @@ ${hotel.bitcoinLifestyle.join(" | ")}`,
               freedomMath
             }
           };
-        } catch (error) {
+        } catch (error3) {
           return {
-            text: `Market context analysis temporarily unavailable: ${error.message}`,
+            text: `Market context analysis temporarily unavailable: ${error3.message}`,
             values: { marketContextError: true }
           };
         }
@@ -43445,16 +43445,16 @@ ${hotel.bitcoinLifestyle.join(" | ")}`,
               seasonalRecommendations
             }
           };
-        } catch (error) {
+        } catch (error3) {
           elizaLogger122.error(
             "[TravelProvider] Error providing travel context:",
-            error
+            error3
           );
           return {
             text: "Travel booking services encountered an error. Please try again later.",
             values: {
               travelAvailable: false,
-              error: error.message
+              error: error3.message
             }
           };
         }
@@ -43540,7 +43540,7 @@ ${hotel.bitcoinLifestyle.join(" | ")}`,
               };
               serviceAvailable = true;
             }
-          } catch (serviceError) {
+          } catch (serviceError3) {
             elizaLogger132.warn(
               "[AltcoinProvider] Service not available, using API data only"
             );
@@ -43555,16 +43555,16 @@ ${hotel.bitcoinLifestyle.join(" | ")}`,
               topCoins
             );
           }
-        } catch (error) {
+        } catch (error3) {
           elizaLogger132.error(
             "[AltcoinProvider] Error providing altcoin context:",
-            error
+            error3
           );
           return {
             text: "Altcoin market services encountered an error. Please try again later.",
             values: {
               altcoinDataAvailable: false,
-              error: error.message
+              error: error3.message
             }
           };
         }
@@ -43650,16 +43650,16 @@ ${hotel.bitcoinLifestyle.join(" | ")}`,
               sectorAnalysis
             }
           };
-        } catch (error) {
+        } catch (error3) {
           elizaLogger14.error(
             "[StockProvider] Error providing stock context:",
-            error
+            error3
           );
           return {
             text: "Stock market services encountered an error. Please try again later.",
             values: {
               stockDataAvailable: false,
-              error: error.message
+              error: error3.message
             }
           };
         }
@@ -43731,13 +43731,13 @@ ${hotel.bitcoinLifestyle.join(" | ")}`,
               trendAnalysis
             }
           };
-        } catch (error) {
-          elizaLogger15.error("[NFTProvider] Error providing NFT context:", error);
+        } catch (error3) {
+          elizaLogger15.error("[NFTProvider] Error providing NFT context:", error3);
           return {
             text: "NFT market services encountered an error. Please try again later.",
             values: {
               nftDataAvailable: false,
-              error: error.message
+              error: error3.message
             }
           };
         }
@@ -43834,16 +43834,16 @@ ${hotel.bitcoinLifestyle.join(" | ")}`,
               travelOpportunities: lifestyleData.travelOpportunities
             }
           };
-        } catch (error) {
+        } catch (error3) {
           elizaLogger16.error(
             "[LifestyleProvider] Error providing enhanced lifestyle context:",
-            error
+            error3
           );
           return {
             text: "Enhanced lifestyle services encountered an error. Please try again later.",
             values: {
               lifestyleDataAvailable: false,
-              error: error.message
+              error: error3.message
             }
           };
         }
@@ -43924,16 +43924,16 @@ ${hotel.bitcoinLifestyle.join(" | ")}`,
               miningAnalysis
             }
           };
-        } catch (error) {
+        } catch (error3) {
           elizaLogger17.error(
             "[NetworkHealthProvider] Error providing network context:",
-            error
+            error3
           );
           return {
             text: "Bitcoin network services encountered an error. Please try again later.",
             values: {
               networkDataAvailable: false,
-              error: error.message
+              error: error3.message
             }
           };
         }
@@ -44011,16 +44011,16 @@ ${hotel.bitcoinLifestyle.join(" | ")}`,
               performanceAnalysis
             }
           };
-        } catch (error) {
+        } catch (error3) {
           elizaLogger18.error(
             "[OpportunityProvider] Error providing opportunity context:",
-            error
+            error3
           );
           return {
             text: "Investment opportunity services encountered an error. Please try again later.",
             values: {
               opportunityDataAvailable: false,
-              error: error.message
+              error: error3.message
             }
           };
         }
@@ -44106,16 +44106,16 @@ ${hotel.bitcoinLifestyle.join(" | ")}`,
               marketConditions
             }
           };
-        } catch (error) {
+        } catch (error3) {
           elizaLogger19.error(
             "[BriefingProvider] Error providing briefing context:",
-            error
+            error3
           );
           return {
             text: "Intelligence briefing services encountered an error. Please try again later.",
             values: {
               briefingDataAvailable: false,
-              error: error.message
+              error: error3.message
             }
           };
         }
@@ -44162,8 +44162,8 @@ ${hotel.bitcoinLifestyle.join(" | ")}`,
                   topic,
                   results: results || []
                 };
-              } catch (error) {
-                console.error(`Error searching for topic "${topic}":`, error);
+              } catch (error3) {
+                console.error(`Error searching for topic "${topic}":`, error3);
                 return { topic, results: [] };
               }
             })
@@ -44193,8 +44193,8 @@ ${hotel.bitcoinLifestyle.join(" | ")}`,
           }
           context += "---\n\n";
           return { text: context };
-        } catch (error) {
-          console.error("Knowledge context provider error:", error);
+        } catch (error3) {
+          console.error("Knowledge context provider error:", error3);
           return { text: "" };
         }
       }
@@ -44226,8 +44226,8 @@ ${hotel.bitcoinLifestyle.join(" | ")}`,
               lastUpdated: (/* @__PURE__ */ new Date()).toISOString()
             }
           };
-        } catch (error) {
-          logger29.error("Error in travel knowledge provider:", error);
+        } catch (error3) {
+          logger29.error("Error in travel knowledge provider:", error3);
           return null;
         }
       }
@@ -44300,14 +44300,14 @@ ${hotel.bitcoinLifestyle.join(" | ")}`,
           }
           logger30.info("\u{1F7E0} Bitcoin Plugin initialized successfully");
           logger30.info("\u{1F3AF} Tracking: 100K BTC Holders \u2192 $10M Net Worth Thesis");
-        } catch (error) {
-          if (error instanceof Error && error.name === "ZodError") {
+        } catch (error3) {
+          if (error3 instanceof Error && error3.name === "ZodError") {
             throw new Error(
-              `Invalid Bitcoin plugin configuration: ${error.message}`
+              `Invalid Bitcoin plugin configuration: ${error3.message}`
             );
           }
-          logger30.error("\u274C Failed to initialize Bitcoin Plugin:", error);
-          throw error;
+          logger30.error("\u274C Failed to initialize Bitcoin Plugin:", error3);
+          throw error3;
         }
       },
       providers: [...allProviders],
@@ -44379,9 +44379,9 @@ ${hotel.bitcoinLifestyle.join(" | ")}`,
                     thesisProgress: thesisData.progressPercentage
                   });
                 }
-              } catch (error) {
+              } catch (error3) {
                 logger30.warn("Failed to pre-load Bitcoin context", {
-                  error: error.message
+                  error: error3.message
                 });
               }
             }
@@ -44417,9 +44417,9 @@ ${hotel.bitcoinLifestyle.join(" | ")}`,
                       historyLength: runtime.thesisHistory.length
                     });
                   }
-                } catch (error) {
+                } catch (error3) {
                   logger30.warn("Failed to update thesis history", {
-                    error: error.message
+                    error: error3.message
                   });
                 }
               }
@@ -44465,10 +44465,10 @@ ${hotel.bitcoinLifestyle.join(" | ")}`,
                   thesisProgress: thesisMetrics.progressPercentage
                 });
               }
-            } catch (error) {
+            } catch (error3) {
               logger30.warn("Failed to initialize Bitcoin context for world", {
                 worldId: world.id,
-                error: error.message
+                error: error3.message
               });
             }
           }
@@ -44501,10 +44501,10 @@ ${hotel.bitcoinLifestyle.join(" | ")}`,
                     worldId: world.id
                   });
                 }
-              } catch (error) {
+              } catch (error3) {
                 logger30.warn("Failed to queue Bitcoin introduction", {
                   worldId: world.id,
-                  error: error.message
+                  error: error3.message
                 });
               }
             }
@@ -44612,10 +44612,10 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
                 timestamp: (/* @__PURE__ */ new Date()).toISOString(),
                 source: "bitcoin-ltl-plugin"
               });
-            } catch (error) {
+            } catch (error3) {
               res.status(500).json({
                 success: false,
-                error: error instanceof Error ? error.message : "Unknown error",
+                error: error3 instanceof Error ? error3.message : "Unknown error",
                 timestamp: (/* @__PURE__ */ new Date()).toISOString()
               });
             }
@@ -44655,10 +44655,10 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
                   thesis: "100K BTC Holders \u2192 $10M Net Worth"
                 }
               });
-            } catch (error) {
+            } catch (error3) {
               res.status(500).json({
                 success: false,
-                error: error instanceof Error ? error.message : "Unknown error",
+                error: error3 instanceof Error ? error3.message : "Unknown error",
                 timestamp: (/* @__PURE__ */ new Date()).toISOString()
               });
             }
@@ -44698,10 +44698,10 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
                   disclaimer: "Not financial advice. Past performance does not guarantee future results."
                 }
               });
-            } catch (error) {
+            } catch (error3) {
               res.status(500).json({
                 success: false,
-                error: error instanceof Error ? error.message : "Unknown error",
+                error: error3 instanceof Error ? error3.message : "Unknown error",
                 timestamp: (/* @__PURE__ */ new Date()).toISOString()
               });
             }
@@ -44733,10 +44733,10 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
                   score_scale: "0-100 (100 = maximum adoption)"
                 }
               });
-            } catch (error) {
+            } catch (error3) {
               res.status(500).json({
                 success: false,
-                error: error instanceof Error ? error.message : "Unknown error",
+                error: error3 instanceof Error ? error3.message : "Unknown error",
                 timestamp: (/* @__PURE__ */ new Date()).toISOString()
               });
             }
@@ -44768,7 +44768,7 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
               try {
                 await service.getBitcoinPrice();
                 checks.api = "pass";
-              } catch (error) {
+              } catch (error3) {
                 checks.api = "fail";
               }
               try {
@@ -44776,7 +44776,7 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
                   const memoryHealth = await service.checkMemoryHealth();
                   checks.memory = memoryHealth.healthy ? "pass" : "warn";
                 }
-              } catch (error) {
+              } catch (error3) {
                 checks.memory = "fail";
               }
               const overallHealth = Object.values(checks).every(
@@ -44792,11 +44792,11 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
                   timestamp: (/* @__PURE__ */ new Date()).toISOString()
                 }
               });
-            } catch (error) {
+            } catch (error3) {
               res.status(500).json({
                 success: false,
                 status: "error",
-                error: error instanceof Error ? error.message : "Unknown error",
+                error: error3 instanceof Error ? error3.message : "Unknown error",
                 timestamp: (/* @__PURE__ */ new Date()).toISOString()
               });
             }
@@ -44850,10 +44850,10 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
                   endpoint: "services-health"
                 }
               });
-            } catch (error) {
+            } catch (error3) {
               res.status(500).json({
                 success: false,
-                error: error instanceof Error ? error.message : "Unknown error",
+                error: error3 instanceof Error ? error3.message : "Unknown error",
                 plugin: "bitcoin-ltl",
                 timestamp: (/* @__PURE__ */ new Date()).toISOString()
               });
@@ -44898,10 +44898,10 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
                   disclaimer: "Data from free public APIs. Not financial advice."
                 }
               });
-            } catch (error) {
+            } catch (error3) {
               res.status(500).json({
                 success: false,
-                error: error instanceof Error ? error.message : "Unknown error",
+                error: error3 instanceof Error ? error3.message : "Unknown error",
                 timestamp: (/* @__PURE__ */ new Date()).toISOString()
               });
             }
@@ -44946,10 +44946,10 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
                   updateInterval: "1 minute"
                 }
               });
-            } catch (error) {
+            } catch (error3) {
               res.status(500).json({
                 success: false,
-                error: error instanceof Error ? error.message : "Unknown error",
+                error: error3 instanceof Error ? error3.message : "Unknown error",
                 timestamp: (/* @__PURE__ */ new Date()).toISOString()
               });
             }
@@ -44993,10 +44993,10 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
                   description: "Real-time Bitcoin mempool statistics and fee recommendations"
                 }
               });
-            } catch (error) {
+            } catch (error3) {
               res.status(500).json({
                 success: false,
-                error: error instanceof Error ? error.message : "Unknown error",
+                error: error3 instanceof Error ? error3.message : "Unknown error",
                 timestamp: (/* @__PURE__ */ new Date()).toISOString()
               });
             }
@@ -45038,10 +45038,10 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
                   description: "Bitcoin market sentiment analysis"
                 }
               });
-            } catch (error) {
+            } catch (error3) {
               res.status(500).json({
                 success: false,
-                error: error instanceof Error ? error.message : "Unknown error",
+                error: error3 instanceof Error ? error3.message : "Unknown error",
                 timestamp: (/* @__PURE__ */ new Date()).toISOString()
               });
             }
@@ -45109,10 +45109,10 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
                   disclaimer: "Data from CoinGecko public API. Not financial advice."
                 }
               });
-            } catch (error) {
+            } catch (error3) {
               res.status(500).json({
                 success: false,
-                error: error instanceof Error ? error.message : "Unknown error",
+                error: error3 instanceof Error ? error3.message : "Unknown error",
                 timestamp: (/* @__PURE__ */ new Date()).toISOString()
               });
             }
@@ -45162,10 +45162,10 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
                   disclaimer: "Data from CoinGecko public API. Not financial advice."
                 }
               });
-            } catch (error) {
+            } catch (error3) {
               res.status(500).json({
                 success: false,
-                error: error instanceof Error ? error.message : "Unknown error",
+                error: error3 instanceof Error ? error3.message : "Unknown error",
                 timestamp: (/* @__PURE__ */ new Date()).toISOString()
               });
             }
@@ -45224,10 +45224,10 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
                   disclaimer: "Data from DEXScreener public API. Not financial advice."
                 }
               });
-            } catch (error) {
+            } catch (error3) {
               res.status(500).json({
                 success: false,
-                error: error instanceof Error ? error.message : "Unknown error",
+                error: error3 instanceof Error ? error3.message : "Unknown error",
                 timestamp: (/* @__PURE__ */ new Date()).toISOString()
               });
             }
@@ -45277,10 +45277,10 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
                   disclaimer: "Data from DEXScreener public API. Not financial advice."
                 }
               });
-            } catch (error) {
+            } catch (error3) {
               res.status(500).json({
                 success: false,
-                error: error instanceof Error ? error.message : "Unknown error",
+                error: error3 instanceof Error ? error3.message : "Unknown error",
                 timestamp: (/* @__PURE__ */ new Date()).toISOString()
               });
             }
@@ -46192,13 +46192,13 @@ var init_tests = __esm({
                 );
               }
               console.log("\u2705 Bitcoin data providers functionality test passed");
-            } catch (error) {
-              if (error.message.includes("timeout") || error.message.includes("network") || error.message.includes("fetch")) {
+            } catch (error3) {
+              if (error3.message.includes("timeout") || error3.message.includes("network") || error3.message.includes("fetch")) {
                 console.log(
                   "\u26A0\uFE0F  Bitcoin data providers test passed with graceful error handling"
                 );
               } else {
-                throw error;
+                throw error3;
               }
             }
           }
@@ -46229,9 +46229,9 @@ var init_tests = __esm({
               );
               console.log(`Database type: ${healthCheck.stats.databaseType}`);
               console.log("\u2705 Memory management service validation passed");
-            } catch (error) {
+            } catch (error3) {
               throw new Error(
-                `Memory management service validation failed: ${error.message}`
+                `Memory management service validation failed: ${error3.message}`
               );
             }
           }
@@ -46430,6 +46430,347 @@ var init_esm = __esm({
   }
 });
 
+// plugin-bitcoin-ltl/src/utils/terminal-formatting.ts
+function colorize(text, color, isBackground = false) {
+  if (color === "dim") {
+    return `${colors.dim}${text}${colors.reset}`;
+  }
+  const colorCode = isBackground ? colors.bg[color] : colors.fg[color];
+  return `${colorCode}${text}${colors.reset}`;
+}
+function bold(text) {
+  return `${colors.bright}${text}${colors.reset}`;
+}
+function success(text) {
+  return `${emojis.success} ${colorize(text, "green")}`;
+}
+function warning(text) {
+  return `${emojis.warning} ${colorize(text, "yellow")}`;
+}
+function error(text) {
+  return `${emojis.error} ${colorize(text, "red")}`;
+}
+function serviceStatus(serviceName, status) {
+  const emoji = serviceEmojis[serviceName] || serviceEmojis.default;
+  switch (status) {
+    case "enabled":
+    case "started":
+      return `${emoji} ${colorize(serviceName, "green")} ${emojis.success}`;
+    case "starting":
+      return `${emoji} ${colorize(serviceName, "yellow")} ${emojis.loading}`;
+    case "disabled":
+    case "stopped":
+      return `${emoji} ${colorize(serviceName, "dim")} ${emojis.cross}`;
+    case "error":
+      return `${emoji} ${colorize(serviceName, "red")} ${emojis.error}`;
+    default:
+      return `${emoji} ${serviceName}`;
+  }
+}
+function configSummary(data) {
+  const lines = [
+    `${emojis.config} ${bold("Configuration Summary")}`,
+    "",
+    `${emojis.check} ${colorize(`${data.servicesEnabled} services enabled`, "green")}`,
+    `${emojis.cross} ${colorize(`${data.servicesDisabled} services disabled`, "red")}`,
+    "",
+    `${emojis.gear} ${bold("Enabled Services:")}`,
+    ...data.enabledServices.map(
+      (service) => `  ${serviceStatus(service, "enabled")}`
+    ),
+    ""
+  ];
+  if (data.globalConfig) {
+    lines.push(`${emojis.settings} ${bold("Global Configuration:")}`);
+    Object.entries(data.globalConfig).forEach(([key, value]) => {
+      lines.push(`  ${colorize(key, "cyan")}: ${value}`);
+    });
+  }
+  return lines.join("\n");
+}
+function startupBanner() {
+  return `
+${colorize("\u2554\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2557", "cyan")}
+${colorize("\u2551", "cyan")}                    ${bold(colorize("ElizaOS Bitcoin LTL Agent", "magenta"))}                    ${colorize("\u2551", "cyan")}
+${colorize("\u2551", "cyan")}              ${colorize("Live The Life You Deserve", "dim")}              ${colorize("\u2551", "cyan")}
+${colorize("\u255A\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u255D", "cyan")}
+${emojis.rocket} ${colorize("Initializing services...", "yellow")}
+`;
+}
+function serviceStartup(serviceName) {
+  const emoji = serviceEmojis[serviceName] || serviceEmojis.default;
+  return `${emoji} ${colorize(`${serviceName} starting...`, "yellow")}`;
+}
+function serviceStarted(serviceName) {
+  const emoji = serviceEmojis[serviceName] || serviceEmojis.default;
+  return `${emoji} ${colorize(`${serviceName} started successfully`, "green")}`;
+}
+function serviceError(serviceName, error3) {
+  const emoji = serviceEmojis[serviceName] || serviceEmojis.default;
+  return `${emoji} ${colorize(`${serviceName} error:`, "red")} ${error3}`;
+}
+function progressBar(current, total, width = 20) {
+  const percentage = Math.round(current / total * 100);
+  const filled = Math.round(current / total * width);
+  const empty = width - filled;
+  const filledBar = colorize("\u2588".repeat(filled), "green");
+  const emptyBar = colorize("\u2591".repeat(empty), "dim");
+  return `${filledBar}${emptyBar} ${percentage}%`;
+}
+function divider(char = "\u2500", length = 60) {
+  return colorize(char.repeat(length), "dim");
+}
+function sectionHeader(title, emoji = emojis.star) {
+  return `
+${emoji} ${bold(colorize(title, "magenta"))}
+${divider()}`;
+}
+function subsectionHeader(title, emoji = emojis.arrow) {
+  return `${emoji} ${colorize(title, "cyan")}`;
+}
+var colors, emojis, serviceEmojis;
+var init_terminal_formatting = __esm({
+  "plugin-bitcoin-ltl/src/utils/terminal-formatting.ts"() {
+    colors = {
+      reset: "\x1B[0m",
+      bright: "\x1B[1m",
+      dim: "\x1B[2m",
+      underscore: "\x1B[4m",
+      blink: "\x1B[5m",
+      reverse: "\x1B[7m",
+      hidden: "\x1B[8m",
+      // Foreground colors
+      fg: {
+        black: "\x1B[30m",
+        red: "\x1B[31m",
+        green: "\x1B[32m",
+        yellow: "\x1B[33m",
+        blue: "\x1B[34m",
+        magenta: "\x1B[35m",
+        cyan: "\x1B[36m",
+        white: "\x1B[37m"
+      },
+      // Background colors
+      bg: {
+        black: "\x1B[40m",
+        red: "\x1B[41m",
+        green: "\x1B[42m",
+        yellow: "\x1B[43m",
+        blue: "\x1B[44m",
+        magenta: "\x1B[45m",
+        cyan: "\x1B[46m",
+        white: "\x1B[47m"
+      }
+    };
+    emojis = {
+      bitcoin: "\u20BF",
+      stock: "\u{1F4C8}",
+      crypto: "\u{1FA99}",
+      etf: "\u{1F4CA}",
+      nft: "\u{1F5BC}\uFE0F",
+      lifestyle: "\u{1F3E0}",
+      travel: "\u2708\uFE0F",
+      weather: "\u{1F324}\uFE0F",
+      food: "\u{1F37D}\uFE0F",
+      drink: "\u{1F377}",
+      news: "\u{1F4F0}",
+      alert: "\u{1F6A8}",
+      success: "\u2705",
+      warning: "\u26A0\uFE0F",
+      error: "\u274C",
+      info: "\u2139\uFE0F",
+      loading: "\u23F3",
+      rocket: "\u{1F680}",
+      brain: "\u{1F9E0}",
+      heart: "\u2764\uFE0F",
+      star: "\u2B50",
+      check: "\u2713",
+      cross: "\u2717",
+      arrow: "\u2192",
+      sparkles: "\u2728",
+      fire: "\u{1F525}",
+      money: "\u{1F4B0}",
+      chart: "\u{1F4CA}",
+      gear: "\u2699\uFE0F",
+      shield: "\u{1F6E1}\uFE0F",
+      lightning: "\u26A1",
+      crown: "\u{1F451}",
+      diamond: "\u{1F48E}",
+      trophy: "\u{1F3C6}",
+      medal: "\u{1F947}",
+      flag: "\u{1F3C1}",
+      target: "\u{1F3AF}",
+      compass: "\u{1F9ED}",
+      map: "\u{1F5FA}\uFE0F",
+      clock: "\u{1F550}",
+      calendar: "\u{1F4C5}",
+      bell: "\u{1F514}",
+      megaphone: "\u{1F4E2}",
+      satellite: "\u{1F6F0}\uFE0F",
+      network: "\u{1F310}",
+      database: "\u{1F5C4}\uFE0F",
+      cache: "\u{1F4BE}",
+      api: "\u{1F50C}",
+      webhook: "\u{1F517}",
+      socket: "\u{1F50C}",
+      server: "\u{1F5A5}\uFE0F",
+      cloud: "\u2601\uFE0F",
+      lock: "\u{1F512}",
+      key: "\u{1F511}",
+      user: "\u{1F464}",
+      team: "\u{1F465}",
+      config: "\u2699\uFE0F",
+      settings: "\u{1F527}",
+      monitor: "\u{1F4FA}",
+      analytics: "\u{1F4CA}",
+      performance: "\u26A1",
+      health: "\u{1F3E5}",
+      status: "\u{1F4CA}",
+      metrics: "\u{1F4C8}",
+      log: "\u{1F4DD}",
+      debug: "\u{1F41B}",
+      test: "\u{1F9EA}",
+      deploy: "\u{1F680}",
+      build: "\u{1F528}",
+      start: "\u25B6\uFE0F",
+      stop: "\u23F9\uFE0F",
+      restart: "\u{1F504}",
+      update: "\u{1F504}",
+      sync: "\u{1F504}",
+      backup: "\u{1F4BE}",
+      restore: "\u{1F4E5}",
+      import: "\u{1F4E5}",
+      export: "\u{1F4E4}",
+      download: "\u2B07\uFE0F",
+      upload: "\u2B06\uFE0F",
+      search: "\u{1F50D}",
+      filter: "\u{1F50D}",
+      sort: "\u{1F4CA}",
+      group: "\u{1F4C1}",
+      tag: "\u{1F3F7}\uFE0F",
+      bookmark: "\u{1F516}",
+      favorite: "\u2B50",
+      like: "\u{1F44D}",
+      dislike: "\u{1F44E}",
+      share: "\u{1F4E4}",
+      copy: "\u{1F4CB}",
+      paste: "\u{1F4CB}",
+      cut: "\u2702\uFE0F",
+      edit: "\u270F\uFE0F",
+      delete: "\u{1F5D1}\uFE0F",
+      add: "\u2795",
+      remove: "\u2796",
+      plus: "\u2795",
+      minus: "\u2796",
+      equal: "=",
+      greater: ">",
+      less: "<",
+      infinity: "\u221E",
+      percent: "%",
+      dollar: "$",
+      euro: "\u20AC",
+      pound: "\xA3",
+      yen: "\xA5",
+      integration: "\u{1F517}",
+      hotel: "\u{1F3E8}",
+      bitcoin_symbol: "\u20BF",
+      ethereum_symbol: "\u039E",
+      solana_symbol: "\u25CE",
+      cardano_symbol: "\u20B3",
+      polkadot_symbol: "DOT",
+      chainlink_symbol: "LINK",
+      polygon_symbol: "MATIC",
+      avalanche_symbol: "AVAX",
+      cosmos_symbol: "ATOM",
+      algorand_symbol: "ALGO",
+      stellar_symbol: "XLM",
+      ripple_symbol: "XRP",
+      litecoin_symbol: "\u0141",
+      monero_symbol: "\u0271",
+      zcash_symbol: "ZEC",
+      dash_symbol: "\xD0",
+      dogecoin_symbol: "\xD0",
+      shiba_symbol: "SHIB",
+      usdt_symbol: "USDT",
+      usdc_symbol: "USDC",
+      dai_symbol: "DAI",
+      busd_symbol: "BUSD",
+      tether_symbol: "USDT",
+      circle_symbol: "USDC",
+      maker_symbol: "MKR",
+      compound_symbol: "COMP",
+      aave_symbol: "AAVE",
+      uniswap_symbol: "UNI",
+      sushi_symbol: "SUSHI",
+      curve_symbol: "CRV",
+      yearn_symbol: "YFI",
+      balancer_symbol: "BAL",
+      synthetix_symbol: "SNX",
+      chainlink_symbol_alt: "LINK",
+      polygon_symbol_alt: "MATIC",
+      avalanche_symbol_alt: "AVAX",
+      cosmos_symbol_alt: "ATOM",
+      algorand_symbol_alt: "ALGO",
+      stellar_symbol_alt: "XLM",
+      ripple_symbol_alt: "XRP",
+      litecoin_symbol_alt: "LTC",
+      monero_symbol_alt: "XMR",
+      zcash_symbol_alt: "ZEC",
+      dash_symbol_alt: "DASH",
+      dogecoin_symbol_alt: "DOGE",
+      shiba_symbol_alt: "SHIB",
+      usdt_symbol_alt: "USDT",
+      usdc_symbol_alt: "USDC",
+      dai_symbol_alt: "DAI",
+      busd_symbol_alt: "BUSD",
+      tether_symbol_alt: "USDT",
+      circle_symbol_alt: "USDC",
+      maker_symbol_alt: "MKR",
+      compound_symbol_alt: "COMP",
+      aave_symbol_alt: "AAVE",
+      uniswap_symbol_alt: "UNI",
+      sushi_symbol_alt: "SUSHI",
+      curve_symbol_alt: "CRV",
+      yearn_symbol_alt: "YFI",
+      balancer_symbol_alt: "BAL",
+      synthetix_symbol_alt: "SNX"
+    };
+    serviceEmojis = {
+      bitcoinData: emojis.bitcoin,
+      bitcoinNetwork: emojis.network,
+      stockData: emojis.stock,
+      altcoinData: emojis.crypto,
+      etfData: emojis.etf,
+      nftData: emojis.nft,
+      lifestyleData: emojis.lifestyle,
+      homeCooking: emojis.food,
+      beverageKnowledge: emojis.drink,
+      dailyCulinary: emojis.food,
+      travelData: emojis.travel,
+      realTimeData: emojis.lightning,
+      morningBriefing: emojis.news,
+      opportunityAlert: emojis.alert,
+      performanceTracking: emojis.performance,
+      knowledgeDigest: emojis.brain,
+      scheduler: emojis.clock,
+      "cache-service": emojis.cache,
+      slackIngestion: emojis.webhook,
+      configurationManager: emojis.config,
+      centralizedConfigService: emojis.settings,
+      comprehensiveErrorHandler: emojis.shield,
+      predictiveAnalyticsService: emojis.analytics,
+      advancedAlertingService: emojis.alert,
+      integrationService: emojis.integration,
+      starterService: emojis.rocket,
+      marketDataService: emojis.chart,
+      socialSentimentService: emojis.heart,
+      newsDataService: emojis.news,
+      googleHotelsScraper: emojis.hotel,
+      default: emojis.gear
+    };
+  }
+});
+
 // plugin-bitcoin-ltl/src/services/ConfigurationManager.ts
 var ConfigurationManager_exports = {};
 __export(ConfigurationManager_exports, {
@@ -46461,6 +46802,7 @@ function resetConfigurationManager2() {
 var ServiceConfigSchema2, ConfigurationManager2, configurationManager2;
 var init_ConfigurationManager = __esm({
   "plugin-bitcoin-ltl/src/services/ConfigurationManager.ts"() {
+    init_terminal_formatting();
     ServiceConfigSchema2 = z3.object({
       // Bitcoin Data Service Configuration
       bitcoinData: z3.object({
@@ -46676,25 +47018,22 @@ var init_ConfigurationManager = __esm({
        */
       async initialize() {
         try {
-          elizaLogger20.info(
-            "[ConfigurationManager] Initializing service configuration..."
-          );
+          const defaultConfig = this.loadDefaultConfig();
           const envConfig = this.loadFromEnvironment();
           const runtimeConfig = this.loadFromRuntime();
-          const combinedConfig = this.mergeConfigs(envConfig, runtimeConfig);
-          const validatedConfig = ServiceConfigSchema2.parse(combinedConfig);
-          this.config = validatedConfig;
+          const mergedConfig = this.mergeConfigs(
+            defaultConfig,
+            envConfig,
+            runtimeConfig
+          );
+          this.config = ServiceConfigSchema2.parse(mergedConfig);
           this.lastUpdated = Date.now();
-          elizaLogger20.info(
-            "[ConfigurationManager] Service configuration loaded successfully"
-          );
+          console.log(startupBanner());
           this.logConfigurationSummary();
-        } catch (error) {
-          elizaLogger20.error(
-            "[ConfigurationManager] Failed to initialize configuration:",
-            error
-          );
-          throw new Error(`Configuration initialization failed: ${error.message}`);
+          elizaLogger20.info(success("Service configuration loaded successfully"));
+        } catch (error3) {
+          elizaLogger20.error(error3("Failed to initialize configuration manager:"), error3);
+          throw error3;
         }
       }
       /**
@@ -46723,12 +47062,12 @@ var init_ConfigurationManager = __esm({
           elizaLogger20.info(
             `[ConfigurationManager] Updated configuration for ${serviceName}`
           );
-        } catch (error) {
+        } catch (error3) {
           elizaLogger20.error(
             `[ConfigurationManager] Failed to update configuration for ${serviceName}:`,
-            error
+            error3
           );
-          throw error;
+          throw error3;
         }
       }
       /**
@@ -46871,10 +47210,10 @@ var init_ConfigurationManager = __esm({
               Object.assign(runtimeConfig, pluginSettings);
             }
           }
-        } catch (error) {
+        } catch (error3) {
           elizaLogger20.warn(
             "[ConfigurationManager] Failed to load runtime configuration:",
-            error
+            error3
           );
         }
         return runtimeConfig;
@@ -46903,12 +47242,13 @@ var init_ConfigurationManager = __esm({
         const enabledServices = Object.keys(this.config).filter(
           (key) => key !== "global" && this.isServiceEnabled(key)
         );
-        elizaLogger20.info("[ConfigurationManager] Configuration Summary:", {
+        const summary = configSummary({
           servicesEnabled: status.servicesEnabled,
           servicesDisabled: status.servicesDisabled,
           enabledServices,
           globalConfig: this.config.global
         });
+        console.log(summary);
       }
     };
     configurationManager2 = null;
@@ -46969,9 +47309,9 @@ var init_BaseDataService = __esm({
           const result = await operation();
           this.onSuccess();
           return result;
-        } catch (error) {
+        } catch (error3) {
           this.onFailure();
-          throw error;
+          throw error3;
         }
       }
       onSuccess() {
@@ -47056,7 +47396,7 @@ var init_BaseDataService = __esm({
         try {
           const configManager = getConfigurationManager2();
           this.serviceConfig = configManager.getServiceConfig(this.configKey);
-        } catch (error) {
+        } catch (error3) {
           elizaLogger21.warn(
             `[${this.constructor.name}:${this.correlationId}] Configuration manager not available, using defaults`
           );
@@ -47076,7 +47416,7 @@ var init_BaseDataService = __esm({
             this.serviceConfig = newConfig;
             this.onConfigurationChanged(newConfig);
           });
-        } catch (error) {
+        } catch (error3) {
           elizaLogger21.debug(
             `[${this.constructor.name}:${this.correlationId}] Configuration watching not available`
           );
@@ -47186,20 +47526,20 @@ var init_BaseDataService = __esm({
               this.serviceHealth.lastSuccessTime = Date.now();
               this.updateResponseTime(Date.now() - startTime);
               resolve(result);
-            } catch (error) {
+            } catch (error3) {
               this.serviceHealth.totalRequests++;
               this.serviceHealth.totalFailures++;
               this.serviceHealth.lastFailureTime = Date.now();
               elizaLogger21.error(
                 `[${this.constructor.name}:${this.correlationId}] Request failed:`,
                 {
-                  error: error.message,
-                  type: error.constructor.name,
+                  error: error3.message,
+                  type: error3.constructor.name,
                   correlationId: this.correlationId,
                   timestamp: (/* @__PURE__ */ new Date()).toISOString()
                 }
               );
-              reject(error);
+              reject(error3);
             }
           };
           this.requestQueue.push(requestWrapper);
@@ -47243,12 +47583,12 @@ var init_BaseDataService = __esm({
               this.lastRequestTime = Date.now();
               await request();
               this.consecutiveFailures = 0;
-            } catch (error) {
+            } catch (error3) {
               this.consecutiveFailures++;
               const maxFailures = this.serviceConfig.circuitBreakerThreshold || 5;
               elizaLogger21.error(
                 `[${this.constructor.name}:${this.correlationId}] Request failed (${this.consecutiveFailures}/${maxFailures}):`,
-                error
+                error3
               );
               if (this.consecutiveFailures >= maxFailures) {
                 const baseBackoff = Math.min(
@@ -47367,8 +47707,8 @@ var init_helpers = __esm({
   "plugin-bitcoin-ltl/src/utils/helpers.ts"() {
     init_errors();
     ElizaOSErrorHandler4 = class {
-      static handleCommonErrors(error, context) {
-        const message = error.message.toLowerCase();
+      static handleCommonErrors(error3, context) {
+        const message = error3.message.toLowerCase();
         if (message.includes("embedding") && message.includes("dimension")) {
           const match = message.match(/expected (\d+), got (\d+)/);
           if (match) {
@@ -47379,7 +47719,7 @@ var init_helpers = __esm({
           }
         }
         if (message.includes("database") || message.includes("connection") || message.includes("pglite")) {
-          return new DatabaseConnectionError3(error);
+          return new DatabaseConnectionError3(error3);
         }
         if (message.includes("port") && message.includes("already in use")) {
           const match = message.match(/port (\d+)/);
@@ -47390,20 +47730,20 @@ var init_helpers = __esm({
         if (message.includes("api key") || message.includes("unauthorized")) {
           return new MissingAPIKeyError3("REQUIRED_API_KEY", context);
         }
-        return error;
+        return error3;
       }
-      static logStructuredError(error, contextLogger, context = {}) {
-        if (error instanceof ElizaOSError3) {
-          contextLogger.error(`[${error.code}] ${error.message}`, {
+      static logStructuredError(error3, contextLogger, context = {}) {
+        if (error3 instanceof ElizaOSError3) {
+          contextLogger.error(`[${error3.code}] ${error3.message}`, {
             ...context,
-            resolution: error.resolution,
-            errorType: error.name
+            resolution: error3.resolution,
+            errorType: error3.name
           });
         } else {
-          contextLogger.error(`Unexpected error: ${error.message}`, {
+          contextLogger.error(`Unexpected error: ${error3.message}`, {
             ...context,
-            errorType: error.name,
-            stack: error.stack
+            errorType: error3.name,
+            stack: error3.stack
           });
         }
       }
@@ -47453,7 +47793,7 @@ var init_helpers = __esm({
       safeStringify(obj) {
         try {
           return JSON.stringify(obj);
-        } catch (error) {
+        } catch (error3) {
           try {
             return JSON.stringify(this.removeCircularReferences(obj));
           } catch (fallbackError) {
@@ -47480,7 +47820,7 @@ var init_helpers = __esm({
           if (obj.hasOwnProperty(key)) {
             try {
               result[key] = this.removeCircularReferences(obj[key], seen);
-            } catch (error) {
+            } catch (error3) {
               result[key] = "[Error accessing property]";
             }
           }
@@ -47589,19 +47929,19 @@ var init_request_batching = __esm({
                 duration,
                 statusCode: 200
               });
-            } catch (error) {
+            } catch (error3) {
               const duration = Date.now() - requestStart;
               request.resolve({
                 id: request.id,
                 success: false,
-                error: error instanceof Error ? error.message : "Unknown error",
+                error: error3 instanceof Error ? error3.message : "Unknown error",
                 duration,
-                statusCode: error instanceof Response ? error.status : void 0
+                statusCode: error3 instanceof Response ? error3.status : void 0
               });
             }
           });
           await Promise.all(promises);
-        } catch (error) {
+        } catch (error3) {
           batch.forEach((request) => {
             request.resolve({
               id: request.id,
@@ -47633,9 +47973,9 @@ var init_request_batching = __esm({
               throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             return await response.json();
-          } catch (error) {
-            lastError = error;
-            if (error instanceof Error && error.name === "AbortError") {
+          } catch (error3) {
+            lastError = error3;
+            if (error3 instanceof Error && error3.name === "AbortError") {
               throw new Error(
                 `Request timeout after ${request.timeout || 1e4}ms`
               );
@@ -47741,9 +48081,9 @@ var init_comprehensive_error_handling = __esm({
           const result = await operation();
           this.onSuccess();
           return result;
-        } catch (error) {
+        } catch (error3) {
           this.onFailure();
-          throw error;
+          throw error3;
         }
       }
       onSuccess() {
@@ -47876,7 +48216,7 @@ var init_comprehensive_error_handling = __esm({
       /**
        * Handle an error with comprehensive analysis and recovery
        */
-      async handleError(error, context, operation) {
+      async handleError(error3, context, operation) {
         const errorId = generateCorrelationId3();
         const timestamp = /* @__PURE__ */ new Date();
         const fullContext = {
@@ -47885,23 +48225,23 @@ var init_comprehensive_error_handling = __esm({
           operation: context.operation || "unknown",
           timestamp,
           params: context.params,
-          stack: error.stack,
+          stack: error3.stack,
           userAgent: context.userAgent,
           requestId: context.requestId,
           sessionId: context.sessionId
         };
-        const category = this.categorizeError(error);
-        const severity = this.determineSeverity(error, category);
+        const category = this.categorizeError(error3);
+        const severity = this.determineSeverity(error3, category);
         const recoveryStrategy = this.getRecoveryStrategy(category);
         const comprehensiveError = {
           id: errorId,
-          message: error.message,
-          originalError: error,
+          message: error3.message,
+          originalError: error3,
           category,
           severity,
           context: fullContext,
           recoveryStrategy,
-          metadata: this.extractMetadata(error),
+          metadata: this.extractMetadata(error3),
           timestamp,
           resolved: false
         };
@@ -47940,9 +48280,9 @@ var init_comprehensive_error_handling = __esm({
       /**
        * Categorize error based on its type and message
        */
-      categorizeError(error) {
-        const message = error.message.toLowerCase();
-        const name = error.name.toLowerCase();
+      categorizeError(error3) {
+        const message = error3.message.toLowerCase();
+        const name = error3.name.toLowerCase();
         if (name.includes("network") || message.includes("network") || message.includes("fetch")) {
           return "network" /* NETWORK */;
         }
@@ -47978,8 +48318,8 @@ var init_comprehensive_error_handling = __esm({
       /**
        * Determine error severity
        */
-      determineSeverity(error, category) {
-        const message = error.message.toLowerCase();
+      determineSeverity(error3, category) {
+        const message = error3.message.toLowerCase();
         if (category === "authentication" /* AUTHENTICATION */ || category === "authorization" /* AUTHORIZATION */ || message.includes("critical") || message.includes("fatal")) {
           return "critical" /* CRITICAL */;
         }
@@ -48003,16 +48343,16 @@ var init_comprehensive_error_handling = __esm({
       /**
        * Extract metadata from error
        */
-      extractMetadata(error) {
+      extractMetadata(error3) {
         const metadata = {
-          name: error.name,
-          stack: error.stack,
-          constructor: error.constructor.name
+          name: error3.name,
+          stack: error3.stack,
+          constructor: error3.constructor.name
         };
-        Object.getOwnPropertyNames(error).forEach((prop) => {
+        Object.getOwnPropertyNames(error3).forEach((prop) => {
           if (prop !== "name" && prop !== "message" && prop !== "stack") {
             try {
-              const value = error[prop];
+              const value = error3[prop];
               metadata[prop] = this.safeSerializeObject(value);
             } catch (accessError) {
               metadata[prop] = "[Error accessing property]";
@@ -48024,33 +48364,33 @@ var init_comprehensive_error_handling = __esm({
       /**
        * Log error with appropriate level
        */
-      logError(error) {
+      logError(error3) {
         if (!this.config.enableDetailedLogging) {
           return;
         }
         const logData = {
-          errorId: error.id,
-          category: error.category,
-          severity: error.severity,
-          component: error.context.component,
-          operation: error.context.operation,
-          correlationId: error.context.correlationId,
-          strategy: error.recoveryStrategy?.name || "unknown",
-          metadata: error.metadata
+          errorId: error3.id,
+          category: error3.category,
+          severity: error3.severity,
+          component: error3.context.component,
+          operation: error3.context.operation,
+          correlationId: error3.context.correlationId,
+          strategy: error3.recoveryStrategy?.name || "unknown",
+          metadata: error3.metadata
         };
         const safeLogData = this.safeSerializeObject(logData);
-        switch (error.severity) {
+        switch (error3.severity) {
           case "critical" /* CRITICAL */:
-            this.logger.error(`CRITICAL ERROR: ${error.message}`, safeLogData);
+            this.logger.error(`CRITICAL ERROR: ${error3.message}`, safeLogData);
             break;
           case "high" /* HIGH */:
-            this.logger.error(`HIGH SEVERITY ERROR: ${error.message}`, safeLogData);
+            this.logger.error(`HIGH SEVERITY ERROR: ${error3.message}`, safeLogData);
             break;
           case "medium" /* MEDIUM */:
-            this.logger.warn(`MEDIUM SEVERITY ERROR: ${error.message}`, safeLogData);
+            this.logger.warn(`MEDIUM SEVERITY ERROR: ${error3.message}`, safeLogData);
             break;
           case "low" /* LOW */:
-            this.logger.info(`LOW SEVERITY ERROR: ${error.message}`, safeLogData);
+            this.logger.info(`LOW SEVERITY ERROR: ${error3.message}`, safeLogData);
             break;
         }
       }
@@ -48061,7 +48401,7 @@ var init_comprehensive_error_handling = __esm({
         try {
           JSON.stringify(obj);
           return obj;
-        } catch (error) {
+        } catch (error3) {
           return this.removeCircularReferences(obj);
         }
       }
@@ -48084,7 +48424,7 @@ var init_comprehensive_error_handling = __esm({
           if (obj.hasOwnProperty(key)) {
             try {
               result[key] = this.removeCircularReferences(obj[key], seen);
-            } catch (error) {
+            } catch (error3) {
               result[key] = "[Error accessing property]";
             }
           }
@@ -48094,8 +48434,8 @@ var init_comprehensive_error_handling = __esm({
       /**
        * Add error to history
        */
-      addToHistory(error) {
-        this.errorHistory.push(error);
+      addToHistory(error3) {
+        this.errorHistory.push(error3);
         if (this.errorHistory.length > this.config.maxErrorHistory) {
           this.errorHistory = this.errorHistory.slice(-this.config.maxErrorHistory);
         }
@@ -48103,10 +48443,10 @@ var init_comprehensive_error_handling = __esm({
       /**
        * Attempt recovery using circuit breaker and retry logic
        */
-      async attemptRecovery(error, operation) {
-        const strategy = error.recoveryStrategy;
+      async attemptRecovery(error3, operation) {
+        const strategy = error3.recoveryStrategy;
         if (strategy.circuitBreaker && this.config.enableCircuitBreakers) {
-          const circuitBreaker = this.getCircuitBreaker(error.context.component);
+          const circuitBreaker = this.getCircuitBreaker(error3.context.component);
           return await circuitBreaker.execute(operation);
         }
         let lastError;
@@ -48121,7 +48461,7 @@ var init_comprehensive_error_handling = __esm({
             const delay = this.calculateBackoffDelay(strategy, attempt);
             await new Promise((resolve) => setTimeout(resolve, delay));
             this.logger.warn("Retry attempt failed, retrying", {
-              errorId: error.id,
+              errorId: error3.id,
               attempt: attempt + 1,
               maxRetries: strategy.maxRetries,
               delay,
@@ -48164,19 +48504,19 @@ var init_comprehensive_error_handling = __esm({
       /**
        * Report error to external service
        */
-      async reportError(error) {
+      async reportError(error3) {
         if (!this.config.errorReportingEndpoint) {
           return;
         }
         try {
           const reportData = {
-            id: error.id,
-            message: error.message,
-            category: error.category,
-            severity: error.severity,
-            context: error.context,
-            metadata: error.metadata,
-            timestamp: error.timestamp.toISOString()
+            id: error3.id,
+            message: error3.message,
+            category: error3.category,
+            severity: error3.severity,
+            context: error3.context,
+            metadata: error3.metadata,
+            timestamp: error3.timestamp.toISOString()
           };
           const response = await fetch(this.config.errorReportingEndpoint, {
             method: "POST",
@@ -48188,14 +48528,14 @@ var init_comprehensive_error_handling = __esm({
           });
           if (!response.ok) {
             this.logger.warn("Failed to report error to external service", {
-              errorId: error.id,
+              errorId: error3.id,
               status: response.status,
               statusText: response.statusText
             });
           }
         } catch (reportError) {
           this.logger.warn("Failed to report error to external service", {
-            errorId: error.id,
+            errorId: error3.id,
             reportError: reportError instanceof Error ? reportError.message : "Unknown error"
           });
         }
@@ -48212,12 +48552,12 @@ var init_comprehensive_error_handling = __esm({
         Object.values(ErrorSeverity2).forEach((severity) => {
           errorsBySeverity[severity] = 0;
         });
-        this.errorHistory.forEach((error) => {
-          errorsByCategory[error.category]++;
-          errorsBySeverity[error.severity]++;
+        this.errorHistory.forEach((error3) => {
+          errorsByCategory[error3.category]++;
+          errorsBySeverity[error3.severity]++;
         });
         const resolvedErrors = this.errorHistory.filter(
-          (error) => error.resolved
+          (error3) => error3.resolved
         ).length;
         const resolutionRate = this.errorHistory.length > 0 ? resolvedErrors / this.errorHistory.length : 0;
         const circuitBreakerStates = {};
@@ -48324,8 +48664,8 @@ var init_errorTypes = __esm({
       }
     };
     ElizaOSErrorHandler3 = class {
-      static handleCommonErrors(error, context) {
-        const message = error.message.toLowerCase();
+      static handleCommonErrors(error3, context) {
+        const message = error3.message.toLowerCase();
         if (message.includes("embedding") && message.includes("dimension")) {
           const match = message.match(/expected (\d+), got (\d+)/);
           if (match) {
@@ -48336,7 +48676,7 @@ var init_errorTypes = __esm({
           }
         }
         if (message.includes("database") || message.includes("connection") || message.includes("pglite")) {
-          return new DatabaseConnectionError4(error);
+          return new DatabaseConnectionError4(error3);
         }
         if (message.includes("port") && (message.includes("use") || message.includes("bind"))) {
           const portMatch = message.match(/port (\d+)/);
@@ -48347,18 +48687,18 @@ var init_errorTypes = __esm({
         if (message.includes("api key") || message.includes("unauthorized") || message.includes("401")) {
           return new MissingAPIKeyError4("API_KEY", context);
         }
-        return error;
+        return error3;
       }
-      static logStructuredError(error, contextLogger, context = {}) {
-        if (error instanceof ElizaOSError4) {
-          contextLogger.error(`ElizaOS Issue: ${error.message}`, {
-            code: error.code,
-            resolution: error.resolution,
+      static logStructuredError(error3, contextLogger, context = {}) {
+        if (error3 instanceof ElizaOSError4) {
+          contextLogger.error(`ElizaOS Issue: ${error3.message}`, {
+            code: error3.code,
+            resolution: error3.resolution,
             context
           });
         } else {
-          contextLogger.error(`Unexpected error: ${error.message}`, {
-            stack: error.stack,
+          contextLogger.error(`Unexpected error: ${error3.message}`, {
+            stack: error3.stack,
             context
           });
         }
@@ -48373,16 +48713,16 @@ async function retryOperation2(operation, maxRetries = 3, baseDelay = 1e3) {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       return await operation();
-    } catch (error) {
-      const isRetryable = error instanceof BitcoinDataError3 && error.retryable;
+    } catch (error3) {
+      const isRetryable = error3 instanceof BitcoinDataError3 && error3.retryable;
       const isLastAttempt = attempt === maxRetries;
       if (!isRetryable || isLastAttempt) {
-        throw error;
+        throw error3;
       }
       const delay = baseDelay * Math.pow(2, attempt - 1);
       logger34.warn(
         `Operation failed (attempt ${attempt}/${maxRetries}), retrying in ${delay}ms...`,
-        error
+        error3
       );
       await new Promise((resolve) => setTimeout(resolve, delay));
     }
@@ -48411,14 +48751,14 @@ async function fetchWithTimeout2(url2, options = {}) {
       );
     }
     return response;
-  } catch (error) {
-    if (error.name === "AbortError") {
+  } catch (error3) {
+    if (error3.name === "AbortError") {
       throw new NetworkError3("Request timeout");
     }
-    if (error instanceof BitcoinDataError3) {
-      throw error;
+    if (error3 instanceof BitcoinDataError3) {
+      throw error3;
     }
-    throw new NetworkError3(`Network error: ${error.message}`);
+    throw new NetworkError3(`Network error: ${error3.message}`);
   } finally {
     clearTimeout(timeoutId);
   }
@@ -48614,8 +48954,8 @@ var init_BitcoinDataService = __esm({
           elizaLogger25.info(
             "[BitcoinDataService] Data update completed successfully"
           );
-        } catch (error) {
-          elizaLogger25.error("[BitcoinDataService] Error updating data:", error instanceof Error ? error.message : String(error));
+        } catch (error3) {
+          elizaLogger25.error("[BitcoinDataService] Error updating data:", error3 instanceof Error ? error3.message : String(error3));
         }
       }
       /**
@@ -48643,9 +48983,9 @@ var init_BitcoinDataService = __esm({
             "[BitcoinDataService] Force update completed successfully"
           );
           return result;
-        } catch (error) {
-          elizaLogger25.error("[BitcoinDataService] Error in force update:", error instanceof Error ? error.message : String(error));
-          throw error;
+        } catch (error3) {
+          elizaLogger25.error("[BitcoinDataService] Error in force update:", error3 instanceof Error ? error3.message : String(error3));
+          throw error3;
         }
       }
       /**
@@ -48679,9 +49019,9 @@ var init_BitcoinDataService = __esm({
               };
             }
           }
-        } catch (error) {
+        } catch (error3) {
           const enhancedError = ElizaOSErrorHandler4.handleCommonErrors(
-            error,
+            error3,
             "MemoryReset"
           );
           elizaLogger25.error("Failed to reset memory:", enhancedError.message);
@@ -48717,9 +49057,9 @@ var init_BitcoinDataService = __esm({
                   `Database directory is large (${(dirSize / 1024 / 1024).toFixed(0)}MB). Consider cleanup.`
                 );
               }
-            } catch (error) {
+            } catch (error3) {
               issues.push(
-                `Could not check database directory size: ${error.message}`
+                `Could not check database directory size: ${error3.message}`
               );
             }
           }
@@ -48734,8 +49074,8 @@ var init_BitcoinDataService = __esm({
             stats,
             issues
           };
-        } catch (error) {
-          issues.push(`Memory health check failed: ${error.message}`);
+        } catch (error3) {
+          issues.push(`Memory health check failed: ${error3.message}`);
           return {
             healthy: false,
             stats,
@@ -48801,8 +49141,8 @@ var init_BitcoinDataService = __esm({
             "bitcoin-price"
           );
           return price;
-        } catch (error) {
-          elizaLogger25.error("Error fetching Bitcoin price:", error);
+        } catch (error3) {
+          elizaLogger25.error("Error fetching Bitcoin price:", error3);
           const fallbackData = await this.getFromMemory("bitcoin-price", 1);
           if (fallbackData.length > 0) {
             elizaLogger25.warn(
@@ -48915,8 +49255,8 @@ var init_BitcoinDataService = __esm({
             `[BitcoinDataService] Enhanced market data updated: $${marketData.price.toLocaleString()}`
           );
           return marketData;
-        } catch (error) {
-          elizaLogger25.error("Error fetching enhanced market data:", error);
+        } catch (error3) {
+          elizaLogger25.error("Error fetching enhanced market data:", error3);
           const fallbackData = await this.getFromMemory("bitcoin-market-data", 1);
           if (fallbackData.length > 0) {
             elizaLogger25.warn(
@@ -49014,8 +49354,8 @@ var init_BitcoinDataService = __esm({
             `[BitcoinDataService] Retrieved ${recentHistory.length} thesis progress entries from last ${days} days`
           );
           return recentHistory;
-        } catch (error) {
-          elizaLogger25.error("Error retrieving thesis progress history:", error);
+        } catch (error3) {
+          elizaLogger25.error("Error retrieving thesis progress history:", error3);
           return [];
         }
       }
@@ -49036,8 +49376,8 @@ var init_BitcoinDataService = __esm({
             `[BitcoinDataService] Retrieved ${recentHistory.length} freedom math entries from last ${days} days`
           );
           return recentHistory;
-        } catch (error) {
-          elizaLogger25.error("Error retrieving freedom math history:", error);
+        } catch (error3) {
+          elizaLogger25.error("Error retrieving freedom math history:", error3);
           return [];
         }
       }
@@ -49182,10 +49522,10 @@ var init_BitcoinNetworkDataService = __esm({
               "[BitcoinNetworkDataService] \u26A0\uFE0F Failed to fetch Bitcoin data - APIs may be down"
             );
           }
-        } catch (error) {
+        } catch (error3) {
           console.error(
             "[BitcoinNetworkDataService] \u274C Error updating Bitcoin data:",
-            error
+            error3
           );
         }
       }
@@ -49254,8 +49594,8 @@ var init_BitcoinNetworkDataService = __esm({
             lastUpdated: /* @__PURE__ */ new Date()
           };
           return response;
-        } catch (error) {
-          console.error("Error fetching comprehensive Bitcoin data:", error);
+        } catch (error3) {
+          console.error("Error fetching comprehensive Bitcoin data:", error3);
           return null;
         }
       }
@@ -49273,6 +49613,13 @@ var init_BitcoinNetworkDataService = __esm({
               }
             );
             if (!response.ok) {
+              if (response.status === 429) {
+                const retryAfter = response.headers.get("Retry-After");
+                const backoffTime = retryAfter ? parseInt(retryAfter) * 1e3 : 3e4;
+                console.warn(`[BitcoinNetworkDataService] CoinGecko rate limited, backing off for ${backoffTime}ms`);
+                await new Promise((resolve) => setTimeout(resolve, backoffTime));
+                throw new Error(`HTTP 429: Rate limited, retry after ${backoffTime}ms`);
+              }
               throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             return await response.json();
@@ -49281,8 +49628,8 @@ var init_BitcoinNetworkDataService = __esm({
             usd: Number(data.bitcoin?.usd) || null,
             change24h: Number(data.bitcoin?.usd_24h_change) || null
           };
-        } catch (error) {
-          console.error("Error fetching Bitcoin price data:", error);
+        } catch (error3) {
+          console.error("Error fetching Bitcoin price data:", error3);
           return null;
         }
       }
@@ -49291,18 +49638,17 @@ var init_BitcoinNetworkDataService = __esm({
        */
       async fetchBitcoinNetworkData() {
         try {
-          const [blockchainData, mempoolStats, blockstreamData] = await Promise.all(
+          const [blockchainData, mempoolStats] = await Promise.all(
             [
               this.fetchBlockchainInfoData(),
-              this.fetchMempoolNetworkData(),
-              this.fetchBlockstreamNetworkData()
+              this.fetchMempoolNetworkData()
             ]
           );
-          const hashRate = mempoolStats?.hashRate || blockstreamData?.hashRate || blockchainData?.hashRate;
-          const difficulty = mempoolStats?.difficulty || blockstreamData?.difficulty || blockchainData?.difficulty;
-          const blockHeight = mempoolStats?.blockHeight || blockstreamData?.blockHeight || blockchainData?.blockHeight;
+          const hashRate = mempoolStats?.hashRate || blockchainData?.hashRate;
+          const difficulty = mempoolStats?.difficulty || blockchainData?.difficulty;
+          const blockHeight = mempoolStats?.blockHeight || blockchainData?.blockHeight;
           console.log(
-            `[BitcoinNetworkDataService] \u{1F50D} Hashrate sources - Mempool: ${mempoolStats?.hashRate ? (mempoolStats.hashRate / 1e18).toFixed(2) + " EH/s" : "N/A"}, Blockstream: ${blockstreamData?.hashRate ? (blockstreamData.hashRate / 1e18).toFixed(2) + " EH/s" : "N/A"}, Blockchain: ${blockchainData?.hashRate ? (blockchainData.hashRate / 1e18).toFixed(2) + " EH/s" : "N/A"}`
+            `[BitcoinNetworkDataService] \u{1F50D} Hashrate sources - Mempool: ${mempoolStats?.hashRate ? (mempoolStats.hashRate / 1e18).toFixed(2) + " EH/s" : "N/A"}, Blockchain: ${blockchainData?.hashRate ? (blockchainData.hashRate / 1e18).toFixed(2) + " EH/s" : "N/A"}`
           );
           console.log(
             `[BitcoinNetworkDataService] \u{1F3AF} Selected hashrate: ${hashRate ? (hashRate / 1e18).toFixed(2) + " EH/s" : "N/A"}`
@@ -49329,8 +49675,8 @@ var init_BitcoinNetworkDataService = __esm({
               estimatedDate: halvingDate.toISOString()
             }
           };
-        } catch (error) {
-          console.error("Error fetching Bitcoin network data:", error);
+        } catch (error3) {
+          console.error("Error fetching Bitcoin network data:", error3);
           return null;
         }
       }
@@ -49339,7 +49685,10 @@ var init_BitcoinNetworkDataService = __esm({
        */
       async fetchBlockchainInfoData() {
         try {
-          const response = await fetch(`${this.BLOCKCHAIN_API}/stats`);
+          const response = await fetch(`${this.BLOCKCHAIN_API}/stats`, {
+            signal: AbortSignal.timeout(1e4)
+            // 10 second timeout
+          });
           if (response.ok) {
             const data = await response.json();
             return {
@@ -49352,10 +49701,15 @@ var init_BitcoinNetworkDataService = __esm({
               totalBTC: Number(data.totalbc) / 1e8,
               marketCap: Number(data.market_price_usd) * (Number(data.totalbc) / 1e8)
             };
+          } else if (response.status === 429) {
+            console.warn(`[BitcoinNetworkDataService] Blockchain.info rate limited (429)`);
+            return null;
+          } else {
+            console.warn(`[BitcoinNetworkDataService] Blockchain.info API error: ${response.status}`);
+            return null;
           }
-          return null;
-        } catch (error) {
-          console.error("Error fetching Blockchain.info data:", error);
+        } catch (error3) {
+          console.error("Error fetching Blockchain.info data:", error3);
           return null;
         }
       }
@@ -49365,9 +49719,18 @@ var init_BitcoinNetworkDataService = __esm({
       async fetchMempoolNetworkData() {
         try {
           const [hashRateResponse, difficultyResponse, blockHeightResponse] = await Promise.all([
-            fetch(`${this.MEMPOOL_API}/v1/mining/hashrate/1m`),
-            fetch(`${this.MEMPOOL_API}/v1/difficulty-adjustment`),
-            fetch(`${this.MEMPOOL_API}/blocks/tip/height`)
+            fetch(`${this.MEMPOOL_API}/v1/mining/hashrate/1m`, {
+              signal: AbortSignal.timeout(1e4)
+              // 10 second timeout
+            }),
+            fetch(`${this.MEMPOOL_API}/v1/difficulty-adjustment`, {
+              signal: AbortSignal.timeout(1e4)
+              // 10 second timeout
+            }),
+            fetch(`${this.MEMPOOL_API}/blocks/tip/height`, {
+              signal: AbortSignal.timeout(1e4)
+              // 10 second timeout
+            })
           ]);
           const results = {};
           if (hashRateResponse.ok) {
@@ -49380,6 +49743,8 @@ var init_BitcoinNetworkDataService = __esm({
                 results.hashRate = Number(latestHashrate.hashrateAvg);
               }
             }
+          } else if (hashRateResponse.status === 429) {
+            console.warn(`[BitcoinNetworkDataService] Mempool.space hashrate rate limited (429)`);
           }
           if (difficultyResponse.ok) {
             const difficultyData = await difficultyResponse.json();
@@ -49388,36 +49753,20 @@ var init_BitcoinNetworkDataService = __esm({
             } else if (difficultyData.difficulty) {
               results.difficulty = Number(difficultyData.difficulty);
             }
+          } else if (difficultyResponse.status === 429) {
+            console.warn(`[BitcoinNetworkDataService] Mempool.space difficulty rate limited (429)`);
           }
           if (blockHeightResponse.ok) {
             const blockHeight = await blockHeightResponse.json();
             if (typeof blockHeight === "number") {
               results.blockHeight = blockHeight;
             }
+          } else if (blockHeightResponse.status === 429) {
+            console.warn(`[BitcoinNetworkDataService] Mempool.space block height rate limited (429)`);
           }
           return Object.keys(results).length > 0 ? results : null;
-        } catch (error) {
-          console.error("Error fetching Mempool.space network data:", error);
-          return null;
-        }
-      }
-      /**
-       * Fetch network data from Blockstream API
-       */
-      async fetchBlockstreamNetworkData() {
-        try {
-          const response = await fetch("https://blockstream.info/api/stats");
-          if (response.ok) {
-            const data = await response.json();
-            return {
-              hashRate: data.hashrate_24h ? Number(data.hashrate_24h) : null,
-              difficulty: data.difficulty ? Number(data.difficulty) : null,
-              blockHeight: data.chain_stats?.funded_txo_count ? Number(data.chain_stats.funded_txo_count) : null
-            };
-          }
-          return null;
-        } catch (error) {
-          console.error("Error fetching Blockstream data:", error);
+        } catch (error3) {
+          console.error("Error fetching Mempool.space network data:", error3);
           return null;
         }
       }
@@ -49426,17 +49775,25 @@ var init_BitcoinNetworkDataService = __esm({
        */
       async fetchBitcoinSentimentData() {
         try {
-          const response = await fetch(`${this.ALTERNATIVE_API}/fng/`);
+          const response = await fetch(`${this.ALTERNATIVE_API}/fng/`, {
+            signal: AbortSignal.timeout(1e4)
+            // 10 second timeout
+          });
           if (response.ok) {
             const data = await response.json();
             return {
               fearGreedIndex: Number(data.data[0].value),
               fearGreedValue: data.data[0].value_classification
             };
+          } else if (response.status === 429) {
+            console.warn(`[BitcoinNetworkDataService] Alternative.me sentiment rate limited (429)`);
+            return null;
+          } else {
+            console.warn(`[BitcoinNetworkDataService] Alternative.me API error: ${response.status}`);
+            return null;
           }
-          return null;
-        } catch (error) {
-          console.error("Error fetching Bitcoin sentiment data:", error);
+        } catch (error3) {
+          console.error("Error fetching Bitcoin sentiment data:", error3);
           return null;
         }
       }
@@ -49446,11 +49803,22 @@ var init_BitcoinNetworkDataService = __esm({
       async fetchBitcoinMempoolData() {
         try {
           const [mempoolResponse, feesResponse] = await Promise.all([
-            fetch(`${this.MEMPOOL_API}/mempool`),
-            fetch(`${this.MEMPOOL_API}/v1/fees/recommended`)
+            fetch(`${this.MEMPOOL_API}/mempool`, {
+              signal: AbortSignal.timeout(1e4)
+              // 10 second timeout
+            }),
+            fetch(`${this.MEMPOOL_API}/v1/fees/recommended`, {
+              signal: AbortSignal.timeout(1e4)
+              // 10 second timeout
+            })
           ]);
           if (!mempoolResponse.ok || !feesResponse.ok) {
-            throw new Error("Failed to fetch mempool data");
+            if (mempoolResponse.status === 429 || feesResponse.status === 429) {
+              console.warn(`[BitcoinNetworkDataService] Mempool.space mempool data rate limited (429)`);
+            } else {
+              console.warn(`[BitcoinNetworkDataService] Mempool.space mempool data API error: ${mempoolResponse.status}, ${feesResponse.status}`);
+            }
+            return null;
           }
           const [mempoolData, feesData] = await Promise.all([
             mempoolResponse.json(),
@@ -49471,8 +49839,8 @@ var init_BitcoinNetworkDataService = __esm({
             miningRevenue24h: null
             // We'll need another endpoint for this
           };
-        } catch (error) {
-          console.error("Error fetching Bitcoin mempool data:", error);
+        } catch (error3) {
+          console.error("Error fetching Bitcoin mempool data:", error3);
           return null;
         }
       }
@@ -49497,6 +49865,8 @@ var init_StockDataService = __esm({
       stockDataCache = null;
       STOCK_CACHE_DURATION = 5 * 60 * 1e3;
       // 5 minutes (market hours)
+      // Debug mode
+      debugMode = this.runtime.getSetting("STOCK_DATA_DEBUG") === "true";
       // Curated stocks from LiveTheLifeTV website
       curatedStocks = [
         // Bitcoin/Crypto Related Stocks
@@ -49683,8 +50053,8 @@ var init_StockDataService = __esm({
             `[StockDataService] Stock data updated: ${curatedStocksData.length} curated stocks, MAG7 avg: ${performance.mag7Average.toFixed(2)}%`
           );
           return result;
-        } catch (error) {
-          logger37.error("[StockDataService] Error fetching stock data:", error);
+        } catch (error3) {
+          logger37.error("[StockDataService] Error fetching stock data:", error3);
           return null;
         }
       }
@@ -49700,10 +50070,10 @@ var init_StockDataService = __esm({
                 stock.name,
                 stock.sector
               );
-            } catch (error) {
+            } catch (error3) {
               logger37.warn(
                 `[StockDataService] Failed to fetch ${stock.symbol}:`,
-                error
+                error3
               );
               return null;
             }
@@ -49776,8 +50146,8 @@ var init_StockDataService = __esm({
             }
           }
           return null;
-        } catch (error) {
-          logger37.error(`[StockDataService] Error fetching ${symbol}:`, error);
+        } catch (error3) {
+          logger37.error(`[StockDataService] Error fetching ${symbol}:`, error3);
           return null;
         }
       }
@@ -49797,18 +50167,56 @@ var init_StockDataService = __esm({
           }
           const data = await response.json();
           const result = data.chart?.result?.[0];
-          if (!result) return null;
+          if (!result) {
+            logger37.warn(`[StockDataService] No chart result for ${symbol}`);
+            return null;
+          }
           const meta = result.meta;
           const currentPrice = meta.regularMarketPrice;
           const previousClose = meta.previousClose;
-          if (!currentPrice || !previousClose || previousClose === 0) {
+          if (this.debugMode) {
+            logger37.info(`[StockDataService] Yahoo Finance raw data for ${symbol}:`, {
+              currentPrice,
+              previousClose,
+              hasMeta: !!meta,
+              metaKeys: meta ? Object.keys(meta) : []
+            });
+          }
+          let actualPreviousClose = previousClose;
+          if (currentPrice && !previousClose && result.timestamp && result.indicators?.quote?.[0]) {
+            const timestamps = result.timestamp;
+            const quotes = result.indicators.quote[0];
+            const today = /* @__PURE__ */ new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            for (let i = 0; i < timestamps.length; i++) {
+              const timestamp = new Date(timestamps[i] * 1e3);
+              if (timestamp.getDate() === yesterday.getDate() && timestamp.getMonth() === yesterday.getMonth() && timestamp.getFullYear() === yesterday.getFullYear()) {
+                actualPreviousClose = quotes.close?.[i];
+                if (this.debugMode) {
+                  logger37.info(`[StockDataService] Found previous close for ${symbol} from timestamps: ${actualPreviousClose}`);
+                }
+                break;
+              }
+            }
+          }
+          if (currentPrice && !actualPreviousClose) {
+            if (this.debugMode) {
+              logger37.info(`[StockDataService] Trying fallback endpoint for ${symbol}`);
+            }
+            const fallbackData = await this.fetchFromYahooFinanceFallback(symbol);
+            if (fallbackData) {
+              return fallbackData;
+            }
+          }
+          if (!currentPrice || !actualPreviousClose || actualPreviousClose === 0) {
             logger37.warn(
-              `[StockDataService] Invalid price data for ${symbol}: current=${currentPrice}, previous=${previousClose}`
+              `[StockDataService] Invalid price data for ${symbol}: current=${currentPrice}, previous=${actualPreviousClose}`
             );
             return null;
           }
-          const change = currentPrice - previousClose;
-          const changePercent = change / previousClose * 100;
+          const change = currentPrice - actualPreviousClose;
+          const changePercent = change / actualPreviousClose * 100;
           if (!isFinite(changePercent)) {
             logger37.warn(
               `[StockDataService] Invalid changePercent for ${symbol}: ${changePercent}`
@@ -49822,11 +50230,64 @@ var init_StockDataService = __esm({
             volume: meta.regularMarketVolume || 0,
             marketCap: meta.marketCap || 0
           };
-        } catch (error) {
+        } catch (error3) {
           logger37.warn(
             `[StockDataService] Yahoo Finance failed for ${symbol}:`,
-            error
+            error3 instanceof Error ? error3.message : String(error3)
           );
+          return null;
+        }
+      }
+      async fetchFromYahooFinanceFallback(symbol) {
+        try {
+          const response = await fetch(
+            `${this.YAHOO_FINANCE_API}/${symbol}?interval=1d&range=5d`,
+            {
+              headers: {
+                "User-Agent": "Mozilla/5.0 (compatible; LiveTheLifeTV-Bot/1.0)"
+              },
+              signal: AbortSignal.timeout(15e3)
+            }
+          );
+          if (!response.ok) {
+            return null;
+          }
+          const data = await response.json();
+          const result = data.chart?.result?.[0];
+          if (!result || !result.timestamp || !result.indicators?.quote?.[0]) {
+            return null;
+          }
+          const timestamps = result.timestamp;
+          const quotes = result.indicators.quote[0];
+          const closes = quotes.close;
+          if (!closes || closes.length < 2) {
+            return null;
+          }
+          const currentPrice = closes[closes.length - 1];
+          const previousClose = closes[closes.length - 2];
+          if (!currentPrice || !previousClose || previousClose === 0) {
+            return null;
+          }
+          const change = currentPrice - previousClose;
+          const changePercent = change / previousClose * 100;
+          if (!isFinite(changePercent)) {
+            return null;
+          }
+          if (this.debugMode) {
+            logger37.info(`[StockDataService] Fallback successful for ${symbol}: current=${currentPrice}, previous=${previousClose}`);
+          }
+          return {
+            price: currentPrice,
+            change,
+            changePercent,
+            volume: quotes.volume?.[quotes.volume.length - 1] || 0,
+            marketCap: 0
+            // Not available in this endpoint
+          };
+        } catch (error3) {
+          if (this.debugMode) {
+            logger37.info(`[StockDataService] Yahoo Finance fallback failed for ${symbol}:`, error3 instanceof Error ? error3.message : String(error3));
+          }
           return null;
         }
       }
@@ -49861,10 +50322,10 @@ var init_StockDataService = __esm({
             changePercent,
             volume: parseInt(quote["06. volume"]) || 0
           };
-        } catch (error) {
+        } catch (error3) {
           logger37.warn(
             `[StockDataService] Alpha Vantage failed for ${symbol}:`,
-            error
+            error3
           );
           return null;
         }
@@ -49903,8 +50364,8 @@ var init_StockDataService = __esm({
             change,
             changePercent
           };
-        } catch (error) {
-          logger37.warn(`[StockDataService] Finnhub failed for ${symbol}:`, error);
+        } catch (error3) {
+          logger37.warn(`[StockDataService] Finnhub failed for ${symbol}:`, error3);
           return null;
         }
       }
@@ -49927,10 +50388,10 @@ var init_StockDataService = __esm({
                 lastUpdate: data.lastUpdate
               });
             }
-          } catch (error) {
+          } catch (error3) {
             logger37.warn(
               `[StockDataService] Failed to fetch index ${index.symbol}:`,
-              error
+              error3
             );
           }
         }
@@ -50152,8 +50613,8 @@ var init_AltcoinDataService = __esm({
       async updateMarketData() {
         try {
           this.marketData = await this.fetchMarketData();
-        } catch (error) {
-          logger38.error("Error updating market data:", error instanceof Error ? error.message : String(error));
+        } catch (error3) {
+          logger38.error("Error updating market data:", error3 instanceof Error ? error3.message : String(error3));
         }
       }
       async updateCuratedAltcoinsData() {
@@ -50279,8 +50740,8 @@ var init_AltcoinDataService = __esm({
           await new Promise((resolve) => setTimeout(resolve, 2e3));
           const stockData = await this.fetchStockData();
           return [...marketData, ...stockData];
-        } catch (error) {
-          logger38.error("Error fetching market data:", error instanceof Error ? error.message : String(error));
+        } catch (error3) {
+          logger38.error("Error fetching market data:", error3 instanceof Error ? error3.message : String(error3));
           return this.getFallbackMarketData();
         }
       }
@@ -50329,15 +50790,15 @@ var init_AltcoinDataService = __esm({
                 lastUpdate: /* @__PURE__ */ new Date(),
                 source: "Alpha Vantage"
               };
-            } catch (error) {
-              logger38.error(`Error fetching data for ${symbol}:`, error instanceof Error ? error.message : String(error));
+            } catch (error3) {
+              logger38.error(`Error fetching data for ${symbol}:`, error3 instanceof Error ? error3.message : String(error3));
               return null;
             }
           });
           const results = await Promise.all(stockPromises);
           return results.filter(Boolean);
-        } catch (error) {
-          logger38.error("Error fetching stock data:", error instanceof Error ? error.message : String(error));
+        } catch (error3) {
+          logger38.error("Error fetching stock data:", error3 instanceof Error ? error3.message : String(error3));
           return this.getFallbackStockData();
         }
       }
@@ -50378,8 +50839,8 @@ var init_AltcoinDataService = __esm({
             `[AltcoinDataService] Fetched curated altcoins data for ${this.curatedCoinIds.length} coins`
           );
           return result;
-        } catch (error) {
-          logger38.error("Error fetching curated altcoins data:", error instanceof Error ? error.message : String(error));
+        } catch (error3) {
+          logger38.error("Error fetching curated altcoins data:", error3 instanceof Error ? error3.message : String(error3));
           logger38.info("[AltcoinDataService] Using fallback curated altcoins data");
           return this.getFallbackCuratedAltcoinsData();
         }
@@ -50392,7 +50853,7 @@ var init_AltcoinDataService = __esm({
           );
           try {
             return await this.requestLocks.get(lockKey);
-          } catch (error) {
+          } catch (error3) {
             this.requestLocks.delete(lockKey);
           }
         }
@@ -50508,11 +50969,11 @@ var init_AltcoinDataService = __esm({
             `[AltcoinDataService] \u2705 Fetched top 200 vs BTC data: ${outperformingCount}/${totalCoins} outperforming Bitcoin (7d), avg relative: ${averageRelativePerformance.toFixed(2)}%`
           );
           return result;
-        } catch (error) {
+        } catch (error3) {
           logger38.error("[AltcoinDataService] \u274C Error in fetchTop100VsBtcData:", {
-            error: error instanceof Error ? error.message : "Unknown error",
-            stack: error instanceof Error ? error.stack : void 0,
-            type: typeof error
+            error: error3 instanceof Error ? error3.message : "Unknown error",
+            stack: error3 instanceof Error ? error3.stack : void 0,
+            type: typeof error3
           });
           return null;
         }
@@ -50567,10 +51028,10 @@ var init_AltcoinDataService = __esm({
                   poolsCount: pools.length,
                   liquidityRatio
                 };
-              } catch (error) {
+              } catch (error3) {
                 logger38.warn(
                   `Failed to fetch pool data for token ${token.tokenAddress}:`,
-                  error
+                  error3
                 );
                 return null;
               }
@@ -50591,8 +51052,8 @@ var init_AltcoinDataService = __esm({
             `[AltcoinDataService] Fetched DEXScreener data: ${topTokens.length} top tokens, ${trendingTokens.length} trending`
           );
           return result;
-        } catch (error) {
-          logger38.error("Error in fetchDexScreenerData:", error instanceof Error ? error.message : String(error));
+        } catch (error3) {
+          logger38.error("Error in fetchDexScreenerData:", error3 instanceof Error ? error3.message : String(error3));
           return null;
         }
       }
@@ -50648,8 +51109,8 @@ var init_AltcoinDataService = __esm({
             `[AltcoinDataService] Fetched top movers: ${topGainers.length} gainers, ${topLosers.length} losers`
           );
           return result;
-        } catch (error) {
-          logger38.error("Error in fetchTopMoversData:", error instanceof Error ? error.message : String(error));
+        } catch (error3) {
+          logger38.error("Error in fetchTopMoversData:", error3 instanceof Error ? error3.message : String(error3));
           logger38.info("[AltcoinDataService] Using fallback top movers data");
           return this.getFallbackTopMoversData();
         }
@@ -50690,8 +51151,8 @@ var init_AltcoinDataService = __esm({
             `[AltcoinDataService] Fetched trending coins: ${trending.length} coins`
           );
           return result;
-        } catch (error) {
-          logger38.error("Error in fetchTrendingCoinsData:", error instanceof Error ? error.message : String(error));
+        } catch (error3) {
+          logger38.error("Error in fetchTrendingCoinsData:", error3 instanceof Error ? error3.message : String(error3));
           logger38.info("[AltcoinDataService] Using fallback trending coins data");
           return this.getFallbackTrendingCoinsData();
         }
@@ -51077,8 +51538,8 @@ var init_ETFDataService = __esm({
         const updateInterval = 5 * 60 * 1e3;
         setInterval(() => {
           if (this.isMarketHours()) {
-            this.updateData().catch((error) => {
-              logger39.error("Error in scheduled ETF data update:", error);
+            this.updateData().catch((error3) => {
+              logger39.error("Error in scheduled ETF data update:", error3);
             });
           }
         }, updateInterval);
@@ -51114,8 +51575,8 @@ var init_ETFDataService = __esm({
             this.updateETFHoldings()
           ]);
           logger39.info("ETF data updated successfully");
-        } catch (error) {
-          logger39.error("Error updating ETF data:", error);
+        } catch (error3) {
+          logger39.error("Error updating ETF data:", error3);
         }
       }
       /**
@@ -51154,9 +51615,9 @@ var init_ETFDataService = __esm({
             timestamp: Date.now()
           });
           return marketData;
-        } catch (error) {
-          logger39.error("Error fetching ETF market data:", error);
-          throw error;
+        } catch (error3) {
+          logger39.error("Error fetching ETF market data:", error3);
+          throw error3;
         }
       }
       /**
@@ -51175,9 +51636,9 @@ var init_ETFDataService = __esm({
             timestamp: Date.now()
           });
           return flowData;
-        } catch (error) {
-          logger39.error("Error fetching ETF flow data:", error);
-          throw error;
+        } catch (error3) {
+          logger39.error("Error fetching ETF flow data:", error3);
+          throw error3;
         }
       }
       /**
@@ -51192,8 +51653,8 @@ var init_ETFDataService = __esm({
                 data: marketData,
                 timestamp: Date.now()
               });
-            } catch (error) {
-              logger39.error(`Error updating market data for ${etf.ticker}:`, error);
+            } catch (error3) {
+              logger39.error(`Error updating market data for ${etf.ticker}:`, error3);
             }
           }
         });
@@ -51209,8 +51670,8 @@ var init_ETFDataService = __esm({
               data: flowData,
               timestamp: Date.now()
             });
-          } catch (error) {
-            logger39.error("Error updating ETF flow data:", error);
+          } catch (error3) {
+            logger39.error("Error updating ETF flow data:", error3);
           }
         });
       }
@@ -51226,8 +51687,8 @@ var init_ETFDataService = __esm({
                 data: holdings,
                 timestamp: Date.now()
               });
-            } catch (error) {
-              logger39.error(`Error updating holdings for ${etf.ticker}:`, error);
+            } catch (error3) {
+              logger39.error(`Error updating holdings for ${etf.ticker}:`, error3);
             }
           }
         });
@@ -51286,8 +51747,8 @@ var init_ETFDataService = __esm({
             }
           }
           return null;
-        } catch (error) {
-          logger39.error(`Error fetching market data for ${ticker}:`, error);
+        } catch (error3) {
+          logger39.error(`Error fetching market data for ${ticker}:`, error3);
           return null;
         }
       }
@@ -51319,8 +51780,8 @@ var init_ETFDataService = __esm({
             }
           }
           return flowData;
-        } catch (error) {
-          logger39.error("Error fetching ETF flow data:", error);
+        } catch (error3) {
+          logger39.error("Error fetching ETF flow data:", error3);
           return flowData;
         }
       }
@@ -51343,8 +51804,8 @@ var init_ETFDataService = __esm({
             };
           }
           return null;
-        } catch (error) {
-          logger39.error(`Error fetching holdings for ${ticker}:`, error);
+        } catch (error3) {
+          logger39.error(`Error fetching holdings for ${ticker}:`, error3);
           return null;
         }
       }
@@ -51364,8 +51825,8 @@ var init_ETFDataService = __esm({
           }
           const data = await response.json();
           return data.bitcoin.usd;
-        } catch (error) {
-          logger39.error("Error fetching Bitcoin price:", error);
+        } catch (error3) {
+          logger39.error("Error fetching Bitcoin price:", error3);
           return 0;
         }
       }
@@ -51655,8 +52116,8 @@ var init_NFTDataService = __esm({
           this.contextLogger.info("Updating NFT data...");
           await this.updateCuratedNFTsData();
           this.contextLogger.info("NFT data update completed");
-        } catch (error) {
-          this.errorHandler.handleError(error, {
+        } catch (error3) {
+          this.errorHandler.handleError(error3, {
             component: "NFTDataService",
             operation: "updateData"
           });
@@ -51674,8 +52135,8 @@ var init_NFTDataService = __esm({
         this.updateInterval = setInterval(async () => {
           try {
             await this.updateData();
-          } catch (error) {
-            this.errorHandler.handleError(error, {
+          } catch (error3) {
+            this.errorHandler.handleError(error3, {
               component: "NFTDataService",
               operation: "startRealTimeUpdates"
             });
@@ -51702,8 +52163,8 @@ var init_NFTDataService = __esm({
             };
             this.contextLogger.info("Curated NFTs data updated successfully");
           }
-        } catch (error) {
-          this.errorHandler.handleError(error, {
+        } catch (error3) {
+          this.errorHandler.handleError(error3, {
             component: "NFTDataService",
             operation: "updateCuratedNFTsData"
           });
@@ -51749,8 +52210,8 @@ var init_NFTDataService = __esm({
               if (collectionData) {
                 collections.push(collectionData);
               }
-            } catch (error) {
-              this.errorHandler.handleError(error, {
+            } catch (error3) {
+              this.errorHandler.handleError(error3, {
                 component: "NFTDataService",
                 operation: `fetchCuratedNFTsData.${collectionSlug}`
               });
@@ -51766,8 +52227,8 @@ var init_NFTDataService = __esm({
             summary,
             lastUpdated: /* @__PURE__ */ new Date()
           };
-        } catch (error) {
-          this.errorHandler.handleError(error, {
+        } catch (error3) {
+          this.errorHandler.handleError(error3, {
             component: "NFTDataService",
             operation: "fetchCuratedNFTsData"
           });
@@ -51805,8 +52266,8 @@ var init_NFTDataService = __esm({
             contractAddress: collectionInfo.primary_asset_contracts?.[0]?.address,
             blockchain: collectionInfo.primary_asset_contracts?.[0]?.chain
           };
-        } catch (error) {
-          this.errorHandler.handleError(error, {
+        } catch (error3) {
+          this.errorHandler.handleError(error3, {
             component: "NFTDataService",
             operation: `fetchEnhancedCollectionData.${collectionSlug}`
           });
@@ -52337,8 +52798,8 @@ var init_LifestyleDataService = __esm({
         if (googleVerificationAvailable) {
           try {
             restaurantStatus = await this.verifyRestaurantStatus(selectedRestaurant);
-          } catch (error) {
-            logger40.warn(`[LifestyleDataService] Google verification failed: ${error.message}`);
+          } catch (error3) {
+            logger40.warn(`[LifestyleDataService] Google verification failed: ${error3.message}`);
             restaurantStatus = {
               verificationSource: "unavailable",
               lastUpdated: /* @__PURE__ */ new Date(),
@@ -52397,12 +52858,12 @@ var init_LifestyleDataService = __esm({
             verificationSource: "google",
             message: `Currently ${googleData.currentStatus.toLowerCase()}`
           };
-        } catch (error) {
-          logger40.error(`[LifestyleDataService] Error verifying restaurant status: ${error.message}`);
+        } catch (error3) {
+          logger40.error(`[LifestyleDataService] Error verifying restaurant status: ${error3.message}`);
           return {
             verificationSource: "unavailable",
             lastUpdated: /* @__PURE__ */ new Date(),
-            message: `Error verifying status: ${error.message}`
+            message: `Error verifying status: ${error3.message}`
           };
         }
       }
@@ -52415,8 +52876,8 @@ var init_LifestyleDataService = __esm({
         try {
           logger40.info(`[LifestyleDataService] Google Places API integration not yet implemented for place ID: ${placeId}`);
           return null;
-        } catch (error) {
-          logger40.error(`[LifestyleDataService] Error fetching Google restaurant data: ${error.message}`);
+        } catch (error3) {
+          logger40.error(`[LifestyleDataService] Error fetching Google restaurant data: ${error3.message}`);
           return null;
         }
       }
@@ -52506,8 +52967,8 @@ var init_LifestyleDataService = __esm({
                   if (marineResponse.ok) {
                     marineData = await marineResponse.json();
                   }
-                } catch (error) {
-                  logger40.warn(`Failed to fetch marine data for ${cityKey}:`, error);
+                } catch (error3) {
+                  logger40.warn(`Failed to fetch marine data for ${cityKey}:`, error3);
                 }
               }
               let airQualityData = null;
@@ -52519,10 +52980,10 @@ var init_LifestyleDataService = __esm({
                 if (airQualityResponse.ok) {
                   airQualityData = await airQualityResponse.json();
                 }
-              } catch (error) {
+              } catch (error3) {
                 logger40.warn(
                   `Failed to fetch air quality data for ${cityKey}:`,
-                  error
+                  error3
                 );
               }
               return {
@@ -52533,8 +52994,8 @@ var init_LifestyleDataService = __esm({
                 airQuality: airQualityData,
                 lastUpdated: /* @__PURE__ */ new Date()
               };
-            } catch (error) {
-              logger40.error(`Error fetching weather for ${cityKey}:`, error);
+            } catch (error3) {
+              logger40.error(`Error fetching weather for ${cityKey}:`, error3);
               return null;
             }
           });
@@ -52548,8 +53009,8 @@ var init_LifestyleDataService = __esm({
               if (result2) {
                 cityWeatherData.push(result2);
               }
-            } catch (error) {
-              logger40.error(`Error processing weather for city ${i}:`, error);
+            } catch (error3) {
+              logger40.error(`Error processing weather for city ${i}:`, error3);
             }
           }
           if (cityWeatherData.length === 0) {
@@ -52623,8 +53084,8 @@ var init_LifestyleDataService = __esm({
             `[LifestyleDataService] Fetched weather data: ${cityWeatherData.length} cities, avg temp: ${averageTemp.toFixed(1)}\xB0C, best weather: ${bestWeatherCity}`
           );
           return result;
-        } catch (error) {
-          logger40.error("Error in fetchWeatherData:", error);
+        } catch (error3) {
+          logger40.error("Error in fetchWeatherData:", error3);
           return null;
         }
       }
@@ -53288,9 +53749,9 @@ var init_TravelDataService = __esm({
           this.logInfo(
             `Travel data updated: ${this.curatedHotels.length} hotels, ${currentRates?.length || 0} rates analyzed`
           );
-        } catch (error) {
-          this.logError("Failed to update travel data", error);
-          throw error;
+        } catch (error3) {
+          this.logError("Failed to update travel data", error3);
+          throw error3;
         }
       }
       async forceUpdate() {
@@ -53324,8 +53785,8 @@ var init_TravelDataService = __esm({
             await this.delay(1e3);
           }
           return rates;
-        } catch (error) {
-          this.logError("Error fetching hotel rates", error);
+        } catch (error3) {
+          this.logError("Error fetching hotel rates", error3);
           return this.generateSimulatedRates();
         }
       }
@@ -53361,8 +53822,8 @@ var init_TravelDataService = __esm({
             currentDate.setDate(currentDate.getDate() + 7);
           }
           return rates;
-        } catch (error) {
-          this.logError(`Error fetching rates for ${hotel.name}`, error);
+        } catch (error3) {
+          this.logError(`Error fetching rates for ${hotel.name}`, error3);
           return [];
         }
       }
@@ -53410,8 +53871,8 @@ var init_TravelDataService = __esm({
           }
           const data = await response.json();
           return this.parseBookingComResponse(data, hotel, checkIn, checkOut);
-        } catch (error) {
-          this.logError(`Error querying Booking.com API for ${hotel.name}`, error);
+        } catch (error3) {
+          this.logError(`Error querying Booking.com API for ${hotel.name}`, error3);
           return null;
         }
       }
@@ -53522,10 +53983,10 @@ var init_TravelDataService = __esm({
             if (window2) {
               windows.push(window2);
             }
-          } catch (error) {
+          } catch (error3) {
             this.logError(
               `Error analyzing optimal booking for ${hotel.name}`,
-              error
+              error3
             );
           }
         }
@@ -53588,8 +54049,8 @@ var init_TravelDataService = __esm({
             },
             lastAnalyzed: /* @__PURE__ */ new Date()
           };
-        } catch (error) {
-          this.logError(`Error analyzing optimal booking for ${hotel.name}`, error);
+        } catch (error3) {
+          this.logError(`Error analyzing optimal booking for ${hotel.name}`, error3);
           return null;
         }
       }
@@ -53749,8 +54210,8 @@ var init_TravelDataService = __esm({
       logWarning(message) {
         logger41.warn(`[${this.serviceName}] ${message}`);
       }
-      logError(message, error) {
-        logger41.error(`[${this.serviceName}] ${message}`, error);
+      logError(message, error3) {
+        logger41.error(`[${this.serviceName}] ${message}`, error3);
       }
       // Perfect Day Detection Methods
       async detectPerfectDays() {
@@ -53773,8 +54234,8 @@ var init_TravelDataService = __esm({
                   urgency: opp.savingsPercentage >= 25 ? "high" : opp.savingsPercentage >= 15 ? "medium" : "low"
                 }));
               }
-            } catch (error) {
-              logger41.warn("Google Hotels scraping failed, falling back to seasonal data:", error);
+            } catch (error3) {
+              logger41.warn("Google Hotels scraping failed, falling back to seasonal data:", error3);
             }
           }
           logger41.info("Using seasonal rate service for perfect day detection");
@@ -53784,8 +54245,8 @@ var init_TravelDataService = __esm({
             seasonalOpportunities.push(...hotelOpportunities);
           }
           return seasonalOpportunities.sort((a, b) => b.savingsPercentage - a.savingsPercentage).slice(0, 10);
-        } catch (error) {
-          logger41.error("Error detecting perfect days:", error);
+        } catch (error3) {
+          logger41.error("Error detecting perfect days:", error3);
           return this.generateFallbackPerfectDays();
         }
       }
@@ -53840,8 +54301,8 @@ var init_TravelDataService = __esm({
                 urgency: opp.savingsPercentage >= 25 ? "high" : opp.savingsPercentage >= 15 ? "medium" : "low"
               })));
               logger41.info(`Found ${realTimeOpportunities.length} real-time perfect day opportunities`);
-            } catch (error) {
-              logger41.warn("Google Hotels scraping failed for hybrid detection:", error);
+            } catch (error3) {
+              logger41.warn("Google Hotels scraping failed for hybrid detection:", error3);
             }
           }
           for (const hotel of this.curatedHotels) {
@@ -53849,8 +54310,8 @@ var init_TravelDataService = __esm({
             seasonalOpportunities.push(...hotelOpportunities);
           }
           return this.mergeAndRankOpportunities(realTimeOpportunities, seasonalOpportunities);
-        } catch (error) {
-          logger41.error("Error in hybrid perfect day detection:", error);
+        } catch (error3) {
+          logger41.error("Error in hybrid perfect day detection:", error3);
           return this.generateFallbackPerfectDays();
         }
       }
@@ -53922,8 +54383,8 @@ var init_TravelDataService = __esm({
             marketInsights,
             lastUpdated: /* @__PURE__ */ new Date()
           };
-        } catch (error) {
-          logger41.error("Error generating enhanced travel data:", error);
+        } catch (error3) {
+          logger41.error("Error generating enhanced travel data:", error3);
           return this.getFallbackEnhancedTravelData();
         }
       }
@@ -54051,9 +54512,9 @@ var init_TravelDataService = __esm({
             travelInsights,
             lastUpdated: /* @__PURE__ */ new Date()
           };
-        } catch (error) {
-          logger41.error("Error getting comprehensive travel data:", error);
-          throw error;
+        } catch (error3) {
+          logger41.error("Error getting comprehensive travel data:", error3);
+          throw error3;
         }
       }
       /**
@@ -54068,8 +54529,8 @@ var init_TravelDataService = __esm({
           };
           await this.runtime.setCache("travel_data", cache);
           logger41.info("Travel data cached successfully");
-        } catch (error) {
-          logger41.error("Error caching travel data:", error);
+        } catch (error3) {
+          logger41.error("Error caching travel data:", error3);
         }
       }
       /**
@@ -54082,8 +54543,8 @@ var init_TravelDataService = __esm({
             return cache.data;
           }
           return null;
-        } catch (error) {
-          logger41.warn("Error getting cached travel data:", error);
+        } catch (error3) {
+          logger41.warn("Error getting cached travel data:", error3);
           return null;
         }
       }
@@ -54825,12 +55286,12 @@ var init_RealTimeDataService = __esm({
           this.contextLogger.info(
             `Updated real-time data: ${this.marketData.length} market items, ${this.newsItems.length} news items`
           );
-        } catch (error) {
+        } catch (error3) {
           this.contextLogger.error(
             "Failed to update real-time data:",
-            error.message
+            error3.message
           );
-          throw error;
+          throw error3;
         }
       }
       async forceUpdate() {
@@ -54842,8 +55303,8 @@ var init_RealTimeDataService = __esm({
         this.updateInterval = setInterval(async () => {
           try {
             await this.updateAllData();
-          } catch (error) {
-            console.error("Error updating real-time data:", error);
+          } catch (error3) {
+            console.error("Error updating real-time data:", error3);
           }
         }, this.UPDATE_INTERVAL);
       }
@@ -54872,8 +55333,8 @@ var init_RealTimeDataService = __esm({
               if (i < updateTasks.length - 1) {
                 await new Promise((resolve) => setTimeout(resolve, 4e3));
               }
-            } catch (error) {
-              console.error(`Update task ${i} failed:`, error);
+            } catch (error3) {
+              console.error(`Update task ${i} failed:`, error3);
             }
           }
           if (this.top100VsBtcCache && this.top100VsBtcCache.data) {
@@ -54940,15 +55401,15 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
             console.log(summary + "\n");
           }
           console.log("[RealTimeDataService] \u2705 Data update cycle completed");
-        } catch (error) {
-          console.error("[RealTimeDataService] \u274C Error updating data:", error);
+        } catch (error3) {
+          console.error("[RealTimeDataService] \u274C Error updating data:", error3);
         }
       }
       async updateMarketData() {
         try {
           this.marketData = await this.fetchMarketData();
-        } catch (error) {
-          console.error("Error updating market data:", error);
+        } catch (error3) {
+          console.error("Error updating market data:", error3);
         }
       }
       async updateBitcoinData() {
@@ -54997,32 +55458,32 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
               "[RealTimeDataService] \u26A0\uFE0F Failed to fetch Bitcoin data - APIs may be down"
             );
           }
-        } catch (error) {
+        } catch (error3) {
           console.error(
             "[RealTimeDataService] \u274C Error updating Bitcoin data:",
-            error
+            error3
           );
         }
       }
       async updateNews() {
         try {
           this.newsItems = await this.fetchNewsData();
-        } catch (error) {
-          console.error("Error updating news data:", error);
+        } catch (error3) {
+          console.error("Error updating news data:", error3);
         }
       }
       async updateSocialSentiment() {
         try {
           this.socialSentiment = await this.fetchSocialSentiment();
-        } catch (error) {
-          console.error("Error updating social sentiment:", error);
+        } catch (error3) {
+          console.error("Error updating social sentiment:", error3);
         }
       }
       async updateEconomicIndicators() {
         try {
           this.economicIndicators = await this.fetchEconomicIndicators();
-        } catch (error) {
-          console.error("Error updating economic indicators:", error);
+        } catch (error3) {
+          console.error("Error updating economic indicators:", error3);
         }
       }
       async fetchMarketData() {
@@ -55081,8 +55542,8 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
           await new Promise((resolve) => setTimeout(resolve, 2e3));
           const stockData = await this.fetchStockData();
           return [...marketData, ...stockData];
-        } catch (error) {
-          console.error("Error fetching market data:", error);
+        } catch (error3) {
+          console.error("Error fetching market data:", error3);
           return this.getFallbackMarketData();
         }
       }
@@ -55131,15 +55592,15 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
                 lastUpdate: /* @__PURE__ */ new Date(),
                 source: "Alpha Vantage"
               };
-            } catch (error) {
-              console.error(`Error fetching data for ${symbol}:`, error);
+            } catch (error3) {
+              console.error(`Error fetching data for ${symbol}:`, error3);
               return null;
             }
           });
           const results = await Promise.all(stockPromises);
           return results.filter(Boolean);
-        } catch (error) {
-          console.error("Error fetching stock data:", error);
+        } catch (error3) {
+          console.error("Error fetching stock data:", error3);
           return this.getFallbackStockData();
         }
       }
@@ -55177,8 +55638,8 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
               article.title + " " + article.description
             )
           }));
-        } catch (error) {
-          console.error("Error fetching news data:", error);
+        } catch (error3) {
+          console.error("Error fetching news data:", error3);
           return this.getFallbackNewsData();
         }
       }
@@ -55214,8 +55675,8 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
               ]
             }
           ];
-        } catch (error) {
-          console.error("Error fetching social sentiment:", error);
+        } catch (error3) {
+          console.error("Error fetching social sentiment:", error3);
           return this.getFallbackSocialSentiment();
         }
       }
@@ -55244,8 +55705,8 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
               // Next FOMC meeting
             }
           ];
-        } catch (error) {
-          console.error("Error fetching economic indicators:", error);
+        } catch (error3) {
+          console.error("Error fetching economic indicators:", error3);
           return [];
         }
       }
@@ -55582,8 +56043,8 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
             lastUpdated: /* @__PURE__ */ new Date()
           };
           return response;
-        } catch (error) {
-          console.error("Error fetching comprehensive Bitcoin data:", error);
+        } catch (error3) {
+          console.error("Error fetching comprehensive Bitcoin data:", error3);
           return null;
         }
       }
@@ -55613,25 +56074,24 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
             usd: Number(data.bitcoin?.usd) || null,
             change24h: Number(data.bitcoin?.usd_24h_change) || null
           };
-        } catch (error) {
-          console.error("Error fetching Bitcoin price data:", error);
+        } catch (error3) {
+          console.error("Error fetching Bitcoin price data:", error3);
           return null;
         }
       }
       async fetchBitcoinNetworkData() {
         try {
-          const [blockchainData, mempoolStats, blockstreamData] = await Promise.all(
+          const [blockchainData, mempoolStats] = await Promise.all(
             [
               this.fetchBlockchainInfoData(),
-              this.fetchMempoolNetworkData(),
-              this.fetchBlockstreamNetworkData()
+              this.fetchMempoolNetworkData()
             ]
           );
-          const hashRate = mempoolStats?.hashRate || blockstreamData?.hashRate || blockchainData?.hashRate;
-          const difficulty = mempoolStats?.difficulty || blockstreamData?.difficulty || blockchainData?.difficulty;
-          const blockHeight = mempoolStats?.blockHeight || blockstreamData?.blockHeight || blockchainData?.blockHeight;
+          const hashRate = mempoolStats?.hashRate || blockchainData?.hashRate;
+          const difficulty = mempoolStats?.difficulty || blockchainData?.difficulty;
+          const blockHeight = mempoolStats?.blockHeight || blockchainData?.blockHeight;
           console.log(
-            `[RealTimeDataService] \u{1F50D} Hashrate sources - Mempool: ${mempoolStats?.hashRate ? (mempoolStats.hashRate / 1e18).toFixed(2) + " EH/s" : "N/A"}, Blockstream: ${blockstreamData?.hashRate ? (blockstreamData.hashRate / 1e18).toFixed(2) + " EH/s" : "N/A"}, Blockchain: ${blockchainData?.hashRate ? (blockchainData.hashRate / 1e18).toFixed(2) + " EH/s" : "N/A"}`
+            `[RealTimeDataService] \u{1F50D} Hashrate sources - Mempool: ${mempoolStats?.hashRate ? (mempoolStats.hashRate / 1e18).toFixed(2) + " EH/s" : "N/A"}, Blockchain: ${blockchainData?.hashRate ? (blockchainData.hashRate / 1e18).toFixed(2) + " EH/s" : "N/A"}`
           );
           console.log(
             `[RealTimeDataService] \u{1F3AF} Selected hashrate: ${hashRate ? (hashRate / 1e18).toFixed(2) + " EH/s" : "N/A"}`
@@ -55658,8 +56118,8 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
               estimatedDate: halvingDate.toISOString()
             }
           };
-        } catch (error) {
-          console.error("Error fetching Bitcoin network data:", error);
+        } catch (error3) {
+          console.error("Error fetching Bitcoin network data:", error3);
           return null;
         }
       }
@@ -55668,7 +56128,10 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
        */
       async fetchBlockchainInfoData() {
         try {
-          const response = await fetch(`${this.BLOCKCHAIN_API}/stats`);
+          const response = await fetch(`${this.BLOCKCHAIN_API}/stats`, {
+            signal: AbortSignal.timeout(1e4)
+            // 10 second timeout
+          });
           if (response.ok) {
             const data = await response.json();
             return {
@@ -55681,10 +56144,15 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
               totalBTC: Number(data.totalbc) / 1e8,
               marketCap: Number(data.market_price_usd) * (Number(data.totalbc) / 1e8)
             };
+          } else if (response.status === 429) {
+            console.warn(`[RealTimeDataService] Blockchain.info rate limited (429)`);
+            return null;
+          } else {
+            console.warn(`[RealTimeDataService] Blockchain.info API error: ${response.status}`);
+            return null;
           }
-          return null;
-        } catch (error) {
-          console.error("Error fetching Blockchain.info data:", error);
+        } catch (error3) {
+          console.error("Error fetching Blockchain.info data:", error3);
           return null;
         }
       }
@@ -55694,9 +56162,18 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
       async fetchMempoolNetworkData() {
         try {
           const [hashRateResponse, difficultyResponse, blockHeightResponse] = await Promise.all([
-            fetch(`${this.MEMPOOL_API}/v1/mining/hashrate/1m`),
-            fetch(`${this.MEMPOOL_API}/v1/difficulty-adjustment`),
-            fetch(`${this.MEMPOOL_API}/blocks/tip/height`)
+            fetch(`${this.MEMPOOL_API}/v1/mining/hashrate/1m`, {
+              signal: AbortSignal.timeout(1e4)
+              // 10 second timeout
+            }),
+            fetch(`${this.MEMPOOL_API}/v1/difficulty-adjustment`, {
+              signal: AbortSignal.timeout(1e4)
+              // 10 second timeout
+            }),
+            fetch(`${this.MEMPOOL_API}/blocks/tip/height`, {
+              signal: AbortSignal.timeout(1e4)
+              // 10 second timeout
+            })
           ]);
           const results = {};
           if (hashRateResponse.ok) {
@@ -55709,6 +56186,8 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
                 results.hashRate = Number(latestHashrate.hashrateAvg);
               }
             }
+          } else if (hashRateResponse.status === 429) {
+            console.warn(`[RealTimeDataService] Mempool.space hashrate rate limited (429)`);
           }
           if (difficultyResponse.ok) {
             const difficultyData = await difficultyResponse.json();
@@ -55717,63 +56196,66 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
             } else if (difficultyData.difficulty) {
               results.difficulty = Number(difficultyData.difficulty);
             }
+          } else if (difficultyResponse.status === 429) {
+            console.warn(`[RealTimeDataService] Mempool.space difficulty rate limited (429)`);
           }
           if (blockHeightResponse.ok) {
             const blockHeight = await blockHeightResponse.json();
             if (typeof blockHeight === "number") {
               results.blockHeight = blockHeight;
             }
+          } else if (blockHeightResponse.status === 429) {
+            console.warn(`[RealTimeDataService] Mempool.space block height rate limited (429)`);
           }
           return Object.keys(results).length > 0 ? results : null;
-        } catch (error) {
-          console.error("Error fetching Mempool.space network data:", error);
-          return null;
-        }
-      }
-      /**
-       * Fetch network data from Blockstream API
-       */
-      async fetchBlockstreamNetworkData() {
-        try {
-          const response = await fetch("https://blockstream.info/api/stats");
-          if (response.ok) {
-            const data = await response.json();
-            return {
-              hashRate: data.hashrate_24h ? Number(data.hashrate_24h) : null,
-              difficulty: data.difficulty ? Number(data.difficulty) : null,
-              blockHeight: data.chain_stats?.funded_txo_count ? Number(data.chain_stats.funded_txo_count) : null
-            };
-          }
-          return null;
-        } catch (error) {
-          console.error("Error fetching Blockstream data:", error);
+        } catch (error3) {
+          console.error("Error fetching Mempool.space network data:", error3);
           return null;
         }
       }
       async fetchBitcoinSentimentData() {
         try {
-          const response = await fetch(`${this.ALTERNATIVE_API}/fng/`);
+          const response = await fetch(`${this.ALTERNATIVE_API}/fng/`, {
+            signal: AbortSignal.timeout(1e4)
+            // 10 second timeout
+          });
           if (response.ok) {
             const data = await response.json();
             return {
               fearGreedIndex: Number(data.data[0].value),
               fearGreedValue: data.data[0].value_classification
             };
+          } else if (response.status === 429) {
+            console.warn(`[RealTimeDataService] Alternative.me sentiment rate limited (429)`);
+            return null;
+          } else {
+            console.warn(`[RealTimeDataService] Alternative.me API error: ${response.status}`);
+            return null;
           }
-          return null;
-        } catch (error) {
-          console.error("Error fetching Bitcoin sentiment data:", error);
+        } catch (error3) {
+          console.error("Error fetching Bitcoin sentiment data:", error3);
           return null;
         }
       }
       async fetchBitcoinMempoolData() {
         try {
           const [mempoolResponse, feesResponse] = await Promise.all([
-            fetch(`${this.MEMPOOL_API}/mempool`),
-            fetch(`${this.MEMPOOL_API}/v1/fees/recommended`)
+            fetch(`${this.MEMPOOL_API}/mempool`, {
+              signal: AbortSignal.timeout(1e4)
+              // 10 second timeout
+            }),
+            fetch(`${this.MEMPOOL_API}/v1/fees/recommended`, {
+              signal: AbortSignal.timeout(1e4)
+              // 10 second timeout
+            })
           ]);
           if (!mempoolResponse.ok || !feesResponse.ok) {
-            throw new Error("Failed to fetch mempool data");
+            if (mempoolResponse.status === 429 || feesResponse.status === 429) {
+              console.warn(`[RealTimeDataService] Mempool.space mempool data rate limited (429)`);
+            } else {
+              console.warn(`[RealTimeDataService] Mempool.space mempool data API error: ${mempoolResponse.status}, ${feesResponse.status}`);
+            }
+            return null;
           }
           const [mempoolData, feesData] = await Promise.all([
             mempoolResponse.json(),
@@ -55794,8 +56276,8 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
             miningRevenue24h: null
             // We'll need another endpoint for this
           };
-        } catch (error) {
-          console.error("Error fetching Bitcoin mempool data:", error);
+        } catch (error3) {
+          console.error("Error fetching Bitcoin mempool data:", error3);
           return null;
         }
       }
@@ -55859,8 +56341,8 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
             `[RealTimeDataService] Fetched curated altcoins data for ${this.curatedCoinIds.length} coins`
           );
           return result;
-        } catch (error) {
-          console.error("Error fetching curated altcoins data:", error);
+        } catch (error3) {
+          console.error("Error fetching curated altcoins data:", error3);
           console.info(
             "[RealTimeDataService] Using fallback curated altcoins data"
           );
@@ -55995,12 +56477,12 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
             `[RealTimeDataService] \u2705 Fetched top 200 vs BTC data: ${outperformingCount}/${totalCoins} outperforming Bitcoin (7d), avg relative: ${averageRelativePerformance.toFixed(2)}%`
           );
           return result;
-        } catch (error) {
+        } catch (error3) {
           console.error("[RealTimeDataService] \u274C Error in fetchTop100VsBtcData:", {
-            error: error instanceof Error ? error.message : "Unknown error",
-            stack: error instanceof Error ? error.stack : void 0,
-            type: typeof error,
-            details: error
+            error: error3 instanceof Error ? error3.message : "Unknown error",
+            stack: error3 instanceof Error ? error3.stack : void 0,
+            type: typeof error3,
+            details: error3
           });
           return null;
         }
@@ -56071,10 +56553,10 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
                   poolsCount: pools.length,
                   liquidityRatio
                 };
-              } catch (error) {
+              } catch (error3) {
                 console.warn(
                   `Failed to fetch pool data for token ${token.tokenAddress}:`,
-                  error
+                  error3
                 );
                 return null;
               }
@@ -56095,8 +56577,8 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
             `[RealTimeDataService] Fetched DEXScreener data: ${topTokens.length} top tokens, ${trendingTokens.length} trending`
           );
           return result;
-        } catch (error) {
-          console.error("Error in fetchDexScreenerData:", error);
+        } catch (error3) {
+          console.error("Error in fetchDexScreenerData:", error3);
           return null;
         }
       }
@@ -56170,8 +56652,8 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
             `[RealTimeDataService] Fetched top movers: ${topGainers.length} gainers, ${topLosers.length} losers`
           );
           return result;
-        } catch (error) {
-          console.error("Error in fetchTopMoversData:", error);
+        } catch (error3) {
+          console.error("Error in fetchTopMoversData:", error3);
           return null;
         }
       }
@@ -56229,8 +56711,8 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
             `[RealTimeDataService] Fetched trending coins: ${trending.length} coins`
           );
           return result;
-        } catch (error) {
-          console.error("Error in fetchTrendingCoinsData:", error);
+        } catch (error3) {
+          console.error("Error in fetchTrendingCoinsData:", error3);
           return null;
         }
       }
@@ -56286,8 +56768,8 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
               collections.push(
                 ...batchResults.filter(Boolean)
               );
-            } catch (error) {
-              console.error(`Error processing batch ${i}:`, error);
+            } catch (error3) {
+              console.error(`Error processing batch ${i}:`, error3);
             }
             if (i + batchSize < this.curatedNFTCollections.length) {
               await new Promise((resolve) => setTimeout(resolve, 1e3));
@@ -56303,8 +56785,8 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
             `[RealTimeDataService] Enhanced NFTs data: ${collections.length} collections, total 24h volume: ${summary.totalVolume24h.toFixed(2)} ETH`
           );
           return result;
-        } catch (error) {
-          console.error("Error in fetchCuratedNFTsData:", error);
+        } catch (error3) {
+          console.error("Error in fetchCuratedNFTsData:", error3);
           return null;
         }
       }
@@ -56356,10 +56838,10 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
             contractAddress: collectionData.contracts?.[0]?.address,
             blockchain: collectionData.contracts?.[0]?.chain || "ethereum"
           };
-        } catch (error) {
+        } catch (error3) {
           console.error(
             `Error fetching collection data for ${collectionInfo.slug}:`,
-            error
+            error3
           );
           return null;
         }
@@ -56474,10 +56956,10 @@ var init_MorningBriefingService = __esm({
           if (!lastBriefingDate || now.getDate() !== lastBriefingDate.getDate() && now.getHours() >= this.briefingConfig.deliveryTime.hour) {
             await this.generateMorningBriefing();
           }
-        } catch (error) {
+        } catch (error3) {
           elizaLogger28.error(
             `[MorningBriefingService:${this.correlationId}] Error updating data:`,
-            error
+            error3
           );
         }
       }
@@ -56487,12 +56969,12 @@ var init_MorningBriefingService = __esm({
       async forceUpdate() {
         try {
           return await this.generateMorningBriefing();
-        } catch (error) {
+        } catch (error3) {
           elizaLogger28.error(
             `[MorningBriefingService:${this.correlationId}] Error in force update:`,
-            error
+            error3
           );
-          throw error;
+          throw error3;
         }
       }
       /**
@@ -56596,12 +57078,12 @@ var init_MorningBriefingService = __esm({
           );
           this.lastBriefing = /* @__PURE__ */ new Date();
           return briefing;
-        } catch (error) {
+        } catch (error3) {
           elizaLogger28.error(
             `[MorningBriefingService:${this.correlationId}] Failed to generate morning briefing:`,
-            error
+            error3
           );
-          throw error;
+          throw error3;
         }
       }
       async getWeatherData() {
@@ -56672,10 +57154,10 @@ var init_MorningBriefingService = __esm({
             // Open-Meteo doesn't provide humidity in current endpoint
             windSpeed: Math.round(primaryCity.weather.current?.wind_speed_10m || 0)
           };
-        } catch (error) {
+        } catch (error3) {
           elizaLogger28.error(
             `[MorningBriefingService:${this.correlationId}] Error fetching weather data:`,
-            error
+            error3
           );
           return null;
         }
@@ -56701,10 +57183,10 @@ var init_MorningBriefingService = __esm({
               elizaLogger28.info(
                 `[MorningBriefingService:${this.correlationId}] Stock data loaded for morning briefing`
               );
-            } catch (error) {
+            } catch (error3) {
               elizaLogger28.warn(
                 `[MorningBriefingService:${this.correlationId}] Failed to get stock data:`,
-                error
+                error3
               );
             }
           }
@@ -56817,10 +57299,10 @@ var init_MorningBriefingService = __esm({
                   `[MorningBriefingService:${this.correlationId}] Real altcoin data loaded: ${top100VsBtcData.outperformingCount}/${top100VsBtcData.totalCoins} outperforming BTC (${outperformingPercent.toFixed(1)}%)`
                 );
               }
-            } catch (error) {
+            } catch (error3) {
               elizaLogger28.warn(
                 `[MorningBriefingService:${this.correlationId}] Failed to get real altcoin data, using fallback:`,
-                error
+                error3
               );
             }
           }
@@ -56849,10 +57331,10 @@ var init_MorningBriefingService = __esm({
             }
           };
           return marketPulse;
-        } catch (error) {
+        } catch (error3) {
           elizaLogger28.error(
             `[MorningBriefingService:${this.correlationId}] Failed to get market pulse:`,
-            error
+            error3
           );
           return null;
         }
@@ -56903,10 +57385,10 @@ var init_MorningBriefingService = __esm({
             contentSummary
           };
           return knowledgeDigest;
-        } catch (error) {
+        } catch (error3) {
           elizaLogger28.error(
             `[MorningBriefingService:${this.correlationId}] Failed to get knowledge digest:`,
-            error
+            error3
           );
           return null;
         }
@@ -57050,10 +57532,10 @@ var init_MorningBriefingService = __esm({
             lastBriefing: this.lastBriefing,
             totalGenerated: recentBriefings.length
           };
-        } catch (error) {
+        } catch (error3) {
           elizaLogger28.error(
             `[MorningBriefingService:${this.correlationId}] Failed to get briefing history:`,
-            error
+            error3
           );
           return {
             lastBriefing: this.lastBriefing,
@@ -57263,10 +57745,10 @@ var init_OpportunityAlertService = __esm({
           for (const opportunity of opportunities) {
             await this.triggerAlert(opportunity);
           }
-        } catch (error) {
+        } catch (error3) {
           this.contextLogger.error(
             "Failed to process content for opportunities:",
-            error.message
+            error3.message
           );
         }
       }
@@ -57400,10 +57882,10 @@ var init_OpportunityAlertService = __esm({
         try {
           await this.cleanupExpiredAlerts();
           await this.updateAlertPerformance();
-        } catch (error) {
+        } catch (error3) {
           this.contextLogger.error(
             "Failed to check for opportunities:",
-            error.message
+            error3.message
           );
         }
       }
@@ -57506,12 +57988,12 @@ var init_OpportunityAlertService = __esm({
           this.contextLogger.info(
             `Updated opportunity alert data: ${this.activeAlerts.length} active alerts`
           );
-        } catch (error) {
+        } catch (error3) {
           this.contextLogger.error(
             "Failed to update opportunity alert data:",
-            error.message
+            error3.message
           );
-          throw error;
+          throw error3;
         }
       }
       async forceUpdate() {
@@ -57727,10 +58209,10 @@ var init_PerformanceTrackingService = __esm({
               );
             }
           }
-        } catch (error) {
+        } catch (error3) {
           this.contextLogger.error(
             "Failed to track prediction:",
-            error.message
+            error3.message
           );
         }
       }
@@ -57752,10 +58234,10 @@ var init_PerformanceTrackingService = __esm({
           this.contextLogger.info(
             `Tracking opportunity alert as prediction: ${prediction.asset}`
           );
-        } catch (error) {
+        } catch (error3) {
           this.contextLogger.error(
             "Failed to track opportunity alert:",
-            error.message
+            error3.message
           );
         }
       }
@@ -57783,10 +58265,10 @@ var init_PerformanceTrackingService = __esm({
             prediction.predictedPrice = parseFloat(priceMatch[1].replace(/,/g, ""));
           }
           return prediction;
-        } catch (error) {
+        } catch (error3) {
           this.contextLogger.error(
             "Failed to extract prediction:",
-            error.message
+            error3.message
           );
           return null;
         }
@@ -57868,10 +58350,10 @@ var init_PerformanceTrackingService = __esm({
             await this.checkForEarlyCompletion(prediction);
           }
           await this.updateMetrics();
-        } catch (error) {
+        } catch (error3) {
           this.contextLogger.error(
             "Failed to evaluate predictions:",
-            error.message
+            error3.message
           );
         }
       }
@@ -57891,10 +58373,10 @@ var init_PerformanceTrackingService = __esm({
           this.contextLogger.info(
             `Evaluated expired prediction: ${prediction.asset} (${accuracy.toFixed(2)} accuracy)`
           );
-        } catch (error) {
+        } catch (error3) {
           this.contextLogger.error(
             "Failed to evaluate expired prediction:",
-            error.message
+            error3.message
           );
         }
       }
@@ -57927,10 +58409,10 @@ var init_PerformanceTrackingService = __esm({
             profitabilityMetrics: this.calculateProfitabilityMetrics(allOutcomes),
             recentPerformance: this.calculateRecentPerformance(allOutcomes)
           };
-        } catch (error) {
+        } catch (error3) {
           this.contextLogger.error(
             "Failed to update metrics:",
-            error.message
+            error3.message
           );
         }
       }
@@ -58183,12 +58665,12 @@ var init_PerformanceTrackingService = __esm({
           this.contextLogger.info(
             `Updated performance tracking data: ${this.predictions.size} predictions, ${this.outcomes.size} outcomes`
           );
-        } catch (error) {
+        } catch (error3) {
           this.contextLogger.error(
             "Failed to update performance tracking data:",
-            error.message
+            error3.message
           );
-          throw error;
+          throw error3;
         }
       }
       async forceUpdate() {
@@ -58255,10 +58737,10 @@ var init_KnowledgeDigestService = __esm({
           if (this.dailyContent.has(today) && this.dailyContent.get(today).length >= 10) {
             await this.generateDailyDigest(today);
           }
-        } catch (error) {
+        } catch (error3) {
           elizaLogger31.error(
             `[KnowledgeDigestService:${this.correlationId}] Error updating data:`,
-            error
+            error3
           );
         }
       }
@@ -58269,12 +58751,12 @@ var init_KnowledgeDigestService = __esm({
         try {
           const today = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
           return await this.generateDailyDigest(today);
-        } catch (error) {
+        } catch (error3) {
           elizaLogger31.error(
             `[KnowledgeDigestService:${this.correlationId}] Error in force update:`,
-            error
+            error3
           );
-          throw error;
+          throw error3;
         }
       }
       /**
@@ -58313,10 +58795,10 @@ var init_KnowledgeDigestService = __esm({
           elizaLogger31.info(
             `[KnowledgeDigestService:${this.correlationId}] Loaded ${recentDigests.length} digests from memory`
           );
-        } catch (error) {
+        } catch (error3) {
           elizaLogger31.error(
             `[KnowledgeDigestService:${this.correlationId}] Failed to load digest history:`,
-            error
+            error3
           );
         }
       }
@@ -58331,10 +58813,10 @@ var init_KnowledgeDigestService = __esm({
           if (this.dailyContent.get(today).length >= threshold) {
             await this.generateDailyDigest(today);
           }
-        } catch (error) {
+        } catch (error3) {
           elizaLogger31.error(
             `[KnowledgeDigestService:${this.correlationId}] Failed to add content to digest:`,
-            error
+            error3
           );
         }
       }
@@ -58361,12 +58843,12 @@ var init_KnowledgeDigestService = __esm({
           this.digestCache.set(targetDate, digest);
           await this.storeInMemory(digest, "knowledge-digest");
           return digest;
-        } catch (error) {
+        } catch (error3) {
           elizaLogger31.error(
             `[KnowledgeDigestService:${this.correlationId}] Failed to generate daily digest:`,
-            error
+            error3
           );
-          throw error;
+          throw error3;
         }
       }
       async extractTopTopics(content) {
@@ -58557,10 +59039,10 @@ var init_KnowledgeDigestService = __esm({
             return await this.generateDailyDigest(targetDate);
           }
           return null;
-        } catch (error) {
+        } catch (error3) {
           elizaLogger31.error(
             `[KnowledgeDigestService:${this.correlationId}] Failed to get digest:`,
-            error
+            error3
           );
           return null;
         }
@@ -58642,10 +59124,10 @@ var init_KnowledgeDigestService = __esm({
           elizaLogger31.info(
             `[KnowledgeDigestService:${this.correlationId}] Cleanup completed: removed ${removedContent} content entries and ${removedDigests} digests`
           );
-        } catch (error) {
+        } catch (error3) {
           elizaLogger31.error(
             `[KnowledgeDigestService:${this.correlationId}] Error during cleanup:`,
-            error
+            error3
           );
         }
       }
@@ -58712,9 +59194,9 @@ var init_ContentIngestionService = __esm({
               `Updated data: processed ${processedItems.length} new content items`
             );
           }
-        } catch (error) {
+        } catch (error3) {
           const enhancedError = ElizaOSErrorHandler4.handleCommonErrors(
-            error,
+            error3,
             "ContentIngestionUpdate"
           );
           this.contextLogger.error(
@@ -58738,9 +59220,9 @@ var init_ContentIngestionService = __esm({
             const processedItem = await this.analyzeContent(item);
             processedItems.push(processedItem);
             this.contextLogger.info(`Processed content item: ${item.id}`);
-          } catch (error) {
+          } catch (error3) {
             const enhancedError = ElizaOSErrorHandler4.handleCommonErrors(
-              error,
+              error3,
               "ContentProcessing"
             );
             this.contextLogger.error(
@@ -58776,10 +59258,10 @@ var init_ContentIngestionService = __esm({
             processed: true,
             insights
           };
-        } catch (error) {
+        } catch (error3) {
           this.contextLogger.error(
             `Content analysis failed for ${item.id}:`,
-            error.message
+            error3.message
           );
           return {
             ...item,
@@ -59102,10 +59584,10 @@ var init_SlackIngestionService = __esm({
         setInterval(async () => {
           try {
             await this.checkAllChannels();
-          } catch (error) {
+          } catch (error3) {
             this.contextLogger.error(
               "Error during channel monitoring:",
-              error.message
+              error3.message
             );
           }
         }, checkInterval);
@@ -59116,10 +59598,10 @@ var init_SlackIngestionService = __esm({
         for (const channel of this.channels) {
           try {
             await this.checkChannel(channel);
-          } catch (error) {
+          } catch (error3) {
             this.contextLogger.error(
               `Error checking channel ${channel.channelName}:`,
-              error.message
+              error3.message
             );
           }
         }
@@ -59143,10 +59625,10 @@ var init_SlackIngestionService = __esm({
             );
             await this.processAndStoreContent(contentItems);
           }
-        } catch (error) {
+        } catch (error3) {
           this.contextLogger.error(
             `Failed to check channel ${channel.channelName}:`,
-            error.message
+            error3.message
           );
         }
       }
@@ -59185,10 +59667,10 @@ var init_SlackIngestionService = __esm({
               channel
             );
             contentItems.push(contentItem);
-          } catch (error) {
+          } catch (error3) {
             this.contextLogger.error(
               `Failed to convert message ${message.ts}:`,
-              error.message
+              error3.message
             );
           }
         }
@@ -59232,9 +59714,9 @@ var init_SlackIngestionService = __esm({
           this.contextLogger.info(
             `Processed and stored ${processedItems.length} content items from Slack`
           );
-        } catch (error) {
+        } catch (error3) {
           const enhancedError = ElizaOSErrorHandler4.handleCommonErrors(
-            error,
+            error3,
             "SlackContentProcessing"
           );
           this.contextLogger.error(
@@ -59257,10 +59739,10 @@ var init_SlackIngestionService = __esm({
               channel
             );
             allContent.push(...contentItems);
-          } catch (error) {
+          } catch (error3) {
             this.contextLogger.error(
               `Failed to ingest from channel ${channel.channelName}:`,
-              error.message
+              error3.message
             );
           }
         }
@@ -59325,10 +59807,10 @@ var init_SlackIngestionService = __esm({
               );
               newContent.push(...contentItems);
             }
-          } catch (error) {
+          } catch (error3) {
             this.contextLogger.error(
               `Failed to check channel ${channel.channelName}:`,
-              error.message
+              error3.message
             );
           }
         }
@@ -59432,12 +59914,12 @@ var init_SchedulerService = __esm({
           this.contextLogger.info(
             `Updated scheduler data: ${this.scheduledTasks.size} tasks, ${this.activeTimers.size} active timers`
           );
-        } catch (error) {
+        } catch (error3) {
           this.contextLogger.error(
             "Failed to update scheduler data:",
-            error.message
+            error3.message
           );
-          throw error;
+          throw error3;
         }
       }
       async forceUpdate() {
@@ -59506,7 +59988,7 @@ var init_SchedulerService = __esm({
             if (!service) {
               missingServices.push(serviceName);
             }
-          } catch (error) {
+          } catch (error3) {
             missingServices.push(serviceName);
           }
         }
@@ -59701,8 +60183,8 @@ var init_SchedulerService = __esm({
           } else {
             throw new Error("Morning briefing service not available");
           }
-        } catch (error) {
-          await this.handleTaskError(taskId, error);
+        } catch (error3) {
+          await this.handleTaskError(taskId, error3);
         }
       }
       async executeKnowledgeDigest(taskId) {
@@ -59721,8 +60203,8 @@ var init_SchedulerService = __esm({
           } else {
             throw new Error("Knowledge digest service not available");
           }
-        } catch (error) {
-          await this.handleTaskError(taskId, error);
+        } catch (error3) {
+          await this.handleTaskError(taskId, error3);
         }
       }
       async executeOpportunityAlertCheck(taskId) {
@@ -59748,8 +60230,8 @@ var init_SchedulerService = __esm({
           } else {
             throw new Error("Opportunity alert service not available");
           }
-        } catch (error) {
-          await this.handleTaskError(taskId, error);
+        } catch (error3) {
+          await this.handleTaskError(taskId, error3);
         }
       }
       async executePerformanceReport(taskId) {
@@ -59767,8 +60249,8 @@ var init_SchedulerService = __esm({
           } else {
             throw new Error("Performance tracking service not available");
           }
-        } catch (error) {
-          await this.handleTaskError(taskId, error);
+        } catch (error3) {
+          await this.handleTaskError(taskId, error3);
         }
       }
       async executeContentIngestionCheck(taskId) {
@@ -59787,8 +60269,8 @@ var init_SchedulerService = __esm({
             await this.updateTaskStatus(taskId, "completed");
             this.contextLogger.info("Content ingestion services not available");
           }
-        } catch (error) {
-          await this.handleTaskError(taskId, error);
+        } catch (error3) {
+          await this.handleTaskError(taskId, error3);
         }
       }
       async updateTaskStatus(taskId, status, result) {
@@ -59807,14 +60289,14 @@ var init_SchedulerService = __esm({
         this.scheduledTasks.set(taskId, task);
         this.updateMetrics();
       }
-      async handleTaskError(taskId, error) {
+      async handleTaskError(taskId, error3) {
         const task = this.scheduledTasks.get(taskId);
         if (!task) return;
         task.retryCount++;
-        task.error = error.message;
+        task.error = error3.message;
         this.contextLogger.error(
           `Task ${task.name} failed (attempt ${task.retryCount}):`,
-          error.message
+          error3.message
         );
         if (task.retryCount < task.maxRetries) {
           const retryDelay = Math.pow(2, task.retryCount) * 1e3;
@@ -59896,10 +60378,10 @@ var init_SchedulerService = __esm({
           await this.executeMorningBriefing(taskId);
           const task = this.scheduledTasks.get(taskId);
           return task?.result || null;
-        } catch (error) {
+        } catch (error3) {
           this.contextLogger.error(
             "Failed to trigger manual briefing:",
-            error.message
+            error3.message
           );
           return null;
         }
@@ -59914,10 +60396,10 @@ var init_SchedulerService = __esm({
           await this.executeKnowledgeDigest(taskId);
           const task = this.scheduledTasks.get(taskId);
           return task?.result || null;
-        } catch (error) {
+        } catch (error3) {
           this.contextLogger.error(
             "Failed to trigger manual digest:",
-            error.message
+            error3.message
           );
           return null;
         }
@@ -59951,6 +60433,7 @@ var init_ServiceFactory = __esm({
     init_KnowledgeDigestService();
     init_SlackIngestionService();
     init_SchedulerService();
+    init_terminal_formatting();
     ServiceFactory2 = class {
       static serviceInstances = /* @__PURE__ */ new Map();
       static isInitialized = false;
@@ -59959,16 +60442,14 @@ var init_ServiceFactory = __esm({
        */
       static async initializeServices(runtime, config) {
         if (this.isInitialized) {
-          logger43.warn("[ServiceFactory] Services already initialized, skipping...");
+          logger43.warn(warning("Services already initialized, skipping..."));
           return;
         }
-        logger43.info("[ServiceFactory] Initializing Bitcoin LTL services...");
+        console.log(sectionHeader("Service Initialization", "\u{1F527}"));
         try {
           const { initializeConfigurationManager: initializeConfigurationManager3 } = await Promise.resolve().then(() => (init_ConfigurationManager(), ConfigurationManager_exports));
           await initializeConfigurationManager3(runtime);
-          logger43.info(
-            "[ServiceFactory] Configuration manager initialized successfully"
-          );
+          logger43.info(success("Configuration manager initialized successfully"));
           for (const [key, value] of Object.entries(config)) {
             if (value) process.env[key] = value;
           }
@@ -59997,33 +60478,30 @@ var init_ServiceFactory = __esm({
             // Scheduler service (depends on other services)
             SchedulerService2
           ];
-          for (const ServiceClass of serviceClasses) {
+          console.log(subsectionHeader(`Starting ${serviceClasses.length} Services`, "\u25B6\uFE0F"));
+          for (let i = 0; i < serviceClasses.length; i++) {
+            const ServiceClass = serviceClasses[i];
             try {
-              logger43.info(`[ServiceFactory] Starting ${ServiceClass.name}...`);
+              const serviceName = ServiceClass.name;
+              console.log(serviceStartup(serviceName));
+              console.log(progressBar(i + 1, serviceClasses.length, 30));
               const service = await ServiceClass.start(runtime);
               this.serviceInstances.set(
                 ServiceClass.serviceType || ServiceClass.name.toLowerCase(),
                 service
               );
-              logger43.info(
-                `[ServiceFactory] \u2705 ${ServiceClass.name} started successfully`
-              );
-            } catch (error) {
-              logger43.error(
-                `[ServiceFactory] \u274C Failed to start ${ServiceClass.name}:`,
-                error
-              );
+              console.log(serviceStarted(serviceName));
+            } catch (error3) {
+              console.log(serviceError(ServiceClass.name, error3 instanceof Error ? error3.message : String(error3)));
             }
           }
           this.isInitialized = true;
-          logger43.info("[ServiceFactory] \u{1F389} All services initialized successfully");
+          console.log(divider());
+          logger43.info(success("All services initialized successfully"));
           this.logServiceStatus();
-        } catch (error) {
-          logger43.error(
-            "[ServiceFactory] Critical error during service initialization:",
-            error
-          );
-          throw error;
+        } catch (error3) {
+          logger43.error(error("Critical error during service initialization:"), error3);
+          throw error3;
         }
       }
       /**
@@ -60052,10 +60530,10 @@ var init_ServiceFactory = __esm({
                   `[ServiceFactory] \u2705 ${service.constructor.name} stopped`
                 );
               }
-            } catch (error) {
+            } catch (error3) {
               logger43.error(
                 `[ServiceFactory] \u274C Error stopping ${service.constructor.name}:`,
-                error
+                error3
               );
             }
           }
@@ -60069,7 +60547,7 @@ var init_ServiceFactory = __esm({
        * Log current service status
        */
       static logServiceStatus() {
-        const serviceStatus = Array.from(this.serviceInstances.entries()).map(
+        const serviceStatus3 = Array.from(this.serviceInstances.entries()).map(
           ([type, service]) => ({
             type,
             name: service.constructor.name,
@@ -60077,8 +60555,8 @@ var init_ServiceFactory = __esm({
           })
         );
         logger43.info("[ServiceFactory] Service Status Summary:", {
-          totalServices: serviceStatus.length,
-          services: serviceStatus
+          totalServices: serviceStatus3.length,
+          services: serviceStatus3
         });
       }
       /**
@@ -60093,10 +60571,10 @@ var init_ServiceFactory = __esm({
               await service.healthCheck();
             }
             serviceHealth[type] = { status: "healthy" };
-          } catch (error) {
+          } catch (error3) {
             serviceHealth[type] = {
               status: "unhealthy",
-              error: error instanceof Error ? error.message : "Unknown error"
+              error: error3 instanceof Error ? error3.message : "Unknown error"
             };
             allHealthy = false;
           }
@@ -60190,9 +60668,9 @@ var init_StarterService = __esm({
               };
             }
           }
-        } catch (error) {
+        } catch (error3) {
           const enhancedError = ElizaOSErrorHandler3.handleCommonErrors(
-            error,
+            error3,
             "MemoryReset"
           );
           logger44.error("Failed to reset memory:", enhancedError.message);
@@ -60228,9 +60706,9 @@ var init_StarterService = __esm({
                   `Database directory is large (${(dirSize / 1024 / 1024).toFixed(0)}MB). Consider cleanup.`
                 );
               }
-            } catch (error) {
+            } catch (error3) {
               issues.push(
-                `Could not check database directory size: ${error.message}`
+                `Could not check database directory size: ${error3.message}`
               );
             }
           }
@@ -60245,8 +60723,8 @@ var init_StarterService = __esm({
             stats,
             issues
           };
-        } catch (error) {
-          issues.push(`Memory health check failed: ${error.message}`);
+        } catch (error3) {
+          issues.push(`Memory health check failed: ${error3.message}`);
           return {
             healthy: false,
             stats,
@@ -60285,8 +60763,8 @@ var init_StarterService = __esm({
           );
           const data = await response.json();
           return data.bitcoin?.usd || 1e5;
-        } catch (error) {
-          logger44.error("Error fetching Bitcoin price:", error);
+        } catch (error3) {
+          logger44.error("Error fetching Bitcoin price:", error3);
           return 1e5;
         }
       }
@@ -60377,8 +60855,8 @@ var init_StarterService = __esm({
             // Static for Bitcoin
             lastUpdated: (/* @__PURE__ */ new Date()).toISOString()
           };
-        } catch (error) {
-          logger44.error("Error fetching enhanced market data:", error);
+        } catch (error3) {
+          logger44.error("Error fetching enhanced market data:", error3);
           return {
             price: 1e5,
             marketCap: 2e12,
@@ -60804,9 +61282,9 @@ var init_CentralizedConfigService = __esm({
           const validatedConfig = ConfigSchema2.parse(mergedConfig);
           this.updateConfiguration(validatedConfig);
           this.contextLogger.info("Configuration loaded successfully");
-        } catch (error) {
+        } catch (error3) {
           this.contextLogger.error("Failed to load configuration", {
-            error: error instanceof Error ? error.message : "Unknown error"
+            error: error3 instanceof Error ? error3.message : "Unknown error"
           });
           this.pluginConfig = this.getDefaultConfig();
           this.contextLogger.warn("Using default configuration");
@@ -60822,12 +61300,12 @@ var init_CentralizedConfigService = __esm({
           this.lastModified = stats.mtime.getTime();
           const content = await fs.readFile(this.configFile, "utf-8");
           return JSON.parse(content);
-        } catch (error) {
+        } catch (error3) {
           this.contextLogger.warn(
             "Config file not found or unreadable, using defaults",
             {
               file: this.configFile,
-              error: error instanceof Error ? error.message : "Unknown error"
+              error: error3 instanceof Error ? error3.message : "Unknown error"
             }
           );
           return {};
@@ -60916,9 +61394,9 @@ var init_CentralizedConfigService = __esm({
           this.contextLogger.info("Config file watcher started", {
             file: this.configFile
           });
-        } catch (error) {
+        } catch (error3) {
           this.contextLogger.warn("Failed to start config file watcher", {
-            error: error instanceof Error ? error.message : "Unknown error"
+            error: error3 instanceof Error ? error3.message : "Unknown error"
           });
         }
       }
@@ -60962,10 +61440,10 @@ var init_CentralizedConfigService = __esm({
         try {
           ConfigSchema2.parse(this.pluginConfig);
           this.notifyConfigChange(path, oldValue, value);
-        } catch (error) {
+        } catch (error3) {
           current[lastKey] = oldValue;
           throw new Error(
-            `Invalid configuration: ${error instanceof Error ? error.message : "Unknown error"}`
+            `Invalid configuration: ${error3 instanceof Error ? error3.message : "Unknown error"}`
           );
         }
       }
@@ -61002,10 +61480,10 @@ var init_CentralizedConfigService = __esm({
           pathWatchers.forEach((listener) => {
             try {
               listener(event);
-            } catch (error) {
+            } catch (error3) {
               this.contextLogger.error("Error in config change listener", {
                 path,
-                error: error instanceof Error ? error.message : "Unknown error"
+                error: error3 instanceof Error ? error3.message : "Unknown error"
               });
             }
           });
@@ -61018,10 +61496,10 @@ var init_CentralizedConfigService = __esm({
             parentWatchers.forEach((listener) => {
               try {
                 listener(event);
-              } catch (error) {
+              } catch (error3) {
                 this.contextLogger.error("Error in config change listener", {
                   path: parentPath,
-                  error: error instanceof Error ? error.message : "Unknown error"
+                  error: error3 instanceof Error ? error3.message : "Unknown error"
                 });
               }
             });
@@ -61041,11 +61519,11 @@ var init_CentralizedConfigService = __esm({
         try {
           ConfigSchema2.parse(config);
           return { valid: true, errors: [] };
-        } catch (error) {
-          if (error instanceof z4.ZodError) {
+        } catch (error3) {
+          if (error3 instanceof z4.ZodError) {
             return {
               valid: false,
-              errors: error.errors.map(
+              errors: error3.errors.map(
                 (err) => `${err.path.join(".")}: ${err.message}`
               )
             };
@@ -61064,12 +61542,12 @@ var init_CentralizedConfigService = __esm({
           const fs = await import("fs/promises");
           await fs.writeFile(filePath, JSON.stringify(this.pluginConfig, null, 2));
           this.contextLogger.info("Configuration exported", { file: filePath });
-        } catch (error) {
+        } catch (error3) {
           this.contextLogger.error("Failed to export configuration", {
             file: filePath,
-            error: error instanceof Error ? error.message : "Unknown error"
+            error: error3 instanceof Error ? error3.message : "Unknown error"
           });
-          throw error;
+          throw error3;
         }
       }
       /**
@@ -61260,14 +61738,14 @@ var init_knowledge_performance_monitor = __esm({
         console.log("\u2705 Knowledge Performance Monitor stopped");
       }
       // Track search performance
-      recordSearch(query, responseTime, resultsCount, cacheHit = false, error) {
+      recordSearch(query, responseTime, resultsCount, cacheHit = false, error3) {
         const searchMetric = {
           timestamp: /* @__PURE__ */ new Date(),
           query,
           responseTime,
           resultsCount,
           cacheHit,
-          error
+          error: error3
         };
         this.searchHistory.push(searchMetric);
         if (this.searchHistory.length > this.maxHistorySize) {
@@ -61292,8 +61770,8 @@ var init_knowledge_performance_monitor = __esm({
             this.metrics.indexSize = stats.indexSize || 0;
             this.metrics.lastIndexUpdate = stats.lastUpdate || /* @__PURE__ */ new Date();
           }
-        } catch (error) {
-          console.error("Error updating index metrics:", error);
+        } catch (error3) {
+          console.error("Error updating index metrics:", error3);
         }
       }
       // Update calculated metrics
@@ -61410,25 +61888,25 @@ var init_ActionTemplate = __esm({
       validate: async (runtime, message, state) => {
         try {
           return await config.validateFn(runtime, message, state);
-        } catch (error) {
-          console.error(`Validation error in ${config.name}:`, error);
+        } catch (error3) {
+          console.error(`Validation error in ${config.name}:`, error3);
           return false;
         }
       },
       handler: async (runtime, message, state, options, callback) => {
         try {
           return await config.handlerFn(runtime, message, state, options, callback);
-        } catch (error) {
-          console.error(`Handler error in ${config.name}:`, error);
+        } catch (error3) {
+          console.error(`Handler error in ${config.name}:`, error3);
           const errorResponse = {
-            thought: `An error occurred while executing ${config.name}: ${error.message}`,
+            thought: `An error occurred while executing ${config.name}: ${error3.message}`,
             text: "I encountered an issue processing your request. Please try again later.",
             actions: [config.name]
           };
           if (callback) {
             await callback(errorResponse);
           }
-          return { success: false, error: error.message };
+          return { success: false, error: error3.message };
         }
       }
     });
@@ -62107,13 +62585,13 @@ var init_morningBriefingAction = __esm({
           }
           logger47.info("Morning briefing delivered successfully");
           return true;
-        } catch (error) {
+        } catch (error3) {
           logger47.error(
             "Failed to generate morning briefing:",
-            error.message
+            error3.message
           );
           let errorMessage = "Systems operational. Bitcoin protocol unchanged. Market data temporarily unavailable.";
-          const errorMsg = error.message.toLowerCase();
+          const errorMsg = error3.message.toLowerCase();
           if (errorMsg.includes("rate limit") || errorMsg.includes("429") || errorMsg.includes("too many requests")) {
             errorMessage = "Rate limited by market data providers. Bitcoin protocol unchanged. Will retry shortly.";
           } else if (errorMsg.includes("network") || errorMsg.includes("timeout") || errorMsg.includes("fetch")) {
@@ -62123,7 +62601,7 @@ var init_morningBriefingAction = __esm({
           }
           const errorResponse = ResponseCreators2.createErrorResponse(
             "MORNING_BRIEFING",
-            error.message,
+            error3.message,
             errorMessage
           );
           if (callback) {
@@ -62285,13 +62763,13 @@ var init_knowledgeDigestAction = __esm({
           }
           logger48.info("Knowledge digest delivered successfully");
           return true;
-        } catch (error) {
+        } catch (error3) {
           logger48.error(
             "Failed to generate knowledge digest:",
-            error.message
+            error3.message
           );
           let errorMessage = "Knowledge synthesis systems operational. Research monitoring continues. Intelligence processing may be delayed.";
-          const errorMsg = error.message.toLowerCase();
+          const errorMsg = error3.message.toLowerCase();
           if (errorMsg.includes("rate limit") || errorMsg.includes("429") || errorMsg.includes("too many requests")) {
             errorMessage = "Research data rate limited. Knowledge synthesis paused temporarily. Intelligence gathering continues at reduced frequency.";
           } else if (errorMsg.includes("network") || errorMsg.includes("timeout") || errorMsg.includes("fetch")) {
@@ -62301,7 +62779,7 @@ var init_knowledgeDigestAction = __esm({
           }
           const errorResponse = ResponseCreators2.createErrorResponse(
             "KNOWLEDGE_DIGEST",
-            error.message,
+            error3.message,
             errorMessage
           );
           if (callback) {
@@ -62478,13 +62956,13 @@ var init_opportunityAlertsAction = __esm({
           }
           logger49.info("Opportunity alerts delivered successfully");
           return true;
-        } catch (error) {
+        } catch (error3) {
           logger49.error(
             "Failed to get opportunity alerts:",
-            error.message
+            error3.message
           );
           let errorMessage = "Alert systems operational. Manual monitoring continues. Market vigilance maintained.";
-          const errorMsg = error.message.toLowerCase();
+          const errorMsg = error3.message.toLowerCase();
           if (errorMsg.includes("rate limit") || errorMsg.includes("429") || errorMsg.includes("too many requests")) {
             errorMessage = "Alert data rate limited. Opportunity monitoring paused temporarily. Manual vigilance advised for immediate signals.";
           } else if (errorMsg.includes("network") || errorMsg.includes("timeout") || errorMsg.includes("fetch")) {
@@ -62494,7 +62972,7 @@ var init_opportunityAlertsAction = __esm({
           }
           const errorResponse = ResponseCreators2.createErrorResponse(
             "OPPORTUNITY_ALERTS",
-            error.message,
+            error3.message,
             errorMessage
           );
           if (callback) {
@@ -62701,13 +63179,13 @@ var init_bitcoinNetworkHealthAction = __esm({
           }
           logger50.info("Bitcoin network health report delivered successfully");
           return true;
-        } catch (error) {
+        } catch (error3) {
           logger50.error(
             "Failed to get network health data:",
-            error.message
+            error3.message
           );
           let errorMessage = "Network fundamentals operational. Hashrate securing the chain. Blocks continuing every ~10 minutes.";
-          const errorMsg = error.message.toLowerCase();
+          const errorMsg = error3.message.toLowerCase();
           if (errorMsg.includes("rate limit") || errorMsg.includes("429") || errorMsg.includes("too many requests")) {
             errorMessage = "Rate limited by data providers. Bitcoin network unchanged: miners securing blocks, nodes validating transactions. Protocol operational.";
           } else if (errorMsg.includes("network") || errorMsg.includes("timeout") || errorMsg.includes("fetch")) {
@@ -62717,7 +63195,7 @@ var init_bitcoinNetworkHealthAction = __esm({
           }
           const errorResponse = ResponseCreators2.createErrorResponse(
             "BITCOIN_NETWORK_HEALTH",
-            error.message,
+            error3.message,
             errorMessage
           );
           if (callback) {
@@ -62778,8 +63256,8 @@ var init_bitcoinPriceAction = __esm({
                     marketCap = data.bitcoin.usd_market_cap || 2e12;
                   }
                 }
-              } catch (error) {
-                console.warn("[BitcoinPriceAction] Direct API call failed:", error);
+              } catch (error3) {
+                console.warn("[BitcoinPriceAction] Direct API call failed:", error3);
               }
             }
           }
@@ -62795,8 +63273,8 @@ var init_bitcoinPriceAction = __esm({
             await callback(responseContent);
           }
           return true;
-        } catch (error) {
-          console.error("[BitcoinPriceAction] Error:", error);
+        } catch (error3) {
+          console.error("[BitcoinPriceAction] Error:", error3);
           const errorResponse = {
             thought: "Failed to get Bitcoin price data, providing fallback information.",
             text: "Bitcoin is currently trading around $100,000 USD. (Price data temporarily unavailable)",
@@ -63002,8 +63480,8 @@ var init_altcoinPriceAction = __esm({
             await callback(responseContent);
           }
           return true;
-        } catch (error) {
-          console.error("[AltcoinPriceAction] Error:", error);
+        } catch (error3) {
+          console.error("[AltcoinPriceAction] Error:", error3);
           const errorResponse = {
             thought: "Failed to get altcoin price data, providing fallback information.",
             text: "Altcoin price data temporarily unavailable. Markets continue trading.",
@@ -63327,10 +63805,10 @@ var init_weatherAction = __esm({
           }
           logger51.info("Weather analysis delivered successfully");
           return true;
-        } catch (error) {
-          logger51.error("Failed to get weather data:", error.message);
+        } catch (error3) {
+          logger51.error("Failed to get weather data:", error3.message);
           let errorMessage = "Weather monitoring systems operational. Natural patterns continue regardless of our observation capabilities.";
-          const errorMsg = error.message.toLowerCase();
+          const errorMsg = error3.message.toLowerCase();
           if (errorMsg.includes("rate limit") || errorMsg.includes("429") || errorMsg.includes("too many requests")) {
             errorMessage = "Weather data rate limited. Like Bitcoin mining difficulty, natural systems have their own rate limits. Will retry shortly.";
           } else if (errorMsg.includes("network") || errorMsg.includes("timeout") || errorMsg.includes("fetch")) {
@@ -63340,7 +63818,7 @@ var init_weatherAction = __esm({
           }
           const errorResponse = ResponseCreators2.createErrorResponse(
             "WEATHER_ANALYSIS",
-            error.message,
+            error3.message,
             errorMessage
           );
           if (callback) {
@@ -63578,13 +64056,13 @@ var init_curatedAltcoinsAction = __esm({
           }
           logger53.info("Curated altcoins analysis delivered successfully");
           return true;
-        } catch (error) {
+        } catch (error3) {
           logger53.error(
             "Failed to analyze curated altcoins:",
-            error.message
+            error3.message
           );
           let errorMessage = "Altcoin analysis systems operational. Markets are volatile beasts - price discovery continues.";
-          const errorMsg = error.message.toLowerCase();
+          const errorMsg = error3.message.toLowerCase();
           if (errorMsg.includes("rate limit") || errorMsg.includes("429") || errorMsg.includes("too many requests")) {
             errorMessage = "Market data rate limited. The casino is overwhelmed with degenerates. Analysis will resume shortly.";
           } else if (errorMsg.includes("network") || errorMsg.includes("timeout") || errorMsg.includes("fetch")) {
@@ -63594,7 +64072,7 @@ var init_curatedAltcoinsAction = __esm({
           }
           const errorResponse = ResponseCreators2.createErrorResponse(
             "CURATED_ALTCOINS",
-            error.message,
+            error3.message,
             errorMessage
           );
           if (callback) {
@@ -63785,14 +64263,14 @@ var init_top100VsBtcAction = __esm({
           }
           logger54.info("Top 100 vs BTC analysis delivered successfully");
           return true;
-        } catch (error) {
+        } catch (error3) {
           logger54.error(
             "Failed to analyze top 100 vs BTC:",
-            error.message
+            error3.message
           );
           const errorResponse = ResponseCreators2.createErrorResponse(
             "TOP100_VS_BTC_ACTION",
-            error.message,
+            error3.message,
             "Performance analysis failed. Bitcoin remains the ultimate benchmark for all digital assets."
           );
           if (callback) {
@@ -63975,14 +64453,14 @@ var init_btcRelativePerformanceAction = __esm({
           }
           logger55.info("BTC relative performance analysis delivered successfully");
           return true;
-        } catch (error) {
+        } catch (error3) {
           logger55.error(
             "Failed to analyze BTC relative performance:",
-            error.message
+            error3.message
           );
           const errorResponse = ResponseCreators2.createErrorResponse(
             "BTC_RELATIVE_PERFORMANCE",
-            error.message,
+            error3.message,
             "BTC relative performance analysis failed. Market dynamics continue regardless of our monitoring systems."
           );
           if (callback) {
@@ -64177,14 +64655,14 @@ var init_dexScreenerAction = __esm({
           }
           logger56.info("DEXScreener analysis delivered successfully");
           return true;
-        } catch (error) {
+        } catch (error3) {
           logger56.error(
             "Failed to analyze DEXScreener data:",
-            error.message
+            error3.message
           );
           const errorResponse = ResponseCreators2.createErrorResponse(
             "DEX_SCREENER_ACTION",
-            error.message,
+            error3.message,
             "Error retrieving DEXScreener data. The degen casino servers might be down."
           );
           if (callback) {
@@ -64380,10 +64858,10 @@ var init_topMoversAction = __esm({
           }
           logger57.info("Top movers analysis delivered successfully");
           return true;
-        } catch (error) {
-          logger57.error("Failed to analyze top movers:", error.message);
+        } catch (error3) {
+          logger57.error("Failed to analyze top movers:", error3.message);
           let errorMessage = "Top movers analysis systems operational. The casino continues regardless of our monitoring capabilities.";
-          const errorMsg = error.message.toLowerCase();
+          const errorMsg = error3.message.toLowerCase();
           if (errorMsg.includes("rate limit") || errorMsg.includes("429") || errorMsg.includes("too many requests")) {
             errorMessage = "Market data rate limited. CoinGecko overwhelmed with degenerates. Analysis will resume shortly.";
           } else if (errorMsg.includes("network") || errorMsg.includes("timeout") || errorMsg.includes("fetch")) {
@@ -64393,7 +64871,7 @@ var init_topMoversAction = __esm({
           }
           const errorResponse = ResponseCreators2.createErrorResponse(
             "TOP_MOVERS_ACTION",
-            error.message,
+            error3.message,
             errorMessage
           );
           if (callback) {
@@ -64601,14 +65079,14 @@ var init_trendingCoinsAction = __esm({
           }
           logger58.info("Trending coins analysis delivered successfully");
           return true;
-        } catch (error) {
+        } catch (error3) {
           logger58.error(
             "Failed to analyze trending coins:",
-            error.message
+            error3.message
           );
           const errorResponse = ResponseCreators2.createErrorResponse(
             "TRENDING_COINS_ACTION",
-            error.message,
+            error3.message,
             "Error retrieving trending coins data. CoinGecko search trending might be rate limited or community interest is shifting rapidly."
           );
           if (callback) {
@@ -64788,11 +65266,11 @@ var init_stockMarketAction = __esm({
           }
           logger59.info("Stock market analysis delivered successfully");
           return true;
-        } catch (error) {
-          logger59.error("Failed to analyze stock market:", error.message);
+        } catch (error3) {
+          logger59.error("Failed to analyze stock market:", error3.message);
           const errorResponse = ResponseCreators2.createErrorResponse(
             "STOCK_MARKET_ANALYSIS",
-            error.message,
+            error3.message,
             "Market analysis failed. Like network congestion, sometimes data flows require patience and retry mechanisms."
           );
           if (callback) {
@@ -64968,11 +65446,11 @@ var init_etfFlowAction = __esm({
           }
           logger60.info("ETF flow analysis delivered successfully");
           return true;
-        } catch (error) {
-          logger60.error("Failed to analyze ETF flows:", error.message);
+        } catch (error3) {
+          logger60.error("Failed to analyze ETF flows:", error3.message);
           const errorResponse = ResponseCreators2.createErrorResponse(
             "ETF_FLOW_TRACKING",
-            error.message,
+            error3.message,
             "ETF tracking error. Bitcoin ETFs are revolutionizing institutional access to Bitcoin. Since January 2024, these vehicles have absorbed unprecedented amounts of Bitcoin, creating structural demand that outpaces new supply."
           );
           if (callback) {
@@ -65201,11 +65679,11 @@ var init_curatedNFTsAction = __esm({
           }
           logger61.info("NFT market analysis delivered successfully");
           return true;
-        } catch (error) {
-          logger61.error("Failed to analyze NFT market:", error.message);
+        } catch (error3) {
+          logger61.error("Failed to analyze NFT market:", error3.message);
           const errorResponse = ResponseCreators2.createErrorResponse(
             "CURATED_NFTS_ANALYSIS",
-            error.message,
+            error3.message,
             "NFT analysis failed. Perhaps the market is teaching us that Bitcoin's simplicity is its strength."
           );
           if (callback) {
@@ -65506,11 +65984,11 @@ var init_hotelSearchAction = __esm({
           }
           logger63.info("Hotel search results delivered successfully");
           return true;
-        } catch (error) {
-          logger63.error("Failed to search hotels:", error.message);
+        } catch (error3) {
+          logger63.error("Failed to search hotels:", error3.message);
           const errorResponse = ResponseCreators2.createErrorResponse(
             "HOTEL_SEARCH_ACTION",
-            error.message,
+            error3.message,
             "Hotel search failed. Like the Bitcoin network, sometimes connections need time to establish. Try again in a moment."
           );
           if (callback) {
@@ -65712,8 +66190,8 @@ async function formatDealsResponse2(deals, params, culturalService) {
 \u{1F31F} **SEASONAL HIGHLIGHT**: ${seasonalInsights[0]}`;
         }
       }
-    } catch (error) {
-      logger64.warn(`Failed to add cultural context: ${error}`);
+    } catch (error3) {
+      logger64.warn(`Failed to add cultural context: ${error3}`);
     }
   }
   const bitcoinQuotes = [
@@ -65880,14 +66358,14 @@ var init_hotelDealAlertAction = __esm({
           }
           logger64.info("Hotel deal alerts delivered successfully");
           return true;
-        } catch (error) {
+        } catch (error3) {
           logger64.error(
             "Failed to process hotel deal alerts:",
-            error.message
+            error3.message
           );
           const errorResponse = ResponseCreators2.createErrorResponse(
             "HOTEL_DEAL_ALERT",
-            error.message,
+            error3.message,
             "Deal monitoring failed. Like Bitcoin's mempool, sometimes transactions need patience to clear."
           );
           if (callback) {
@@ -66012,8 +66490,8 @@ async function performBookingOptimization2(travelService, culturalService, crite
     try {
       const insight = await culturalService.enhancePerfectDayOpportunity(perfectDay);
       culturalInsights.push(insight);
-    } catch (error) {
-      logger65.warn(`Failed to enhance perfect day with cultural context: ${error}`);
+    } catch (error3) {
+      logger65.warn(`Failed to enhance perfect day with cultural context: ${error3}`);
     }
   }
   const culturalValue = culturalInsights.length > 0 ? culturalInsights[0].enhancedRecommendation.wealthPreservation.slice(0, 2) : ["Cultural preservation through luxury tourism", "Multi-generational appeal with cultural significance"];
@@ -66327,14 +66805,14 @@ var init_bookingOptimizationAction = __esm({
           }
           logger65.info("Booking optimization completed successfully");
           return true;
-        } catch (error) {
+        } catch (error3) {
           logger65.error(
             "Failed to process booking optimization:",
-            error.message
+            error3.message
           );
           const errorResponse = ResponseCreators2.createErrorResponse(
             "BOOKING_OPTIMIZATION",
-            error.message,
+            error3.message,
             "Booking optimization failed. Like Bitcoin transactions, sometimes the optimal path requires multiple attempts."
           );
           if (callback) {
@@ -66437,8 +66915,8 @@ async function generateTravelInsights2(travelService, culturalService, request) 
           `Bitcoin lifestyle integration: ${lifestyleIntegration[0] || "sound money principles with luxury"}`
         );
       }
-    } catch (error) {
-      logger66.warn(`Failed to add cultural context for ${request.city}: ${error}`);
+    } catch (error3) {
+      logger66.warn(`Failed to add cultural context for ${request.city}: ${error3}`);
     }
   }
   return response;
@@ -66474,8 +66952,8 @@ async function generatePerfectDayInsights2(travelService, city) {
         bestOpportunity
       }
     };
-  } catch (error) {
-    logger66.error("Error generating perfect day insights:", error);
+  } catch (error3) {
+    logger66.error("Error generating perfect day insights:", error3);
     return {
       opportunities: [],
       summary: {
@@ -66927,14 +67405,14 @@ var init_travelInsightsAction = __esm({
           }
           logger66.info("Travel insights delivered successfully");
           return true;
-        } catch (error) {
+        } catch (error3) {
           logger66.error(
             "Failed to process travel insights:",
-            error.message
+            error3.message
           );
           const errorResponse = ResponseCreators2.createErrorResponse(
             "TRAVEL_INSIGHTS",
-            error.message,
+            error3.message,
             "Travel insights analysis failed. Like Bitcoin network analysis, sometimes comprehensive insights require patience and multiple data sources."
           );
           if (callback) {
@@ -67046,8 +67524,8 @@ var init_hotelRateIntelligenceAction = __esm({
             });
           }
           return true;
-        } catch (error) {
-          console.error("Error in hotel rate intelligence action:", error);
+        } catch (error3) {
+          console.error("Error in hotel rate intelligence action:", error3);
           if (callback) {
             await callback({
               thought: "Encountered an error while analyzing hotel rates",
@@ -67187,8 +67665,8 @@ Would you like me to help you with a broader search or suggest related topics?`,
             });
           }
           return true;
-        } catch (error) {
-          console.error("Enhanced knowledge search error:", error);
+        } catch (error3) {
+          console.error("Enhanced knowledge search error:", error3);
           if (callback) {
             await callback({
               thought: "An error occurred during the enhanced knowledge search.",
@@ -67314,12 +67792,12 @@ var init_weeklyHotelSuggestionsAction = __esm({
             });
           }
           return true;
-        } catch (error) {
-          logger67.error("Error in weekly hotel suggestions action:", error);
+        } catch (error3) {
+          logger67.error("Error in weekly hotel suggestions action:", error3);
           if (callback) {
             await callback({
               text: "\u274C Unable to retrieve weekly hotel suggestions at this time. Please try again later.",
-              thought: `Failed to get weekly hotel suggestions: ${error.message}`,
+              thought: `Failed to get weekly hotel suggestions: ${error3.message}`,
               actions: ["weekly_hotel_suggestions"]
             });
           }
@@ -67351,8 +67829,8 @@ var init_helloWorldAction = __esm({
           };
           await callback(responseContent);
           return responseContent;
-        } catch (error) {
-          console.error("[HelloWorldAction] Error:", error);
+        } catch (error3) {
+          console.error("[HelloWorldAction] Error:", error3);
           const errorContent = {
             text: "Hello! I'm here to help with Bitcoin insights and analysis.",
             actions: ["HELLO_WORLD"],
@@ -67457,8 +67935,8 @@ The 100K BTC Holders thesis remains on track with institutional adoption acceler
           };
           await callback(responseContent);
           return responseContent;
-        } catch (error) {
-          logger68.error("Error in Bitcoin market analysis:", error);
+        } catch (error3) {
+          logger68.error("Error in Bitcoin market analysis:", error3);
           const errorContent = {
             text: "Unable to generate Bitcoin market analysis at this time. Please try again later.",
             actions: ["BITCOIN_MARKET_ANALYSIS"],
@@ -67581,8 +68059,8 @@ Thesis tracking ahead of schedule with institutional adoption accelerating. Mult
           };
           await callback(responseContent);
           return responseContent;
-        } catch (error) {
-          logger69.error("Error in Bitcoin thesis status:", error);
+        } catch (error3) {
+          logger69.error("Error in Bitcoin thesis status:", error3);
           const errorContent = {
             text: "Unable to provide Bitcoin thesis status at this time. Please try again later.",
             actions: ["BITCOIN_THESIS_STATUS"],
@@ -67662,9 +68140,9 @@ ${result.message}`;
           };
           await callback(responseContent);
           return responseContent;
-        } catch (error) {
+        } catch (error3) {
           const enhancedError = ElizaOSErrorHandler3.handleCommonErrors(
-            error,
+            error3,
             "ResetMemoryAction"
           );
           const errorText = `\u274C **MEMORY RESET ERROR**
@@ -67743,9 +68221,9 @@ ${healthCheck.issues.map((issue) => `\u2022 ${issue}`).join("\n")}` : "**No issu
           };
           await callback(responseContent);
           return responseContent;
-        } catch (error) {
+        } catch (error3) {
           const enhancedError = ElizaOSErrorHandler3.handleCommonErrors(
-            error,
+            error3,
             "MemoryHealthAction"
           );
           const errorText = `\u274C **MEMORY HEALTH CHECK FAILED**
@@ -67944,8 +68422,8 @@ The truest decentralization starts with the self. Optimize your personal node be
           };
           await callback(responseContent);
           return responseContent;
-        } catch (error) {
-          logger70.error("Error in sovereign living action:", error);
+        } catch (error3) {
+          logger70.error("Error in sovereign living action:", error3);
           const errorContent = {
             text: "Unable to provide sovereign living advice at this time. Truth requires verification through lived experience.",
             actions: ["SOVEREIGN_LIVING_ADVICE"],
@@ -68180,8 +68658,8 @@ Bitcoin is transitioning from speculative asset to reserve asset. Institutional 
           };
           await callback(responseContent);
           return responseContent;
-        } catch (error) {
-          logger71.error("Error in investment strategy action:", error);
+        } catch (error3) {
+          logger71.error("Error in investment strategy action:", error3);
           const errorContent = {
             text: "Unable to provide investment strategy advice at this time. Truth requires verification through mathematical analysis and risk assessment.",
             actions: ["INVESTMENT_STRATEGY_ADVICE"],
@@ -68305,8 +68783,8 @@ Use \`elizaos env edit-local\` to configure missing API keys.` : "**No issues de
           };
           await callback(responseContent);
           return responseContent;
-        } catch (error) {
-          logger73.error("Error in environment validation:", error);
+        } catch (error3) {
+          logger73.error("Error in environment validation:", error3);
           const errorContent = {
             text: "Unable to validate environment configuration at this time. Please check your setup manually.",
             actions: ["VALIDATE_ENVIRONMENT"],
@@ -68424,8 +68902,8 @@ These calculations assume thesis progression occurs. Bitcoin volatility means tw
           };
           await callback(responseContent);
           return responseContent;
-        } catch (error) {
-          logger74.error("Error in freedom mathematics action:", error);
+        } catch (error3) {
+          logger74.error("Error in freedom mathematics action:", error3);
           const errorContent = {
             text: "Unable to calculate freedom mathematics at this time. Mathematical certainty requires reliable data inputs.",
             actions: ["FREEDOM_MATHEMATICS"],
@@ -68542,8 +69020,8 @@ Altcoins are venture capital plays on crypto infrastructure and applications. Bi
           };
           await callback(responseContent);
           return responseContent;
-        } catch (error) {
-          logger75.error("Error in altcoin BTC performance analysis:", error);
+        } catch (error3) {
+          logger75.error("Error in altcoin BTC performance analysis:", error3);
           const errorContent = {
             text: "Unable to analyze altcoin BTC performance at this time. Remember: altcoins are distractions from the main event\u2014Bitcoin. The exit is, and always has been, Bitcoin.",
             actions: ["ALTCOIN_BTC_PERFORMANCE"],
@@ -68722,7 +69200,7 @@ var init_cryptoPriceLookupAction = __esm({
             );
             const btcData = await btcResponse.json();
             bitcoinPrice = btcData.bitcoin?.usd || 1e5;
-          } catch (error) {
+          } catch (error3) {
             logger76.warn(
               "Failed to fetch Bitcoin price for comparison, using fallback"
             );
@@ -68746,8 +69224,8 @@ var init_cryptoPriceLookupAction = __esm({
           };
           await callback(responseContent);
           return responseContent;
-        } catch (error) {
-          logger76.error("Error in crypto price lookup:", error);
+        } catch (error3) {
+          logger76.error("Error in crypto price lookup:", error3);
           const errorContent = {
             text: `Unable to fetch price data. Remember: prices are temporary, Bitcoin is forever. Focus on building wealth through sound money principles, not price tracking.`,
             actions: ["CRYPTO_PRICE_LOOKUP"],
@@ -68889,8 +69367,8 @@ Sound money, sovereign health.`;
           };
           await callback(responseContent);
           return responseContent;
-        } catch (error) {
-          logger77.error("\u274C Error in morning health action:", error);
+        } catch (error3) {
+          logger77.error("\u274C Error in morning health action:", error3);
           const fallbackResponse = `\u{1F305} **MORNING HEALTH BRIEFING**
 
 \u{1F4AA} **TRAINING**: Today's sovereignty mission begins with biological optimization
@@ -69585,10 +70063,10 @@ var init_bitcoinMarketProvider = __esm({
               console.log(
                 `[BitcoinProvider] Got price from service: $${bitcoinPrice.toLocaleString()}`
               );
-            } catch (error) {
+            } catch (error3) {
               console.warn(
                 "[BitcoinProvider] Service price fetch failed, using fallback:",
-                error.message
+                error3.message
               );
             }
           }
@@ -69625,10 +70103,10 @@ var init_bitcoinMarketProvider = __esm({
                   `[BitcoinProvider] Direct API failed with status: ${response.status}`
                 );
               }
-            } catch (error) {
+            } catch (error3) {
               console.warn(
                 "[BitcoinProvider] Direct API call failed:",
-                error.message
+                error3.message
               );
             }
           }
@@ -69675,8 +70153,8 @@ var init_bitcoinMarketProvider = __esm({
               }
             }
           };
-        } catch (error) {
-          console.error("[BitcoinProvider] Critical error:", error);
+        } catch (error3) {
+          console.error("[BitcoinProvider] Critical error:", error3);
           return {
             text: "Bitcoin: $100,000 (price data temporarily unavailable)",
             values: {
@@ -69695,7 +70173,7 @@ var init_bitcoinMarketProvider = __esm({
                 marketCap: 2e12,
                 volume24h: 5e10,
                 lastUpdated: (/* @__PURE__ */ new Date()).toISOString(),
-                error: error.message
+                error: error3.message
               }
             }
           };
@@ -69736,7 +70214,7 @@ var init_economicIndicatorsProvider = __esm({
                 hasETFData: true,
                 message: "ETF service available but data methods need implementation"
               };
-            } catch (error) {
+            } catch (error3) {
               etfContext = "ETF data temporarily unavailable. ";
             }
           }
@@ -69783,9 +70261,9 @@ var init_economicIndicatorsProvider = __esm({
               etfService: !!etfService
             }
           };
-        } catch (error) {
+        } catch (error3) {
           return {
-            text: `Economic indicators temporarily unavailable: ${error.message}`,
+            text: `Economic indicators temporarily unavailable: ${error3.message}`,
             values: { economicDataError: true }
           };
         }
@@ -69894,9 +70372,9 @@ var init_realTimeDataProvider = __esm({
               alerts
             }
           };
-        } catch (error) {
+        } catch (error3) {
           return {
-            text: `Real-time data temporarily unavailable: ${error.message}`,
+            text: `Real-time data temporarily unavailable: ${error3.message}`,
             values: { realTimeDataError: true }
           };
         }
@@ -69994,9 +70472,9 @@ var init_newsProvider = __esm({
               socialSentiment
             }
           };
-        } catch (error) {
+        } catch (error3) {
           return {
-            text: `News data temporarily unavailable: ${error.message}`,
+            text: `News data temporarily unavailable: ${error3.message}`,
             values: { newsError: true }
           };
         }
@@ -70107,9 +70585,9 @@ var init_marketContextProvider = __esm({
               freedomMath
             }
           };
-        } catch (error) {
+        } catch (error3) {
           return {
-            text: `Market context analysis temporarily unavailable: ${error.message}`,
+            text: `Market context analysis temporarily unavailable: ${error3.message}`,
             values: { marketContextError: true }
           };
         }
@@ -70304,16 +70782,16 @@ var init_travelProvider = __esm({
               seasonalRecommendations
             }
           };
-        } catch (error) {
+        } catch (error3) {
           elizaLogger48.error(
             "[TravelProvider] Error providing travel context:",
-            error
+            error3
           );
           return {
             text: "Travel booking services encountered an error. Please try again later.",
             values: {
               travelAvailable: false,
-              error: error.message
+              error: error3.message
             }
           };
         }
@@ -70344,12 +70822,12 @@ async function getBasicAltcoinPrices2() {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
     return await response.json();
-  } catch (error) {
+  } catch (error3) {
     elizaLogger49.error(
       "[AltcoinProvider] Failed to fetch basic price data:",
-      error
+      error3
     );
-    throw error;
+    throw error3;
   }
 }
 async function getTrendingCoins2() {
@@ -70370,12 +70848,12 @@ async function getTrendingCoins2() {
     }
     const data = await response.json();
     return data.coins || [];
-  } catch (error) {
+  } catch (error3) {
     elizaLogger49.error(
       "[AltcoinProvider] Failed to fetch trending coins:",
-      error
+      error3
     );
-    throw error;
+    throw error3;
   }
 }
 async function getGlobalMarketData2() {
@@ -70392,12 +70870,12 @@ async function getGlobalMarketData2() {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
     return await response.json();
-  } catch (error) {
+  } catch (error3) {
     elizaLogger49.error(
       "[AltcoinProvider] Failed to fetch global market data:",
-      error
+      error3
     );
-    throw error;
+    throw error3;
   }
 }
 async function getTopCoinsMarketData2() {
@@ -70417,12 +70895,12 @@ async function getTopCoinsMarketData2() {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
     return await response.json();
-  } catch (error) {
+  } catch (error3) {
     elizaLogger49.error(
       "[AltcoinProvider] Failed to fetch top coins market data:",
-      error
+      error3
     );
-    throw error;
+    throw error3;
   }
 }
 function analyzeBitcoinRelativePerformance2(topCoins) {
@@ -70958,7 +71436,7 @@ var init_altcoinProvider = __esm({
               };
               serviceAvailable = true;
             }
-          } catch (serviceError) {
+          } catch (serviceError3) {
             elizaLogger49.warn(
               "[AltcoinProvider] Service not available, using API data only"
             );
@@ -70973,16 +71451,16 @@ var init_altcoinProvider = __esm({
               topCoins
             );
           }
-        } catch (error) {
+        } catch (error3) {
           elizaLogger49.error(
             "[AltcoinProvider] Error providing altcoin context:",
-            error
+            error3
           );
           return {
             text: "Altcoin market services encountered an error. Please try again later.",
             values: {
               altcoinDataAvailable: false,
-              error: error.message
+              error: error3.message
             }
           };
         }
@@ -71232,16 +71710,16 @@ var init_stockProvider = __esm({
               sectorAnalysis
             }
           };
-        } catch (error) {
+        } catch (error3) {
           elizaLogger50.error(
             "[StockProvider] Error providing stock context:",
-            error
+            error3
           );
           return {
             text: "Stock market services encountered an error. Please try again later.",
             values: {
               stockDataAvailable: false,
-              error: error.message
+              error: error3.message
             }
           };
         }
@@ -71483,13 +71961,13 @@ var init_nftProvider = __esm({
               trendAnalysis
             }
           };
-        } catch (error) {
-          elizaLogger51.error("[NFTProvider] Error providing NFT context:", error);
+        } catch (error3) {
+          elizaLogger51.error("[NFTProvider] Error providing NFT context:", error3);
           return {
             text: "NFT market services encountered an error. Please try again later.",
             values: {
               nftDataAvailable: false,
-              error: error.message
+              error: error3.message
             }
           };
         }
@@ -71544,8 +72022,8 @@ async function getLifestyleData2(lifestyleService) {
       travelOpportunitiesCount: travelOpportunities.length,
       currentSeason: getCurrentSeason4()
     };
-  } catch (error) {
-    elizaLogger53.error("[LifestyleProvider] Error getting lifestyle data:", error);
+  } catch (error3) {
+    elizaLogger53.error("[LifestyleProvider] Error getting lifestyle data:", error3);
     return null;
   }
 }
@@ -71563,8 +72041,8 @@ async function buildCulinaryContext2(dailyCulinaryService, lifestyleService, hom
     if (dailyCulinaryService && serviceAvailability.dailyCulinary) {
       try {
         context.dailyExperience = await dailyCulinaryService.getDailyCulinaryExperience();
-      } catch (error) {
-        elizaLogger53.warn("[LifestyleProvider] Error getting daily culinary experience:", error);
+      } catch (error3) {
+        elizaLogger53.warn("[LifestyleProvider] Error getting daily culinary experience:", error3);
       }
     }
     if (lifestyleService && serviceAvailability.lifestyleData) {
@@ -71573,27 +72051,27 @@ async function buildCulinaryContext2(dailyCulinaryService, lifestyleService, hom
         if (context.restaurantSuggestion?.restaurant) {
           context.googleVerification = await lifestyleService.verifyRestaurantStatus(context.restaurantSuggestion.restaurant);
         }
-      } catch (error) {
-        elizaLogger53.warn("[LifestyleProvider] Error getting restaurant data:", error);
+      } catch (error3) {
+        elizaLogger53.warn("[LifestyleProvider] Error getting restaurant data:", error3);
       }
     }
     if (homeCookingService && serviceAvailability.homeCooking) {
       try {
         context.homeCooking = await homeCookingService.getDailyCookingExperience();
-      } catch (error) {
-        elizaLogger53.warn("[LifestyleProvider] Error getting home cooking data:", error);
+      } catch (error3) {
+        elizaLogger53.warn("[LifestyleProvider] Error getting home cooking data:", error3);
       }
     }
     if (beverageService && serviceAvailability.beverageKnowledge) {
       try {
         context.beverageInsight = await beverageService.getBeverageInsights();
-      } catch (error) {
-        elizaLogger53.warn("[LifestyleProvider] Error getting beverage data:", error);
+      } catch (error3) {
+        elizaLogger53.warn("[LifestyleProvider] Error getting beverage data:", error3);
       }
     }
     return context;
-  } catch (error) {
-    elizaLogger53.error("[LifestyleProvider] Error building culinary context:", error);
+  } catch (error3) {
+    elizaLogger53.error("[LifestyleProvider] Error building culinary context:", error3);
     return context;
   }
 }
@@ -71906,16 +72384,16 @@ var init_lifestyleProvider = __esm({
               travelOpportunities: lifestyleData.travelOpportunities
             }
           };
-        } catch (error) {
+        } catch (error3) {
           elizaLogger53.error(
             "[LifestyleProvider] Error providing enhanced lifestyle context:",
-            error
+            error3
           );
           return {
             text: "Enhanced lifestyle services encountered an error. Please try again later.",
             values: {
               lifestyleDataAvailable: false,
-              error: error.message
+              error: error3.message
             }
           };
         }
@@ -72206,16 +72684,16 @@ var init_networkHealthProvider = __esm({
               miningAnalysis
             }
           };
-        } catch (error) {
+        } catch (error3) {
           elizaLogger54.error(
             "[NetworkHealthProvider] Error providing network context:",
-            error
+            error3
           );
           return {
             text: "Bitcoin network services encountered an error. Please try again later.",
             values: {
               networkDataAvailable: false,
-              error: error.message
+              error: error3.message
             }
           };
         }
@@ -72505,16 +72983,16 @@ var init_opportunityProvider = __esm({
               performanceAnalysis
             }
           };
-        } catch (error) {
+        } catch (error3) {
           elizaLogger55.error(
             "[OpportunityProvider] Error providing opportunity context:",
-            error
+            error3
           );
           return {
             text: "Investment opportunity services encountered an error. Please try again later.",
             values: {
               opportunityDataAvailable: false,
-              error: error.message
+              error: error3.message
             }
           };
         }
@@ -72833,16 +73311,16 @@ var init_briefingProvider = __esm({
               marketConditions
             }
           };
-        } catch (error) {
+        } catch (error3) {
           elizaLogger56.error(
             "[BriefingProvider] Error providing briefing context:",
-            error
+            error3
           );
           return {
             text: "Intelligence briefing services encountered an error. Please try again later.",
             values: {
               briefingDataAvailable: false,
-              error: error.message
+              error: error3.message
             }
           };
         }
@@ -72992,8 +73470,8 @@ var init_knowledge_context_provider = __esm({
                   topic,
                   results: results || []
                 };
-              } catch (error) {
-                console.error(`Error searching for topic "${topic}":`, error);
+              } catch (error3) {
+                console.error(`Error searching for topic "${topic}":`, error3);
                 return { topic, results: [] };
               }
             })
@@ -73023,8 +73501,8 @@ var init_knowledge_context_provider = __esm({
           }
           context += "---\n\n";
           return { text: context };
-        } catch (error) {
-          console.error("Knowledge context provider error:", error);
+        } catch (error3) {
+          console.error("Knowledge context provider error:", error3);
           return { text: "" };
         }
       }
@@ -73317,8 +73795,8 @@ function buildMarketKnowledge2(travelService) {
         ]
       }
     ];
-  } catch (error) {
-    logger78.error("Error building market knowledge:", error);
+  } catch (error3) {
+    logger78.error("Error building market knowledge:", error3);
     return [
       {
         trend: "stable",
@@ -73400,8 +73878,8 @@ var init_travelKnowledgeProvider = __esm({
               lastUpdated: (/* @__PURE__ */ new Date()).toISOString()
             }
           };
-        } catch (error) {
-          logger78.error("Error in travel knowledge provider:", error);
+        } catch (error3) {
+          logger78.error("Error in travel knowledge provider:", error3);
           return null;
         }
       }
@@ -73515,6 +73993,7 @@ var init_plugin = __esm({
     init_pluginConfig();
     init_environmentUtils();
     init_errorTypes();
+    init_terminal_formatting();
     bitcoinPlugin2 = {
       name: "bitcoin-ltl",
       description: "Bitcoin-native AI agent plugin for LiveTheLifeTV - provides Bitcoin market data, thesis tracking, and sovereign living insights",
@@ -73527,33 +74006,31 @@ var init_plugin = __esm({
         SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY
       },
       async init(config, runtime) {
-        logger79.info("\u{1F7E0} Initializing Bitcoin Plugin");
+        console.log(sectionHeader("Bitcoin LTL Plugin Initialization", "\u20BF"));
         try {
           const validatedConfig = await configSchema2.parseAsync(config);
           for (const [key, value] of Object.entries(validatedConfig)) {
             if (typeof value === "string" && value) process.env[key] = value;
           }
-          logger79.info("\u{1F7E0} Bitcoin Plugin configuration validated successfully");
+          logger79.info(success("Configuration validated successfully"));
           if (runtime) {
-            logger79.info("\u{1F527} Initializing Bitcoin Plugin services...");
+            console.log(subsectionHeader("Initializing Services", "\u{1F527}"));
             const { ServiceFactory: ServiceFactory3 } = await Promise.resolve().then(() => (init_ServiceFactory(), ServiceFactory_exports));
             await ServiceFactory3.initializeServices(runtime, validatedConfig);
-            logger79.info("\u2705 Bitcoin Plugin services initialized successfully");
+            logger79.info(success("Services initialized successfully"));
           } else {
-            logger79.warn(
-              "\u26A0\uFE0F Runtime not provided to init - services will be initialized later"
-            );
+            logger79.warn(warning("Runtime not provided - services will be initialized later"));
           }
-          logger79.info("\u{1F7E0} Bitcoin Plugin initialized successfully");
-          logger79.info("\u{1F3AF} Tracking: 100K BTC Holders \u2192 $10M Net Worth Thesis");
-        } catch (error) {
-          if (error instanceof Error && error.name === "ZodError") {
+          logger79.info(success("Bitcoin Plugin initialized successfully"));
+          console.log(subsectionHeader("Tracking: 100K BTC Holders \u2192 $10M Net Worth Thesis", "\u{1F3AF}"));
+        } catch (error3) {
+          if (error3 instanceof Error && error3.name === "ZodError") {
             throw new Error(
-              `Invalid Bitcoin plugin configuration: ${error.message}`
+              `Invalid Bitcoin plugin configuration: ${error3.message}`
             );
           }
-          logger79.error("\u274C Failed to initialize Bitcoin Plugin:", error);
-          throw error;
+          logger79.error(error("Failed to initialize Bitcoin Plugin:"), error3);
+          throw error3;
         }
       },
       providers: [...allProviders2],
@@ -73662,9 +74139,9 @@ var init_plugin = __esm({
                     thesisProgress: thesisData.progressPercentage
                   });
                 }
-              } catch (error) {
+              } catch (error3) {
                 logger79.warn("Failed to pre-load Bitcoin context", {
-                  error: error.message
+                  error: error3.message
                 });
               }
             }
@@ -73700,9 +74177,9 @@ var init_plugin = __esm({
                       historyLength: runtime.thesisHistory.length
                     });
                   }
-                } catch (error) {
+                } catch (error3) {
                   logger79.warn("Failed to update thesis history", {
-                    error: error.message
+                    error: error3.message
                   });
                 }
               }
@@ -73754,10 +74231,10 @@ var init_plugin = __esm({
                   thesisProgress: thesisMetrics.progressPercentage
                 });
               }
-            } catch (error) {
+            } catch (error3) {
               logger79.warn("Failed to initialize Bitcoin context for world", {
                 worldId: world.id,
-                error: error.message
+                error: error3.message
               });
             }
           }
@@ -73807,10 +74284,10 @@ var init_plugin = __esm({
                     worldId: world.id
                   });
                 }
-              } catch (error) {
+              } catch (error3) {
                 logger79.warn("Failed to queue Bitcoin introduction", {
                   worldId: world.id,
-                  error: error.message
+                  error: error3.message
                 });
               }
             }
@@ -73918,10 +74395,10 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
                 timestamp: (/* @__PURE__ */ new Date()).toISOString(),
                 source: "bitcoin-ltl-plugin"
               });
-            } catch (error) {
+            } catch (error3) {
               res.status(500).json({
                 success: false,
-                error: error instanceof Error ? error.message : "Unknown error",
+                error: error3 instanceof Error ? error3.message : "Unknown error",
                 timestamp: (/* @__PURE__ */ new Date()).toISOString()
               });
             }
@@ -73961,10 +74438,10 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
                   thesis: "100K BTC Holders \u2192 $10M Net Worth"
                 }
               });
-            } catch (error) {
+            } catch (error3) {
               res.status(500).json({
                 success: false,
-                error: error instanceof Error ? error.message : "Unknown error",
+                error: error3 instanceof Error ? error3.message : "Unknown error",
                 timestamp: (/* @__PURE__ */ new Date()).toISOString()
               });
             }
@@ -74004,10 +74481,10 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
                   disclaimer: "Not financial advice. Past performance does not guarantee future results."
                 }
               });
-            } catch (error) {
+            } catch (error3) {
               res.status(500).json({
                 success: false,
-                error: error instanceof Error ? error.message : "Unknown error",
+                error: error3 instanceof Error ? error3.message : "Unknown error",
                 timestamp: (/* @__PURE__ */ new Date()).toISOString()
               });
             }
@@ -74039,10 +74516,10 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
                   score_scale: "0-100 (100 = maximum adoption)"
                 }
               });
-            } catch (error) {
+            } catch (error3) {
               res.status(500).json({
                 success: false,
-                error: error instanceof Error ? error.message : "Unknown error",
+                error: error3 instanceof Error ? error3.message : "Unknown error",
                 timestamp: (/* @__PURE__ */ new Date()).toISOString()
               });
             }
@@ -74074,7 +74551,7 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
               try {
                 await service.getBitcoinPrice();
                 checks.api = "pass";
-              } catch (error) {
+              } catch (error3) {
                 checks.api = "fail";
               }
               try {
@@ -74082,7 +74559,7 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
                   const memoryHealth = await service.checkMemoryHealth();
                   checks.memory = memoryHealth.healthy ? "pass" : "warn";
                 }
-              } catch (error) {
+              } catch (error3) {
                 checks.memory = "fail";
               }
               const overallHealth = Object.values(checks).every(
@@ -74098,11 +74575,11 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
                   timestamp: (/* @__PURE__ */ new Date()).toISOString()
                 }
               });
-            } catch (error) {
+            } catch (error3) {
               res.status(500).json({
                 success: false,
                 status: "error",
-                error: error instanceof Error ? error.message : "Unknown error",
+                error: error3 instanceof Error ? error3.message : "Unknown error",
                 timestamp: (/* @__PURE__ */ new Date()).toISOString()
               });
             }
@@ -74156,10 +74633,10 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
                   endpoint: "services-health"
                 }
               });
-            } catch (error) {
+            } catch (error3) {
               res.status(500).json({
                 success: false,
-                error: error instanceof Error ? error.message : "Unknown error",
+                error: error3 instanceof Error ? error3.message : "Unknown error",
                 plugin: "bitcoin-ltl",
                 timestamp: (/* @__PURE__ */ new Date()).toISOString()
               });
@@ -74204,10 +74681,10 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
                   disclaimer: "Data from free public APIs. Not financial advice."
                 }
               });
-            } catch (error) {
+            } catch (error3) {
               res.status(500).json({
                 success: false,
-                error: error instanceof Error ? error.message : "Unknown error",
+                error: error3 instanceof Error ? error3.message : "Unknown error",
                 timestamp: (/* @__PURE__ */ new Date()).toISOString()
               });
             }
@@ -74252,10 +74729,10 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
                   updateInterval: "1 minute"
                 }
               });
-            } catch (error) {
+            } catch (error3) {
               res.status(500).json({
                 success: false,
-                error: error instanceof Error ? error.message : "Unknown error",
+                error: error3 instanceof Error ? error3.message : "Unknown error",
                 timestamp: (/* @__PURE__ */ new Date()).toISOString()
               });
             }
@@ -74299,10 +74776,10 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
                   description: "Real-time Bitcoin mempool statistics and fee recommendations"
                 }
               });
-            } catch (error) {
+            } catch (error3) {
               res.status(500).json({
                 success: false,
-                error: error instanceof Error ? error.message : "Unknown error",
+                error: error3 instanceof Error ? error3.message : "Unknown error",
                 timestamp: (/* @__PURE__ */ new Date()).toISOString()
               });
             }
@@ -74344,10 +74821,10 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
                   description: "Bitcoin market sentiment analysis"
                 }
               });
-            } catch (error) {
+            } catch (error3) {
               res.status(500).json({
                 success: false,
-                error: error instanceof Error ? error.message : "Unknown error",
+                error: error3 instanceof Error ? error3.message : "Unknown error",
                 timestamp: (/* @__PURE__ */ new Date()).toISOString()
               });
             }
@@ -74415,10 +74892,10 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
                   disclaimer: "Data from CoinGecko public API. Not financial advice."
                 }
               });
-            } catch (error) {
+            } catch (error3) {
               res.status(500).json({
                 success: false,
-                error: error instanceof Error ? error.message : "Unknown error",
+                error: error3 instanceof Error ? error3.message : "Unknown error",
                 timestamp: (/* @__PURE__ */ new Date()).toISOString()
               });
             }
@@ -74468,10 +74945,10 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
                   disclaimer: "Data from CoinGecko public API. Not financial advice."
                 }
               });
-            } catch (error) {
+            } catch (error3) {
               res.status(500).json({
                 success: false,
-                error: error instanceof Error ? error.message : "Unknown error",
+                error: error3 instanceof Error ? error3.message : "Unknown error",
                 timestamp: (/* @__PURE__ */ new Date()).toISOString()
               });
             }
@@ -74530,10 +75007,10 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
                   disclaimer: "Data from DEXScreener public API. Not financial advice."
                 }
               });
-            } catch (error) {
+            } catch (error3) {
               res.status(500).json({
                 success: false,
-                error: error instanceof Error ? error.message : "Unknown error",
+                error: error3 instanceof Error ? error3.message : "Unknown error",
                 timestamp: (/* @__PURE__ */ new Date()).toISOString()
               });
             }
@@ -74583,10 +75060,10 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
                   disclaimer: "Data from DEXScreener public API. Not financial advice."
                 }
               });
-            } catch (error) {
+            } catch (error3) {
               res.status(500).json({
                 success: false,
-                error: error instanceof Error ? error.message : "Unknown error",
+                error: error3 instanceof Error ? error3.message : "Unknown error",
                 timestamp: (/* @__PURE__ */ new Date()).toISOString()
               });
             }
