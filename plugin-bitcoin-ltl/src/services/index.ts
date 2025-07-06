@@ -14,6 +14,22 @@ export { StockDataService } from './StockDataService';
 export { TravelDataService } from './TravelDataService';
 export { ETFDataService } from './ETFDataService';
 
+// New focused services (replacing RealTimeDataService)
+export { BitcoinNetworkService } from './BitcoinNetworkService';
+export { MarketDataService } from './MarketDataService';
+
+// Architecture services
+export { CentralizedConfigService } from './CentralizedConfigService';
+export { CacheService } from './CacheService';
+export { PerformanceMonitorService } from './PerformanceMonitorService';
+export { IntegrationService } from './IntegrationService';
+
+// Phase 4: Advanced Features & Production Deployment
+export { PredictiveAnalyticsService } from './PredictiveAnalyticsService';
+export { RealTimeStreamingService } from './RealTimeStreamingService';
+export { AdvancedAlertingService } from './AdvancedAlertingService';
+export { ProductionDeploymentService } from './ProductionDeploymentService';
+
 // Existing services
 export { BitcoinDataService } from './BitcoinDataService';
 export { ContentIngestionService } from './ContentIngestionService';
