@@ -68,6 +68,14 @@ import {
   altcoinBTCPerformanceAction,
   cryptoPriceLookupAction,
 } from "./actions";
+
+// Import culinary actions from individual files
+import { dailyCulinaryAction } from "./actions/dailyCulinaryAction";
+import { restaurantRecommendationAction } from "./actions/restaurantRecommendationAction";
+import { michelinHotelAction } from "./actions/michelinHotelAction";
+import { homeCookingAction } from "./actions/homeCookingAction";
+import { beverageInsightAction } from "./actions/beverageInsightAction";
+
 import { allProviders } from "./providers";
 
 // Configuration and utilities
@@ -182,6 +190,11 @@ const bitcoinPlugin: Plugin = {
     freedomMathematicsAction,
     altcoinBTCPerformanceAction,
     cryptoPriceLookupAction,
+    dailyCulinaryAction,
+    restaurantRecommendationAction,
+    michelinHotelAction,
+    homeCookingAction,
+    beverageInsightAction,
   ],
 
   events: {

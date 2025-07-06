@@ -1,137 +1,42 @@
-import { IAgentRuntime, logger } from "@elizaos/core";
-import { BaseAction, ActionContext, ActionResult } from "./BaseAction";
+import type { Action, HandlerCallback, IAgentRuntime, Memory, State } from '@elizaos/core';
+import { DailyCulinaryService } from '../services/DailyCulinaryService';
 
-export class DailyCulinaryAction extends BaseAction {
-  static actionName = "DAILY_CULINARY";
-  static description = "Provides complete daily culinary experience with restaurant, home cooking, and beverage insights";
-
-  constructor(runtime: IAgentRuntime) {
-    super(runtime);
-  }
-
-  protected getActionDescription(): string {
-    return DailyCulinaryAction.description;
-  }
-
-  protected async executeAction(params: any, context: ActionContext): Promise<string> {
-    try {
-      logger.info(`[DailyCulinaryAction] Executing daily culinary experience for city: ${params.city || 'all'}`);
-
-      // For now, return a sample response since services are not yet integrated
-      const sampleResponse = this.generateSampleDailyCulinaryResponse(params.city);
-      
-      logger.info(`[DailyCulinaryAction] Successfully generated daily culinary experience`);
-      return sampleResponse;
-
-    } catch (error) {
-      logger.error(`[DailyCulinaryAction] Error executing daily culinary action: ${error.message}`);
-      return this.formatErrorResponse(error);
+export const dailyCulinaryAction: Action = {
+  name: 'DAILY_CULINARY',
+  similes: ['CULINARY_EXPERIENCE', 'DAILY_FOODIE', 'FOODIE_RITUAL'],
+  description: 'Provides a full daily culinary experience: restaurant, home cooking, beverage tips, and Bitcoin lifestyle context.',
+  validate: async (_runtime: IAgentRuntime, _message: Memory, _state?: State) => true,
+  handler: async (runtime, message, state, _options, callback: HandlerCallback) => {
+    const service = runtime.getService('daily-culinary') as DailyCulinaryService;
+    if (!service) {
+      await callback({
+        text: 'Culinary intelligence is temporarily unavailable. Please try again later.',
+        thought: 'DailyCulinaryService not found.',
+        actions: ['DAILY_CULINARY']
+      });
+      return false;
     }
-  }
-
-  private generateSampleDailyCulinaryResponse(city?: string): string {
-    const today = new Date().toISOString().split('T')[0];
-    const selectedCity = city || "biarritz";
-    
-    return `🍽️ **DAILY CULINARY EXPERIENCE** - ${today}
-
-🍴 **RESTAURANT**: Le Petit Paris, ${selectedCity}
-ℹ️ **STATUS**: Hours verification unavailable - please check directly
-🏛️ Cultural Heritage: Traditional Basque cuisine meets French elegance
-💎 Signature Dish: Turbot à la Basque, Axoa de Veau
-🍷 Wine Pairing: Irouléguy Blanc 2022
-
-🔥 **HOME COOKING**: Basque-Style Lamb Chops
-🌿 Technique Focus: Low-and-slow smoking with local herbs
-⏰ Timing: 3 hours at 225°F for perfect tenderness
-🍷 Wine Pairing: Irouléguy Rouge or Rioja Reserva
-
-☕ **TEA**: Darjeeling First Flush from Makaibari Estate
-🏔️ Region: Darjeeling, India - Spring harvest excellence
-💡 Daily Tip: Brew at 185°F for 3 minutes to preserve delicate notes
-
-☕ **COFFEE**: Ethiopian Yirgacheffe
-🌍 Region: Yirgacheffe, Ethiopia - Birthplace of coffee
-💡 Daily Tip: Grind medium-fine and use 1:16 coffee-to-water ratio
-
-🍷 **WINE**: Château Margaux 2015, Bordeaux
-🏰 Region: Médoc, France - Premier Grand Cru Classé
-💎 Investment Potential: 15% annual appreciation, cultural capital
-💡 Daily Tip: Decant for 2-3 hours to allow the wine to breathe
-
-🎯 **CULTURAL THEME**: Cultural heritage preservation through culinary excellence
-
-💎 **WEALTH PRESERVATION**:
-• Cultural knowledge as appreciating asset
-• Culinary skills as generational wealth
-• Wine investment potential
-• Cultural capital preservation
-• Network access through culinary excellence
-
-🌟 **BITCOIN LIFESTYLE**:
-• Cultural heritage preservation
-• Artisanal excellence
-• Regional authenticity
-• Traditional cooking mastery
-• Cultural heritage appreciation
-
-Sound money, sophisticated taste.`;
-  }
-
-  private formatDailyCulinaryResponse(dailyExperience: any): string {
-    const { restaurant, homeCooking, teaTip, coffeeTip, wineTip, culturalTheme, bitcoinLifestyle, wealthPreservation } = dailyExperience;
-
-    // Format Google verification status
-    const googleStatus = restaurant.googleStatus?.message || "Hours verification unavailable - please check directly";
-    const googleIcon = restaurant.googleVerificationAvailable ? "✅" : "ℹ️";
-
-    // Format home cooking equipment icon
-    const cookingIcon = homeCooking.type === "green-egg-bbq" ? "🔥" : "⚡";
-
-    return `🍽️ **DAILY CULINARY EXPERIENCE** - ${dailyExperience.date}
-
-🍴 **RESTAURANT**: ${restaurant.restaurant.name}, ${restaurant.restaurant.city}
-${googleIcon} **STATUS**: ${googleStatus}
-🏛️ Cultural Heritage: ${restaurant.culturalSignificance}
-💎 Signature Dish: ${restaurant.recommendedDishes.join(", ")}
-🍷 Wine Pairing: ${restaurant.winePairing}
-
-${cookingIcon} **HOME COOKING**: ${homeCooking.recipe.name}
-🌿 Technique Focus: ${homeCooking.techniqueFocus}
-⏰ Timing: ${homeCooking.recipe.timing || "Follow recipe instructions"}
-🍷 Wine Pairing: ${homeCooking.winePairing}
-
-☕ **TEA**: ${teaTip.teaType} from ${teaTip.region}
-🏔️ Region: ${teaTip.region} - ${teaTip.culturalHeritage}
-💡 Daily Tip: ${teaTip.dailyTip}
-
-☕ **COFFEE**: ${coffeeTip.coffeeType} from ${coffeeTip.region}
-🌍 Region: ${coffeeTip.region} - ${coffeeTip.culturalHeritage}
-💡 Daily Tip: ${coffeeTip.dailyTip}
-
-🍷 **WINE**: ${wineTip.wineType}, ${wineTip.region}
-🏰 Region: ${wineTip.region} - ${wineTip.culturalHeritage}
-💎 Investment Potential: ${wineTip.investmentPotential}
-💡 Daily Tip: ${wineTip.dailyTip}
-
-🎯 **CULTURAL THEME**: ${culturalTheme}
-
-💎 **WEALTH PRESERVATION**:
-${wealthPreservation.map(item => `• ${item}`).join('\n')}
-
-🌟 **BITCOIN LIFESTYLE**:
-${bitcoinLifestyle.map(item => `• ${item}`).join('\n')}
-
-Sound money, sophisticated taste.`;
-  }
-
-  private formatErrorResponse(error: Error): string {
-    return `❌ **DAILY CULINARY EXPERIENCE ERROR**
-
-Unable to generate today's culinary experience due to: ${error.message}
-
-Please try again later or contact support if the issue persists.
-
-Sound money, sophisticated taste.`;
-  }
-} 
+    try {
+      const experience = await service.getDailyCulinaryExperience();
+      await callback({
+        text: `🍽️ DAILY CULINARY EXPERIENCE\n\n🍴 RESTAURANT: ${experience.restaurant.restaurant.name} - ${experience.restaurant.culturalSignificance}\n🏨 MICHELIN HOTEL: ${experience.restaurant.restaurant.michelinStars ? experience.restaurant.restaurant.name + ' with ' + experience.restaurant.restaurant.michelinStars + ' Michelin stars' : 'No Michelin hotel today'}\n🔥 HOME COOKING: ${experience.homeCooking.recipe.name} with ${experience.homeCooking.type === 'green-egg-bbq' ? 'Green Egg BBQ' : 'Thermomix'} - ${experience.homeCooking.techniqueFocus}\n☕ TEA: ${experience.teaTip.teaType} from ${experience.teaTip.region} - ${experience.teaTip.dailyTip}\n🍷 WINE: ${experience.wineTip.wineType} from ${experience.wineTip.region} - ${experience.wineTip.investmentPotential}\n\n💎 WEALTH PRESERVATION: ${experience.wealthPreservation.join(', ')}`,
+        thought: 'Composed full daily culinary experience.',
+        actions: ['DAILY_CULINARY']
+      });
+      return true;
+    } catch (err) {
+      await callback({
+        text: 'Unable to fetch the full culinary experience. Some data may be missing.',
+        thought: String(err),
+        actions: ['DAILY_CULINARY']
+      });
+      return false;
+    }
+  },
+  examples: [
+    [
+      { name: 'User', content: { text: "What's today's culinary experience?" } },
+      { name: 'Agent', content: { text: '🍽️ DAILY CULINARY EXPERIENCE... (see above for format)' } }
+    ]
+  ]
+}; 
