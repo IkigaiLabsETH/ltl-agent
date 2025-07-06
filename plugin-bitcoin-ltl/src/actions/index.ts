@@ -202,7 +202,7 @@ export const actionRegistry: Record<string, ActionRegistryEntry> = {
       "Enhanced RAG-powered knowledge search with relevance scoring and source attribution",
     tags: ["knowledge", "search", "rag", "semantic", "research"],
     isCore: true,
-    dependencies: ["knowledge-service", "knowledge-performance-monitor"],
+    dependencies: ["knowledge-service"],
   },
 
   MORNING_HEALTH: {

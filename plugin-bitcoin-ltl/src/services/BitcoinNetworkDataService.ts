@@ -123,23 +123,35 @@ export class BitcoinNetworkDataService extends BaseDataService {
         const nextHalvingBlocks =
           this.comprehensiveBitcoinData.network.nextHalving?.blocks;
 
+        // --- Bitcoin Price (never undefined) ---
+        let priceDisplay = "N/A";
+        if (typeof price === "number" && !isNaN(price)) {
+          priceDisplay = `$${price.toLocaleString()}`;
+        } else {
+          console.warn("[BitcoinNetworkDataService] ⚠️ Bitcoin price unavailable!");
+        }
+        let changeDisplay = "N/A";
+        if (typeof change24h === "number" && !isNaN(change24h)) {
+          changeDisplay = `${change24h > 0 ? "+" : ""}${change24h.toFixed(2)}%`;
+        }
         console.log(
-          `[BitcoinNetworkDataService] 🟠 Bitcoin Price: $${price?.toLocaleString()} (${change24h && change24h > 0 ? "+" : ""}${change24h?.toFixed(2)}%)`,
+          `[BitcoinNetworkDataService] 🟠 Bitcoin Price: ${priceDisplay} (${changeDisplay})`,
         );
+        // --- Remove less important logs ---
+        // console.log(
+        //   `[BitcoinNetworkDataService] 🟠 Block Height: ${blockHeight?.toLocaleString()}`,
+        // );
+        // console.log(
+        //   `[BitcoinNetworkDataService] 🟠 Mempool Size: ${mempoolSize ? (mempoolSize / 1e6).toFixed(2) + "MB" : "N/A"}`,
+        // );
+        // console.log(
+        //   `[BitcoinNetworkDataService] 🟠 Fastest Fee: ${fastestFee ? fastestFee + " sat/vB" : "N/A"}`,
+        // );
         console.log(
           `[BitcoinNetworkDataService] 🟠 Network Hash Rate: ${hashRate ? (hashRate / 1e18).toFixed(2) + " EH/s" : "N/A"}`,
         );
         console.log(
-          `[BitcoinNetworkDataService] 🟠 Block Height: ${blockHeight?.toLocaleString()}`,
-        );
-        console.log(
           `[BitcoinNetworkDataService] 🟠 Network Difficulty: ${difficulty ? (difficulty / 1e12).toFixed(2) + "T" : "N/A"}`,
-        );
-        console.log(
-          `[BitcoinNetworkDataService] 🟠 Mempool Size: ${mempoolSize ? (mempoolSize / 1e6).toFixed(2) + "MB" : "N/A"}`,
-        );
-        console.log(
-          `[BitcoinNetworkDataService] 🟠 Fastest Fee: ${fastestFee ? fastestFee + " sat/vB" : "N/A"}`,
         );
         console.log(
           `[BitcoinNetworkDataService] 🟠 Fear & Greed Index: ${fearGreed} (${this.comprehensiveBitcoinData.sentiment.fearGreedValue})`,
@@ -450,8 +462,6 @@ export class BitcoinNetworkDataService extends BaseDataService {
       return null;
     }
   }
-
-
 
   /**
    * Fetch Bitcoin sentiment data (Fear & Greed Index)

@@ -34,7 +34,6 @@ import {
   BitcoinNetworkDataService,
   StarterService,
 } from "./services";
-import { KnowledgePerformanceMonitor } from "./services/knowledge-performance-monitor";
 
 // Actions and Providers
 import {
@@ -1390,7 +1389,6 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
     NFTDataService,
     AltcoinDataService,
     BitcoinNetworkDataService,
-    KnowledgePerformanceMonitor,
     StarterService,
     // Register CentralizedConfigService so it is available to all services
     require("./services/CentralizedConfigService").CentralizedConfigService,
