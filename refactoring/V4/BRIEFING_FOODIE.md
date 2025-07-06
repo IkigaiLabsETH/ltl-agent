@@ -896,3 +896,52 @@ This daily culinary intelligence system transforms routine dining into a sophist
 - Renamed the main async method in travelKnowledgeProvider from 'getContent' to 'get' to match the Provider interface.
 - Fixed all linter and TypeScript errors related to object literal properties, method signatures, and array/object mismatches in the affected files.
 - The codebase now passes type checks and linter validation for these modules, supporting robust extensibility for future culinary and travel intelligence features.
+
+## Next Development Steps (May 2024)
+
+### 1. Integrate and Register Culinary Actions
+- Implement and register the following actions: `DAILY_CULINARY`, `RESTAURANT_RECOMMENDATION`, `MICHELIN_HOTEL_RECOMMENDATION`, `HOME_COOKING`, `BEVERAGE_INSIGHT`.
+- Ensure each action uses the new culinary services and is discoverable by the agent runtime.
+
+**Prompt Design for AI Agent:**
+- For each action, provide a clear name, description, validation logic, and handler.
+- Use the appropriate culinary service to fetch data.
+- Format responses with luxury, cultural, and Bitcoin lifestyle context.
+- Include fallback messaging if real-time data is unavailable.
+- Provide at least one example conversation for each action.
+
+### 2. Enhance the Lifestyle Provider
+- Update the lifestyle provider to include daily culinary context from the new services.
+- Return restaurant, home cooking, beverage, and Michelin hotel recommendations in the provider's context.
+
+**Prompt Design for AI Agent:**
+- When composing lifestyle context, always include the latest culinary experience.
+- Integrate data from DailyCulinaryService and related services.
+- Format the provider's output to highlight luxury, cultural heritage, and wealth preservation.
+
+### 3. Expand Knowledge Base
+- Add and enrich markdown files in `knowledge/ltl-agent/culinary/` for restaurants, hotels, home cooking, and beverages.
+- Ensure each file includes cultural, Bitcoin, and legacy-building context.
+
+**Prompt Design for AI Agent:**
+- When ingesting or referencing knowledge, prioritize sources with strong cultural, luxury, and Bitcoin relevance.
+- Summarize key points for agent recall and use in conversations.
+- Maintain a consistent structure: cultural heritage, Bitcoin lifestyle, wealth preservation, network opportunities, legacy building.
+
+### 4. Testing and Validation
+- Write or update unit and integration tests for all new actions, providers, and services.
+- Ensure the full daily culinary experience is covered by tests.
+
+**Prompt Design for AI Agent:**
+- For each new feature, create tests that validate both success and fallback/error scenarios.
+- Use mock data for external dependencies where needed.
+- Ensure all tests pass before moving to the next step.
+
+### 5. User Experience & Formatting
+- Refine the output of all actions and providers for clarity, luxury, and Bitcoin ethos.
+- Ensure fallback and error messages are clear and user-friendly.
+
+**Prompt Design for AI Agent:**
+- Review all outputs for tone, clarity, and luxury appeal.
+- Always include cultural and wealth context in responses.
+- Make fallback messaging explicit but reassuring (e.g., "Real-time verification unavailable—please check directly").
