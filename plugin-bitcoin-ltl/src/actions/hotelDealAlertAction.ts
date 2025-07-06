@@ -13,6 +13,7 @@ import {
   ResponseCreators,
 } from "./base/ActionTemplate";
 import { TravelDataService, PerfectDayOpportunity } from "../services/TravelDataService";
+import { CulturalContextService, DestinationInsight } from "../services/CulturalContextService";
 
 interface DealAlert {
   id: string;
@@ -117,6 +118,10 @@ export const hotelDealAlertAction: Action = createActionTemplate({
         "travel-data",
       ) as TravelDataService;
 
+      const culturalService = runtime.getService(
+        "cultural-context",
+      ) as unknown as CulturalContextService;
+
       if (!travelDataService) {
         logger.warn("TravelDataService not available");
 
@@ -154,7 +159,7 @@ export const hotelDealAlertAction: Action = createActionTemplate({
       }
 
       // Find current deals based on parameters
-      const currentDeals = await findCurrentDeals(travelDataService, alertParams);
+      const currentDeals = await findCurrentDeals(travelDataService, culturalService, alertParams);
 
       if (currentDeals.length === 0) {
         logger.info("No current deals match criteria");
@@ -176,8 +181,8 @@ export const hotelDealAlertAction: Action = createActionTemplate({
         return true;
       }
 
-      // Format deals response
-      const responseText = formatDealsResponse(currentDeals, alertParams);
+      // Format deals response with cultural context
+      const responseText = await formatDealsResponse(currentDeals, alertParams, culturalService);
 
       const response = ResponseCreators.createStandardResponse(
         thoughtProcess,
@@ -280,6 +285,7 @@ function extractAlertParameters(text: string): {
  */
 async function findCurrentDeals(
   travelService: TravelDataService,
+  culturalService: CulturalContextService,
   params: any,
 ): Promise<DealAlert[]> {
   const hotels = travelService.getCuratedHotels() || [];
@@ -439,7 +445,7 @@ function generateActionRecommendation(urgency: string): string {
 /**
  * Format deals response
  */
-function formatDealsResponse(deals: DealAlert[], params: any): string {
+async function formatDealsResponse(deals: DealAlert[], params: any, culturalService: CulturalContextService): Promise<string> {
   const highUrgencyDeals = deals.filter((d) => d.urgency === "high");
   const perfectDayDeals = deals.filter((d) => d.id.startsWith('perfect-'));
   const totalSavings = deals.reduce((sum, d) => sum + d.savings, 0);
@@ -486,6 +492,28 @@ function formatDealsResponse(deals: DealAlert[], params: any): string {
     responseText += `${highUrgencyDeals[0].actionRecommendation}. `;
   }
 
+  // Add cultural context for top deal
+  let culturalContextText = "";
+  if (deals.length > 0) {
+    try {
+      const topDeal = deals[0];
+      const city = topDeal.hotel.name?.toLowerCase().includes('biarritz') ? 'biarritz' :
+                   topDeal.hotel.name?.toLowerCase().includes('bordeaux') ? 'bordeaux' :
+                   topDeal.hotel.name?.toLowerCase().includes('monaco') ? 'monaco' : 'biarritz';
+      
+      const culturalContext = await culturalService.getCulturalContext(city);
+      if (culturalContext) {
+        const seasonalInsights = await culturalService.getSeasonalInsights(city);
+        culturalContextText = `\n\n🏛️ **CULTURAL CONTEXT**: ${culturalContext.city} offers ${culturalContext.perfectDayContext.culturalExperiences[0]?.toLowerCase() || 'rich cultural experiences'}`;
+        if (seasonalInsights.length > 0) {
+          culturalContextText += `\n🌟 **SEASONAL HIGHLIGHT**: ${seasonalInsights[0]}`;
+        }
+      }
+    } catch (error) {
+      logger.warn(`Failed to add cultural context: ${error}`);
+    }
+  }
+
   // Add Bitcoin travel philosophy
   const bitcoinQuotes = [
     "Sound money enables swift decisions.",
@@ -495,7 +523,7 @@ function formatDealsResponse(deals: DealAlert[], params: any): string {
     "Stack sats, book deals.",
   ];
 
-  responseText +=
+  responseText += culturalContextText + " " +
     bitcoinQuotes[Math.floor(Math.random() * bitcoinQuotes.length)];
 
   return responseText;

@@ -13,6 +13,7 @@ import {
   ResponseCreators,
 } from "./base/ActionTemplate";
 import { TravelDataService } from "../services/TravelDataService";
+import { CulturalContextService } from "../services/CulturalContextService";
 
 interface InsightRequest {
   type: "seasonal" | "market" | "events" | "strategy" | "overview";
@@ -182,6 +183,10 @@ export const travelInsightsAction: Action = createActionTemplate({
         "travel-data",
       ) as TravelDataService;
 
+      const culturalService = runtime.getService(
+        "cultural-context",
+      ) as unknown as CulturalContextService;
+
       if (!travelService) {
         logger.warn("TravelDataService not available");
 
@@ -218,8 +223,8 @@ export const travelInsightsAction: Action = createActionTemplate({
         return false;
       }
 
-      // Generate comprehensive insights
-      const insights = await generateTravelInsights(travelService, insightRequest);
+      // Generate comprehensive insights with cultural context
+      const insights = await generateTravelInsights(travelService, culturalService, insightRequest);
 
       // Generate insights response
       const responseText = generateInsightsResponse(insightRequest, insights);
@@ -349,6 +354,7 @@ function parseInsightRequest(text: string): InsightRequest {
  */
 async function generateTravelInsights(
   travelService: TravelDataService,
+  culturalService: CulturalContextService,
   request: InsightRequest,
 ): Promise<TravelInsightResponse> {
   const travelInsights = travelService.getTravelInsights();
@@ -400,6 +406,33 @@ async function generateTravelInsights(
     response.insights,
   );
   response.keyTakeaways = generateKeyTakeaways(request, response.insights);
+
+  // Add cultural context if city is specified
+  if (request.city) {
+    try {
+      const culturalContext = await culturalService.getCulturalContext(request.city);
+      if (culturalContext) {
+        const seasonalInsights = await culturalService.getSeasonalInsights(request.city);
+        const lifestyleIntegration = await culturalService.getLifestyleIntegration(request.city);
+        
+        // Add cultural recommendations
+        response.recommendations.push(
+          `Experience ${culturalContext.perfectDayContext.culturalExperiences[0] || 'local cultural experiences'}`,
+          `Immerse in ${culturalContext.city}'s ${culturalContext.culturalHeritage.architecturalStyle.toLowerCase()}`,
+          `Discover ${culturalContext.perfectDayContext.hiddenGems[0] || 'hidden local gems'}`
+        );
+
+        // Add cultural key takeaways
+        response.keyTakeaways.push(
+          `${culturalContext.city} offers ${culturalContext.wealthPreservation.culturalCapital[0] || 'rich cultural capital'}`,
+          `Seasonal highlight: ${seasonalInsights[0] || 'unique seasonal experiences'}`,
+          `Bitcoin lifestyle integration: ${lifestyleIntegration[0] || 'sound money principles with luxury'}`
+        );
+      }
+    } catch (error) {
+      logger.warn(`Failed to add cultural context for ${request.city}: ${error}`);
+    }
+  }
 
   return response;
 }

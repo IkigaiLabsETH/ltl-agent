@@ -13,6 +13,7 @@ import {
   ResponseCreators,
 } from "./base/ActionTemplate";
 import { TravelDataService, PerfectDayOpportunity } from "../services/TravelDataService";
+import { CulturalContextService, DestinationInsight } from "../services/CulturalContextService";
 
 interface OptimizationCriteria {
   priority: "price" | "value" | "luxury" | "season" | "savings";
@@ -47,12 +48,14 @@ interface OptimizedRecommendation {
   luxuryOption: HotelComparison;
   bestValue: HotelComparison;
   perfectDays: PerfectDayOpportunity[];
+  culturalInsights: DestinationInsight[];
   summary: {
     totalHotelsCompared: number;
     averageSavings: number;
     bestSavingsPercentage: number;
     priceRange: { min: number; max: number };
     perfectDayCount: number;
+    culturalValue: string[];
   };
 }
 
@@ -150,6 +153,10 @@ export const bookingOptimizationAction: Action = createActionTemplate({
         "travel-data",
       ) as TravelDataService;
 
+      const culturalService = runtime.getService(
+        "cultural-context",
+      ) as unknown as CulturalContextService;
+
       if (!travelService) {
         logger.warn("TravelDataService not available");
 
@@ -187,7 +194,7 @@ export const bookingOptimizationAction: Action = createActionTemplate({
       }
 
       // Perform optimization analysis
-      const optimization = await performBookingOptimization(travelService, criteria);
+      const optimization = await performBookingOptimization(travelService, culturalService, criteria);
 
       if (!optimization || optimization.alternatives.length === 0) {
         logger.info("No optimization results available");
@@ -314,6 +321,7 @@ function parseOptimizationCriteria(text: string): OptimizationCriteria {
  */
 async function performBookingOptimization(
   travelService: TravelDataService,
+  culturalService: CulturalContextService,
   criteria: OptimizationCriteria,
 ): Promise<OptimizedRecommendation | null> {
   const hotels = travelService.getCuratedHotels() || [];
@@ -413,6 +421,22 @@ async function performBookingOptimization(
     perfectDayCount: perfectDays.length,
   };
 
+  // Enhance perfect days with cultural context
+  const culturalInsights: DestinationInsight[] = [];
+  for (const perfectDay of perfectDays) {
+    try {
+      const insight = await culturalService.enhancePerfectDayOpportunity(perfectDay);
+      culturalInsights.push(insight);
+    } catch (error) {
+      logger.warn(`Failed to enhance perfect day with cultural context: ${error}`);
+    }
+  }
+
+  // Add cultural value to summary
+  const culturalValue = culturalInsights.length > 0 
+    ? culturalInsights[0].enhancedRecommendation.wealthPreservation.slice(0, 2)
+    : ["Cultural preservation through luxury tourism", "Multi-generational appeal with cultural significance"];
+
   return {
     topChoice,
     alternatives,
@@ -420,7 +444,11 @@ async function performBookingOptimization(
     luxuryOption,
     bestValue,
     perfectDays,
-    summary,
+    culturalInsights,
+    summary: {
+      ...summary,
+      culturalValue,
+    },
   };
 }
 
@@ -554,7 +582,7 @@ function generateOptimizationResponse(
   criteria: OptimizationCriteria,
   optimization: OptimizedRecommendation,
 ): string {
-  const { topChoice, alternatives, summary, perfectDays } = optimization;
+  const { topChoice, alternatives, summary, perfectDays, culturalInsights } = optimization;
 
   // Format top choice
   const topChoiceText = `${topChoice.hotel.name} €${topChoice.bestRate}/night (${topChoice.savingsPercentage.toFixed(0)}% savings) ${formatDateRange([topChoice.checkIn, topChoice.checkOut])}`;
@@ -591,6 +619,15 @@ function generateOptimizationResponse(
   // Format summary
   const summaryText = `${summary.totalHotelsCompared} properties compared, ${summary.averageSavings.toFixed(0)}% average savings`;
 
+  // Add cultural insights section
+  let culturalInsightsText = "";
+  if (culturalInsights.length > 0) {
+    const topInsight = culturalInsights[0];
+    culturalInsightsText = `\n\n🏛️ **CULTURAL CONTEXT**: ${topInsight.culturalContext.city} offers ${topInsight.enhancedRecommendation.culturalExperiences[0]?.toLowerCase() || 'rich cultural experiences'}`;
+    culturalInsightsText += `\n💎 **WEALTH PRESERVATION**: ${topInsight.enhancedRecommendation.wealthPreservation[0] || 'Cultural capital through luxury tourism'}`;
+    culturalInsightsText += `\n🌟 **AUTHENTIC MOMENTS**: ${topInsight.enhancedRecommendation.authenticMoments[0] || 'Experience local culture and traditions'}`;
+  }
+
   // Add Bitcoin philosophy
   const bitcoinQuotes = [
     "Sound money demands optimal allocation.",
@@ -603,7 +640,7 @@ function generateOptimizationResponse(
   const bitcoinQuote =
     bitcoinQuotes[Math.floor(Math.random() * bitcoinQuotes.length)];
 
-  return `${getCityDisplayName(criteria.cities)} hotel optimization: ${topChoiceText} wins overall${alternativesText}. ${summaryText}. Best value: ${topChoice.reasoning.toLowerCase()}.${perfectDaysText} ${bitcoinQuote}`;
+  return `${getCityDisplayName(criteria.cities)} hotel optimization: ${topChoiceText} wins overall${alternativesText}. ${summaryText}. Best value: ${topChoice.reasoning.toLowerCase()}.${perfectDaysText}${culturalInsightsText} ${bitcoinQuote}`;
 }
 
 /**
