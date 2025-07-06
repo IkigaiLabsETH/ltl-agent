@@ -97,6 +97,33 @@ const ServiceConfigSchema = z.object({
     })
     .default({}),
 
+  // Home Cooking Service Configuration
+  homeCooking: z
+    .object({
+      enabled: z.boolean().default(true),
+      cacheTimeout: z.number().default(86400000), // 24 hours
+      maxRetries: z.number().default(3),
+    })
+    .default({}),
+
+  // Beverage Knowledge Service Configuration
+  beverageKnowledge: z
+    .object({
+      enabled: z.boolean().default(true),
+      cacheTimeout: z.number().default(86400000), // 24 hours
+      maxRetries: z.number().default(3),
+    })
+    .default({}),
+
+  // Daily Culinary Service Configuration
+  dailyCulinary: z
+    .object({
+      enabled: z.boolean().default(true),
+      cacheTimeout: z.number().default(3600000), // 1 hour
+      maxRetries: z.number().default(3),
+    })
+    .default({}),
+
   // Travel Data Service Configuration
   travelData: z
     .object({

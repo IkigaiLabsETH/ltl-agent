@@ -12,6 +12,7 @@ export { AltcoinDataService } from "./AltcoinDataService";
 export { LifestyleDataService } from "./LifestyleDataService";
 export { StockDataService } from "./StockDataService";
 export { TravelDataService } from "./TravelDataService";
+export { CulturalContextService } from "./CulturalContextService";
 export { ETFDataService } from "./ETFDataService";
 
 // New focused services (replacing RealTimeDataService)
@@ -42,3 +43,7 @@ export { OpportunityAlertService } from "./OpportunityAlertService";
 export { PerformanceTrackingService } from "./PerformanceTrackingService";
 export { SchedulerService } from "./SchedulerService";
 export { RealTimeDataService } from "./RealTimeDataService";
+
+// Health Intelligence Services
+export { HealthIntelligenceService } from "./HealthIntelligenceService";
+export { WellnessReminderService } from "./WellnessReminderService";

@@ -52,6 +52,7 @@ import {
   hotelDealAlertAction,
   bookingOptimizationAction,
   travelInsightsAction,
+  weeklyHotelSuggestionsAction,
   etfFlowAction,
   bitcoinPriceAction,
   altcoinPriceAction,
@@ -67,6 +68,15 @@ import {
   altcoinBTCPerformanceAction,
   cryptoPriceLookupAction,
 } from "./actions";
+
+// Import culinary actions from individual files
+import { dailyCulinaryAction } from "./actions/dailyCulinaryAction";
+import { restaurantRecommendationAction } from "./actions/restaurantRecommendationAction";
+import { michelinHotelAction } from "./actions/michelinHotelAction";
+import { homeCookingAction } from "./actions/homeCookingAction";
+import { beverageInsightAction } from "./actions/beverageInsightAction";
+import { morningHealthAction } from "./actions/morningHealthAction";
+
 import { allProviders } from "./providers";
 
 // Configuration and utilities
@@ -163,6 +173,7 @@ const bitcoinPlugin: Plugin = {
     stockMarketAction,
     etfFlowAction,
     // Travel & Booking Actions
+    weeklyHotelSuggestionsAction,
     hotelSearchAction,
     hotelDealAlertAction,
     bookingOptimizationAction,
@@ -180,6 +191,13 @@ const bitcoinPlugin: Plugin = {
     freedomMathematicsAction,
     altcoinBTCPerformanceAction,
     cryptoPriceLookupAction,
+    // Health Actions
+    morningHealthAction,
+    dailyCulinaryAction,
+    restaurantRecommendationAction,
+    michelinHotelAction,
+    homeCookingAction,
+    beverageInsightAction,
   ],
 
   events: {
