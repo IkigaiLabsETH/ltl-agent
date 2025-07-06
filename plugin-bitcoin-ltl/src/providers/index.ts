@@ -21,6 +21,11 @@ import { briefingProvider } from "./briefingProvider";
 import { knowledgeContextProvider } from "./knowledge-context-provider";
 import { travelKnowledgeProvider } from "./travelKnowledgeProvider";
 
+// New Bitcoin Intelligence Providers
+import { bitcoinNetworkProvider } from "./bitcoinNetworkProvider";
+import { marketContextProvider as newMarketContextProvider } from "./marketContextProvider";
+import { satoshiPhilosophyProvider } from "./satoshiPhilosophyProvider";
+
 // Re-export individual providers
 export { timeProvider } from "./timeProvider";
 export { bitcoinMarketProvider } from "./bitcoinMarketProvider";
@@ -39,8 +44,19 @@ export { briefingProvider } from "./briefingProvider";
 export { knowledgeContextProvider } from "./knowledge-context-provider";
 export { travelKnowledgeProvider } from "./travelKnowledgeProvider";
 
+// Export new Bitcoin Intelligence Providers
+export { bitcoinNetworkProvider } from "./bitcoinNetworkProvider";
+export { marketContextProvider as newMarketContextProvider } from "./marketContextProvider";
+export { satoshiPhilosophyProvider } from "./satoshiPhilosophyProvider";
+
 // Provider collection for easy import
 export const allProviders = [
+  // Core Bitcoin Intelligence Providers (High Priority)
+  satoshiPhilosophyProvider,
+  bitcoinNetworkProvider,
+  newMarketContextProvider,
+  
+  // Existing Providers
   timeProvider,
   networkHealthProvider,
   bitcoinMarketProvider,

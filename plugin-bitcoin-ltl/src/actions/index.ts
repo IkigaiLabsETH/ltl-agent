@@ -25,6 +25,9 @@ import { hotelRateIntelligenceAction } from "./hotelRateIntelligenceAction";
 import { enhancedKnowledgeSearchAction } from "./enhanced-knowledge-search";
 import { weeklyHotelSuggestionsAction } from "./weeklyHotelSuggestionsAction";
 
+// New Bitcoin Intelligence Actions
+import { bitcoinMorningBriefingAction } from "./bitcoinMorningBriefingAction";
+
 // Core Actions - Newly refactored
 import { helloWorldAction } from "./helloWorldAction";
 import { bitcoinAnalysisAction } from "./bitcoinAnalysisAction";
@@ -49,6 +52,9 @@ export { bitcoinPriceAction };
 export { altcoinPriceAction };
 export { weatherAction };
 export { enhancedKnowledgeSearchAction };
+
+// New Bitcoin Intelligence Actions
+export { bitcoinMorningBriefingAction };
 
 // Newly refactored core actions
 export { helloWorldAction };
