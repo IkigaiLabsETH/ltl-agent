@@ -25,6 +25,7 @@ import { travelKnowledgeProvider } from "./travelKnowledgeProvider";
 import { bitcoinNetworkProvider } from "./bitcoinNetworkProvider";
 import { marketContextProvider as newMarketContextProvider } from "./marketContextProvider";
 import { satoshiPhilosophyProvider } from "./satoshiPhilosophyProvider";
+import { bitcoinKnowledgeProvider } from "./bitcoinKnowledgeProvider";
 
 // Re-export individual providers
 export { timeProvider } from "./timeProvider";
@@ -48,6 +49,7 @@ export { travelKnowledgeProvider } from "./travelKnowledgeProvider";
 export { bitcoinNetworkProvider } from "./bitcoinNetworkProvider";
 export { marketContextProvider as newMarketContextProvider } from "./marketContextProvider";
 export { satoshiPhilosophyProvider } from "./satoshiPhilosophyProvider";
+export { bitcoinKnowledgeProvider } from "./bitcoinKnowledgeProvider";
 
 // Provider collection for easy import
 export const allProviders = [
@@ -55,6 +57,7 @@ export const allProviders = [
   satoshiPhilosophyProvider,
   bitcoinNetworkProvider,
   newMarketContextProvider,
+  bitcoinKnowledgeProvider,
   
   // Existing Providers
   timeProvider,

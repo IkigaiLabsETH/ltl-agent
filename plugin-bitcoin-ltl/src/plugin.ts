@@ -72,6 +72,8 @@ import {
   freedomMathematicsAction,
   altcoinBTCPerformanceAction,
   cryptoPriceLookupAction,
+  bitcoinMorningBriefingAction,
+  bitcoinKnowledgeAction,
 } from "./actions";
 
 // Import culinary actions from individual files
@@ -215,6 +217,10 @@ const bitcoinPlugin: Plugin = {
     michelinHotelAction,
     homeCookingAction,
     beverageInsightAction,
+    
+    // New Bitcoin Intelligence Actions (Phase 2 & 3)
+    bitcoinMorningBriefingAction,
+    bitcoinKnowledgeAction,
   ],
 
   events: {
