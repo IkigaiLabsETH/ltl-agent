@@ -188,9 +188,7 @@ export class NFTDataService extends BaseDataService {
     );
     this.configService =
       runtime.getService<CentralizedConfigService>("centralized-config");
-    this.errorHandler = runtime.getService<ComprehensiveErrorHandler>(
-      "comprehensive-error-handler",
-    );
+    this.errorHandler = new ComprehensiveErrorHandler();
   }
 
   public get capabilityDescription(): string {
@@ -236,11 +234,10 @@ export class NFTDataService extends BaseDataService {
       await this.updateCuratedNFTsData();
       this.contextLogger.info("NFT data update completed");
     } catch (error) {
-      this.errorHandler.handleError(
-        error,
-        "NFTDataService.updateData",
-        "critical",
-      );
+      this.errorHandler.handleError(error, {
+        component: "NFTDataService",
+        operation: "updateData"
+      });
     }
   }
 
@@ -262,11 +259,10 @@ export class NFTDataService extends BaseDataService {
       try {
         await this.updateData();
       } catch (error) {
-        this.errorHandler.handleError(
-          error,
-          "NFTDataService.startRealTimeUpdates",
-          "high",
-        );
+        this.errorHandler.handleError(error, {
+          component: "NFTDataService",
+          operation: "startRealTimeUpdates"
+        });
       }
     }, updateInterval);
 
@@ -294,11 +290,10 @@ export class NFTDataService extends BaseDataService {
         this.contextLogger.info("Curated NFTs data updated successfully");
       }
     } catch (error) {
-      this.errorHandler.handleError(
-        error,
-        "NFTDataService.updateCuratedNFTsData",
-        "high",
-      );
+      this.errorHandler.handleError(error, {
+        component: "NFTDataService",
+        operation: "updateCuratedNFTsData"
+      });
     }
   }
 
@@ -337,11 +332,10 @@ export class NFTDataService extends BaseDataService {
             collections.push(collectionData);
           }
         } catch (error) {
-          this.errorHandler.handleError(
-            error,
-            `NFTDataService.fetchCuratedNFTsData.${collectionSlug}`,
-            "medium",
-          );
+          this.errorHandler.handleError(error, {
+            component: "NFTDataService",
+            operation: `fetchCuratedNFTsData.${collectionSlug}`
+          });
         }
       }
 
@@ -358,11 +352,10 @@ export class NFTDataService extends BaseDataService {
         lastUpdated: new Date(),
       };
     } catch (error) {
-      this.errorHandler.handleError(
-        error,
-        "NFTDataService.fetchCuratedNFTsData",
-        "high",
-      );
+      this.errorHandler.handleError(error, {
+        component: "NFTDataService",
+        operation: "fetchCuratedNFTsData"
+      });
       return null;
     }
   }
@@ -410,11 +403,10 @@ export class NFTDataService extends BaseDataService {
         blockchain: collectionInfo.primary_asset_contracts?.[0]?.chain,
       };
     } catch (error) {
-      this.errorHandler.handleError(
-        error,
-        `NFTDataService.fetchEnhancedCollectionData.${collectionSlug}`,
-        "medium",
-      );
+      this.errorHandler.handleError(error, {
+        component: "NFTDataService",
+        operation: `fetchEnhancedCollectionData.${collectionSlug}`
+      });
       return null;
     }
   }

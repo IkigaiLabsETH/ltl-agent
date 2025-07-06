@@ -12,7 +12,8 @@ import {
   ValidationPatterns,
   ResponseCreators,
 } from "./base/ActionTemplate";
-import { TravelDataService } from "../services/TravelDataService";
+import { TravelDataService, PerfectDayOpportunity } from "../services/TravelDataService";
+import { CulturalContextService, DestinationInsight } from "../services/CulturalContextService";
 
 interface DealAlert {
   id: string;
@@ -117,6 +118,10 @@ export const hotelDealAlertAction: Action = createActionTemplate({
         "travel-data",
       ) as TravelDataService;
 
+      const culturalService = runtime.getService(
+        "cultural-context",
+      ) as unknown as CulturalContextService;
+
       if (!travelDataService) {
         logger.warn("TravelDataService not available");
 
@@ -154,7 +159,7 @@ export const hotelDealAlertAction: Action = createActionTemplate({
       }
 
       // Find current deals based on parameters
-      const currentDeals = findCurrentDeals(travelDataService, alertParams);
+      const currentDeals = await findCurrentDeals(travelDataService, culturalService, alertParams);
 
       if (currentDeals.length === 0) {
         logger.info("No current deals match criteria");
@@ -176,8 +181,8 @@ export const hotelDealAlertAction: Action = createActionTemplate({
         return true;
       }
 
-      // Format deals response
-      const responseText = formatDealsResponse(currentDeals, alertParams);
+      // Format deals response with cultural context
+      const responseText = await formatDealsResponse(currentDeals, alertParams, culturalService);
 
       const response = ResponseCreators.createStandardResponse(
         thoughtProcess,
@@ -278,13 +283,17 @@ function extractAlertParameters(text: string): {
 /**
  * Find current deals based on parameters
  */
-function findCurrentDeals(
+async function findCurrentDeals(
   travelService: TravelDataService,
+  culturalService: CulturalContextService,
   params: any,
-): DealAlert[] {
+): Promise<DealAlert[]> {
   const hotels = travelService.getCuratedHotels() || [];
   const optimalWindows = travelService.getOptimalBookingWindows() || [];
   const deals: DealAlert[] = [];
+
+  // Get hybrid perfect day opportunities with enhanced intelligence
+  const perfectDays = await travelService.getHybridPerfectDays();
 
   // Filter hotels based on parameters
   let filteredHotels = hotels;
@@ -347,8 +356,56 @@ function findCurrentDeals(
     }
   }
 
-  // Sort by savings percentage (highest first)
-  return deals.sort((a, b) => b.savingsPercentage - a.savingsPercentage);
+  // Add perfect day opportunities as high-priority deals
+  for (const perfectDay of perfectDays) {
+    // Check if perfect day meets criteria
+    if (params.maxPrice && perfectDay.currentRate > params.maxPrice) continue;
+    if (params.minSavings && perfectDay.savingsPercentage < params.minSavings) continue;
+
+    // Check city filter
+    if (params.cities && params.cities.length > 0) {
+      const hotel = hotels.find(h => h.hotelId === perfectDay.hotelId);
+      if (!hotel || !params.cities.some((city: string) => hotel.city?.toLowerCase() === city.toLowerCase())) {
+        continue;
+      }
+    }
+
+    // Check hotel name filter
+    if (params.hotels && params.hotels.length > 0) {
+      if (!params.hotels.some((name: string) => perfectDay.hotelName?.toLowerCase().includes(name.toLowerCase()))) {
+        continue;
+      }
+    }
+
+    const confidenceText = perfectDay.confidenceScore >= 90 ? '95% confidence' : 
+                          perfectDay.confidenceScore >= 80 ? '88% confidence' : '75% confidence';
+    
+    deals.push({
+      id: `perfect-${perfectDay.hotelId}-${perfectDay.perfectDate}`,
+      hotel: { name: perfectDay.hotelName, hotelId: perfectDay.hotelId },
+      currentRate: perfectDay.currentRate,
+      previousRate: perfectDay.averageRate,
+      savings: perfectDay.averageRate - perfectDay.currentRate,
+      savingsPercentage: perfectDay.savingsPercentage,
+      validDates: [perfectDay.perfectDate, perfectDay.perfectDate],
+      urgency: perfectDay.urgency,
+      reason: `PERFECT DAY: ${perfectDay.reasons.join(', ')} | ${confidenceText}`,
+      actionRecommendation: perfectDay.urgency === 'high' ? 'Book immediately - perfect day opportunity' : 'Book within 7 days - excellent value',
+    });
+  }
+
+  // Sort by savings percentage (highest first), with perfect days prioritized
+  return deals.sort((a, b) => {
+    // Perfect days get priority
+    const aIsPerfect = a.id.startsWith('perfect-');
+    const bIsPerfect = b.id.startsWith('perfect-');
+    
+    if (aIsPerfect && !bIsPerfect) return -1;
+    if (!aIsPerfect && bIsPerfect) return 1;
+    
+    // Then sort by savings percentage
+    return b.savingsPercentage - a.savingsPercentage;
+  });
 }
 
 /**
@@ -388,27 +445,73 @@ function generateActionRecommendation(urgency: string): string {
 /**
  * Format deals response
  */
-function formatDealsResponse(deals: DealAlert[], params: any): string {
+async function formatDealsResponse(deals: DealAlert[], params: any, culturalService: CulturalContextService): Promise<string> {
   const highUrgencyDeals = deals.filter((d) => d.urgency === "high");
+  const perfectDayDeals = deals.filter((d) => d.id.startsWith('perfect-'));
   const totalSavings = deals.reduce((sum, d) => sum + d.savings, 0);
 
-  let responseText = `🚨 Hotel deals: `;
+  let responseText = "";
 
-  // Show top deals
-  const topDeals = deals
-    .slice(0, 3)
-    .map((deal) => {
-      const dates = formatDateRange(deal.validDates);
-      return `${deal.hotel.name} €${deal.currentRate}/night (was €${deal.previousRate}, ${deal.savingsPercentage.toFixed(0)}% off) ${dates}`;
-    })
-    .join(", ");
+  // Highlight perfect days first
+  if (perfectDayDeals.length > 0) {
+    responseText += `🎯 **PERFECT DAY ALERTS**: `;
+    const perfectDayTexts = perfectDayDeals
+      .slice(0, 2)
+      .map((deal) => {
+        const dates = formatDateRange(deal.validDates);
+        const urgencyEmoji = deal.urgency === 'high' ? '🔥' : deal.urgency === 'medium' ? '⚡' : '💡';
+        return `${deal.hotel.name} €${deal.currentRate}/night (${deal.savingsPercentage.toFixed(1)}% below average) ${dates} ${urgencyEmoji}`;
+      })
+      .join(", ");
+    responseText += `${perfectDayTexts}. `;
+  }
 
-  responseText += `${topDeals}. `;
+  // Show regular deals
+  const regularDeals = deals.filter((d) => !d.id.startsWith('perfect-'));
+  if (regularDeals.length > 0) {
+    if (perfectDayDeals.length > 0) {
+      responseText += `\n\n🚨 **Additional Deals**: `;
+    } else {
+      responseText += `🚨 **Hotel deals**: `;
+    }
+    
+    const topDeals = regularDeals
+      .slice(0, 3)
+      .map((deal) => {
+        const dates = formatDateRange(deal.validDates);
+        return `${deal.hotel.name} €${deal.currentRate}/night (was €${deal.previousRate}, ${deal.savingsPercentage.toFixed(0)}% off) ${dates}`;
+      })
+      .join(", ");
+
+    responseText += `${topDeals}. `;
+  }
 
   responseText += `${deals.length} ${deals.length === 1 ? "opportunity" : "opportunities"} found. `;
 
   if (highUrgencyDeals.length > 0) {
     responseText += `${highUrgencyDeals[0].actionRecommendation}. `;
+  }
+
+  // Add cultural context for top deal
+  let culturalContextText = "";
+  if (deals.length > 0) {
+    try {
+      const topDeal = deals[0];
+      const city = topDeal.hotel.name?.toLowerCase().includes('biarritz') ? 'biarritz' :
+                   topDeal.hotel.name?.toLowerCase().includes('bordeaux') ? 'bordeaux' :
+                   topDeal.hotel.name?.toLowerCase().includes('monaco') ? 'monaco' : 'biarritz';
+      
+      const culturalContext = await culturalService.getCulturalContext(city);
+      if (culturalContext) {
+        const seasonalInsights = await culturalService.getSeasonalInsights(city);
+        culturalContextText = `\n\n🏛️ **CULTURAL CONTEXT**: ${culturalContext.city} offers ${culturalContext.perfectDayContext.culturalExperiences[0]?.toLowerCase() || 'rich cultural experiences'}`;
+        if (seasonalInsights.length > 0) {
+          culturalContextText += `\n🌟 **SEASONAL HIGHLIGHT**: ${seasonalInsights[0]}`;
+        }
+      }
+    } catch (error) {
+      logger.warn(`Failed to add cultural context: ${error}`);
+    }
   }
 
   // Add Bitcoin travel philosophy
@@ -420,7 +523,7 @@ function formatDealsResponse(deals: DealAlert[], params: any): string {
     "Stack sats, book deals.",
   ];
 
-  responseText +=
+  responseText += culturalContextText + " " +
     bitcoinQuotes[Math.floor(Math.random() * bitcoinQuotes.length)];
 
   return responseText;
