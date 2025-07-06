@@ -7,7 +7,6 @@ export { ConfigurationManager } from "./ConfigurationManager";
 export { StarterService } from "./StarterService";
 
 // Specialized data services
-export { BitcoinNetworkDataService } from "./BitcoinNetworkDataService";
 export { AltcoinDataService } from "./AltcoinDataService";
 export { LifestyleDataService } from "./LifestyleDataService";
 export { StockDataService } from "./StockDataService";
@@ -16,7 +15,6 @@ export { CulturalContextService } from "./CulturalContextService";
 export { ETFDataService } from "./ETFDataService";
 
 // New focused services (replacing RealTimeDataService)
-export { BitcoinNetworkService } from "./BitcoinNetworkService";
 export { MarketDataService } from "./MarketDataService";
 export { NFTDataService } from "./NFTDataService";
 export { NewsDataService } from "./NewsDataService";
@@ -34,7 +32,6 @@ export { RealTimeStreamingService } from "./RealTimeStreamingService";
 export { AdvancedAlertingService } from "./AdvancedAlertingService";
 
 // Existing services
-export { BitcoinDataService } from "./BitcoinDataService";
 export { ContentIngestionService } from "./ContentIngestionService";
 export { SlackIngestionService } from "./SlackIngestionService";
 export { MorningBriefingService } from "./MorningBriefingService";

@@ -1,4 +1,4 @@
-import { Service, logger } from "@elizaos/core";
+import { Service, logger, IAgentRuntime } from "@elizaos/core";
 import { BaseDataService } from "./BaseDataService";
 import { retryOperation } from "../utils/networkUtils";
 
@@ -131,6 +131,7 @@ interface NextDayPrep {
  * Orchestrates daily health experiences and integrates with existing training schedule
  */
 export class HealthIntelligenceService extends BaseDataService {
+  capabilityDescription = "Provides daily and evening health intelligence, integrating training, wellness, and Bitcoin lifestyle.";
   private weeklyTrainingSchedule: Record<string, DailyTrainingSchedule> = {
     monday: {
       dayOfWeek: 'monday',
@@ -270,14 +271,14 @@ export class HealthIntelligenceService extends BaseDataService {
     }
   ];
 
-  constructor() {
-    super("health-intelligence", "Orchestrates daily health experiences and training schedule integration");
+  constructor(runtime: IAgentRuntime) {
+    super(runtime, "morningBriefing");
   }
 
   async getMorningHealthBriefing(): Promise<MorningHealthBriefing> {
     try {
       const today = new Date();
-      const dayOfWeek = today.toLocaleDateString('en-US', { weekday: 'lowercase' });
+      const dayOfWeek = today.toLocaleString('en-US', { weekday: 'long' }).toLowerCase();
       const trainingSchedule = this.weeklyTrainingSchedule[dayOfWeek] || this.weeklyTrainingSchedule.monday;
 
       const briefing: MorningHealthBriefing = {
@@ -312,7 +313,7 @@ export class HealthIntelligenceService extends BaseDataService {
       const today = new Date();
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
-      const tomorrowDayOfWeek = tomorrow.toLocaleDateString('en-US', { weekday: 'lowercase' });
+      const tomorrowDayOfWeek = tomorrow.toLocaleString('en-US', { weekday: 'long' }).toLowerCase();
       const nextTrainingSchedule = this.weeklyTrainingSchedule[tomorrowDayOfWeek] || this.weeklyTrainingSchedule.monday;
 
       const recap: EveningHealthRecap = {
@@ -389,7 +390,7 @@ export class HealthIntelligenceService extends BaseDataService {
 
   async getDailyTrainingSchedule(dayOfWeek?: string): Promise<DailyTrainingSchedule> {
     try {
-      const targetDay = dayOfWeek || new Date().toLocaleDateString('en-US', { weekday: 'lowercase' });
+      const targetDay = dayOfWeek || new Date().toLocaleString('en-US', { weekday: 'long' }).toLowerCase();
       const schedule = this.weeklyTrainingSchedule[targetDay] || this.weeklyTrainingSchedule.monday;
 
       logger.info(`💪 Daily training schedule retrieved for ${targetDay}`);
@@ -457,4 +458,7 @@ export class HealthIntelligenceService extends BaseDataService {
       throw new Error(`Failed to generate recovery optimization: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
+
+  async updateData(): Promise<void> {}
+  async forceUpdate(): Promise<any> {}
 } 

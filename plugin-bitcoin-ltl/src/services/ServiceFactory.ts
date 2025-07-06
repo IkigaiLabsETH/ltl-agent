@@ -1,6 +1,4 @@
 import { IAgentRuntime, logger, Service } from "@elizaos/core";
-import { BitcoinDataService } from "./BitcoinDataService";
-import { BitcoinNetworkDataService } from "./BitcoinNetworkDataService";
 import { StockDataService } from "./StockDataService";
 import { AltcoinDataService } from "./AltcoinDataService";
 import { ETFDataService } from "./ETFDataService";
@@ -88,10 +86,6 @@ export class ServiceFactory {
       
       // Initialize services in dependency order
       const serviceClasses = [
-        // Core data services (no dependencies)
-        BitcoinDataService,
-        BitcoinNetworkDataService,
-
         // New Bitcoin Intelligence Services (Phase 2 & 3)
         ConfigurationService,
         BitcoinIntelligenceService,
