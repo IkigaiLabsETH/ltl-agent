@@ -8,12 +8,16 @@ import {
   ETFHolding
 } from "../types/bitcoinIntelligence";
 import { ElizaOSErrorHandler, LoggerWithContext, generateCorrelationId } from "../utils";
+import { createBitcoinAPIClient } from "../utils/apiUtils";
 
 export class MarketIntelligenceService extends BaseDataService {
   static serviceType = "market-intelligence";
   capabilityDescription = "Market intelligence service providing altcoin performance, stock correlations, macro indicators, and ETF data";
 
-  // API endpoints
+  // API client
+  private apiClient: ReturnType<typeof createBitcoinAPIClient>;
+
+  // API endpoints (kept for reference)
   private readonly COINGECKO_API = "https://api.coingecko.com/api/v3";
   private readonly ALPHA_VANTAGE_API = "https://www.alphavantage.co/query";
   private readonly FRED_API = "https://api.stlouisfed.org/fred/series/observations";
@@ -41,7 +45,10 @@ export class MarketIntelligenceService extends BaseDataService {
   ];
 
   constructor(runtime: IAgentRuntime) {
-    super(runtime, "marketIntelligence");
+    super(runtime, "bitcoinData");
+    
+    // Initialize API client
+    this.apiClient = createBitcoinAPIClient();
   }
 
   static async start(runtime: IAgentRuntime) {
@@ -293,17 +300,17 @@ export class MarketIntelligenceService extends BaseDataService {
       contextLogger.info("🪙 Fetching altcoin performance data...");
 
       // Fetch Bitcoin price first for comparison
-      const bitcoinPrice = await this.fetchBitcoinPrice();
+      const bitcoinData = await this.apiClient.getBitcoinMarketData();
       
-      // Fetch altcoin data from CoinGecko
-      const altcoinData = await this.fetchCoingeckoAltcoinData();
+      // Fetch altcoin data using API client
+      const altcoinData = await this.apiClient.getAltcoinData(this.TRACKED_ALTCOINS);
       
       // Process and categorize altcoins
       const processedAltcoins = altcoinData.map((coin: any) => ({
         symbol: coin.symbol?.toUpperCase() || '',
         name: coin.name || '',
         usdPrice: coin.current_price || 0,
-        btcPrice: coin.current_price / bitcoinPrice,
+        btcPrice: coin.current_price / bitcoinData.price,
         btcPerformance24h: coin.price_change_percentage_24h || 0,
         btcPerformance7d: coin.price_change_percentage_7d || 0,
         btcPerformance30d: coin.price_change_percentage_30d || 0,
@@ -343,23 +350,23 @@ export class MarketIntelligenceService extends BaseDataService {
       const contextLogger = new LoggerWithContext(generateCorrelationId(), "MarketIntelligenceService");
       contextLogger.info("📊 Fetching stock market correlations...");
 
-      // Fetch stock data from Yahoo Finance
+      // Fetch stock data using API client
       const [teslaData, mag7Data, microstrategyData, sp500Data, goldData] = await Promise.all([
-        this.fetchStockData('TSLA'),
-        this.fetchMagnificent7Data(),
-        this.fetchStockData('MSTR'),
-        this.fetchStockData('^GSPC'), // S&P 500
-        this.fetchStockData('GC=F')  // Gold futures
+        this.apiClient.getStockData('TSLA'),
+        this.apiClient.getStockData('AAPL'), // Use Apple as proxy for MAG7
+        this.apiClient.getStockData('MSTR'),
+        this.apiClient.getStockData('^GSPC'), // S&P 500
+        this.apiClient.getStockData('GC=F')  // Gold futures
       ]);
 
-      const bitcoinPrice = await this.fetchBitcoinPrice();
+      const bitcoinData = await this.apiClient.getBitcoinMarketData();
 
       const correlations = {
-        teslaVsBitcoin: this.calculateRelativePerformance(teslaData, bitcoinPrice),
-        mag7VsBitcoin: this.calculateRelativePerformance(mag7Data, bitcoinPrice),
-        microstrategyPerformance: this.calculateRelativePerformance(microstrategyData, bitcoinPrice),
-        sp500VsBitcoin: this.calculateRelativePerformance(sp500Data, bitcoinPrice),
-        goldVsBitcoin: this.calculateRelativePerformance(goldData, bitcoinPrice)
+        teslaVsBitcoin: this.calculateRelativePerformance(teslaData, bitcoinData.price),
+        mag7VsBitcoin: this.calculateRelativePerformance(mag7Data, bitcoinData.price),
+        microstrategyPerformance: this.calculateRelativePerformance(microstrategyData, bitcoinData.price),
+        sp500VsBitcoin: this.calculateRelativePerformance(sp500Data, bitcoinData.price),
+        goldVsBitcoin: this.calculateRelativePerformance(goldData, bitcoinData.price)
       };
 
       contextLogger.info("📊 Stock correlations calculated", correlations);
@@ -391,12 +398,12 @@ export class MarketIntelligenceService extends BaseDataService {
       const contextLogger = new LoggerWithContext(generateCorrelationId(), "MarketIntelligenceService");
       contextLogger.info("🌍 Fetching macro economic indicators...");
 
-      // Fetch macro data from various sources
+      // Fetch macro data using API client
       const [dxyData, treasuryData, inflationData, moneySupplyData] = await Promise.all([
-        this.fetchDollarIndex(),
-        this.fetchTreasuryYields(),
-        this.fetchInflationRate(),
-        this.fetchMoneySupply()
+        this.apiClient.getDollarIndex(),
+        this.apiClient.getTreasuryYields(),
+        Promise.resolve(3.1), // TODO: Add inflation API
+        Promise.resolve(0)    // TODO: Add money supply API
       ]);
 
       const fedPolicy = this.determineFedPolicy(treasuryData, inflationData);
@@ -432,9 +439,24 @@ export class MarketIntelligenceService extends BaseDataService {
       const contextLogger = new LoggerWithContext(generateCorrelationId(), "MarketIntelligenceService");
       contextLogger.info("💼 Fetching Bitcoin ETF data...");
 
-      // Fetch ETF data from various sources
-      const etfHoldings = await this.fetchETFHoldings();
-      const etfFlows = await this.fetchETFFlows();
+      // Fetch ETF data (placeholder for now - TODO: Add ETF API integration)
+      const etfHoldings = {
+        totalAUM: 27400000000,
+        topHolders: ['BlackRock IBIT', 'Fidelity FBTC', 'ARKB'],
+        institutionalAdoption: 26.3,
+        averageExpenseRatio: 0.25,
+        totalBitcoinHeld: 0,
+        percentOfSupply: 0,
+        marketLeader: 'BlackRock IBIT'
+      };
+      
+      const etfFlows = {
+        dailyFlows: 245000000,
+        weeklyFlows: 0,
+        monthlyFlows: 0,
+        strongestInflow: 'BlackRock IBIT',
+        largestOutflow: 'None'
+      };
 
       const etfData: ETFData = {
         totalAUM: etfHoldings.totalAUM || 27400000000, // $27.4B default
@@ -490,8 +512,8 @@ export class MarketIntelligenceService extends BaseDataService {
       const contextLogger = new LoggerWithContext(generateCorrelationId(), "MarketIntelligenceService");
       contextLogger.info("😨 Fetching market sentiment data...");
 
-      // Fetch Fear & Greed Index
-      const fearGreedData = await this.fetchFearGreedIndex();
+      // Fetch Fear & Greed Index using API client
+      const fearGreedData = await this.apiClient.getFearGreedIndex();
 
       const sentimentData = {
         fearGreedIndex: fearGreedData.index || 50,
@@ -628,62 +650,5 @@ export class MarketIntelligenceService extends BaseDataService {
     }
   }
 
-  // ============================================================================
-  // PLACEHOLDER FETCH METHODS (TO BE IMPLEMENTED)
-  // ============================================================================
-
-  private async fetchBitcoinPrice(): Promise<number> {
-    // TODO: Implement Bitcoin price fetching
-    return 107940; // Default price
-  }
-
-  private async fetchCoingeckoAltcoinData(): Promise<any[]> {
-    // TODO: Implement CoinGecko API calls for altcoins
-    return [];
-  }
-
-  private async fetchStockData(symbol: string): Promise<any> {
-    // TODO: Implement Yahoo Finance API calls
-    return { price: 0 };
-  }
-
-  private async fetchMagnificent7Data(): Promise<any> {
-    // TODO: Implement Magnificent 7 index calculation
-    return { price: 0 };
-  }
-
-  private async fetchDollarIndex(): Promise<number> {
-    // TODO: Implement DXY fetching
-    return 104.2;
-  }
-
-  private async fetchTreasuryYields(): Promise<number> {
-    // TODO: Implement Treasury yields fetching
-    return 4.12;
-  }
-
-  private async fetchInflationRate(): Promise<number> {
-    // TODO: Implement inflation rate fetching
-    return 3.1;
-  }
-
-  private async fetchMoneySupply(): Promise<number> {
-    // TODO: Implement money supply fetching
-    return 0;
-  }
-
-  private async fetchETFHoldings(): Promise<any> {
-    // TODO: Implement ETF holdings fetching
-    return {};
-  }
-
-  private async fetchETFFlows(): Promise<any> {
-    // TODO: Implement ETF flows fetching
-    return {};
-  }
-
-  private async fetchFearGreedIndex(): Promise<any> {
-    // TODO: Implement Fear & Greed Index fetching
-    return { index: 50, value: 'Neutral' };
-  }
+  // Note: Placeholder methods removed - now using real API client
 } 

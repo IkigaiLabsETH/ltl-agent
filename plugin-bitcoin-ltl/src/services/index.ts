@@ -52,3 +52,4 @@ export { WellnessReminderService } from "./WellnessReminderService";
 export { BitcoinIntelligenceService } from "./BitcoinIntelligenceService";
 export { MarketIntelligenceService } from "./MarketIntelligenceService";
 export { InstitutionalAdoptionService } from "./InstitutionalAdoptionService";
+export { ConfigurationService } from "./ConfigurationService";

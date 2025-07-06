@@ -39,6 +39,7 @@ import {
 import { BitcoinIntelligenceService } from "./services/BitcoinIntelligenceService";
 import { MarketIntelligenceService } from "./services/MarketIntelligenceService";
 import { InstitutionalAdoptionService } from "./services/InstitutionalAdoptionService";
+import { ConfigurationService } from "./services/ConfigurationService";
 
 // Actions and Providers
 import {
@@ -1397,6 +1398,11 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
     StarterService,
     // Register CentralizedConfigService so it is available to all services
     require("./services/CentralizedConfigService").CentralizedConfigService,
+    // New Bitcoin Intelligence Services
+    BitcoinIntelligenceService,
+    MarketIntelligenceService,
+    InstitutionalAdoptionService,
+    ConfigurationService,
   ],
 
   tests: [bitcoinTestSuite],

@@ -25,17 +25,14 @@ import {
   TechnicalIndicator
 } from "../types/bitcoinIntelligence";
 import { ElizaOSErrorHandler, LoggerWithContext, generateCorrelationId } from "../utils";
+import { createBitcoinAPIClient, APIConfig } from "../utils/apiUtils";
 
 export class BitcoinIntelligenceService extends BaseDataService {
   static serviceType = "bitcoin-intelligence";
   capabilityDescription = "Unified Bitcoin intelligence service providing comprehensive network, market, institutional, and on-chain analytics";
 
-  // API endpoints
-  private readonly COINGECKO_API = "https://api.coingecko.com/api/v3";
-  private readonly BLOCKCHAIN_API = "https://api.blockchain.info";
-  private readonly MEMPOOL_API = "https://mempool.space/api";
-  private readonly ALTERNATIVE_API = "https://api.alternative.me";
-  private readonly GLASSNODE_API = "https://api.glassnode.com/v1/metrics";
+  // API client
+  private apiClient: ReturnType<typeof createBitcoinAPIClient>;
 
   // Data storage
   private bitcoinIntelligenceData: BitcoinIntelligenceData | null = null;
@@ -44,18 +41,21 @@ export class BitcoinIntelligenceService extends BaseDataService {
   private isUpdating: boolean = false;
 
   // Configuration
-  private config: BitcoinIntelligenceConfig;
+  private bitcoinConfig: BitcoinIntelligenceConfig;
 
   constructor(runtime: IAgentRuntime) {
-    super(runtime, "bitcoinIntelligence");
+    super(runtime, "bitcoinData");
+    
+    // Initialize API client
+    this.apiClient = createBitcoinAPIClient();
     
     // Initialize configuration
-    this.config = {
+    this.bitcoinConfig = {
       apis: {
-        coingecko: this.COINGECKO_API,
-        blockchain: this.BLOCKCHAIN_API,
-        mempool: this.MEMPOOL_API,
-        alternative: this.ALTERNATIVE_API
+        coingecko: "https://api.coingecko.com/api/v3",
+        blockchain: "https://api.blockchain.info",
+        mempool: "https://mempool.space/api",
+        alternative: "https://api.alternative.me"
       },
       intervals: {
         networkData: 300, // 5 minutes
@@ -349,39 +349,39 @@ export class BitcoinIntelligenceService extends BaseDataService {
    */
   private async fetchNetworkData(): Promise<BitcoinNetworkData> {
     try {
-      // Fetch from multiple sources in parallel
-      const [coingeckoData, blockchainData, mempoolData] = await Promise.all([
-        this.fetchCoingeckoNetworkData(),
-        this.fetchBlockchainInfoData(),
-        this.fetchMempoolData()
+      // Fetch from multiple sources in parallel using real API client
+      const [marketData, blockchainData, mempoolData] = await Promise.all([
+        this.apiClient.getBitcoinMarketData(),
+        this.apiClient.getBlockchainInfo(),
+        this.apiClient.getMempoolData()
       ]);
 
       // Merge and validate data
       const networkData: BitcoinNetworkData = {
         // Core metrics
-        price: coingeckoData.price || 0,
-        marketCap: coingeckoData.marketCap || 0,
-        dominance: coingeckoData.dominance || 0,
-        hashRate: blockchainData.hashRate || 0,
-        difficulty: blockchainData.difficulty || 0,
-        blockHeight: blockchainData.blockHeight || 0,
-        avgBlockTime: blockchainData.avgBlockTime || 0,
-        avgBlockSize: blockchainData.avgBlockSize || 0,
-        totalBTC: blockchainData.totalBTC || 0,
+        price: marketData?.price || 0,
+        marketCap: marketData?.marketCap || 0,
+        dominance: marketData?.dominance || 0,
+        hashRate: blockchainData?.hashRate || 0,
+        difficulty: blockchainData?.difficulty || 0,
+        blockHeight: blockchainData?.blockHeight || 0,
+        avgBlockTime: blockchainData?.avgBlockTime || 0,
+        avgBlockSize: blockchainData?.avgBlockSize || 0,
+        totalBTC: blockchainData?.totalBTC || 0,
 
         // Mempool & fees
-        mempoolSize: mempoolData.mempoolSize || 0,
-        mempoolTxs: mempoolData.mempoolTxs || 0,
+        mempoolSize: mempoolData?.mempoolSize || 0,
+        mempoolTxs: mempoolData?.mempoolTxs || 0,
         feeRate: {
-          fastest: mempoolData.fastestFee || 0,
-          halfHour: mempoolData.halfHourFee || 0,
-          economy: mempoolData.economyFee || 0
+          fastest: mempoolData?.fastestFee || 0,
+          halfHour: mempoolData?.halfHourFee || 0,
+          economy: mempoolData?.economyFee || 0
         },
 
-        // Lightning Network
-        lightningCapacity: coingeckoData.lightningCapacity || 0,
-        lightningChannels: coingeckoData.lightningChannels || 0,
-        lightningLiquidity: coingeckoData.lightningLiquidity || 0,
+        // Lightning Network (placeholder - TODO: Add Lightning Network API)
+        lightningCapacity: 0,
+        lightningChannels: 0,
+        lightningLiquidity: 0,
 
         // Network health indicators
         networkSecurity: this.calculateNetworkSecurity(blockchainData.hashRate || 0),
@@ -423,42 +423,53 @@ export class BitcoinIntelligenceService extends BaseDataService {
    */
   private async fetchMarketData(): Promise<MarketIntelligence> {
     try {
-      // Fetch market data from multiple sources
+      // Fetch market data from multiple sources using real API client
       const [altcoinData, stockData, macroData, etfData, sentimentData] = await Promise.all([
-        this.fetchAltcoinPerformance(),
-        this.fetchStockCorrelations(),
-        this.fetchMacroIndicators(),
-        this.fetchETFData(),
-        this.fetchMarketSentiment()
+        this.apiClient.getAltcoinData(['ethereum', 'binancecoin', 'cardano', 'solana', 'polkadot']),
+        this.apiClient.getStockData('TSLA'), // Get Tesla data as proxy
+        this.apiClient.getDollarIndex(), // Get DXY as macro indicator
+        this.fetchETFData(), // Keep existing ETF method for now
+        this.apiClient.getFearGreedIndex()
       ]);
+
+      // Process altcoin data
+      const topPerformers = altcoinData
+        .filter((coin: any) => coin.price_change_percentage_24h > 0)
+        .sort((a: any, b: any) => b.price_change_percentage_24h - a.price_change_percentage_24h)
+        .slice(0, 5);
+      
+      const underperformers = altcoinData
+        .filter((coin: any) => coin.price_change_percentage_24h < 0)
+        .sort((a: any, b: any) => a.price_change_percentage_24h - b.price_change_percentage_24h)
+        .slice(0, 5);
 
       const marketData: MarketIntelligence = {
         // Altcoin performance
         altcoinSeasonIndex: this.calculateAltcoinSeasonIndex(altcoinData),
         bitcoinRelativePerformance: this.calculateBitcoinRelativePerformance(altcoinData),
-        topPerformers: altcoinData.topPerformers || [],
-        underperformers: altcoinData.underperformers || [],
+        topPerformers: topPerformers,
+        underperformers: underperformers,
 
-        // Stock correlations
-        teslaVsBitcoin: stockData.teslaVsBitcoin || 0,
-        mag7VsBitcoin: stockData.mag7VsBitcoin || 0,
-        microstrategyPerformance: stockData.microstrategyPerformance || 0,
-        sp500VsBitcoin: stockData.sp500VsBitcoin || 0,
-        goldVsBitcoin: stockData.goldVsBitcoin || 0,
+        // Stock correlations (simplified for now)
+        teslaVsBitcoin: stockData?.changePercent || 0,
+        mag7VsBitcoin: 0, // TODO: Add MAG7 data
+        microstrategyPerformance: 0, // TODO: Add MSTR data
+        sp500VsBitcoin: 0, // TODO: Add SP500 data
+        goldVsBitcoin: 0, // TODO: Add gold data
 
-        // Macro indicators
-        dollarIndex: macroData.dollarIndex || 0,
-        treasuryYields: macroData.treasuryYields || 0,
-        inflationRate: macroData.inflationRate || 0,
-        fedPolicy: macroData.fedPolicy || 'NEUTRAL',
-        moneySupply: macroData.moneySupply || 0,
+        // Macro indicators (simplified for now)
+        dollarIndex: macroData || 0,
+        treasuryYields: 0, // TODO: Add treasury yields data
+        inflationRate: 0, // TODO: Add inflation data
+        fedPolicy: 'NEUTRAL', // TODO: Add Fed policy analysis
+        moneySupply: 0, // TODO: Add money supply data
 
         // ETF data
         spotBitcoinETFs: etfData,
 
         // Market sentiment
-        fearGreedIndex: sentimentData.fearGreedIndex || 0,
-        fearGreedValue: sentimentData.fearGreedValue || 'Neutral',
+        fearGreedIndex: sentimentData?.index || 0,
+        fearGreedValue: sentimentData?.value || 'Neutral',
 
         lastUpdated: new Date()
       };
@@ -501,7 +512,7 @@ export class BitcoinIntelligenceService extends BaseDataService {
    */
   private async fetchSentimentData(): Promise<BitcoinSentimentData> {
     try {
-      const fearGreedData = await this.fetchFearGreedIndex();
+      const fearGreedData = await this.apiClient.getFearGreedIndex();
       
       return {
         fearGreedIndex: fearGreedData.index || 0,
@@ -763,39 +774,7 @@ export class BitcoinIntelligenceService extends BaseDataService {
     return insights;
   }
 
-  // ============================================================================
-  // PLACEHOLDER FETCH METHODS (TO BE IMPLEMENTED)
-  // ============================================================================
-
-  private async fetchCoingeckoNetworkData(): Promise<any> {
-    // TODO: Implement Coingecko API calls
-    return {};
-  }
-
-  private async fetchBlockchainInfoData(): Promise<any> {
-    // TODO: Implement Blockchain.info API calls
-    return {};
-  }
-
-  private async fetchMempoolData(): Promise<any> {
-    // TODO: Implement Mempool.space API calls
-    return {};
-  }
-
-  private async fetchAltcoinPerformance(): Promise<any> {
-    // TODO: Implement altcoin performance fetching
-    return {};
-  }
-
-  private async fetchStockCorrelations(): Promise<any> {
-    // TODO: Implement stock correlation fetching
-    return {};
-  }
-
-  private async fetchMacroIndicators(): Promise<any> {
-    // TODO: Implement macro indicators fetching
-    return {};
-  }
+  // Note: Placeholder methods removed - now using real API client
 
   private async fetchETFData(): Promise<ETFData> {
     // TODO: Implement ETF data fetching
@@ -816,15 +795,7 @@ export class BitcoinIntelligenceService extends BaseDataService {
     };
   }
 
-  private async fetchMarketSentiment(): Promise<any> {
-    // TODO: Implement market sentiment fetching
-    return {};
-  }
-
-  private async fetchFearGreedIndex(): Promise<any> {
-    // TODO: Implement Fear & Greed Index fetching
-    return {};
-  }
+  // Note: Fear & Greed Index now handled by API client
 
   private async fetchCorporateTreasuries(): Promise<any> {
     // TODO: Implement corporate treasury fetching
