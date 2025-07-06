@@ -364,6 +364,11 @@ export interface CuratedNFTsCache {
   timestamp: number;
 }
 
+// At the top, after imports
+const USE_OPENSEA_API = typeof process !== 'undefined' && process.env.USE_OPENSEA_API !== undefined
+  ? process.env.USE_OPENSEA_API === 'true'
+  : true;
+
 export class RealTimeDataService extends BaseDataService {
   static serviceType = "real-time-data";
 
@@ -449,6 +454,9 @@ export class RealTimeDataService extends BaseDataService {
     },
   ];
 
+  // In the RealTimeDataService class constructor, add:
+  private useOpenSeaApi: boolean;
+
   constructor(runtime: IAgentRuntime) {
     super(runtime, "realTimeData");
     this.contextLogger = new LoggerWithContext(
@@ -467,6 +475,8 @@ export class RealTimeDataService extends BaseDataService {
       this.serviceConfig.rateLimitDelay = 3000;
       console.log("[RealTimeDataService] Using CoinGecko Pro API with 3s rate limiting");
     }
+
+    this.useOpenSeaApi = this.runtime?.getSetting?.('USE_OPENSEA_API') ?? USE_OPENSEA_API;
   }
 
   public get capabilityDescription(): string {
@@ -2298,6 +2308,10 @@ export class RealTimeDataService extends BaseDataService {
   }
 
   private async fetchCuratedNFTsData(): Promise<CuratedNFTsData | null> {
+    if (!this.useOpenSeaApi) {
+      this.contextLogger.info('OpenSea API is disabled by config (USE_OPENSEA_API=false). Returning null.');
+      return null;
+    }
     try {
       console.log(
         "[RealTimeDataService] Fetching enhanced curated NFTs data...",
@@ -2373,6 +2387,10 @@ export class RealTimeDataService extends BaseDataService {
     collectionInfo: any,
     headers: any,
   ): Promise<NFTCollectionData | null> {
+    if (!this.useOpenSeaApi) {
+      this.contextLogger.info('OpenSea API is disabled by config (USE_OPENSEA_API=false). Returning null.');
+      return null;
+    }
     try {
       console.log(
         `[RealTimeDataService] Fetching collection data for: ${collectionInfo.slug}`,
