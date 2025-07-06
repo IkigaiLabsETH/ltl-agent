@@ -305,10 +305,10 @@ export class NFTDataService extends BaseDataService {
    * Start real-time updates for NFT data
    */
   private async startRealTimeUpdates(): Promise<void> {
-    const updateInterval = this.configService.get(
-      "services.nftData.updateInterval",
-      300000,
-    ); // 5 minutes
+    // Add null check for configService
+    const updateInterval = this.configService 
+      ? this.configService.get("services.nftData.updateInterval", 300000)
+      : 300000; // 5 minutes default
 
     this.updateInterval = setInterval(async () => {
       try {
@@ -371,10 +371,21 @@ export class NFTDataService extends BaseDataService {
       this.contextLogger.info("Fetching curated NFTs data...");
 
       const collections: NFTCollectionData[] = [];
-      const headers = {
-        "X-API-KEY": this.configService.get("apis.opensea.apiKey", ""),
-        Accept: "application/json",
-      };
+      
+      // Add null check for configService
+      let headers: any;
+      if (!this.configService) {
+        this.contextLogger.warn("ConfigService not available, using fallback values");
+        headers = {
+          "X-API-KEY": "",
+          Accept: "application/json",
+        };
+      } else {
+        headers = {
+          "X-API-KEY": this.configService.get("apis.opensea.apiKey", ""),
+          Accept: "application/json",
+        };
+      }
 
       // Fetch data for each curated collection
       for (const collectionSlug of this.curatedNFTCollections) {
@@ -423,10 +434,10 @@ export class NFTDataService extends BaseDataService {
     headers: any,
   ): Promise<NFTCollectionData | null> {
     try {
-      const baseUrl = this.configService.get(
-        "apis.opensea.baseUrl",
-        "https://api.opensea.io/api/v1",
-      );
+      // Add null check for configService
+      const baseUrl = this.configService 
+        ? this.configService.get("apis.opensea.baseUrl", "https://api.opensea.io/api/v1")
+        : "https://api.opensea.io/api/v1";
 
       // Fetch collection info
       const collectionResponse = await axios.get(

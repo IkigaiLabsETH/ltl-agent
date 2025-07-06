@@ -226,8 +226,56 @@ export class LoggerWithContext {
 
   private formatMessage(level: string, message: string, data?: any): string {
     const timestamp = new Date().toISOString();
-    const logData = data ? ` | Data: ${JSON.stringify(data)}` : "";
+    const logData = data ? ` | Data: ${this.safeStringify(data)}` : "";
     return `[${timestamp}] [${level}] [${this.component}] [${this.correlationId}] ${message}${logData}`;
+  }
+
+  /**
+   * Safely stringify data, handling circular references
+   */
+  private safeStringify(obj: any): string {
+    try {
+      return JSON.stringify(obj);
+    } catch (error) {
+      // If JSON.stringify fails due to circular references, create a safe version
+      try {
+        return JSON.stringify(this.removeCircularReferences(obj));
+      } catch (fallbackError) {
+        return `[Object with circular references: ${typeof obj}]`;
+      }
+    }
+  }
+
+  /**
+   * Remove circular references from an object
+   */
+  private removeCircularReferences(obj: any, seen = new WeakSet()): any {
+    if (obj === null || typeof obj !== 'object') {
+      return obj;
+    }
+
+    if (seen.has(obj)) {
+      return '[Circular Reference]';
+    }
+
+    seen.add(obj);
+
+    if (Array.isArray(obj)) {
+      return obj.map(item => this.removeCircularReferences(item, seen));
+    }
+
+    const result: any = {};
+    for (const key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        try {
+          result[key] = this.removeCircularReferences(obj[key], seen);
+        } catch (error) {
+          result[key] = '[Error accessing property]';
+        }
+      }
+    }
+
+    return result;
   }
 
   info(message: string, data?: any) {
