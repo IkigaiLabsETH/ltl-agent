@@ -6,6 +6,9 @@ export { ServiceFactory } from "./ServiceFactory";
 export { ConfigurationManager } from "./ConfigurationManager";
 export { StarterService } from "./StarterService";
 
+// Knowledge performance monitoring
+export { KnowledgePerformanceMonitor, KnowledgePerformanceMonitor2 } from "./knowledge-performance-monitor";
+
 // Specialized data services
 export { BitcoinNetworkDataService } from "./BitcoinNetworkDataService";
 export { AltcoinDataService } from "./AltcoinDataService";

@@ -239,3 +239,28 @@ export class KnowledgePerformanceMonitor extends Service {
     };
   }
 }
+
+/**
+ * KnowledgePerformanceMonitor2 - Stub implementation for core ElizaOS compatibility
+ * This fixes the "Not implemented" error from the core system
+ */
+export class KnowledgePerformanceMonitor2 extends KnowledgePerformanceMonitor {
+  static serviceType = "knowledge-performance-monitor-2";
+  capabilityDescription = "Knowledge system performance monitoring and metrics tracking (v2)";
+
+  constructor(runtime: IAgentRuntime) {
+    super(runtime);
+  }
+
+  async initialize(runtime: IAgentRuntime): Promise<void> {
+    console.log("🔄 Initializing Knowledge Performance Monitor 2...");
+    await super.initialize(runtime);
+    console.log("✅ Knowledge Performance Monitor 2 initialized");
+  }
+
+  async stop(): Promise<void> {
+    console.log("🛑 Stopping Knowledge Performance Monitor 2...");
+    await super.stop();
+    console.log("✅ Knowledge Performance Monitor 2 stopped");
+  }
+}
