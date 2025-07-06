@@ -187,6 +187,49 @@ const bitcoinPlugin: Plugin = {
       async (params: any) => {
         const { message, runtime } = params;
 
+        // --- PATCH: Ensure world and entity existence ---
+        // Assume message has roomId, worldId, entityId
+        const worldId = message.worldId || message.roomId?.worldId;
+        const entityId = message.entityId;
+        const agentId = runtime.agentId;
+        let world;
+        if (worldId) {
+          world = await runtime.getWorld(worldId);
+          if (!world) {
+            // Try to ensure world exists
+            await runtime.ensureWorldExists({ id: worldId, agentId });
+            world = await runtime.getWorld(worldId);
+          }
+        }
+        // Ensure entity exists
+        if (entityId) {
+          let entity = await runtime.getEntityById(entityId);
+          if (!entity) {
+            await runtime.createEntity({
+              id: entityId,
+              names: [message.content?.username || "User"],
+              agentId,
+              metadata: {},
+            });
+          }
+        }
+        // Optionally ensure room and participant
+        if (message.roomId && worldId && entityId) {
+          await runtime.ensureRoomExists({
+            id: message.roomId,
+            worldId,
+            agentId,
+            name: message.content?.roomName || "Room",
+            type: message.content?.roomType || "GROUP",
+          });
+          // Add participant if not already
+          const participants = await runtime.getParticipantsForRoom(message.roomId);
+          if (!participants.includes(entityId)) {
+            await runtime.addParticipant(entityId, message.roomId);
+          }
+        }
+        // --- END PATCH ---
+
         // Intelligent Bitcoin mention detection
         if (
           message.content.text.toLowerCase().includes("bitcoin") ||
@@ -303,6 +346,14 @@ const bitcoinPlugin: Plugin = {
     WORLD_CONNECTED: [
       async (params: any) => {
         const { world, runtime } = params;
+        // --- PATCH: Ensure world exists ---
+        if (world && world.id) {
+          let w = await runtime.getWorld(world.id);
+          if (!w) {
+            await runtime.ensureWorldExists({ id: world.id, agentId: runtime.agentId });
+          }
+        }
+        // --- END PATCH ---
 
         logger.info("Connected to world - initializing Bitcoin context", {
           worldId: world.id,
@@ -344,7 +395,26 @@ const bitcoinPlugin: Plugin = {
     ],
     WORLD_JOINED: [
       async (params: any) => {
-        const { world, runtime } = params;
+        const { world, runtime, entity } = params;
+        // --- PATCH: Ensure world and entity exist ---
+        if (world && world.id) {
+          let w = await runtime.getWorld(world.id);
+          if (!w) {
+            await runtime.ensureWorldExists({ id: world.id, agentId: runtime.agentId });
+          }
+        }
+        if (entity && entity.id) {
+          let e = await runtime.getEntityById(entity.id);
+          if (!e) {
+            await runtime.createEntity({
+              id: entity.id,
+              names: [entity.name || "User"],
+              agentId: runtime.agentId,
+              metadata: {},
+            });
+          }
+        }
+        // --- END PATCH ---
 
         logger.info("Joined world - Bitcoin agent ready", {
           worldId: world.id,
