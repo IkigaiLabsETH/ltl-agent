@@ -20,7 +20,7 @@ import {
 export const btcRelativePerformanceAction: Action = createActionTemplate({
   name: "BTC_RELATIVE_PERFORMANCE",
   description:
-    "Comprehensive analysis of altcoins outperforming Bitcoin on 7-day basis, showing relative performance in percentage points across top 200 altcoins",
+    "Comprehensive analysis of altcoins outperforming Bitcoin on 7-day basis, showing relative performance in percentage points across top 100 altcoins",
   similes: [
     "BITCOIN_RELATIVE_PERFORMANCE",
     "ALTCOINS_VS_BTC",
@@ -40,7 +40,7 @@ export const btcRelativePerformanceAction: Action = createActionTemplate({
       {
         name: "Satoshi",
         content: {
-          text: "Based on 7-day performance data: ETH +5.32% vs BTC (ETH: +8.45%, BTC: +3.13%). SOL +12.87% vs BTC (SOL: +15.98%, BTC: +3.11%). BNB +3.21% vs BTC. 67/186 altcoins outperforming Bitcoin - moderate altcoin momentum but Bitcoin still the monetary base layer.",
+          text: "Based on 7-day performance data: ETH +5.32% vs BTC (ETH: +8.45%, BTC: +3.13%). SOL +12.87% vs BTC (SOL: +15.98%, BTC: +3.11%). BNB +3.21% vs BTC. 67/86 altcoins outperforming Bitcoin - moderate altcoin momentum but Bitcoin still the monetary base layer.",
           thought:
             "User wants to see altcoins outperforming Bitcoin. I need to analyze 7-day relative performance data, identify the strongest outperformers, and provide context about whether this indicates altseason or Bitcoin dominance continuation.",
           actions: ["BTC_RELATIVE_PERFORMANCE"],
@@ -57,7 +57,7 @@ export const btcRelativePerformanceAction: Action = createActionTemplate({
       {
         name: "Satoshi",
         content: {
-          text: "Current BTC outperformers (7d): SOL +15.34% vs BTC, ETH +7.89% vs BTC, ADA +4.23% vs BTC. 73/189 altcoins outperforming Bitcoin. Average relative performance: +1.87%. These coins show stronger momentum than Bitcoin, indicating potential alpha opportunities.",
+          text: "Current BTC outperformers (7d): SOL +15.34% vs BTC, ETH +7.89% vs BTC, ADA +4.23% vs BTC. 73/89 altcoins outperforming Bitcoin. Average relative performance: +1.87%. These coins show stronger momentum than Bitcoin, indicating potential alpha opportunities.",
           thought:
             "User asking about current Bitcoin outperformers. I should focus on the strongest performers with their relative performance data and assess if this is altseason territory or normal market rotation.",
           actions: ["BTC_RELATIVE_PERFORMANCE"],
@@ -74,7 +74,7 @@ export const btcRelativePerformanceAction: Action = createActionTemplate({
       {
         name: "Satoshi",
         content: {
-          text: "Not altseason yet. Only 34/186 altcoins outperforming Bitcoin (18% vs 50%+ threshold). Bitcoin dominance strong with average -2.4% underperformance across top 200. Most altcoins are venture capital plays - Bitcoin remains the monetary base layer.",
+          text: "Not altseason yet. Only 34/86 altcoins outperforming Bitcoin (40% vs 50%+ threshold). Bitcoin dominance strong with average -2.4% underperformance across top 100. Most altcoins are venture capital plays - Bitcoin remains the monetary base layer.",
           thought:
             "User asking about altseason status. I need to analyze the percentage of altcoins outperforming Bitcoin and compare it to the traditional 50%+ altseason threshold, then provide perspective on Bitcoin's role as sound money.",
           actions: ["BTC_RELATIVE_PERFORMANCE"],

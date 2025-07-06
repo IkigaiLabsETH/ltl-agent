@@ -407,22 +407,11 @@ export class RealTimeDataService extends BaseDataService {
     "chainlink",
     "uniswap",
     "aave",
-    "ondo-finance",
     "ethena",
     "solana",
     "sui",
     "hyperliquid",
-    "berachain-bera",
-    "infrafred-bgt",
-    "avalanche-2",
-    "blockstack",
-    "dogecoin",
-    "pepe",
-    "mog-coin",
-    "bittensor",
-    "render-token",
-    "fartcoin",
-    "railgun",
+    "fartcoin"
   ];
 
   // Data storage
@@ -1834,10 +1823,10 @@ export class RealTimeDataService extends BaseDataService {
     try {
       console.log("[RealTimeDataService] Starting fetchTop100VsBtcData...");
 
-      // Step 1: Fetch top 200 coins in USD (like website) with 7d performance data
+      // Step 1: Fetch top 100 coins in USD (reduced from 200) with 7d performance data
       const usdMarketData = await this.makeQueuedRequest(async () => {
         const response = await fetch(
-          `${this.COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=200&page=1&price_change_percentage=24h,7d,30d`,
+          `${this.COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&price_change_percentage=24h,7d,30d`,
           {
             headers: { Accept: "application/json" },
             signal: AbortSignal.timeout(15000),
@@ -1846,12 +1835,9 @@ export class RealTimeDataService extends BaseDataService {
 
         if (!response.ok) {
           if (response.status === 429) {
-            // Handle rate limiting with exponential backoff
-            const retryAfter = response.headers.get('Retry-After');
-            const backoffTime = retryAfter ? parseInt(retryAfter) * 1000 : 30000; // Default 30s
-            console.warn(`[RealTimeDataService] Rate limited, backing off for ${backoffTime}ms`);
-            await new Promise(resolve => setTimeout(resolve, backoffTime));
-            throw new Error(`HTTP 429: Rate limited, retry after ${backoffTime}ms`);
+            // Use the new rate limit error handler
+            await this.handleRateLimitError(response, 'fetchTop100VsBtcData');
+            throw new Error(`HTTP 429: Rate limited, retry after backoff`);
           }
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
@@ -1911,7 +1897,7 @@ export class RealTimeDataService extends BaseDataService {
           (coin) =>
             coin.id !== "bitcoin" &&
             typeof coin.price_change_percentage_7d_in_currency === "number" &&
-            coin.market_cap_rank <= 200 &&
+            coin.market_cap_rank <= 100 &&
             !stablecoinSymbols.includes(coin.symbol.toLowerCase()), // Exclude stablecoins
         )
         .map((coin) => ({
@@ -1975,7 +1961,7 @@ export class RealTimeDataService extends BaseDataService {
       };
 
       console.log(
-        `[RealTimeDataService] ✅ Fetched top 200 vs BTC data: ${outperformingCount}/${totalCoins} outperforming Bitcoin (7d), avg relative: ${averageRelativePerformance.toFixed(2)}%`,
+        `[RealTimeDataService] ✅ Fetched top 100 vs BTC data: ${outperformingCount}/${totalCoins} outperforming Bitcoin (7d), avg relative: ${averageRelativePerformance.toFixed(2)}%`,
       );
       return result;
     } catch (error) {
@@ -2295,277 +2281,4 @@ export class RealTimeDataService extends BaseDataService {
       };
 
       console.log(
-        `[RealTimeDataService] Fetched trending coins: ${trending.length} coins`,
-      );
-      return result;
-    } catch (error) {
-      console.error("Error in fetchTrendingCoinsData:", error);
-      return null;
-    }
-  }
-
-  // Curated NFTs data management
-  private isCuratedNFTsCacheValid(): boolean {
-    if (!this.curatedNFTsCache) return false;
-    return (
-      Date.now() - this.curatedNFTsCache.timestamp <
-      this.CURATED_NFTS_CACHE_DURATION
-    );
-  }
-
-  private async updateCuratedNFTsData(): Promise<void> {
-    // Only fetch if cache is invalid
-    if (!this.isCuratedNFTsCacheValid()) {
-      const data = await this.fetchCuratedNFTsData();
-      if (data) {
-        this.curatedNFTsCache = {
-          data,
-          timestamp: Date.now(),
-        };
-      }
-    }
-  }
-
-  private async fetchCuratedNFTsData(): Promise<CuratedNFTsData | null> {
-    if (!this.useOpenSeaApi) {
-      this.contextLogger.info('OpenSea API is disabled by config (USE_OPENSEA_API=false). Returning null.');
-      return null;
-    }
-    try {
-      console.log(
-        "[RealTimeDataService] Fetching enhanced curated NFTs data...",
-      );
-
-      const openSeaApiKey = this.runtime.getSetting("OPENSEA_API_KEY");
-      if (!openSeaApiKey) {
-        console.warn(
-          "OPENSEA_API_KEY not configured, returning null to prevent stale data",
-        );
-        return null; // Return null instead of fallback to prevent LLM from hallucinating
-      }
-
-      const headers = {
-        Accept: "application/json",
-        "X-API-KEY": openSeaApiKey,
-        "User-Agent": "LiveTheLifeTV/1.0",
-      };
-
-      // Process collections in smaller batches to avoid rate limits
-      const collections: NFTCollectionData[] = [];
-      const batchSize = 3;
-
-      for (
-        let i = 0;
-        i < Math.min(this.curatedNFTCollections.length, 15);
-        i += batchSize
-      ) {
-        const batch = this.curatedNFTCollections.slice(i, i + batchSize);
-
-        const batchPromises = batch.map(async (collectionInfo) => {
-          return await this.fetchEnhancedCollectionData(
-            collectionInfo,
-            headers,
-          );
-        });
-
-        try {
-          const batchResults = await Promise.all(batchPromises);
-          collections.push(
-            ...(batchResults.filter(Boolean) as NFTCollectionData[]),
-          );
-        } catch (error) {
-          console.error(`Error processing batch ${i}:`, error);
-        }
-
-        // Rate limiting between batches
-        if (i + batchSize < this.curatedNFTCollections.length) {
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-        }
-      }
-
-      // Calculate enhanced summary statistics
-      const summary = this.calculateNFTSummary(collections);
-
-      const result: CuratedNFTsData = {
-        collections,
-        summary,
-        lastUpdated: new Date(),
-      };
-
-      console.log(
-        `[RealTimeDataService] Enhanced NFTs data: ${collections.length} collections, total 24h volume: ${summary.totalVolume24h.toFixed(2)} ETH`,
-      );
-      return result;
-    } catch (error) {
-      console.error("Error in fetchCuratedNFTsData:", error);
-      return null; // Return null instead of fallback to prevent LLM from using stale/incorrect data
-    }
-  }
-
-  private async fetchEnhancedCollectionData(
-    collectionInfo: any,
-    headers: any,
-  ): Promise<NFTCollectionData | null> {
-    if (!this.useOpenSeaApi) {
-      this.contextLogger.info('OpenSea API is disabled by config (USE_OPENSEA_API=false). Returning null.');
-      return null;
-    }
-    try {
-      console.log(
-        `[RealTimeDataService] Fetching collection data for: ${collectionInfo.slug}`,
-      );
-
-      // Fetch basic collection data
-      const collectionResponse = await fetch(
-        `https://api.opensea.io/api/v2/collections/${collectionInfo.slug}`,
-        {
-          headers,
-          signal: AbortSignal.timeout(15000),
-        },
-      );
-
-      if (!collectionResponse.ok) {
-        throw new Error(
-          `HTTP ${collectionResponse.status}: ${collectionResponse.statusText}`,
-        );
-      }
-
-      const collectionData = await collectionResponse.json();
-
-      // Fetch collection stats
-      const statsResponse = await fetch(
-        `https://api.opensea.io/api/v2/collections/${collectionInfo.slug}/stats`,
-        {
-          headers,
-          signal: AbortSignal.timeout(15000),
-        },
-      );
-
-      if (!statsResponse.ok) {
-        throw new Error(
-          `HTTP ${statsResponse.status}: ${statsResponse.statusText}`,
-        );
-      }
-
-      const statsData = await statsResponse.json();
-
-      // Parse enhanced stats
-      const stats = this.parseCollectionStats(statsData);
-      console.log(
-        `[RealTimeDataService] Enhanced collection stats for ${collectionInfo.slug}: Floor ${stats.floor_price} ETH, Volume ${stats.one_day_volume} ETH`,
-      );
-
-      return {
-        slug: collectionInfo.slug,
-        collection: collectionData,
-        stats,
-        lastUpdated: new Date(),
-        category: collectionInfo.category || "utility",
-        contractAddress: collectionData.contracts?.[0]?.address,
-        blockchain: collectionData.contracts?.[0]?.chain || "ethereum",
-      };
-    } catch (error) {
-      console.error(
-        `Error fetching collection data for ${collectionInfo.slug}:`,
-        error,
-      );
-      return null;
-    }
-  }
-
-  private parseCollectionStats(statsData: any): NFTCollectionStats {
-    const total = statsData?.total || {};
-
-    return {
-      total_supply: total.supply || 0,
-      num_owners: total.num_owners || 0,
-      average_price: total.average_price || 0,
-      floor_price: total.floor_price || 0,
-      market_cap: total.market_cap || 0,
-      one_day_volume: total.one_day_volume || 0,
-      one_day_change: total.one_day_change || 0,
-      one_day_sales: total.one_day_sales || 0,
-      seven_day_volume: total.seven_day_volume || 0,
-      seven_day_change: total.seven_day_change || 0,
-      seven_day_sales: total.seven_day_sales || 0,
-      thirty_day_volume: total.thirty_day_volume || 0,
-      thirty_day_change: total.thirty_day_change || 0,
-      thirty_day_sales: total.thirty_day_sales || 0,
-    };
-  }
-
-  private calculateNFTSummary(collections: NFTCollectionData[]): {
-    totalVolume24h: number;
-    totalMarketCap: number;
-    avgFloorPrice: number;
-    topPerformers: NFTCollectionData[];
-    worstPerformers: NFTCollectionData[];
-    totalCollections: number;
-  } {
-    const totalVolume24h = collections.reduce(
-      (sum, c) => sum + (c.stats.one_day_volume || 0),
-      0,
-    );
-    const totalMarketCap = collections.reduce(
-      (sum, c) => sum + (c.stats.market_cap || 0),
-      0,
-    );
-    const avgFloorPrice =
-      collections.length > 0
-        ? collections.reduce((sum, c) => sum + (c.stats.floor_price || 0), 0) /
-          collections.length
-        : 0;
-
-    const sorted = [...collections].sort(
-      (a, b) => (b.stats.one_day_change || 0) - (a.stats.one_day_change || 0),
-    );
-
-    return {
-      totalVolume24h,
-      totalMarketCap,
-      avgFloorPrice,
-      topPerformers: sorted.slice(0, 3),
-      worstPerformers: sorted.slice(-3).reverse(),
-      totalCollections: collections.length,
-    };
-  }
-
-  /**
-   * Handle 429 rate limit errors with exponential backoff
-   */
-  private async handleRateLimitError(response: Response, context: string): Promise<void> {
-    const retryAfter = response.headers.get('Retry-After');
-    let backoffTime = 60000; // Default 60s (increased from 30s)
-
-    if (retryAfter) {
-      // Parse Retry-After header (can be seconds or HTTP date)
-      const retryAfterValue = parseInt(retryAfter);
-      if (!isNaN(retryAfterValue)) {
-        backoffTime = retryAfterValue * 1000;
-        // Add extra buffer for safety
-        backoffTime = Math.max(backoffTime, 30000); // Minimum 30s
-      } else {
-        // Try to parse as HTTP date
-        const retryDate = new Date(retryAfter);
-        if (!isNaN(retryDate.getTime())) {
-          backoffTime = Math.max(0, retryDate.getTime() - Date.now());
-          backoffTime = Math.max(backoffTime, 30000); // Minimum 30s
-        }
-      }
-    } else {
-      // More aggressive exponential backoff based on consecutive failures
-      const baseBackoff = Math.min(Math.pow(2, this.consecutiveFailures + 2) * 10000, 300000); // Start with 40s, max 5min
-      const jitter = Math.random() * 20000; // 0-20s jitter
-      backoffTime = baseBackoff + jitter;
-    }
-
-    this.contextLogger.warn(
-      `[RealTimeDataService] Rate limited in ${context}, backing off for ${Math.round(backoffTime)}ms`,
-    );
-
-    // Update adaptive rate limiting more aggressively for 429 errors
-    this.adaptiveRateLimitDelay = Math.min(this.adaptiveRateLimitDelay * 3, 180000); // Triple the delay, max 3 minutes
-
-    await new Promise(resolve => setTimeout(resolve, backoffTime));
-  }
-}
+        `

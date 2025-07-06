@@ -665,10 +665,10 @@ export class AltcoinDataService extends BaseDataService {
     try {
       logger.info("[AltcoinDataService] Starting fetchTop100VsBtcData...");
 
-      // Step 1: Fetch top 200 coins in USD (like website) with 7d performance data
+      // Step 1: Fetch top 100 coins in USD (reduced from 200) with 7d performance data
       const usdMarketData = await this.makeQueuedRequest(async () => {
         const response = await fetch(
-          `${this.COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=200&page=1&price_change_percentage=24h,7d,30d`,
+          `${this.COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&price_change_percentage=24h,7d,30d`,
           {
             headers: { Accept: "application/json" },
             signal: AbortSignal.timeout(15000),
@@ -732,7 +732,7 @@ export class AltcoinDataService extends BaseDataService {
           (coin) =>
             coin.id !== "bitcoin" &&
             typeof coin.price_change_percentage_7d_in_currency === "number" &&
-            coin.market_cap_rank <= 200 &&
+            coin.market_cap_rank <= 100 &&
             !stablecoinSymbols.includes(coin.symbol.toLowerCase()), // Exclude stablecoins
         )
         .map((coin) => ({
@@ -796,7 +796,7 @@ export class AltcoinDataService extends BaseDataService {
       };
 
       logger.info(
-        `[AltcoinDataService] ✅ Fetched top 200 vs BTC data: ${outperformingCount}/${totalCoins} outperforming Bitcoin (7d), avg relative: ${averageRelativePerformance.toFixed(2)}%`,
+        `[AltcoinDataService] ✅ Fetched top 100 vs BTC data: ${outperformingCount}/${totalCoins} outperforming Bitcoin (7d), avg relative: ${averageRelativePerformance.toFixed(2)}%`,
       );
       return result;
     } catch (error) {
