@@ -538,7 +538,7 @@ export class ComprehensiveErrorHandler {
       component: error.context.component,
       operation: error.context.operation,
       correlationId: error.context.correlationId,
-      strategy: error.recoveryStrategy.name,
+      strategy: error.recoveryStrategy?.name || "unknown",
       metadata: error.metadata,
     };
 

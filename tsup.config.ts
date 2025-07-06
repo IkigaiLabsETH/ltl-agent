@@ -18,7 +18,6 @@ export default defineConfig({
     'util',
     'crypto',
     'stream',
-    'events',
     'buffer',
     'url',
     'os',

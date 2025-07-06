@@ -37,6 +37,7 @@
     "@elizaos/plugin-openai": "^1.0.6",
     "@elizaos/plugin-sql": "^1.0.17",
     "node-fetch": "^3.3.2",
+    "ws": "^8.18.3",
     "zod": "3.24.2"
   },
   "devDependencies": {
