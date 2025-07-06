@@ -122,38 +122,7 @@ export interface CuratedAltcoinsCache {
   timestamp: number;
 }
 
-export interface Top100VsBtcCoin {
-  id: string;
-  symbol: string;
-  name: string;
-  image: string;
-  current_price: number;
-  market_cap_rank: number;
-  price_change_percentage_24h: number;
-  price_change_percentage_7d_in_currency?: number;
-  price_change_percentage_30d_in_currency?: number;
-  // New relative performance fields (like website)
-  btc_relative_performance_7d?: number;
-  btc_relative_performance_24h?: number;
-  btc_relative_performance_30d?: number;
-}
-
-export interface Top100VsBtcData {
-  outperforming: Top100VsBtcCoin[];
-  underperforming: Top100VsBtcCoin[];
-  totalCoins: number;
-  outperformingCount: number;
-  underperformingCount: number;
-  averagePerformance: number;
-  topPerformers: Top100VsBtcCoin[];
-  worstPerformers: Top100VsBtcCoin[];
-  lastUpdated: Date;
-}
-
-export interface Top100VsBtcCache {
-  data: Top100VsBtcData;
-  timestamp: number;
-}
+// Top 100 vs BTC interfaces moved to AltcoinDataService to avoid duplication
 
 export interface BoostedToken {
   tokenAddress: string;
@@ -420,11 +389,10 @@ export class RealTimeDataService extends BaseDataService {
   private socialSentiment: SocialSentiment[] = [];
   private economicIndicators: EconomicIndicator[] = [];
   private alerts: MarketAlert[] = [];
-  private comprehensiveBitcoinData: ComprehensiveBitcoinData | null = null;
+  // Bitcoin data is now handled by BitcoinNetworkDataService to avoid duplication
   private curatedAltcoinsCache: CuratedAltcoinsCache | null = null;
   private readonly CURATED_CACHE_DURATION = 60 * 1000; // 1 minute
-  private top100VsBtcCache: Top100VsBtcCache | null = null;
-  private readonly TOP100_CACHE_DURATION = 10 * 60 * 1000; // 10 minutes (matches website revalidation)
+  // Top 100 vs BTC data is now handled by AltcoinDataService to avoid duplication
   private dexScreenerCache: DexScreenerCache | null = null;
   private readonly DEXSCREENER_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes for trending data
   private topMoversCache: TopMoversCache | null = null;
@@ -521,9 +489,8 @@ export class RealTimeDataService extends BaseDataService {
       await this.storeInMemory(
         {
           marketData: this.marketData,
-          comprehensiveBitcoinData: this.comprehensiveBitcoinData,
           curatedAltcoinsCache: this.curatedAltcoinsCache,
-          top100VsBtcCache: this.top100VsBtcCache,
+          // Top 100 vs BTC data is now handled by AltcoinDataService to avoid duplication
           newsItems: this.newsItems.slice(-50), // Keep last 50 news items
           socialSentiment: this.socialSentiment.slice(-20), // Keep last 20 sentiment items
           alerts: this.alerts.slice(-100), // Keep last 100 alerts
@@ -565,134 +532,33 @@ export class RealTimeDataService extends BaseDataService {
 
   private async updateAllData(): Promise<void> {
     try {
-      console.log("[RealTimeDataService] ⚡ Starting data update cycle...");
-
-      // 🟠 BITCOIN DATA FIRST - ALWAYS PRIORITIZE BITCOIN
-      console.log(
-        "[RealTimeDataService] 🟠 Prioritizing Bitcoin data update...",
+      // Update market data (crypto + stocks)
+      await this.updateMarketData();
+      
+      // Update news and sentiment data
+      await this.updateNews();
+      await this.updateSocialSentiment();
+      await this.updateEconomicIndicators();
+      
+      // Update curated data (with caching)
+      await this.updateCuratedAltcoinsData();
+      await this.updateDexScreenerData();
+      await this.updateTopMoversData();
+      await this.updateTrendingCoinsData();
+      await this.updateCuratedNFTsData();
+      
+      // Generate alerts based on updated data
+      this.alerts = this.generateAlerts(
+        this.marketData,
+        this.newsItems,
+        this.socialSentiment,
       );
-      await this.updateBitcoinData();
-
-      // Then stagger other updates to avoid overwhelming APIs
-      const updateTasks = [
-        () => this.updateMarketData(),
-        () => this.updateNews(),
-        () => this.updateSocialSentiment(),
-        () => this.updateEconomicIndicators(),
-        () => this.updateCuratedAltcoinsData(),
-        () => this.updateTop100VsBtcData(),
-        () => this.updateDexScreenerData(),
-        () => this.updateTopMoversData(),
-        () => this.updateTrendingCoinsData(),
-        () => this.updateCuratedNFTsData(),
-      ];
-
-      // Execute updates with delays between them
-      for (let i = 0; i < updateTasks.length; i++) {
-        try {
-          await updateTasks[i]();
-          // Add delay between different types of updates to avoid overwhelming APIs
-          if (i < updateTasks.length - 1) {
-            await new Promise((resolve) => setTimeout(resolve, 4000)); // 4 second delay between update types
-          }
-        } catch (error) {
-          console.error(`Update task ${i} failed:`, error);
-        }
-      }
-
-      // Log outperforming altcoins summary
-      if (this.top100VsBtcCache && this.top100VsBtcCache.data) {
-        const data = this.top100VsBtcCache.data;
-        // Find Bitcoin's performance from the altcoin data (should be available in the fetch)
-        let btc24h = 0,
-          btc7d = 0,
-          btc30d = 0;
-        // Try to get BTC from the first underperformer or any coin with id 'bitcoin'
-        const btcCoin = [...data.underperforming, ...data.outperforming].find(
-          (c) => c.id === "bitcoin",
-        );
-        if (btcCoin) {
-          btc24h = btcCoin.price_change_percentage_24h || 0;
-          btc7d = btcCoin.price_change_percentage_7d_in_currency || 0;
-          btc30d = btcCoin.price_change_percentage_30d_in_currency || 0;
-        }
-        
-        // Only show Bitcoin performance if we have meaningful data
-        let summary = "";
-        if (btc24h !== 0 || btc7d !== 0 || btc30d !== 0) {
-          summary += `\n₿ BITCOIN PERFORMANCE:`;
-          summary += `\n• 24h: ${btc24h > 0 ? "+" : ""}${btc24h.toFixed(2)}%`;
-          summary += `\n• 7d: ${btc7d > 0 ? "+" : ""}${btc7d.toFixed(2)}%`;
-          summary += `\n• 30d: ${btc30d > 0 ? "+" : ""}${btc30d.toFixed(2)}%`;
-        }
-        
-        // 24h Outperformers
-        const top24h = [...data.outperforming]
-          .filter(
-            (c) =>
-              typeof c.btc_relative_performance_24h === "number" &&
-              c.btc_relative_performance_24h > 0,
-          )
-          .sort(
-            (a, b) =>
-              (b.btc_relative_performance_24h || 0) -
-              (a.btc_relative_performance_24h || 0),
-          )
-          .slice(0, 5);
-        if (top24h.length) {
-          summary += `\n\n🚀 ALTCOINS OUTPERFORMING BTC (24h):`;
-          top24h.forEach((coin, i) => {
-            summary += `\n${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_24h?.toFixed(2)}% (vs BTC ${btc24h > 0 ? "+" : ""}${btc24h.toFixed(2)}%, +${coin.btc_relative_performance_24h?.toFixed(2)}% better)`;
-          });
-        }
-        // 7d Outperformers
-        const top7d = [...data.outperforming]
-          .filter(
-            (c) =>
-              typeof c.btc_relative_performance_7d === "number" &&
-              c.btc_relative_performance_7d > 0,
-          )
-          .sort(
-            (a, b) =>
-              (b.btc_relative_performance_7d || 0) -
-              (a.btc_relative_performance_7d || 0),
-          )
-          .slice(0, 5);
-        if (top7d.length) {
-          summary += `\n\n📈 ALTCOINS OUTPERFORMING BTC (7d):`;
-          top7d.forEach((coin, i) => {
-            summary += `\n${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_7d_in_currency?.toFixed(2)}% (vs BTC ${btc7d > 0 ? "+" : ""}${btc7d.toFixed(2)}%, +${coin.btc_relative_performance_7d?.toFixed(2)}% better)`;
-          });
-        }
-        // 30d Outperformers
-        const top30d = [...data.outperforming]
-          .filter(
-            (c) =>
-              typeof c.btc_relative_performance_30d === "number" &&
-              c.btc_relative_performance_30d > 0,
-          )
-          .sort(
-            (a, b) =>
-              (b.btc_relative_performance_30d || 0) -
-              (a.btc_relative_performance_30d || 0),
-          )
-          .slice(0, 5);
-        if (top30d.length) {
-          summary += `\n\n📊 ALTCOINS OUTPERFORMING BTC (30d):`;
-          top30d.forEach((coin, i) => {
-            summary += `\n${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFixed(2)}% (vs BTC ${btc30d > 0 ? "+" : ""}${btc30d.toFixed(2)}%, +${coin.btc_relative_performance_30d?.toFixed(2)}% better)`;
-          });
-        }
-        
-        // Only log if we have meaningful content
-        if (summary.trim()) {
-          console.log(summary + "\n");
-        }
-      }
-
-      console.log("[RealTimeDataService] ✅ Data update cycle completed");
+      
+      console.log(
+        `[RealTimeDataService] ✅ Updated all data: ${this.marketData.length} market items, ${this.newsItems.length} news items, ${this.alerts.length} alerts`,
+      );
     } catch (error) {
-      console.error("[RealTimeDataService] ❌ Error updating data:", error);
+      console.error("[RealTimeDataService] ❌ Error updating all data:", error);
     }
   }
 
@@ -704,65 +570,7 @@ export class RealTimeDataService extends BaseDataService {
     }
   }
 
-  private async updateBitcoinData(): Promise<void> {
-    try {
-      console.log(
-        "[RealTimeDataService] 🟠 Fetching comprehensive Bitcoin data...",
-      );
-      this.comprehensiveBitcoinData =
-        await this.fetchComprehensiveBitcoinData();
-
-      if (this.comprehensiveBitcoinData) {
-        const price = this.comprehensiveBitcoinData.price.usd;
-        const change24h = this.comprehensiveBitcoinData.price.change24h;
-        const blockHeight = this.comprehensiveBitcoinData.network.blockHeight;
-        const hashRate = this.comprehensiveBitcoinData.network.hashRate;
-        const difficulty = this.comprehensiveBitcoinData.network.difficulty;
-        const fearGreed =
-          this.comprehensiveBitcoinData.sentiment.fearGreedIndex;
-        const mempoolSize = this.comprehensiveBitcoinData.network.mempoolSize;
-        const fastestFee =
-          this.comprehensiveBitcoinData.network.mempoolFees?.fastestFee;
-        const nextHalvingBlocks =
-          this.comprehensiveBitcoinData.network.nextHalving?.blocks;
-
-        console.log(
-          `[RealTimeDataService] 🟠 Bitcoin Price: $${price?.toLocaleString()} (${change24h && change24h > 0 ? "+" : ""}${change24h?.toFixed(2)}%)`,
-        );
-        console.log(
-          `[RealTimeDataService] 🟠 Network Hash Rate: ${hashRate ? (hashRate / 1e18).toFixed(2) + " EH/s" : "N/A"}`,
-        );
-        console.log(
-          `[RealTimeDataService] 🟠 Block Height: ${blockHeight?.toLocaleString()}`,
-        );
-        console.log(
-          `[RealTimeDataService] 🟠 Network Difficulty: ${difficulty ? (difficulty / 1e12).toFixed(2) + "T" : "N/A"}`,
-        );
-        console.log(
-          `[RealTimeDataService] 🟠 Mempool Size: ${mempoolSize ? (mempoolSize / 1e6).toFixed(2) + "MB" : "N/A"}`,
-        );
-        console.log(
-          `[RealTimeDataService] 🟠 Fastest Fee: ${fastestFee ? fastestFee + " sat/vB" : "N/A"}`,
-        );
-        console.log(
-          `[RealTimeDataService] 🟠 Fear & Greed Index: ${fearGreed} (${this.comprehensiveBitcoinData.sentiment.fearGreedValue})`,
-        );
-        console.log(
-          `[RealTimeDataService] 🟠 Next Halving: ${nextHalvingBlocks ? nextHalvingBlocks.toLocaleString() + " blocks" : "N/A"}`,
-        );
-        console.log(`[RealTimeDataService] 🟠 Bitcoin data update complete`);
-      } else {
-        console.warn(
-          "[RealTimeDataService] ⚠️ Failed to fetch Bitcoin data - APIs may be down",
-        );
-      }
-    } catch (error) {
-      console.error(
-        "[RealTimeDataService] ❌ Error updating Bitcoin data:",
-        error,
-      );
-    }
-  }
+  // Bitcoin data is now handled by BitcoinNetworkDataService to avoid duplication
 
   private async updateNews(): Promise<void> {
     try {
@@ -799,8 +607,8 @@ export class RealTimeDataService extends BaseDataService {
         ? { "x-cg-pro-api-key": coingeckoApiKey }
         : {};
 
-      // Fetch crypto data using queued request
-      const cryptoIds = "bitcoin,ethereum,solana,polygon,cardano";
+      // Fetch crypto data using queued request (Bitcoin handled by BitcoinNetworkDataService)
+      const cryptoIds = "ethereum,solana,polygon,cardano";
       const cryptoData = await this.makeQueuedRequest(async () => {
         const params = new URLSearchParams({
           ids: cryptoIds,
@@ -1314,7 +1122,8 @@ export class RealTimeDataService extends BaseDataService {
   }
 
   public getComprehensiveBitcoinData(): ComprehensiveBitcoinData | null {
-    return this.comprehensiveBitcoinData;
+    // Bitcoin data is now handled by BitcoinNetworkDataService to avoid duplication
+    return null;
   }
 
   public getCuratedAltcoinsData(): CuratedAltcoinsData | null {
@@ -1324,12 +1133,7 @@ export class RealTimeDataService extends BaseDataService {
     return this.curatedAltcoinsCache.data;
   }
 
-  public getTop100VsBtcData(): Top100VsBtcData | null {
-    if (!this.top100VsBtcCache || !this.isTop100CacheValid()) {
-      return null;
-    }
-    return this.top100VsBtcCache.data;
-  }
+  // Top 100 vs BTC data is now handled by AltcoinDataService to avoid duplication
 
   public getDexScreenerData(): DexScreenerData | null {
     if (!this.dexScreenerCache || !this.isDexScreenerCacheValid()) {
@@ -1363,9 +1167,7 @@ export class RealTimeDataService extends BaseDataService {
     return await this.fetchCuratedAltcoinsData();
   }
 
-  public async forceTop100VsBtcUpdate(): Promise<Top100VsBtcData | null> {
-    return await this.fetchTop100VsBtcData();
-  }
+  // Top 100 vs BTC data is now handled by AltcoinDataService to avoid duplication
 
   public async forceDexScreenerUpdate(): Promise<DexScreenerData | null> {
     return await this.fetchDexScreenerData();
@@ -1801,185 +1603,7 @@ export class RealTimeDataService extends BaseDataService {
     }
   }
 
-  // Top 100 vs BTC data management
-  private isTop100CacheValid(): boolean {
-    if (!this.top100VsBtcCache) return false;
-    return (
-      Date.now() - this.top100VsBtcCache.timestamp < this.TOP100_CACHE_DURATION
-    );
-  }
-
-  private async updateTop100VsBtcData(): Promise<void> {
-    // Only fetch if cache is invalid
-    if (!this.isTop100CacheValid()) {
-      const data = await this.fetchTop100VsBtcData();
-      if (data) {
-        this.top100VsBtcCache = {
-          data,
-          timestamp: Date.now(),
-        };
-      }
-    }
-  }
-
-  private async fetchTop100VsBtcData(): Promise<Top100VsBtcData | null> {
-    try {
-      console.log("[RealTimeDataService] Starting fetchTop100VsBtcData...");
-
-      // Step 1: Fetch top 100 coins in USD (reduced from 200) with 7d performance data
-      const usdMarketData = await this.makeQueuedRequest(async () => {
-        const response = await fetch(
-          `${this.COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&price_change_percentage=24h,7d,30d`,
-          {
-            headers: { Accept: "application/json" },
-            signal: AbortSignal.timeout(15000),
-          },
-        );
-
-        if (!response.ok) {
-          if (response.status === 429) {
-            // Handle rate limiting with exponential backoff
-            const retryAfter = response.headers.get('Retry-After');
-            const backoffTime = retryAfter ? parseInt(retryAfter) * 1000 : 30000; // Default 30s
-            console.warn(`[RealTimeDataService] Rate limited, backing off for ${backoffTime}ms`);
-            await new Promise(resolve => setTimeout(resolve, backoffTime));
-            throw new Error(`HTTP 429: Rate limited, retry after ${backoffTime}ms`);
-          }
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        return await response.json();
-      });
-
-      console.log(
-        `[RealTimeDataService] Fetched ${usdMarketData?.length || 0} coins from CoinGecko`,
-      );
-
-      // Validate the response
-      if (!Array.isArray(usdMarketData)) {
-        console.error(
-          "[RealTimeDataService] Invalid usdMarketData response:",
-          typeof usdMarketData,
-        );
-        return null;
-      }
-
-      // Step 2: Find Bitcoin's performance
-      const btc = usdMarketData.find((coin) => coin.id === "bitcoin");
-      if (!btc) {
-        console.error(
-          "[RealTimeDataService] Bitcoin data not found in response",
-        );
-        return null;
-      }
-
-      const btcPerformance7d = btc.price_change_percentage_7d_in_currency || 0;
-      const btcPerformance24h = btc.price_change_percentage_24h || 0;
-      const btcPerformance30d =
-        btc.price_change_percentage_30d_in_currency || 0;
-
-      console.log(
-        `[RealTimeDataService] Bitcoin 7d performance: ${btcPerformance7d.toFixed(2)}%`,
-      );
-
-      // Step 3: Filter out Bitcoin and stablecoins, calculate relative performance
-      const stablecoinSymbols = [
-        "usdt",
-        "usdc",
-        "usds",
-        "tusd",
-        "busd",
-        "dai",
-        "frax",
-        "usdp",
-        "gusd",
-        "lusd",
-        "fei",
-        "tribe",
-      ];
-
-      const altcoins = usdMarketData
-        .filter(
-          (coin) =>
-            coin.id !== "bitcoin" &&
-            typeof coin.price_change_percentage_7d_in_currency === "number" &&
-            coin.market_cap_rank <= 100 &&
-            !stablecoinSymbols.includes(coin.symbol.toLowerCase()), // Exclude stablecoins
-        )
-        .map((coin) => ({
-          id: coin.id,
-          symbol: coin.symbol,
-          name: coin.name,
-          image: coin.image || "",
-          current_price: coin.current_price || 0,
-          market_cap_rank: coin.market_cap_rank || 0,
-          price_change_percentage_24h: coin.price_change_percentage_24h || 0,
-          price_change_percentage_7d_in_currency:
-            coin.price_change_percentage_7d_in_currency || 0,
-          price_change_percentage_30d_in_currency:
-            coin.price_change_percentage_30d_in_currency || 0,
-          // Calculate relative performance vs Bitcoin (website's approach)
-          btc_relative_performance_7d:
-            (coin.price_change_percentage_7d_in_currency || 0) -
-            btcPerformance7d,
-          btc_relative_performance_24h:
-            (coin.price_change_percentage_24h || 0) - btcPerformance24h,
-          btc_relative_performance_30d:
-            (coin.price_change_percentage_30d_in_currency || 0) -
-            btcPerformance30d,
-        }))
-        .sort(
-          (a, b) =>
-            b.btc_relative_performance_7d - a.btc_relative_performance_7d,
-        ); // Sort by best 7d relative performance
-
-      // Step 4: Separate outperformers and underperformers based on 7d performance
-      const outperformingVsBtc = altcoins.filter(
-        (coin) => coin.btc_relative_performance_7d > 0,
-      );
-      const underperformingVsBtc = altcoins.filter(
-        (coin) => coin.btc_relative_performance_7d <= 0,
-      );
-
-      // Step 5: Calculate analytics
-      const totalCoins = altcoins.length;
-      const outperformingCount = outperformingVsBtc.length;
-      const underperformingCount = underperformingVsBtc.length;
-
-      const averageRelativePerformance =
-        altcoins.length > 0
-          ? altcoins.reduce(
-              (sum, coin) => sum + coin.btc_relative_performance_7d,
-              0,
-            ) / altcoins.length
-          : 0;
-
-      const result: Top100VsBtcData = {
-        outperforming: outperformingVsBtc.slice(0, 20), // Top 20 outperformers
-        underperforming: underperformingVsBtc.slice(-10), // Bottom 10 underperformers
-        totalCoins,
-        outperformingCount,
-        underperformingCount,
-        averagePerformance: averageRelativePerformance,
-        topPerformers: outperformingVsBtc.slice(0, 8), // Top 8 performers (like website)
-        worstPerformers: underperformingVsBtc.slice(-5), // Worst 5 performers
-        lastUpdated: new Date(),
-      };
-
-      console.log(
-        `[RealTimeDataService] ✅ Fetched top 100 vs BTC data: ${outperformingCount}/${totalCoins} outperforming Bitcoin (7d), avg relative: ${averageRelativePerformance.toFixed(2)}%`,
-      );
-      return result;
-    } catch (error) {
-      console.error("[RealTimeDataService] ❌ Error in fetchTop100VsBtcData:", {
-        error: error instanceof Error ? error.message : "Unknown error",
-        stack: error instanceof Error ? error.stack : undefined,
-        type: typeof error,
-        details: error,
-      });
-      return null;
-    }
-  }
+  // Top 100 vs BTC data is now handled by AltcoinDataService to avoid duplication
 
   // DEXScreener data management
   private isDexScreenerCacheValid(): boolean {
