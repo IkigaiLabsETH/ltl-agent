@@ -75,6 +75,9 @@ export class StockDataService extends BaseDataService {
   private stockDataCache: StockDataCache | null = null;
   private readonly STOCK_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes (market hours)
 
+  // Debug mode
+  private readonly debugMode = this.runtime.getSetting("STOCK_DATA_DEBUG") === "true";
+
   // Curated stocks from LiveTheLifeTV website
   private readonly curatedStocks = [
     // Bitcoin/Crypto Related Stocks
@@ -413,6 +416,7 @@ export class StockDataService extends BaseDataService {
 
   private async fetchFromYahooFinance(symbol: string): Promise<any> {
     try {
+      // Try the main endpoint first
       const response = await fetch(
         `${this.YAHOO_FINANCE_API}/${symbol}?interval=1d&range=2d`,
         {
@@ -429,22 +433,72 @@ export class StockDataService extends BaseDataService {
 
       const data = await response.json();
       const result = data.chart?.result?.[0];
-      if (!result) return null;
+      if (!result) {
+        logger.warn(`[StockDataService] No chart result for ${symbol}`);
+        return null;
+      }
 
       const meta = result.meta;
       const currentPrice = meta.regularMarketPrice;
       const previousClose = meta.previousClose;
 
+      // Debug logging to see what we're getting
+      if (this.debugMode) {
+        logger.info(`[StockDataService] Yahoo Finance raw data for ${symbol}:`, {
+          currentPrice,
+          previousClose,
+          hasMeta: !!meta,
+          metaKeys: meta ? Object.keys(meta) : [],
+        });
+      }
+
+      // If we have current price but no previous close, try to get it from timestamps
+      let actualPreviousClose = previousClose;
+      if (currentPrice && !previousClose && result.timestamp && result.indicators?.quote?.[0]) {
+        const timestamps = result.timestamp;
+        const quotes = result.indicators.quote[0];
+        
+        // Find the previous day's close
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        
+        // Look for yesterday's data
+        for (let i = 0; i < timestamps.length; i++) {
+          const timestamp = new Date(timestamps[i] * 1000);
+          if (timestamp.getDate() === yesterday.getDate() && 
+              timestamp.getMonth() === yesterday.getMonth() && 
+              timestamp.getFullYear() === yesterday.getFullYear()) {
+            actualPreviousClose = quotes.close?.[i];
+            if (this.debugMode) {
+              logger.info(`[StockDataService] Found previous close for ${symbol} from timestamps: ${actualPreviousClose}`);
+            }
+            break;
+          }
+        }
+      }
+
+      // If still no previous close, try fallback endpoint
+      if (currentPrice && !actualPreviousClose) {
+        if (this.debugMode) {
+          logger.info(`[StockDataService] Trying fallback endpoint for ${symbol}`);
+        }
+        const fallbackData = await this.fetchFromYahooFinanceFallback(symbol);
+        if (fallbackData) {
+          return fallbackData;
+        }
+      }
+
       // Validate required data
-      if (!currentPrice || !previousClose || previousClose === 0) {
+      if (!currentPrice || !actualPreviousClose || actualPreviousClose === 0) {
         logger.warn(
-          `[StockDataService] Invalid price data for ${symbol}: current=${currentPrice}, previous=${previousClose}`,
+          `[StockDataService] Invalid price data for ${symbol}: current=${currentPrice}, previous=${actualPreviousClose}`,
         );
         return null;
       }
 
-      const change = currentPrice - previousClose;
-      const changePercent = (change / previousClose) * 100;
+      const change = currentPrice - actualPreviousClose;
+      const changePercent = (change / actualPreviousClose) * 100;
 
       // Validate calculated values
       if (!isFinite(changePercent)) {
@@ -464,8 +518,73 @@ export class StockDataService extends BaseDataService {
     } catch (error) {
       logger.warn(
         `[StockDataService] Yahoo Finance failed for ${symbol}:`,
-        error,
+        error instanceof Error ? error.message : String(error),
       );
+      return null;
+    }
+  }
+
+  private async fetchFromYahooFinanceFallback(symbol: string): Promise<any> {
+    try {
+      // Try a different endpoint with more historical data
+      const response = await fetch(
+        `${this.YAHOO_FINANCE_API}/${symbol}?interval=1d&range=5d`,
+        {
+          headers: {
+            "User-Agent": "Mozilla/5.0 (compatible; LiveTheLifeTV-Bot/1.0)",
+          },
+          signal: AbortSignal.timeout(15000),
+        },
+      );
+
+      if (!response.ok) {
+        return null;
+      }
+
+      const data = await response.json();
+      const result = data.chart?.result?.[0];
+      if (!result || !result.timestamp || !result.indicators?.quote?.[0]) {
+        return null;
+      }
+
+      const timestamps = result.timestamp;
+      const quotes = result.indicators.quote[0];
+      const closes = quotes.close;
+
+      if (!closes || closes.length < 2) {
+        return null;
+      }
+
+      // Get current and previous close from the last two data points
+      const currentPrice = closes[closes.length - 1];
+      const previousClose = closes[closes.length - 2];
+
+      if (!currentPrice || !previousClose || previousClose === 0) {
+        return null;
+      }
+
+      const change = currentPrice - previousClose;
+      const changePercent = (change / previousClose) * 100;
+
+      if (!isFinite(changePercent)) {
+        return null;
+      }
+
+      if (this.debugMode) {
+        logger.info(`[StockDataService] Fallback successful for ${symbol}: current=${currentPrice}, previous=${previousClose}`);
+      }
+
+      return {
+        price: currentPrice,
+        change: change,
+        changePercent: changePercent,
+        volume: quotes.volume?.[quotes.volume.length - 1] || 0,
+        marketCap: 0, // Not available in this endpoint
+      };
+    } catch (error) {
+      if (this.debugMode) {
+        logger.info(`[StockDataService] Yahoo Finance fallback failed for ${symbol}:`, error instanceof Error ? error.message : String(error));
+      }
       return null;
     }
   }
