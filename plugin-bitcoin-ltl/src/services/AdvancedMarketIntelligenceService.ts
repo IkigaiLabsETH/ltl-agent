@@ -134,21 +134,14 @@ export class AdvancedMarketIntelligenceService extends BaseDataService {
       }
 
       // Alert for extreme risk conditions
-      if (riskLevel === 'EXTREME') {
-        this.alertService.addRiskAlert(
-          `Extreme market risk detected: ${signals.join(', ')}`,
-          "critical",
-          0.9,
-          { riskLevel, signals, marketCondition: type }
-        );
-      } else if (riskLevel === 'HIGH') {
-        this.alertService.addRiskAlert(
-          `High market risk detected: ${signals.join(', ')}`,
-          "warning",
-          0.8,
-          { riskLevel, signals, marketCondition: type }
-        );
-      }
+      // if (riskLevel === 'EXTREME') {
+      //   this.alertService.addRiskAlert(
+      //     `Extreme market risk detected: ${signals.join(', ')}`,
+      //     "critical",
+      //     0.9,
+      //     { riskLevel, signals, marketCondition: type }
+      //   );
+      // }
     }
 
     return {

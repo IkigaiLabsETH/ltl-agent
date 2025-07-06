@@ -17,7 +17,6 @@ import {
 // Core imports
 import bitcoinTestSuite from "./tests";
 import {
-  BitcoinDataService,
   SlackIngestionService,
   MorningBriefingService,
   KnowledgeDigestService,
@@ -31,7 +30,6 @@ import {
   TravelDataService,
   NFTDataService,
   AltcoinDataService,
-  BitcoinNetworkDataService,
   StarterService,
 } from "./services";
 
@@ -1209,12 +1207,12 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
       handler: async (req: any, res: any, runtime: IAgentRuntime) => {
         try {
           const service = runtime.getService(
-            "real-time-data",
-          ) as RealTimeDataService;
+            "altcoin-data",
+          ) as AltcoinDataService;
           if (!service) {
             return res.status(503).json({
               success: false,
-              error: "Real-time data service not available",
+              error: "Altcoin data service not available",
             });
           }
 
@@ -1406,7 +1404,6 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
   ],
 
   services: [
-    BitcoinDataService,
     SlackIngestionService,
     MorningBriefingService,
     KnowledgeDigestService,
@@ -1420,7 +1417,6 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
     TravelDataService,
     NFTDataService,
     AltcoinDataService,
-    BitcoinNetworkDataService,
     StarterService,
     // Register CentralizedConfigService so it is available to all services
     require("./services/CentralizedConfigService").CentralizedConfigService,

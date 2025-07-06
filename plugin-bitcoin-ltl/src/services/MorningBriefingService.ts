@@ -1,7 +1,6 @@
 import { elizaLogger, type IAgentRuntime } from "@elizaos/core";
 import { BaseDataService } from "./BaseDataService";
 import { ProcessedIntelligence } from "./ContentIngestionService";
-import { BitcoinDataService } from "./BitcoinDataService";
 import { SlackIngestionService } from "./SlackIngestionService";
 
 export interface MorningBriefingConfig {
@@ -440,8 +439,8 @@ export class MorningBriefingService extends BaseDataService {
     try {
       // Get Bitcoin data service
       const bitcoinService = this.runtime.getService(
-        "bitcoin-data",
-      ) as BitcoinDataService;
+        "bitcoin-intelligence",
+      ) as any;
       if (!bitcoinService) {
         elizaLogger.warn(
           `[MorningBriefingService:${this.correlationId}] BitcoinDataService not available`,
