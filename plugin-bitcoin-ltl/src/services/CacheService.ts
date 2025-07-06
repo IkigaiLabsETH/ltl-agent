@@ -1,7 +1,10 @@
-import { IAgentRuntime, elizaLogger } from '@elizaos/core';
-import { BaseDataService } from './BaseDataService';
-import { LoggerWithContext, generateCorrelationId } from '../utils/helpers';
-import { handleError, ErrorCategory } from '../utils/comprehensive-error-handling';
+import { IAgentRuntime, elizaLogger } from "@elizaos/core";
+import { BaseDataService } from "./BaseDataService";
+import { LoggerWithContext, generateCorrelationId } from "../utils/helpers";
+import {
+  handleError,
+  ErrorCategory,
+} from "../utils/comprehensive-error-handling";
 
 /**
  * Cache entry interface
@@ -47,8 +50,8 @@ export interface CacheConfig {
  * Provides memory and Redis caching with TTL management and cache invalidation
  */
 export class CacheService extends BaseDataService {
-  static serviceType = 'cache-service';
-  
+  static serviceType = "cache-service";
+
   private contextLogger: LoggerWithContext;
   private memoryCache: Map<string, CacheEntry> = new Map();
   private redisClient: any = null;
@@ -62,51 +65,54 @@ export class CacheService extends BaseDataService {
     hitCount: 0,
     missCount: 0,
     evictionCount: 0,
-    totalSize: 0
+    totalSize: 0,
   };
   private cleanupInterval: NodeJS.Timeout | null = null;
 
   constructor(runtime: IAgentRuntime) {
-    super(runtime, 'cacheService');
-    this.contextLogger = new LoggerWithContext(generateCorrelationId(), 'CacheService');
+    super(runtime, "cacheService");
+    this.contextLogger = new LoggerWithContext(
+      generateCorrelationId(),
+      "CacheService",
+    );
     this.config = this.getDefaultConfig();
   }
 
   public get capabilityDescription(): string {
-    return 'Provides high-performance caching with memory and Redis support, TTL management, and cache invalidation strategies';
+    return "Provides high-performance caching with memory and Redis support, TTL management, and cache invalidation strategies";
   }
 
   static async start(runtime: IAgentRuntime) {
-    elizaLogger.info('Starting CacheService...');
+    elizaLogger.info("Starting CacheService...");
     return new CacheService(runtime);
   }
 
   static async stop(runtime: IAgentRuntime) {
-    elizaLogger.info('Stopping CacheService...');
-    const service = runtime.getService('cache-service') as CacheService;
+    elizaLogger.info("Stopping CacheService...");
+    const service = runtime.getService("cache-service") as CacheService;
     if (service) {
       await service.stop();
     }
   }
 
   async start(): Promise<void> {
-    this.contextLogger.info('CacheService starting...');
+    this.contextLogger.info("CacheService starting...");
     await this.initializeRedis();
     this.startCleanupInterval();
   }
 
   async init() {
-    this.contextLogger.info('CacheService initialized');
+    this.contextLogger.info("CacheService initialized");
   }
 
   async stop() {
-    this.contextLogger.info('CacheService stopping...');
-    
+    this.contextLogger.info("CacheService stopping...");
+
     if (this.cleanupInterval) {
       clearInterval(this.cleanupInterval);
       this.cleanupInterval = null;
     }
-    
+
     if (this.redisClient) {
       await this.redisClient.quit();
       this.redisClient = null;
@@ -122,11 +128,11 @@ export class CacheService extends BaseDataService {
       maxSize: 1000,
       cleanupInterval: 600000, // 10 minutes
       enableRedis: false,
-      redisUrl: this.getSetting('REDIS_URL'),
-      redisPassword: this.getSetting('REDIS_PASSWORD'),
-      redisDb: parseInt(this.getSetting('REDIS_DB', '0')),
+      redisUrl: this.getSetting("REDIS_URL"),
+      redisPassword: this.getSetting("REDIS_PASSWORD"),
+      redisDb: parseInt(this.getSetting("REDIS_DB", "0")),
       compressionEnabled: true,
-      compressionThreshold: 1024 // 1KB
+      compressionThreshold: 1024, // 1KB
     };
   }
 
@@ -139,7 +145,7 @@ export class CacheService extends BaseDataService {
     }
 
     try {
-      const Redis = await import('ioredis');
+      const Redis = await import("ioredis");
       this.redisClient = new Redis.default({
         host: new URL(this.config.redisUrl).hostname,
         port: parseInt(new URL(this.config.redisUrl).port) || 6379,
@@ -147,24 +153,27 @@ export class CacheService extends BaseDataService {
         db: this.config.redisDb,
         retryDelayOnFailover: 100,
         maxRetriesPerRequest: 3,
-        lazyConnect: true
+        lazyConnect: true,
       });
 
       await this.redisClient.connect();
-      this.contextLogger.info('Redis connection established');
+      this.contextLogger.info("Redis connection established");
     } catch (error) {
       await handleError(
-        error instanceof Error ? error : new Error('Redis connection failed'),
+        error instanceof Error ? error : new Error("Redis connection failed"),
         {
           correlationId: this.correlationId,
-          component: 'CacheService',
-          operation: 'initializeRedis'
-        }
+          component: "CacheService",
+          operation: "initializeRedis",
+        },
       );
-      
-      this.contextLogger.warn('Failed to connect to Redis, using memory cache only', {
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
+
+      this.contextLogger.warn(
+        "Failed to connect to Redis, using memory cache only",
+        {
+          error: error instanceof Error ? error.message : "Unknown error",
+        },
+      );
       this.config.enableRedis = false;
     }
   }
@@ -189,8 +198,8 @@ export class CacheService extends BaseDataService {
         timestamp: Date.now(),
         ttl: ttl || this.config.defaultTtl,
         metadata: {
-          size: this.getObjectSize(value)
-        }
+          size: this.getObjectSize(value),
+        },
       };
 
       // Set in memory cache
@@ -202,18 +211,18 @@ export class CacheService extends BaseDataService {
       }
     } catch (error) {
       await handleError(
-        error instanceof Error ? error : new Error('Cache set failed'),
+        error instanceof Error ? error : new Error("Cache set failed"),
         {
           correlationId: this.correlationId,
-          component: 'CacheService',
-          operation: 'set',
-          params: { key, ttl }
-        }
+          component: "CacheService",
+          operation: "set",
+          params: { key, ttl },
+        },
       );
-      
-      this.contextLogger.error('Failed to set cache entry', {
+
+      this.contextLogger.error("Failed to set cache entry", {
         key,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -245,18 +254,18 @@ export class CacheService extends BaseDataService {
       return null;
     } catch (error) {
       await handleError(
-        error instanceof Error ? error : new Error('Cache get failed'),
+        error instanceof Error ? error : new Error("Cache get failed"),
         {
           correlationId: this.correlationId,
-          component: 'CacheService',
-          operation: 'get',
-          params: { key }
-        }
+          component: "CacheService",
+          operation: "get",
+          params: { key },
+        },
       );
-      
-      this.contextLogger.error('Failed to get cache entry', {
+
+      this.contextLogger.error("Failed to get cache entry", {
         key,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       return null;
     }
@@ -285,18 +294,18 @@ export class CacheService extends BaseDataService {
       return deleted;
     } catch (error) {
       await handleError(
-        error instanceof Error ? error : new Error('Cache delete failed'),
+        error instanceof Error ? error : new Error("Cache delete failed"),
         {
           correlationId: this.correlationId,
-          component: 'CacheService',
-          operation: 'delete',
-          params: { key }
-        }
+          component: "CacheService",
+          operation: "delete",
+          params: { key },
+        },
       );
-      
-      this.contextLogger.error('Failed to delete cache entry', {
+
+      this.contextLogger.error("Failed to delete cache entry", {
         key,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       return false;
     }
@@ -316,19 +325,19 @@ export class CacheService extends BaseDataService {
         await this.redisClient.flushdb();
       }
 
-      this.contextLogger.info('Cache cleared');
+      this.contextLogger.info("Cache cleared");
     } catch (error) {
       await handleError(
-        error instanceof Error ? error : new Error('Cache clear failed'),
+        error instanceof Error ? error : new Error("Cache clear failed"),
         {
           correlationId: this.correlationId,
-          component: 'CacheService',
-          operation: 'clear'
-        }
+          component: "CacheService",
+          operation: "clear",
+        },
       );
-      
-      this.contextLogger.error('Failed to clear cache', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+
+      this.contextLogger.error("Failed to clear cache", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -338,9 +347,10 @@ export class CacheService extends BaseDataService {
    */
   getStats(): CacheStats {
     const totalEntries = this.memoryCache.size;
-    const hitRate = this.stats.hitCount + this.stats.missCount > 0 
-      ? this.stats.hitCount / (this.stats.hitCount + this.stats.missCount) 
-      : 0;
+    const hitRate =
+      this.stats.hitCount + this.stats.missCount > 0
+        ? this.stats.hitCount / (this.stats.hitCount + this.stats.missCount)
+        : 0;
 
     return {
       totalEntries,
@@ -349,7 +359,7 @@ export class CacheService extends BaseDataService {
       missCount: this.stats.missCount,
       hitRate,
       evictionCount: this.stats.evictionCount,
-      memoryUsage: process.memoryUsage().heapUsed
+      memoryUsage: process.memoryUsage().heapUsed,
     };
   }
 
@@ -371,7 +381,7 @@ export class CacheService extends BaseDataService {
    */
   private getFromMemory<T>(key: string): CacheEntry<T> | null {
     const entry = this.memoryCache.get(key) as CacheEntry<T> | undefined;
-    
+
     if (!entry) {
       return null;
     }
@@ -389,11 +399,16 @@ export class CacheService extends BaseDataService {
   /**
    * Set value in Redis
    */
-  private async setInRedis<T>(key: string, entry: CacheEntry<T>): Promise<void> {
+  private async setInRedis<T>(
+    key: string,
+    entry: CacheEntry<T>,
+  ): Promise<void> {
     const serialized = JSON.stringify(entry);
-    const compressed = this.config.compressionEnabled && serialized.length > this.config.compressionThreshold
-      ? await this.compress(serialized)
-      : serialized;
+    const compressed =
+      this.config.compressionEnabled &&
+      serialized.length > this.config.compressionThreshold
+        ? await this.compress(serialized)
+        : serialized;
 
     await this.redisClient.setex(key, Math.ceil(entry.ttl / 1000), compressed);
   }
@@ -403,17 +418,19 @@ export class CacheService extends BaseDataService {
    */
   private async getFromRedis<T>(key: string): Promise<CacheEntry<T> | null> {
     const compressed = await this.redisClient.get(key);
-    
+
     if (!compressed) {
       return null;
     }
 
-    const serialized = this.config.compressionEnabled && compressed.length > this.config.compressionThreshold
-      ? await this.decompress(compressed)
-      : compressed;
+    const serialized =
+      this.config.compressionEnabled &&
+      compressed.length > this.config.compressionThreshold
+        ? await this.decompress(compressed)
+        : compressed;
 
     const entry: CacheEntry<T> = JSON.parse(serialized);
-    
+
     // Check if entry is expired
     if (Date.now() - entry.timestamp > entry.ttl) {
       await this.redisClient.del(key);
@@ -463,7 +480,9 @@ export class CacheService extends BaseDataService {
     }
 
     if (cleanedCount > 0) {
-      this.contextLogger.debug(`Cleaned up ${cleanedCount} expired cache entries`);
+      this.contextLogger.debug(
+        `Cleaned up ${cleanedCount} expired cache entries`,
+      );
     }
   }
 
@@ -483,12 +502,12 @@ export class CacheService extends BaseDataService {
    */
   private async compress(data: string): Promise<string> {
     try {
-      const { gzip } = await import('zlib');
-      const { promisify } = await import('util');
+      const { gzip } = await import("zlib");
+      const { promisify } = await import("util");
       const gzipAsync = promisify(gzip);
-      
-      const buffer = await gzipAsync(Buffer.from(data, 'utf8'));
-      return buffer.toString('base64');
+
+      const buffer = await gzipAsync(Buffer.from(data, "utf8"));
+      return buffer.toString("base64");
     } catch {
       return data;
     }
@@ -499,13 +518,13 @@ export class CacheService extends BaseDataService {
    */
   private async decompress(data: string): Promise<string> {
     try {
-      const { gunzip } = await import('zlib');
-      const { promisify } = await import('util');
+      const { gunzip } = await import("zlib");
+      const { promisify } = await import("util");
       const gunzipAsync = promisify(gunzip);
-      
-      const buffer = Buffer.from(data, 'base64');
+
+      const buffer = Buffer.from(data, "base64");
       const decompressed = await gunzipAsync(buffer);
-      return decompressed.toString('utf8');
+      return decompressed.toString("utf8");
     } catch {
       return data;
     }
@@ -514,7 +533,7 @@ export class CacheService extends BaseDataService {
   /**
    * Get cache keys matching pattern
    */
-  async getKeys(pattern: string = '*'): Promise<string[]> {
+  async getKeys(pattern: string = "*"): Promise<string[]> {
     try {
       const keys: string[] = [];
 
@@ -534,15 +553,15 @@ export class CacheService extends BaseDataService {
       return [...new Set(keys)]; // Remove duplicates
     } catch (error) {
       await handleError(
-        error instanceof Error ? error : new Error('Get keys failed'),
+        error instanceof Error ? error : new Error("Get keys failed"),
         {
           correlationId: this.correlationId,
-          component: 'CacheService',
-          operation: 'getKeys',
-          params: { pattern }
-        }
+          component: "CacheService",
+          operation: "getKeys",
+          params: { pattern },
+        },
       );
-      
+
       return [];
     }
   }
@@ -551,12 +570,10 @@ export class CacheService extends BaseDataService {
    * Check if key matches pattern
    */
   private matchesPattern(key: string, pattern: string): boolean {
-    if (pattern === '*') return true;
-    
-    const regexPattern = pattern
-      .replace(/\*/g, '.*')
-      .replace(/\?/g, '.');
-    
+    if (pattern === "*") return true;
+
+    const regexPattern = pattern.replace(/\*/g, ".*").replace(/\?/g, ".");
+
     const regex = new RegExp(`^${regexPattern}$`);
     return regex.test(key);
   }
@@ -589,22 +606,24 @@ export class CacheService extends BaseDataService {
         }
       }
 
-      this.contextLogger.info(`Invalidated ${invalidatedCount} cache entries matching pattern: ${pattern}`);
+      this.contextLogger.info(
+        `Invalidated ${invalidatedCount} cache entries matching pattern: ${pattern}`,
+      );
       return invalidatedCount;
     } catch (error) {
       await handleError(
-        error instanceof Error ? error : new Error('Cache invalidation failed'),
+        error instanceof Error ? error : new Error("Cache invalidation failed"),
         {
           correlationId: this.correlationId,
-          component: 'CacheService',
-          operation: 'invalidate',
-          params: { pattern }
-        }
+          component: "CacheService",
+          operation: "invalidate",
+          params: { pattern },
+        },
       );
-      
-      this.contextLogger.error('Failed to invalidate cache entries', {
+
+      this.contextLogger.error("Failed to invalidate cache entries", {
         pattern,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       return 0;
     }
@@ -617,4 +636,4 @@ export class CacheService extends BaseDataService {
   async forceUpdate(): Promise<any> {
     return this.getStats();
   }
-} 
+}

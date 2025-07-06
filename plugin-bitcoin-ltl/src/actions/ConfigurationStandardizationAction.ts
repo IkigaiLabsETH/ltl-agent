@@ -1,14 +1,14 @@
-import { IAgentRuntime, elizaLogger } from '@elizaos/core';
-import { BaseAction } from './BaseAction';
-import { ConfigMigrationUtility, configMigrationHelpers } from '../utils';
-import { CentralizedConfigService } from '../services/CentralizedConfigService';
+import { IAgentRuntime, elizaLogger } from "@elizaos/core";
+import { BaseAction } from "./BaseAction";
+import { ConfigMigrationUtility, configMigrationHelpers } from "../utils";
+import { CentralizedConfigService } from "../services/CentralizedConfigService";
 
 /**
  * Configuration Standardization Action
  * Helps migrate services from runtime.getSetting() to CentralizedConfigService
  */
 export class ConfigurationStandardizationAction extends BaseAction {
-  static actionType = 'configuration-standardization';
+  static actionType = "configuration-standardization";
 
   private migrationUtility: ConfigMigrationUtility;
   private configService: CentralizedConfigService;
@@ -16,11 +16,12 @@ export class ConfigurationStandardizationAction extends BaseAction {
   constructor(runtime: IAgentRuntime) {
     super(runtime);
     this.migrationUtility = new ConfigMigrationUtility(runtime);
-    this.configService = runtime.getService<CentralizedConfigService>('centralized-config');
+    this.configService =
+      runtime.getService<CentralizedConfigService>("centralized-config");
   }
 
   public get capabilityDescription(): string {
-    return 'Standardizes configuration usage across all services by migrating from runtime.getSetting() to CentralizedConfigService';
+    return "Standardizes configuration usage across all services by migrating from runtime.getSetting() to CentralizedConfigService";
   }
 
   /**
@@ -49,11 +50,11 @@ export class ConfigurationStandardizationAction extends BaseAction {
       return {
         status,
         usageStats,
-        report
+        report,
       };
     } catch (error) {
-      this.contextLogger.error('Failed to get migration status', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      this.contextLogger.error("Failed to get migration status", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -73,8 +74,9 @@ export class ConfigurationStandardizationAction extends BaseAction {
     };
   }> {
     try {
-      const validation = configMigrationHelpers.validateConfigurationConsistency(this.runtime);
-      
+      const validation =
+        configMigrationHelpers.validateConfigurationConsistency(this.runtime);
+
       // Additional validation logic
       const missingConfigs: string[] = [];
       const inconsistentConfigs: string[] = [];
@@ -82,10 +84,10 @@ export class ConfigurationStandardizationAction extends BaseAction {
 
       // Check for missing critical configurations
       const criticalConfigs = [
-        'apis.coingecko.apiKey',
-        'apis.blockchain.baseUrl',
-        'services.bitcoinNetwork.enabled',
-        'services.marketData.enabled'
+        "apis.coingecko.apiKey",
+        "apis.blockchain.baseUrl",
+        "services.bitcoinNetwork.enabled",
+        "services.marketData.enabled",
       ];
 
       for (const config of criticalConfigs) {
@@ -101,47 +103,62 @@ export class ConfigurationStandardizationAction extends BaseAction {
 
       // Check for inconsistent configuration patterns
       const services = [
-        'bitcoinNetwork',
-        'marketData',
-        'realTimeData',
-        'newsData',
-        'nftData',
-        'socialSentiment'
+        "bitcoinNetwork",
+        "marketData",
+        "realTimeData",
+        "newsData",
+        "nftData",
+        "socialSentiment",
       ];
 
       for (const service of services) {
         const enabledConfig = `services.${service}.enabled`;
         const intervalConfig = `services.${service}.updateInterval`;
-        
+
         try {
           const enabled = this.configService.get(enabledConfig);
           const interval = this.configService.get(intervalConfig);
-          
+
           if (enabled === true && (!interval || interval < 1000)) {
-            inconsistentConfigs.push(`${service}: enabled but no valid update interval`);
+            inconsistentConfigs.push(
+              `${service}: enabled but no valid update interval`,
+            );
           }
         } catch (error) {
-          inconsistentConfigs.push(`${service}: configuration validation failed`);
+          inconsistentConfigs.push(
+            `${service}: configuration validation failed`,
+          );
         }
       }
 
       return {
-        isValid: validation.isValid && missingConfigs.length === 0 && inconsistentConfigs.length === 0,
-        issues: [...validation.issues, ...missingConfigs, ...inconsistentConfigs],
+        isValid:
+          validation.isValid &&
+          missingConfigs.length === 0 &&
+          inconsistentConfigs.length === 0,
+        issues: [
+          ...validation.issues,
+          ...missingConfigs,
+          ...inconsistentConfigs,
+        ],
         recommendations: [
           ...validation.recommendations,
-          ...missingConfigs.map(config => `Add missing configuration: ${config}`),
-          ...inconsistentConfigs.map(issue => `Fix inconsistent configuration: ${issue}`)
+          ...missingConfigs.map(
+            (config) => `Add missing configuration: ${config}`,
+          ),
+          ...inconsistentConfigs.map(
+            (issue) => `Fix inconsistent configuration: ${issue}`,
+          ),
         ],
         details: {
           missingConfigs,
           inconsistentConfigs,
-          deprecatedConfigs
-        }
+          deprecatedConfigs,
+        },
       };
     } catch (error) {
-      this.contextLogger.error('Failed to validate configuration consistency', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      this.contextLogger.error("Failed to validate configuration consistency", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -152,10 +169,10 @@ export class ConfigurationStandardizationAction extends BaseAction {
    */
   async generateMigrationPlan(serviceName: string): Promise<{
     serviceName: string;
-    currentPattern: 'runtime' | 'centralized' | 'mixed';
+    currentPattern: "runtime" | "centralized" | "mixed";
     migrationSteps: string[];
-    estimatedEffort: 'low' | 'medium' | 'high';
-    priority: 'low' | 'medium' | 'high';
+    estimatedEffort: "low" | "medium" | "high";
+    priority: "low" | "medium" | "high";
     risks: string[];
   }> {
     try {
@@ -164,7 +181,7 @@ export class ConfigurationStandardizationAction extends BaseAction {
         `services.${serviceName}.enabled`,
         `services.${serviceName}.updateInterval`,
         `apis.${serviceName}.apiKey`,
-        `apis.${serviceName}.baseUrl`
+        `apis.${serviceName}.baseUrl`,
       ];
 
       let runtimeUsage = 0;
@@ -183,46 +200,46 @@ export class ConfigurationStandardizationAction extends BaseAction {
         }
       }
 
-      let currentPattern: 'runtime' | 'centralized' | 'mixed';
+      let currentPattern: "runtime" | "centralized" | "mixed";
       if (centralizedUsage === 0) {
-        currentPattern = 'runtime';
+        currentPattern = "runtime";
       } else if (runtimeUsage === 0) {
-        currentPattern = 'centralized';
+        currentPattern = "centralized";
       } else {
-        currentPattern = 'mixed';
+        currentPattern = "mixed";
       }
 
       // Generate migration steps
       const migrationSteps: string[] = [];
-      let estimatedEffort: 'low' | 'medium' | 'high' = 'low';
-      let priority: 'low' | 'medium' | 'high' = 'low';
+      let estimatedEffort: "low" | "medium" | "high" = "low";
+      let priority: "low" | "medium" | "high" = "low";
       const risks: string[] = [];
 
-      if (currentPattern === 'runtime') {
+      if (currentPattern === "runtime") {
         migrationSteps.push(
-          '1. Add service configuration to CentralizedConfigService schema',
-          '2. Update service constructor to use ConfigMigrationUtility',
-          '3. Replace runtime.getSetting() calls with configService.get()',
-          '4. Add fallback logic for backward compatibility',
-          '5. Update tests to use centralized configuration'
+          "1. Add service configuration to CentralizedConfigService schema",
+          "2. Update service constructor to use ConfigMigrationUtility",
+          "3. Replace runtime.getSetting() calls with configService.get()",
+          "4. Add fallback logic for backward compatibility",
+          "5. Update tests to use centralized configuration",
         );
-        estimatedEffort = 'medium';
-        priority = 'high';
-        risks.push('Service may break if configuration is missing');
-      } else if (currentPattern === 'mixed') {
+        estimatedEffort = "medium";
+        priority = "high";
+        risks.push("Service may break if configuration is missing");
+      } else if (currentPattern === "mixed") {
         migrationSteps.push(
-          '1. Identify remaining runtime.getSetting() calls',
-          '2. Migrate remaining configurations to centralized service',
-          '3. Remove fallback logic for migrated configurations',
-          '4. Update documentation and tests'
+          "1. Identify remaining runtime.getSetting() calls",
+          "2. Migrate remaining configurations to centralized service",
+          "3. Remove fallback logic for migrated configurations",
+          "4. Update documentation and tests",
         );
-        estimatedEffort = 'low';
-        priority = 'medium';
-        risks.push('Inconsistent configuration access patterns');
+        estimatedEffort = "low";
+        priority = "medium";
+        risks.push("Inconsistent configuration access patterns");
       } else {
-        migrationSteps.push('Service already uses centralized configuration');
-        estimatedEffort = 'low';
-        priority = 'low';
+        migrationSteps.push("Service already uses centralized configuration");
+        estimatedEffort = "low";
+        priority = "low";
       }
 
       return {
@@ -231,12 +248,12 @@ export class ConfigurationStandardizationAction extends BaseAction {
         migrationSteps,
         estimatedEffort,
         priority,
-        risks
+        risks,
       };
     } catch (error) {
-      this.errorHandler.handleError(error, { 
-        component: 'ConfigurationStandardizationAction', 
-        operation: 'generateMigrationPlan' 
+      this.errorHandler.handleError(error, {
+        component: "ConfigurationStandardizationAction",
+        operation: "generateMigrationPlan",
       });
       throw error;
     }
@@ -245,7 +262,10 @@ export class ConfigurationStandardizationAction extends BaseAction {
   /**
    * Execute configuration migration for a specific service
    */
-  async executeMigration(serviceName: string, dryRun: boolean = true): Promise<{
+  async executeMigration(
+    serviceName: string,
+    dryRun: boolean = true,
+  ): Promise<{
     success: boolean;
     changes: string[];
     errors: string[];
@@ -261,34 +281,40 @@ export class ConfigurationStandardizationAction extends BaseAction {
       // Get migration plan
       const plan = await this.generateMigrationPlan(serviceName);
 
-      if (plan.currentPattern === 'centralized') {
+      if (plan.currentPattern === "centralized") {
         return {
           success: true,
-          changes: ['Service already uses centralized configuration'],
+          changes: ["Service already uses centralized configuration"],
           errors: [],
           warnings: [],
-          nextSteps: ['No migration needed']
+          nextSteps: ["No migration needed"],
         };
       }
 
       // Simulate migration steps
-      if (plan.currentPattern === 'runtime') {
-        changes.push(`Would migrate ${serviceName} from runtime.getSetting() to CentralizedConfigService`);
-        
+      if (plan.currentPattern === "runtime") {
+        changes.push(
+          `Would migrate ${serviceName} from runtime.getSetting() to CentralizedConfigService`,
+        );
+
         if (!dryRun) {
           // Add service configuration to schema
           try {
             const currentSchema = this.configService.getSchema();
             // This would require schema modification - simplified for demo
-            changes.push('Added service configuration to CentralizedConfigService schema');
+            changes.push(
+              "Added service configuration to CentralizedConfigService schema",
+            );
           } catch (error) {
             errors.push(`Failed to update schema: ${error.message}`);
           }
         }
       }
 
-      if (plan.currentPattern === 'mixed') {
-        changes.push(`Would complete migration for ${serviceName} to fully use CentralizedConfigService`);
+      if (plan.currentPattern === "mixed") {
+        changes.push(
+          `Would complete migration for ${serviceName} to fully use CentralizedConfigService`,
+        );
       }
 
       // Add warnings and next steps
@@ -297,11 +323,11 @@ export class ConfigurationStandardizationAction extends BaseAction {
       }
 
       nextSteps.push(
-        '1. Review migration plan and risks',
-        '2. Update service code to use ConfigMigrationUtility',
-        '3. Test service with new configuration pattern',
-        '4. Update documentation and tests',
-        '5. Deploy and monitor for issues'
+        "1. Review migration plan and risks",
+        "2. Update service code to use ConfigMigrationUtility",
+        "3. Test service with new configuration pattern",
+        "4. Update documentation and tests",
+        "5. Deploy and monitor for issues",
       );
 
       return {
@@ -309,12 +335,12 @@ export class ConfigurationStandardizationAction extends BaseAction {
         changes,
         errors,
         warnings,
-        nextSteps
+        nextSteps,
       };
     } catch (error) {
-      this.errorHandler.handleError(error, { 
-        component: 'ConfigurationStandardizationAction', 
-        operation: 'executeMigration' 
+      this.errorHandler.handleError(error, {
+        component: "ConfigurationStandardizationAction",
+        operation: "executeMigration",
       });
       throw error;
     }
@@ -326,7 +352,7 @@ export class ConfigurationStandardizationAction extends BaseAction {
   async getServiceConfigurationStats(): Promise<{
     services: Array<{
       name: string;
-      pattern: 'runtime' | 'centralized' | 'mixed';
+      pattern: "runtime" | "centralized" | "mixed";
       configCount: number;
       runtimeConfigs: string[];
       centralizedConfigs: string[];
@@ -340,28 +366,28 @@ export class ConfigurationStandardizationAction extends BaseAction {
   }> {
     try {
       const services = [
-        'bitcoinNetwork',
-        'marketData', 
-        'realTimeData',
-        'newsData',
-        'nftData',
-        'socialSentiment',
-        'predictiveAnalytics',
-        'realTimeStreaming',
-        'advancedAlerting',
-        'productionDeployment'
+        "bitcoinNetwork",
+        "marketData",
+        "realTimeData",
+        "newsData",
+        "nftData",
+        "socialSentiment",
+        "predictiveAnalytics",
+        "realTimeStreaming",
+        "advancedAlerting",
+        "productionDeployment",
       ];
 
       const serviceStats = await Promise.all(
         services.map(async (serviceName) => {
           const plan = await this.generateMigrationPlan(serviceName);
-          
+
           // Count configurations
           const configs = [
             `services.${serviceName}.enabled`,
             `services.${serviceName}.updateInterval`,
             `apis.${serviceName}.apiKey`,
-            `apis.${serviceName}.baseUrl`
+            `apis.${serviceName}.baseUrl`,
           ];
 
           const runtimeConfigs: string[] = [];
@@ -385,26 +411,28 @@ export class ConfigurationStandardizationAction extends BaseAction {
             pattern: plan.currentPattern,
             configCount: configs.length,
             runtimeConfigs,
-            centralizedConfigs
+            centralizedConfigs,
           };
-        })
+        }),
       );
 
       const summary = {
         totalServices: serviceStats.length,
-        fullyMigrated: serviceStats.filter(s => s.pattern === 'centralized').length,
-        partiallyMigrated: serviceStats.filter(s => s.pattern === 'mixed').length,
-        notMigrated: serviceStats.filter(s => s.pattern === 'runtime').length
+        fullyMigrated: serviceStats.filter((s) => s.pattern === "centralized")
+          .length,
+        partiallyMigrated: serviceStats.filter((s) => s.pattern === "mixed")
+          .length,
+        notMigrated: serviceStats.filter((s) => s.pattern === "runtime").length,
       };
 
       return {
         services: serviceStats,
-        summary
+        summary,
       };
     } catch (error) {
-      this.errorHandler.handleError(error, { 
-        component: 'ConfigurationStandardizationAction', 
-        operation: 'getServiceConfigurationStats' 
+      this.errorHandler.handleError(error, {
+        component: "ConfigurationStandardizationAction",
+        operation: "getServiceConfigurationStats",
       });
       throw error;
     }
@@ -435,22 +463,26 @@ export class ConfigurationStandardizationAction extends BaseAction {
 - **Not Migrated**: ${serviceStats.summary.notMigrated}
 
 ## Configuration Consistency
-- **Valid**: ${consistency.isValid ? 'Yes' : 'No'}
+- **Valid**: ${consistency.isValid ? "Yes" : "No"}
 - **Issues Found**: ${consistency.issues.length}
 - **Missing Configurations**: ${consistency.details.missingConfigs.length}
 - **Inconsistent Configurations**: ${consistency.details.inconsistentConfigs.length}
 
 ## Service Details
-${serviceStats.services.map(service => `
+${serviceStats.services
+  .map(
+    (service) => `
 ### ${service.name}
 - **Pattern**: ${service.pattern}
 - **Configurations**: ${service.configCount}
 - **Runtime Configs**: ${service.runtimeConfigs.length}
 - **Centralized Configs**: ${service.centralizedConfigs.length}
-`).join('')}
+`,
+  )
+  .join("")}
 
 ## Recommendations
-${consistency.recommendations.map(rec => `- ${rec}`).join('\n')}
+${consistency.recommendations.map((rec) => `- ${rec}`).join("\n")}
 
 ## Next Steps
 1. Prioritize migration of services with 'runtime' pattern
@@ -460,9 +492,9 @@ ${consistency.recommendations.map(rec => `- ${rec}`).join('\n')}
 5. Monitor migration progress and validate changes
       `;
     } catch (error) {
-      this.errorHandler.handleError(error, { 
-        component: 'ConfigurationStandardizationAction', 
-        operation: 'generateConfigurationReport' 
+      this.errorHandler.handleError(error, {
+        component: "ConfigurationStandardizationAction",
+        operation: "generateConfigurationReport",
       });
       throw error;
     }
@@ -471,41 +503,43 @@ ${consistency.recommendations.map(rec => `- ${rec}`).join('\n')}
   /**
    * Execute the configuration standardization action
    */
-  async execute(params: {
-    action?: 'status' | 'validate' | 'migrate' | 'report' | 'stats';
-    serviceName?: string;
-    dryRun?: boolean;
-  } = {}): Promise<any> {
+  async execute(
+    params: {
+      action?: "status" | "validate" | "migrate" | "report" | "stats";
+      serviceName?: string;
+      dryRun?: boolean;
+    } = {},
+  ): Promise<any> {
     try {
-      const { action = 'status', serviceName, dryRun = true } = params;
+      const { action = "status", serviceName, dryRun = true } = params;
 
       switch (action) {
-        case 'status':
+        case "status":
           return await this.getMigrationStatus();
 
-        case 'validate':
+        case "validate":
           return await this.validateConfigurationConsistency();
 
-        case 'migrate':
+        case "migrate":
           if (!serviceName) {
-            throw new Error('Service name is required for migration');
+            throw new Error("Service name is required for migration");
           }
           return await this.executeMigration(serviceName, dryRun);
 
-        case 'report':
+        case "report":
           return await this.generateConfigurationReport();
 
-        case 'stats':
+        case "stats":
           return await this.getServiceConfigurationStats();
 
         default:
           throw new Error(`Unknown action: ${action}`);
       }
     } catch (error) {
-      this.contextLogger.error('Configuration standardization action failed', {
-        error: error instanceof Error ? error.message : 'Unknown error',
+      this.contextLogger.error("Configuration standardization action failed", {
+        error: error instanceof Error ? error.message : "Unknown error",
         action,
-        serviceName
+        serviceName,
       });
       throw error;
     }
@@ -517,4 +551,4 @@ ${consistency.recommendations.map(rec => `- ${rec}`).join('\n')}
   protected async executeAction(params: any, context: any): Promise<any> {
     return await this.execute(params);
   }
-} 
+}

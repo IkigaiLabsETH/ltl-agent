@@ -95,4 +95,4 @@ export interface AltcoinOutperformanceData {
     avgBTCPerformance24h: number;
   };
   lastUpdated: string;
-} 
+}

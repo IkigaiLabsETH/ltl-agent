@@ -5,7 +5,7 @@
 // ***********************************************************
 
 // Import commands
-import './commands';
+import "./commands";
 
 // Import Testing Library Cypress commands
-import '@testing-library/cypress/add-commands';
+import "@testing-library/cypress/add-commands";

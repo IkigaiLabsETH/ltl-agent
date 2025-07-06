@@ -1,7 +1,7 @@
-import { IAgentRuntime, elizaLogger } from '@elizaos/core';
-import { BaseDataService } from './BaseDataService';
-import { LoggerWithContext, generateCorrelationId } from '../utils';
-import axios from 'axios';
+import { IAgentRuntime, elizaLogger } from "@elizaos/core";
+import { BaseDataService } from "./BaseDataService";
+import { LoggerWithContext, generateCorrelationId } from "../utils";
+import axios from "axios";
 
 export interface MarketData {
   symbol: string;
@@ -21,7 +21,7 @@ export interface NewsItem {
   url: string;
   source: string;
   publishedAt: Date;
-  sentiment: 'positive' | 'negative' | 'neutral';
+  sentiment: "positive" | "negative" | "neutral";
   relevanceScore: number;
   keywords: string[];
 }
@@ -47,10 +47,14 @@ export interface EconomicIndicator {
 
 export interface MarketAlert {
   id: string;
-  type: 'price_threshold' | 'volume_spike' | 'news_sentiment' | 'technical_indicator';
+  type:
+    | "price_threshold"
+    | "volume_spike"
+    | "news_sentiment"
+    | "technical_indicator";
   symbol: string;
   message: string;
-  severity: 'low' | 'medium' | 'high' | 'critical';
+  severity: "low" | "medium" | "high" | "critical";
   timestamp: Date;
   data: any;
 }
@@ -304,7 +308,7 @@ export interface NFTCollectionData {
   collection: NFTCollection;
   stats: NFTCollectionStats;
   lastUpdated: Date;
-  category: 'blue-chip' | 'generative-art' | 'digital-art' | 'pfp' | 'utility';
+  category: "blue-chip" | "generative-art" | "digital-art" | "pfp" | "utility";
   floorItems?: NFTFloorItem[];
   recentSales?: NFTSaleEvent[];
   contractAddress?: string;
@@ -332,7 +336,7 @@ export interface NFTSaleEvent {
   seller: string;
   transaction_hash: string;
   timestamp: string;
-  event_type: 'sale' | 'transfer' | 'mint';
+  event_type: "sale" | "transfer" | "mint";
 }
 
 export interface NFTTraitFloor {
@@ -361,13 +365,21 @@ export interface CuratedNFTsCache {
 }
 
 export class RealTimeDataService extends BaseDataService {
-  static serviceType = 'real-time-data';
-  
+  static serviceType = "real-time-data";
+
   private contextLogger: LoggerWithContext;
   private updateInterval: NodeJS.Timeout | null = null;
   private readonly UPDATE_INTERVAL = 180000; // 3 minutes - prioritize Bitcoin data freshness
-  private readonly symbols = ['BTC', 'ETH', 'SOL', 'MATIC', 'ADA', '4337', '8958']; // Include MetaPlanet (4337) and Hyperliquid (8958)
-  
+  private readonly symbols = [
+    "BTC",
+    "ETH",
+    "SOL",
+    "MATIC",
+    "ADA",
+    "4337",
+    "8958",
+  ]; // Include MetaPlanet (4337) and Hyperliquid (8958)
+
   // Rate limiting properties
   protected lastRequestTime = 0;
   private readonly MIN_REQUEST_INTERVAL = 3000; // 3 seconds between requests to avoid rate limits
@@ -376,38 +388,38 @@ export class RealTimeDataService extends BaseDataService {
   protected consecutiveFailures = 0;
   private readonly MAX_CONSECUTIVE_FAILURES = 5;
   protected backoffUntil = 0;
-  
+
   // API endpoints
-  private readonly BLOCKCHAIN_API = 'https://api.blockchain.info';
-  private readonly COINGECKO_API = 'https://api.coingecko.com/api/v3';
-  private readonly ALTERNATIVE_API = 'https://api.alternative.me';
-  private readonly MEMPOOL_API = 'https://mempool.space/api';
-  private readonly DEXSCREENER_API = 'https://api.dexscreener.com';
-  
+  private readonly BLOCKCHAIN_API = "https://api.blockchain.info";
+  private readonly COINGECKO_API = "https://api.coingecko.com/api/v3";
+  private readonly ALTERNATIVE_API = "https://api.alternative.me";
+  private readonly MEMPOOL_API = "https://mempool.space/api";
+  private readonly DEXSCREENER_API = "https://api.dexscreener.com";
+
   // Curated altcoins list (matching LiveTheLifeTV website)
   private readonly curatedCoinIds = [
-    'ethereum',
-    'chainlink',
-    'uniswap',
-    'aave',
-    'ondo-finance', 
-    'ethena', 
-    'solana',
-    'sui',
-    'hyperliquid', 
-    'berachain-bera', 
-    'infrafred-bgt', 
-    'avalanche-2',
-    'blockstack',
-    'dogecoin',
-    'pepe',
-    'mog-coin',
-    'bittensor',
-    'render-token',
-    'fartcoin',
-    'railgun'
+    "ethereum",
+    "chainlink",
+    "uniswap",
+    "aave",
+    "ondo-finance",
+    "ethena",
+    "solana",
+    "sui",
+    "hyperliquid",
+    "berachain-bera",
+    "infrafred-bgt",
+    "avalanche-2",
+    "blockstack",
+    "dogecoin",
+    "pepe",
+    "mog-coin",
+    "bittensor",
+    "render-token",
+    "fartcoin",
+    "railgun",
   ];
-  
+
   // Data storage
   private marketData: MarketData[] = [];
   private newsItems: NewsItem[] = [];
@@ -430,44 +442,50 @@ export class RealTimeDataService extends BaseDataService {
 
   // Curated NFT collections (focused on high-value generative art)
   private readonly curatedNFTCollections = [
-    { slug: 'qql', category: 'generative-art' as const },
-    { slug: 'meridian-by-matt-deslauriers', category: 'generative-art' as const }
+    { slug: "qql", category: "generative-art" as const },
+    {
+      slug: "meridian-by-matt-deslauriers",
+      category: "generative-art" as const,
+    },
   ];
 
   constructor(runtime: IAgentRuntime) {
-    super(runtime, 'realTimeData');
+    super(runtime, "realTimeData");
     this.correlationId = generateCorrelationId();
-    this.contextLogger = new LoggerWithContext(this.correlationId, 'RealTimeDataService');
+    this.contextLogger = new LoggerWithContext(
+      this.correlationId,
+      "RealTimeDataService",
+    );
   }
 
   public get capabilityDescription(): string {
-    return 'Provides real-time market data, news feeds, and social sentiment analysis';
+    return "Provides real-time market data, news feeds, and social sentiment analysis";
   }
 
   static async start(runtime: IAgentRuntime) {
-    elizaLogger.info('RealTimeDataService starting...');
+    elizaLogger.info("RealTimeDataService starting...");
     const service = new RealTimeDataService(runtime);
     await service.init();
     return service;
   }
 
   static async stop(runtime: IAgentRuntime) {
-    elizaLogger.info('RealTimeDataService stopping...');
-    const service = runtime.getService('real-time-data');
+    elizaLogger.info("RealTimeDataService stopping...");
+    const service = runtime.getService("real-time-data");
     if (service && service.stop) {
       await service.stop();
     }
   }
 
   async start(): Promise<void> {
-    elizaLogger.info('RealTimeDataService starting...');
+    elizaLogger.info("RealTimeDataService starting...");
     await this.updateData();
-    elizaLogger.info('RealTimeDataService started successfully');
+    elizaLogger.info("RealTimeDataService started successfully");
   }
 
   async init() {
-    elizaLogger.info('RealTimeDataService initialized');
-    
+    elizaLogger.info("RealTimeDataService initialized");
+
     // Start real-time updates
     await this.startRealTimeUpdates();
   }
@@ -477,35 +495,43 @@ export class RealTimeDataService extends BaseDataService {
       clearInterval(this.updateInterval);
       this.updateInterval = null;
     }
-    elizaLogger.info('RealTimeDataService stopped');
+    elizaLogger.info("RealTimeDataService stopped");
   }
 
   // Required abstract methods from BaseDataService
   async updateData(): Promise<void> {
     try {
       await this.updateAllData();
-      
+
       // Store current state in memory
-      await this.storeInMemory({
-        marketData: this.marketData,
-        comprehensiveBitcoinData: this.comprehensiveBitcoinData,
-        curatedAltcoinsCache: this.curatedAltcoinsCache,
-        top100VsBtcCache: this.top100VsBtcCache,
-        newsItems: this.newsItems.slice(-50), // Keep last 50 news items
-        socialSentiment: this.socialSentiment.slice(-20), // Keep last 20 sentiment items
-        alerts: this.alerts.slice(-100), // Keep last 100 alerts
-        timestamp: Date.now()
-      }, 'real-time-data-state');
-      
-      this.contextLogger.info(`Updated real-time data: ${this.marketData.length} market items, ${this.newsItems.length} news items`);
+      await this.storeInMemory(
+        {
+          marketData: this.marketData,
+          comprehensiveBitcoinData: this.comprehensiveBitcoinData,
+          curatedAltcoinsCache: this.curatedAltcoinsCache,
+          top100VsBtcCache: this.top100VsBtcCache,
+          newsItems: this.newsItems.slice(-50), // Keep last 50 news items
+          socialSentiment: this.socialSentiment.slice(-20), // Keep last 20 sentiment items
+          alerts: this.alerts.slice(-100), // Keep last 100 alerts
+          timestamp: Date.now(),
+        },
+        "real-time-data-state",
+      );
+
+      this.contextLogger.info(
+        `Updated real-time data: ${this.marketData.length} market items, ${this.newsItems.length} news items`,
+      );
     } catch (error) {
-      this.contextLogger.error('Failed to update real-time data:', (error as Error).message);
+      this.contextLogger.error(
+        "Failed to update real-time data:",
+        (error as Error).message,
+      );
       throw error;
     }
   }
 
   async forceUpdate(): Promise<void> {
-    this.contextLogger.info('Forcing real-time data update');
+    this.contextLogger.info("Forcing real-time data update");
     await this.updateData();
   }
 
@@ -518,19 +544,21 @@ export class RealTimeDataService extends BaseDataService {
       try {
         await this.updateAllData();
       } catch (error) {
-        console.error('Error updating real-time data:', error);
+        console.error("Error updating real-time data:", error);
       }
     }, this.UPDATE_INTERVAL);
   }
 
   private async updateAllData(): Promise<void> {
     try {
-      console.log('[RealTimeDataService] ⚡ Starting data update cycle...');
-      
+      console.log("[RealTimeDataService] ⚡ Starting data update cycle...");
+
       // 🟠 BITCOIN DATA FIRST - ALWAYS PRIORITIZE BITCOIN
-      console.log('[RealTimeDataService] 🟠 Prioritizing Bitcoin data update...');
+      console.log(
+        "[RealTimeDataService] 🟠 Prioritizing Bitcoin data update...",
+      );
       await this.updateBitcoinData();
-      
+
       // Then stagger other updates to avoid overwhelming APIs
       const updateTasks = [
         () => this.updateMarketData(),
@@ -542,7 +570,7 @@ export class RealTimeDataService extends BaseDataService {
         () => this.updateDexScreenerData(),
         () => this.updateTopMoversData(),
         () => this.updateTrendingCoinsData(),
-        () => this.updateCuratedNFTsData()
+        () => this.updateCuratedNFTsData(),
       ];
 
       // Execute updates with delays between them
@@ -551,7 +579,7 @@ export class RealTimeDataService extends BaseDataService {
           await updateTasks[i]();
           // Add delay between different types of updates to avoid overwhelming APIs
           if (i < updateTasks.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 4000)); // 4 second delay between update types
+            await new Promise((resolve) => setTimeout(resolve, 4000)); // 4 second delay between update types
           }
         } catch (error) {
           console.error(`Update task ${i} failed:`, error);
@@ -562,57 +590,85 @@ export class RealTimeDataService extends BaseDataService {
       if (this.top100VsBtcCache && this.top100VsBtcCache.data) {
         const data = this.top100VsBtcCache.data;
         // Find Bitcoin's performance from the altcoin data (should be available in the fetch)
-        let btc24h = 0, btc7d = 0, btc30d = 0;
+        let btc24h = 0,
+          btc7d = 0,
+          btc30d = 0;
         // Try to get BTC from the first underperformer or any coin with id 'bitcoin'
-        const btcCoin = [...data.underperforming, ...data.outperforming].find(c => c.id === 'bitcoin');
+        const btcCoin = [...data.underperforming, ...data.outperforming].find(
+          (c) => c.id === "bitcoin",
+        );
         if (btcCoin) {
           btc24h = btcCoin.price_change_percentage_24h || 0;
           btc7d = btcCoin.price_change_percentage_7d_in_currency || 0;
           btc30d = btcCoin.price_change_percentage_30d_in_currency || 0;
         }
         let summary = `\n₿ BITCOIN PERFORMANCE:`;
-        summary += `\n• 24h: ${btc24h > 0 ? '+' : ''}${btc24h.toFixed(2)}%`;
-        summary += `\n• 7d: ${btc7d > 0 ? '+' : ''}${btc7d.toFixed(2)}%`;
-        summary += `\n• 30d: ${btc30d > 0 ? '+' : ''}${btc30d.toFixed(2)}%`;
+        summary += `\n• 24h: ${btc24h > 0 ? "+" : ""}${btc24h.toFixed(2)}%`;
+        summary += `\n• 7d: ${btc7d > 0 ? "+" : ""}${btc7d.toFixed(2)}%`;
+        summary += `\n• 30d: ${btc30d > 0 ? "+" : ""}${btc30d.toFixed(2)}%`;
         // 24h Outperformers
         const top24h = [...data.outperforming]
-          .filter(c => typeof c.btc_relative_performance_24h === 'number' && c.btc_relative_performance_24h > 0)
-          .sort((a, b) => (b.btc_relative_performance_24h || 0) - (a.btc_relative_performance_24h || 0))
+          .filter(
+            (c) =>
+              typeof c.btc_relative_performance_24h === "number" &&
+              c.btc_relative_performance_24h > 0,
+          )
+          .sort(
+            (a, b) =>
+              (b.btc_relative_performance_24h || 0) -
+              (a.btc_relative_performance_24h || 0),
+          )
           .slice(0, 5);
         if (top24h.length) {
           summary += `\n\n🚀 ALTCOINS OUTPERFORMING BTC (24h):`;
           top24h.forEach((coin, i) => {
-            summary += `\n${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_24h?.toFixed(2)}% (vs BTC ${btc24h > 0 ? '+' : ''}${btc24h.toFixed(2)}%, +${coin.btc_relative_performance_24h?.toFixed(2)}% better)`;
+            summary += `\n${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_24h?.toFixed(2)}% (vs BTC ${btc24h > 0 ? "+" : ""}${btc24h.toFixed(2)}%, +${coin.btc_relative_performance_24h?.toFixed(2)}% better)`;
           });
         }
         // 7d Outperformers
         const top7d = [...data.outperforming]
-          .filter(c => typeof c.btc_relative_performance_7d === 'number' && c.btc_relative_performance_7d > 0)
-          .sort((a, b) => (b.btc_relative_performance_7d || 0) - (a.btc_relative_performance_7d || 0))
+          .filter(
+            (c) =>
+              typeof c.btc_relative_performance_7d === "number" &&
+              c.btc_relative_performance_7d > 0,
+          )
+          .sort(
+            (a, b) =>
+              (b.btc_relative_performance_7d || 0) -
+              (a.btc_relative_performance_7d || 0),
+          )
           .slice(0, 5);
         if (top7d.length) {
           summary += `\n\n📈 ALTCOINS OUTPERFORMING BTC (7d):`;
           top7d.forEach((coin, i) => {
-            summary += `\n${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_7d_in_currency?.toFixed(2)}% (vs BTC ${btc7d > 0 ? '+' : ''}${btc7d.toFixed(2)}%, +${coin.btc_relative_performance_7d?.toFixed(2)}% better)`;
+            summary += `\n${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_7d_in_currency?.toFixed(2)}% (vs BTC ${btc7d > 0 ? "+" : ""}${btc7d.toFixed(2)}%, +${coin.btc_relative_performance_7d?.toFixed(2)}% better)`;
           });
         }
         // 30d Outperformers
         const top30d = [...data.outperforming]
-          .filter(c => typeof c.btc_relative_performance_30d === 'number' && c.btc_relative_performance_30d > 0)
-          .sort((a, b) => (b.btc_relative_performance_30d || 0) - (a.btc_relative_performance_30d || 0))
+          .filter(
+            (c) =>
+              typeof c.btc_relative_performance_30d === "number" &&
+              c.btc_relative_performance_30d > 0,
+          )
+          .sort(
+            (a, b) =>
+              (b.btc_relative_performance_30d || 0) -
+              (a.btc_relative_performance_30d || 0),
+          )
           .slice(0, 5);
         if (top30d.length) {
           summary += `\n\n📊 ALTCOINS OUTPERFORMING BTC (30d):`;
           top30d.forEach((coin, i) => {
-            summary += `\n${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFixed(2)}% (vs BTC ${btc30d > 0 ? '+' : ''}${btc30d.toFixed(2)}%, +${coin.btc_relative_performance_30d?.toFixed(2)}% better)`;
+            summary += `\n${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFixed(2)}% (vs BTC ${btc30d > 0 ? "+" : ""}${btc30d.toFixed(2)}%, +${coin.btc_relative_performance_30d?.toFixed(2)}% better)`;
           });
         }
-        console.log(summary + '\n');
+        console.log(summary + "\n");
       }
 
-      console.log('[RealTimeDataService] ✅ Data update cycle completed');
+      console.log("[RealTimeDataService] ✅ Data update cycle completed");
     } catch (error) {
-      console.error('[RealTimeDataService] ❌ Error updating data:', error);
+      console.error("[RealTimeDataService] ❌ Error updating data:", error);
     }
   }
 
@@ -620,40 +676,67 @@ export class RealTimeDataService extends BaseDataService {
     try {
       this.marketData = await this.fetchMarketData();
     } catch (error) {
-      console.error('Error updating market data:', error);
+      console.error("Error updating market data:", error);
     }
   }
 
   private async updateBitcoinData(): Promise<void> {
     try {
-      console.log('[RealTimeDataService] 🟠 Fetching comprehensive Bitcoin data...');
-      this.comprehensiveBitcoinData = await this.fetchComprehensiveBitcoinData();
-      
+      console.log(
+        "[RealTimeDataService] 🟠 Fetching comprehensive Bitcoin data...",
+      );
+      this.comprehensiveBitcoinData =
+        await this.fetchComprehensiveBitcoinData();
+
       if (this.comprehensiveBitcoinData) {
         const price = this.comprehensiveBitcoinData.price.usd;
         const change24h = this.comprehensiveBitcoinData.price.change24h;
         const blockHeight = this.comprehensiveBitcoinData.network.blockHeight;
         const hashRate = this.comprehensiveBitcoinData.network.hashRate;
         const difficulty = this.comprehensiveBitcoinData.network.difficulty;
-        const fearGreed = this.comprehensiveBitcoinData.sentiment.fearGreedIndex;
+        const fearGreed =
+          this.comprehensiveBitcoinData.sentiment.fearGreedIndex;
         const mempoolSize = this.comprehensiveBitcoinData.network.mempoolSize;
-        const fastestFee = this.comprehensiveBitcoinData.network.mempoolFees?.fastestFee;
-        const nextHalvingBlocks = this.comprehensiveBitcoinData.network.nextHalving?.blocks;
-        
-        console.log(`[RealTimeDataService] 🟠 Bitcoin Price: $${price?.toLocaleString()} (${change24h && change24h > 0 ? '+' : ''}${change24h?.toFixed(2)}%)`);
-        console.log(`[RealTimeDataService] 🟠 Network Hash Rate: ${hashRate ? (hashRate / 1e18).toFixed(2) + ' EH/s' : 'N/A'}`);
-        console.log(`[RealTimeDataService] 🟠 Block Height: ${blockHeight?.toLocaleString()}`);
-        console.log(`[RealTimeDataService] 🟠 Network Difficulty: ${difficulty ? (difficulty / 1e12).toFixed(2) + 'T' : 'N/A'}`);
-        console.log(`[RealTimeDataService] 🟠 Mempool Size: ${mempoolSize ? (mempoolSize / 1e6).toFixed(2) + 'MB' : 'N/A'}`);
-        console.log(`[RealTimeDataService] 🟠 Fastest Fee: ${fastestFee ? fastestFee + ' sat/vB' : 'N/A'}`);
-        console.log(`[RealTimeDataService] 🟠 Fear & Greed Index: ${fearGreed} (${this.comprehensiveBitcoinData.sentiment.fearGreedValue})`);
-        console.log(`[RealTimeDataService] 🟠 Next Halving: ${nextHalvingBlocks ? nextHalvingBlocks.toLocaleString() + ' blocks' : 'N/A'}`);
+        const fastestFee =
+          this.comprehensiveBitcoinData.network.mempoolFees?.fastestFee;
+        const nextHalvingBlocks =
+          this.comprehensiveBitcoinData.network.nextHalving?.blocks;
+
+        console.log(
+          `[RealTimeDataService] 🟠 Bitcoin Price: $${price?.toLocaleString()} (${change24h && change24h > 0 ? "+" : ""}${change24h?.toFixed(2)}%)`,
+        );
+        console.log(
+          `[RealTimeDataService] 🟠 Network Hash Rate: ${hashRate ? (hashRate / 1e18).toFixed(2) + " EH/s" : "N/A"}`,
+        );
+        console.log(
+          `[RealTimeDataService] 🟠 Block Height: ${blockHeight?.toLocaleString()}`,
+        );
+        console.log(
+          `[RealTimeDataService] 🟠 Network Difficulty: ${difficulty ? (difficulty / 1e12).toFixed(2) + "T" : "N/A"}`,
+        );
+        console.log(
+          `[RealTimeDataService] 🟠 Mempool Size: ${mempoolSize ? (mempoolSize / 1e6).toFixed(2) + "MB" : "N/A"}`,
+        );
+        console.log(
+          `[RealTimeDataService] 🟠 Fastest Fee: ${fastestFee ? fastestFee + " sat/vB" : "N/A"}`,
+        );
+        console.log(
+          `[RealTimeDataService] 🟠 Fear & Greed Index: ${fearGreed} (${this.comprehensiveBitcoinData.sentiment.fearGreedValue})`,
+        );
+        console.log(
+          `[RealTimeDataService] 🟠 Next Halving: ${nextHalvingBlocks ? nextHalvingBlocks.toLocaleString() + " blocks" : "N/A"}`,
+        );
         console.log(`[RealTimeDataService] 🟠 Bitcoin data update complete`);
       } else {
-        console.warn('[RealTimeDataService] ⚠️ Failed to fetch Bitcoin data - APIs may be down');
+        console.warn(
+          "[RealTimeDataService] ⚠️ Failed to fetch Bitcoin data - APIs may be down",
+        );
       }
     } catch (error) {
-      console.error('[RealTimeDataService] ❌ Error updating Bitcoin data:', error);
+      console.error(
+        "[RealTimeDataService] ❌ Error updating Bitcoin data:",
+        error,
+      );
     }
   }
 
@@ -661,7 +744,7 @@ export class RealTimeDataService extends BaseDataService {
     try {
       this.newsItems = await this.fetchNewsData();
     } catch (error) {
-      console.error('Error updating news data:', error);
+      console.error("Error updating news data:", error);
     }
   }
 
@@ -669,7 +752,7 @@ export class RealTimeDataService extends BaseDataService {
     try {
       this.socialSentiment = await this.fetchSocialSentiment();
     } catch (error) {
-      console.error('Error updating social sentiment:', error);
+      console.error("Error updating social sentiment:", error);
     }
   }
 
@@ -677,68 +760,74 @@ export class RealTimeDataService extends BaseDataService {
     try {
       this.economicIndicators = await this.fetchEconomicIndicators();
     } catch (error) {
-      console.error('Error updating economic indicators:', error);
+      console.error("Error updating economic indicators:", error);
     }
   }
 
   private async fetchMarketData(): Promise<MarketData[]> {
     try {
-      const coingeckoApiKey = this.runtime.getSetting('COINGECKO_API_KEY');
-      const baseUrl = coingeckoApiKey 
-        ? 'https://pro-api.coingecko.com/api/v3' 
-        : 'https://api.coingecko.com/api/v3';
+      const coingeckoApiKey = this.runtime.getSetting("COINGECKO_API_KEY");
+      const baseUrl = coingeckoApiKey
+        ? "https://pro-api.coingecko.com/api/v3"
+        : "https://api.coingecko.com/api/v3";
 
-      const headers = coingeckoApiKey 
-        ? { 'x-cg-pro-api-key': coingeckoApiKey }
+      const headers = coingeckoApiKey
+        ? { "x-cg-pro-api-key": coingeckoApiKey }
         : {};
 
       // Fetch crypto data using queued request
-      const cryptoIds = 'bitcoin,ethereum,solana,polygon,cardano';
+      const cryptoIds = "bitcoin,ethereum,solana,polygon,cardano";
       const cryptoData = await this.makeQueuedRequest(async () => {
         const params = new URLSearchParams({
           ids: cryptoIds,
-          vs_currencies: 'usd',
-          include_24hr_change: 'true',
-          include_24hr_vol: 'true',
-          include_market_cap: 'true',
-          include_last_updated_at: 'true'
+          vs_currencies: "usd",
+          include_24hr_change: "true",
+          include_24hr_vol: "true",
+          include_market_cap: "true",
+          include_last_updated_at: "true",
         });
         const url = `${baseUrl}/simple/price?${params.toString()}`;
         const response = await fetch(url, {
-          method: 'GET',
+          method: "GET",
           headers,
-          signal: AbortSignal.timeout(15000)
+          signal: AbortSignal.timeout(15000),
         });
-        
+
         if (!response.ok) {
           if (response.status === 401 || response.status === 429) {
-            console.warn(`[RealTimeDataService] CoinGecko API rate limited or unauthorized (${response.status}), using fallback data`);
+            console.warn(
+              `[RealTimeDataService] CoinGecko API rate limited or unauthorized (${response.status}), using fallback data`,
+            );
             return this.getFallbackMarketData();
           }
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-        
+
         return await response.json();
       });
 
-      const marketData: MarketData[] = Object.entries(cryptoData).map(([id, data]: [string, any]) => ({
-        symbol: this.getSymbolFromId(id),
-        price: data.usd || 0,
-        change24h: data.usd_24h_change || 0,
-        changePercent24h: data.usd_24h_change || 0,
-        volume24h: data.usd_24h_vol || 0,
-        marketCap: data.usd_market_cap || 0,
-        lastUpdate: new Date(data.last_updated_at ? data.last_updated_at * 1000 : Date.now()),
-        source: 'CoinGecko'
-      }));
+      const marketData: MarketData[] = Object.entries(cryptoData).map(
+        ([id, data]: [string, any]) => ({
+          symbol: this.getSymbolFromId(id),
+          price: data.usd || 0,
+          change24h: data.usd_24h_change || 0,
+          changePercent24h: data.usd_24h_change || 0,
+          volume24h: data.usd_24h_vol || 0,
+          marketCap: data.usd_market_cap || 0,
+          lastUpdate: new Date(
+            data.last_updated_at ? data.last_updated_at * 1000 : Date.now(),
+          ),
+          source: "CoinGecko",
+        }),
+      );
 
       // Fetch stock data with delay
-      await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
+      await new Promise((resolve) => setTimeout(resolve, 2000)); // 2 second delay
       const stockData = await this.fetchStockData();
-      
+
       return [...marketData, ...stockData];
     } catch (error) {
-      console.error('Error fetching market data:', error);
+      console.error("Error fetching market data:", error);
       return this.getFallbackMarketData();
     }
   }
@@ -746,35 +835,46 @@ export class RealTimeDataService extends BaseDataService {
   private async fetchStockData(): Promise<MarketData[]> {
     try {
       // Using Alpha Vantage for stock data (free tier available)
-      const alphaVantageKey = this.runtime.getSetting('ALPHA_VANTAGE_API_KEY');
+      const alphaVantageKey = this.runtime.getSetting("ALPHA_VANTAGE_API_KEY");
       if (!alphaVantageKey) {
         return this.getFallbackStockData();
       }
 
       // Fetch data for major tech stocks as proxies
-      const symbols = ['MSFT', 'GOOGL', 'TSLA']; // High-performing tech stocks
-      const stockPromises = symbols.map(async symbol => {
+      const symbols = ["MSFT", "GOOGL", "TSLA"]; // High-performing tech stocks
+      const stockPromises = symbols.map(async (symbol) => {
         try {
-          const response = await axios.get('https://www.alphavantage.co/query', {
-            params: {
-              function: 'GLOBAL_QUOTE',
-              symbol: symbol,
-              apikey: alphaVantageKey
+          const response = await axios.get(
+            "https://www.alphavantage.co/query",
+            {
+              params: {
+                function: "GLOBAL_QUOTE",
+                symbol: symbol,
+                apikey: alphaVantageKey,
+              },
+              timeout: 10000,
             },
-            timeout: 10000
-          });
+          );
 
-          const quote = response.data['Global Quote'];
+          const quote = response.data["Global Quote"];
           if (!quote) return null;
 
-          const price = parseFloat(quote['05. price']);
-          const change = parseFloat(quote['09. change']);
-          const changePercent = parseFloat(quote['10. change percent'].replace('%', ''));
-          const volume = parseInt(quote['06. volume']);
+          const price = parseFloat(quote["05. price"]);
+          const change = parseFloat(quote["09. change"]);
+          const changePercent = parseFloat(
+            quote["10. change percent"].replace("%", ""),
+          );
+          const volume = parseInt(quote["06. volume"]);
 
           // Validate parsed values
-          if (!isFinite(price) || !isFinite(change) || !isFinite(changePercent)) {
-            console.warn(`[RealTimeDataService] Invalid Alpha Vantage data for ${symbol}: price=${price}, change=${change}, changePercent=${changePercent}`);
+          if (
+            !isFinite(price) ||
+            !isFinite(change) ||
+            !isFinite(changePercent)
+          ) {
+            console.warn(
+              `[RealTimeDataService] Invalid Alpha Vantage data for ${symbol}: price=${price}, change=${change}, changePercent=${changePercent}`,
+            );
             return null;
           }
 
@@ -786,7 +886,7 @@ export class RealTimeDataService extends BaseDataService {
             volume24h: volume || 0,
             marketCap: 0, // Not available in basic quote
             lastUpdate: new Date(),
-            source: 'Alpha Vantage'
+            source: "Alpha Vantage",
           };
         } catch (error) {
           console.error(`Error fetching data for ${symbol}:`, error);
@@ -797,42 +897,50 @@ export class RealTimeDataService extends BaseDataService {
       const results = await Promise.all(stockPromises);
       return results.filter(Boolean) as MarketData[];
     } catch (error) {
-      console.error('Error fetching stock data:', error);
+      console.error("Error fetching stock data:", error);
       return this.getFallbackStockData();
     }
   }
 
   private async fetchNewsData(): Promise<NewsItem[]> {
     try {
-      const newsApiKey = this.runtime.getSetting('NEWS_API_KEY');
+      const newsApiKey = this.runtime.getSetting("NEWS_API_KEY");
       if (!newsApiKey) {
         return this.getFallbackNewsData();
       }
 
-      const response = await axios.get('https://newsapi.org/v2/everything', {
+      const response = await axios.get("https://newsapi.org/v2/everything", {
         params: {
           q: 'bitcoin OR cryptocurrency OR "strategic bitcoin reserve" OR "bitcoin ETF" OR blockchain',
-          sortBy: 'publishedAt',
+          sortBy: "publishedAt",
           pageSize: 20,
-          language: 'en',
-          apiKey: newsApiKey
+          language: "en",
+          apiKey: newsApiKey,
         },
-        timeout: 10000
+        timeout: 10000,
       });
 
       return response.data.articles.map((article: any, index: number) => ({
         id: `news_${Date.now()}_${index}`,
         title: article.title,
-        summary: article.description || article.content?.substring(0, 200) + '...',
+        summary:
+          article.description || article.content?.substring(0, 200) + "...",
         url: article.url,
         source: article.source.name,
         publishedAt: new Date(article.publishedAt),
-        sentiment: this.analyzeSentiment(article.title + ' ' + article.description),
-        relevanceScore: this.calculateRelevanceScore(article.title, article.description),
-        keywords: this.extractKeywords(article.title + ' ' + article.description)
+        sentiment: this.analyzeSentiment(
+          article.title + " " + article.description,
+        ),
+        relevanceScore: this.calculateRelevanceScore(
+          article.title,
+          article.description,
+        ),
+        keywords: this.extractKeywords(
+          article.title + " " + article.description,
+        ),
       }));
     } catch (error) {
-      console.error('Error fetching news data:', error);
+      console.error("Error fetching news data:", error);
       return this.getFallbackNewsData();
     }
   }
@@ -842,36 +950,45 @@ export class RealTimeDataService extends BaseDataService {
       // This would integrate with Twitter API, Reddit API, etc.
       // For now, returning simulated sentiment data based on market movements
       const marketData = this.marketData || [];
-      const btcData = marketData.find(m => m.symbol === 'BTC');
-      
+      const btcData = marketData.find((m) => m.symbol === "BTC");
+
       if (!btcData) {
         return this.getFallbackSocialSentiment();
       }
 
-      const sentiment = btcData.changePercent24h > 0 ? 
-        Math.min(0.8, btcData.changePercent24h / 10) : 
-        Math.max(-0.8, btcData.changePercent24h / 10);
+      const sentiment =
+        btcData.changePercent24h > 0
+          ? Math.min(0.8, btcData.changePercent24h / 10)
+          : Math.max(-0.8, btcData.changePercent24h / 10);
 
       return [
         {
-          platform: 'Twitter',
-          symbol: 'BTC',
+          platform: "Twitter",
+          symbol: "BTC",
           sentiment: sentiment,
           mentions: Math.floor(Math.random() * 5000) + 1000,
           timestamp: new Date(),
-          trendingKeywords: sentiment > 0.2 ? ['moon', 'hodl', 'btc', 'bullish'] : ['dip', 'buy', 'hodl', 'diamond hands']
+          trendingKeywords:
+            sentiment > 0.2
+              ? ["moon", "hodl", "btc", "bullish"]
+              : ["dip", "buy", "hodl", "diamond hands"],
         },
         {
-          platform: 'Reddit',
-          symbol: 'BTC',
+          platform: "Reddit",
+          symbol: "BTC",
           sentiment: sentiment * 0.8, // Reddit tends to be slightly less extreme
           mentions: Math.floor(Math.random() * 1000) + 200,
           timestamp: new Date(),
-          trendingKeywords: ['bitcoin', 'cryptocurrency', 'investment', 'future']
-        }
+          trendingKeywords: [
+            "bitcoin",
+            "cryptocurrency",
+            "investment",
+            "future",
+          ],
+        },
       ];
     } catch (error) {
-      console.error('Error fetching social sentiment:', error);
+      console.error("Error fetching social sentiment:", error);
       return this.getFallbackSocialSentiment();
     }
   }
@@ -882,83 +999,89 @@ export class RealTimeDataService extends BaseDataService {
       // For now, returning key indicators that affect Bitcoin
       return [
         {
-          name: 'US Dollar Index (DXY)',
+          name: "US Dollar Index (DXY)",
           value: 103.5,
           previousValue: 104.2,
           change: -0.7,
-          unit: 'index',
+          unit: "index",
           releaseDate: new Date(),
-          nextRelease: new Date(Date.now() + 24 * 60 * 60 * 1000) // Tomorrow
+          nextRelease: new Date(Date.now() + 24 * 60 * 60 * 1000), // Tomorrow
         },
         {
-          name: 'Federal Funds Rate',
+          name: "Federal Funds Rate",
           value: 5.25,
           previousValue: 5.25,
           change: 0,
-          unit: 'percent',
+          unit: "percent",
           releaseDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // Last week
-          nextRelease: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000) // Next FOMC meeting
-        }
+          nextRelease: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000), // Next FOMC meeting
+        },
       ];
     } catch (error) {
-      console.error('Error fetching economic indicators:', error);
+      console.error("Error fetching economic indicators:", error);
       return [];
     }
   }
 
-  private generateAlerts(marketData: MarketData[], newsItems: NewsItem[], socialSentiment: SocialSentiment[]): MarketAlert[] {
+  private generateAlerts(
+    marketData: MarketData[],
+    newsItems: NewsItem[],
+    socialSentiment: SocialSentiment[],
+  ): MarketAlert[] {
     const alerts: MarketAlert[] = [];
     const now = new Date();
 
     // Price threshold alerts
-    marketData.forEach(market => {
+    marketData.forEach((market) => {
       if (Math.abs(market.changePercent24h) > 10) {
         alerts.push({
           id: `price_${market.symbol}_${now.getTime()}`,
-          type: 'price_threshold',
+          type: "price_threshold",
           symbol: market.symbol,
-          message: `${market.symbol} ${market.changePercent24h > 0 ? 'surged' : 'dropped'} ${Math.abs(market.changePercent24h).toFixed(1)}% in 24h`,
-          severity: Math.abs(market.changePercent24h) > 20 ? 'critical' : 'high',
+          message: `${market.symbol} ${market.changePercent24h > 0 ? "surged" : "dropped"} ${Math.abs(market.changePercent24h).toFixed(1)}% in 24h`,
+          severity:
+            Math.abs(market.changePercent24h) > 20 ? "critical" : "high",
           timestamp: now,
-          data: { price: market.price, change: market.changePercent24h }
+          data: { price: market.price, change: market.changePercent24h },
         });
       }
     });
 
     // Volume spike alerts
-    marketData.forEach(market => {
+    marketData.forEach((market) => {
       if (market.volume24h > 0) {
         // Simplified volume spike detection
         const avgVolume = market.volume24h * 0.7; // Assume current volume is 30% above average
         if (market.volume24h > avgVolume * 2) {
           alerts.push({
             id: `volume_${market.symbol}_${now.getTime()}`,
-            type: 'volume_spike',
+            type: "volume_spike",
             symbol: market.symbol,
             message: `${market.symbol} volume spike detected - ${(market.volume24h / 1000000).toFixed(1)}M`,
-            severity: 'medium',
+            severity: "medium",
             timestamp: now,
-            data: { volume: market.volume24h }
+            data: { volume: market.volume24h },
           });
         }
       }
     });
 
     // News sentiment alerts
-    const highImpactNews = newsItems.filter(news => 
-      news.relevanceScore > 0.8 && 
-      (news.sentiment === 'positive' || news.sentiment === 'negative')
+    const highImpactNews = newsItems.filter(
+      (news) =>
+        news.relevanceScore > 0.8 &&
+        (news.sentiment === "positive" || news.sentiment === "negative"),
     );
 
-    highImpactNews.forEach(news => {
+    highImpactNews.forEach((news) => {
       alerts.push({
         id: `news_${news.id}`,
-        type: 'news_sentiment',
-        symbol: 'BTC', // Assume Bitcoin-related
+        type: "news_sentiment",
+        symbol: "BTC", // Assume Bitcoin-related
         message: `High-impact ${news.sentiment} news: ${news.title}`,
-        severity: 'medium',
+        severity: "medium",
         timestamp: now,
-        data: { newsUrl: news.url, sentiment: news.sentiment }
+        data: { newsUrl: news.url, sentiment: news.sentiment },
       });
     });
 
@@ -968,116 +1091,154 @@ export class RealTimeDataService extends BaseDataService {
   // Utility methods
   private getSymbolFromId(id: string): string {
     const mapping: { [key: string]: string } = {
-      'bitcoin': 'BTC',
-      'ethereum': 'ETH',
-      'solana': 'SOL',
-      'polygon': 'MATIC',
-      'cardano': 'ADA'
+      bitcoin: "BTC",
+      ethereum: "ETH",
+      solana: "SOL",
+      polygon: "MATIC",
+      cardano: "ADA",
     };
     return mapping[id] || id.toUpperCase();
   }
 
-  private analyzeSentiment(text: string): 'positive' | 'negative' | 'neutral' {
-    const positiveWords = ['surge', 'pump', 'moon', 'bullish', 'adoption', 'breakthrough', 'rally'];
-    const negativeWords = ['crash', 'dump', 'bearish', 'decline', 'sell-off', 'collapse', 'drop'];
-    
+  private analyzeSentiment(text: string): "positive" | "negative" | "neutral" {
+    const positiveWords = [
+      "surge",
+      "pump",
+      "moon",
+      "bullish",
+      "adoption",
+      "breakthrough",
+      "rally",
+    ];
+    const negativeWords = [
+      "crash",
+      "dump",
+      "bearish",
+      "decline",
+      "sell-off",
+      "collapse",
+      "drop",
+    ];
+
     const lowercaseText = text.toLowerCase();
-    const positiveScore = positiveWords.reduce((score, word) => 
-      score + (lowercaseText.includes(word) ? 1 : 0), 0);
-    const negativeScore = negativeWords.reduce((score, word) => 
-      score + (lowercaseText.includes(word) ? 1 : 0), 0);
-    
-    if (positiveScore > negativeScore) return 'positive';
-    if (negativeScore > positiveScore) return 'negative';
-    return 'neutral';
+    const positiveScore = positiveWords.reduce(
+      (score, word) => score + (lowercaseText.includes(word) ? 1 : 0),
+      0,
+    );
+    const negativeScore = negativeWords.reduce(
+      (score, word) => score + (lowercaseText.includes(word) ? 1 : 0),
+      0,
+    );
+
+    if (positiveScore > negativeScore) return "positive";
+    if (negativeScore > positiveScore) return "negative";
+    return "neutral";
   }
 
   private calculateRelevanceScore(title: string, description: string): number {
-    const relevantTerms = ['bitcoin', 'btc', 'cryptocurrency', 'blockchain', 'strategic reserve', 'etf', 'institutional'];
-    const text = (title + ' ' + description).toLowerCase();
-    
+    const relevantTerms = [
+      "bitcoin",
+      "btc",
+      "cryptocurrency",
+      "blockchain",
+      "strategic reserve",
+      "etf",
+      "institutional",
+    ];
+    const text = (title + " " + description).toLowerCase();
+
     let score = 0;
-    relevantTerms.forEach(term => {
+    relevantTerms.forEach((term) => {
       if (text.includes(term)) {
         score += 0.2;
       }
     });
-    
+
     return Math.min(1, score);
   }
 
   private extractKeywords(text: string): string[] {
-    const keywords = ['bitcoin', 'cryptocurrency', 'blockchain', 'etf', 'institutional', 'adoption', 'regulation', 'defi'];
-    return keywords.filter(keyword => text.toLowerCase().includes(keyword));
+    const keywords = [
+      "bitcoin",
+      "cryptocurrency",
+      "blockchain",
+      "etf",
+      "institutional",
+      "adoption",
+      "regulation",
+      "defi",
+    ];
+    return keywords.filter((keyword) => text.toLowerCase().includes(keyword));
   }
 
   // Fallback data methods
   private getFallbackMarketData(): MarketData[] {
     return [
       {
-        symbol: 'BTC',
+        symbol: "BTC",
         price: 45000,
         change24h: 2000,
         changePercent24h: 4.7,
         volume24h: 25000000000,
         marketCap: 880000000000,
         lastUpdate: new Date(),
-        source: 'Fallback'
+        source: "Fallback",
       },
       {
-        symbol: 'ETH',
+        symbol: "ETH",
         price: 2800,
         change24h: 150,
         changePercent24h: 5.7,
         volume24h: 12000000000,
         marketCap: 340000000000,
         lastUpdate: new Date(),
-        source: 'Fallback'
-      }
+        source: "Fallback",
+      },
     ];
   }
 
   private getFallbackStockData(): MarketData[] {
     return [
       {
-        symbol: 'MSFT',
+        symbol: "MSFT",
         price: 380,
         change24h: 5.2,
         changePercent24h: 1.4,
         volume24h: 25000000,
         marketCap: 2800000000000,
         lastUpdate: new Date(),
-        source: 'Fallback'
-      }
+        source: "Fallback",
+      },
     ];
   }
 
   private getFallbackNewsData(): NewsItem[] {
     return [
       {
-        id: 'fallback_news_1',
-        title: 'Bitcoin Adoption Accelerates Among Institutional Investors',
-        summary: 'Major institutions continue to add Bitcoin to their balance sheets...',
-        url: 'https://example.com/bitcoin-adoption',
-        source: 'Fallback News',
+        id: "fallback_news_1",
+        title: "Bitcoin Adoption Accelerates Among Institutional Investors",
+        summary:
+          "Major institutions continue to add Bitcoin to their balance sheets...",
+        url: "https://example.com/bitcoin-adoption",
+        source: "Fallback News",
         publishedAt: new Date(),
-        sentiment: 'positive',
+        sentiment: "positive",
         relevanceScore: 0.9,
-        keywords: ['bitcoin', 'institutional', 'adoption']
-      }
+        keywords: ["bitcoin", "institutional", "adoption"],
+      },
     ];
   }
 
   private getFallbackSocialSentiment(): SocialSentiment[] {
     return [
       {
-        platform: 'Twitter',
-        symbol: 'BTC',
+        platform: "Twitter",
+        symbol: "BTC",
         sentiment: 0.6,
         mentions: 2500,
         timestamp: new Date(),
-        trendingKeywords: ['bitcoin', 'hodl', 'moon']
-      }
+        trendingKeywords: ["bitcoin", "hodl", "moon"],
+      },
     ];
   }
 
@@ -1117,7 +1278,7 @@ export class RealTimeDataService extends BaseDataService {
 
   public getMarketDataBySymbol(symbol: string): MarketData | undefined {
     const marketData = this.getMarketData();
-    return marketData.find(market => market.symbol === symbol);
+    return marketData.find((market) => market.symbol === symbol);
   }
 
   public getComprehensiveBitcoinData(): ComprehensiveBitcoinData | null {
@@ -1194,18 +1355,19 @@ export class RealTimeDataService extends BaseDataService {
   private async fetchComprehensiveBitcoinData(): Promise<ComprehensiveBitcoinData | null> {
     try {
       // Fetch all data in parallel
-      const [priceData, networkData, sentimentData, mempoolData] = await Promise.all([
-        this.fetchBitcoinPriceData(),
-        this.fetchBitcoinNetworkData(),
-        this.fetchBitcoinSentimentData(),
-        this.fetchBitcoinMempoolData()
-      ]);
+      const [priceData, networkData, sentimentData, mempoolData] =
+        await Promise.all([
+          this.fetchBitcoinPriceData(),
+          this.fetchBitcoinNetworkData(),
+          this.fetchBitcoinSentimentData(),
+          this.fetchBitcoinMempoolData(),
+        ]);
 
       // Combine all data
       const response: ComprehensiveBitcoinData = {
         price: {
           usd: priceData?.usd || null,
-          change24h: priceData?.change24h || null
+          change24h: priceData?.change24h || null,
         },
         network: {
           hashRate: networkData?.hashRate || null,
@@ -1215,58 +1377,68 @@ export class RealTimeDataService extends BaseDataService {
           avgBlockSize: networkData?.avgBlockSize || null,
           totalBTC: networkData?.totalBTC || null,
           marketCap: networkData?.marketCap || null,
-          nextHalving: networkData?.nextHalving || { blocks: null, estimatedDate: null },
+          nextHalving: networkData?.nextHalving || {
+            blocks: null,
+            estimatedDate: null,
+          },
           mempoolSize: mempoolData?.mempoolSize || null,
-          mempoolFees: mempoolData?.mempoolFees || { fastestFee: null, halfHourFee: null, economyFee: null },
+          mempoolFees: mempoolData?.mempoolFees || {
+            fastestFee: null,
+            halfHourFee: null,
+            economyFee: null,
+          },
           mempoolTxs: mempoolData?.mempoolTxs || null,
           miningRevenue: mempoolData?.miningRevenue || null,
           miningRevenue24h: mempoolData?.miningRevenue24h || null,
           lightningCapacity: null,
           lightningChannels: null,
-          liquidity: null
+          liquidity: null,
         },
         sentiment: {
           fearGreedIndex: sentimentData?.fearGreedIndex || null,
-          fearGreedValue: sentimentData?.fearGreedValue || null
+          fearGreedValue: sentimentData?.fearGreedValue || null,
         },
         nodes: {
           total: null,
-          countries: null
+          countries: null,
         },
-        lastUpdated: new Date()
+        lastUpdated: new Date(),
       };
 
       return response;
     } catch (error) {
-      console.error('Error fetching comprehensive Bitcoin data:', error);
+      console.error("Error fetching comprehensive Bitcoin data:", error);
       return null;
     }
   }
 
-  private async fetchBitcoinPriceData(): Promise<{ usd: number; change24h: number } | null> {
+  private async fetchBitcoinPriceData(): Promise<{
+    usd: number;
+    change24h: number;
+  } | null> {
     try {
       const data = await this.makeQueuedRequest(async () => {
         const response = await fetch(
           `${this.COINGECKO_API}/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true`,
           {
-            headers: { 'Accept': 'application/json' },
-            signal: AbortSignal.timeout(15000)
-          }
+            headers: { Accept: "application/json" },
+            signal: AbortSignal.timeout(15000),
+          },
         );
-        
+
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-        
+
         return await response.json();
       });
-      
+
       return {
         usd: Number(data.bitcoin?.usd) || null,
-        change24h: Number(data.bitcoin?.usd_24h_change) || null
+        change24h: Number(data.bitcoin?.usd_24h_change) || null,
       };
     } catch (error) {
-      console.error('Error fetching Bitcoin price data:', error);
+      console.error("Error fetching Bitcoin price data:", error);
       return null;
     }
   }
@@ -1274,31 +1446,48 @@ export class RealTimeDataService extends BaseDataService {
   private async fetchBitcoinNetworkData(): Promise<Partial<BitcoinNetworkData> | null> {
     try {
       // Fetch from multiple sources in parallel for better accuracy
-      const [blockchainData, mempoolStats, blockstreamData] = await Promise.all([
-        this.fetchBlockchainInfoData(),
-        this.fetchMempoolNetworkData(),
-        this.fetchBlockstreamNetworkData()
-      ]);
+      const [blockchainData, mempoolStats, blockstreamData] = await Promise.all(
+        [
+          this.fetchBlockchainInfoData(),
+          this.fetchMempoolNetworkData(),
+          this.fetchBlockstreamNetworkData(),
+        ],
+      );
 
       // Use the most recent and accurate data sources
       // Priority: Mempool.space (most reliable) > Blockstream > Blockchain.info
-      const hashRate = mempoolStats?.hashRate || blockstreamData?.hashRate || blockchainData?.hashRate;
-      const difficulty = mempoolStats?.difficulty || blockstreamData?.difficulty || blockchainData?.difficulty;
-      const blockHeight = mempoolStats?.blockHeight || blockstreamData?.blockHeight || blockchainData?.blockHeight;
-      
-      console.log(`[RealTimeDataService] 🔍 Hashrate sources - Mempool: ${mempoolStats?.hashRate ? (mempoolStats.hashRate / 1e18).toFixed(2) + ' EH/s' : 'N/A'}, Blockstream: ${blockstreamData?.hashRate ? (blockstreamData.hashRate / 1e18).toFixed(2) + ' EH/s' : 'N/A'}, Blockchain: ${blockchainData?.hashRate ? (blockchainData.hashRate / 1e18).toFixed(2) + ' EH/s' : 'N/A'}`);
-      console.log(`[RealTimeDataService] 🎯 Selected hashrate: ${hashRate ? (hashRate / 1e18).toFixed(2) + ' EH/s' : 'N/A'}`);
+      const hashRate =
+        mempoolStats?.hashRate ||
+        blockstreamData?.hashRate ||
+        blockchainData?.hashRate;
+      const difficulty =
+        mempoolStats?.difficulty ||
+        blockstreamData?.difficulty ||
+        blockchainData?.difficulty;
+      const blockHeight =
+        mempoolStats?.blockHeight ||
+        blockstreamData?.blockHeight ||
+        blockchainData?.blockHeight;
+
+      console.log(
+        `[RealTimeDataService] 🔍 Hashrate sources - Mempool: ${mempoolStats?.hashRate ? (mempoolStats.hashRate / 1e18).toFixed(2) + " EH/s" : "N/A"}, Blockstream: ${blockstreamData?.hashRate ? (blockstreamData.hashRate / 1e18).toFixed(2) + " EH/s" : "N/A"}, Blockchain: ${blockchainData?.hashRate ? (blockchainData.hashRate / 1e18).toFixed(2) + " EH/s" : "N/A"}`,
+      );
+      console.log(
+        `[RealTimeDataService] 🎯 Selected hashrate: ${hashRate ? (hashRate / 1e18).toFixed(2) + " EH/s" : "N/A"}`,
+      );
 
       // Calculate next halving using most reliable block height
       const currentBlock = blockHeight || 0;
       const currentHalvingEpoch = Math.floor(currentBlock / 210000);
       const nextHalvingBlock = (currentHalvingEpoch + 1) * 210000;
       const blocksUntilHalving = nextHalvingBlock - currentBlock;
-      
+
       // Estimate halving date based on average block time (10 minutes target)
       const avgBlockTime = blockchainData?.avgBlockTime || 10;
       const minutesUntilHalving = blocksUntilHalving * avgBlockTime;
-      const halvingDate = new Date(Date.now() + minutesUntilHalving * 60 * 1000);
+      const halvingDate = new Date(
+        Date.now() + minutesUntilHalving * 60 * 1000,
+      );
 
       return {
         hashRate: hashRate,
@@ -1310,11 +1499,11 @@ export class RealTimeDataService extends BaseDataService {
         marketCap: blockchainData?.marketCap || null,
         nextHalving: {
           blocks: blocksUntilHalving,
-          estimatedDate: halvingDate.toISOString()
-        }
+          estimatedDate: halvingDate.toISOString(),
+        },
       };
     } catch (error) {
-      console.error('Error fetching Bitcoin network data:', error);
+      console.error("Error fetching Bitcoin network data:", error);
       return null;
     }
   }
@@ -1325,10 +1514,10 @@ export class RealTimeDataService extends BaseDataService {
   private async fetchBlockchainInfoData(): Promise<Partial<BitcoinNetworkData> | null> {
     try {
       const response = await fetch(`${this.BLOCKCHAIN_API}/stats`);
-      
+
       if (response.ok) {
         const data = await response.json();
-        
+
         return {
           hashRate: Number(data.hash_rate) * 1e9, // Convert from GH/s to H/s
           difficulty: Number(data.difficulty),
@@ -1336,12 +1525,13 @@ export class RealTimeDataService extends BaseDataService {
           avgBlockTime: Number(data.minutes_between_blocks),
           avgBlockSize: Number(data.blocks_size),
           totalBTC: Number(data.totalbc) / 1e8,
-          marketCap: Number(data.market_price_usd) * (Number(data.totalbc) / 1e8)
+          marketCap:
+            Number(data.market_price_usd) * (Number(data.totalbc) / 1e8),
         };
       }
       return null;
     } catch (error) {
-      console.error('Error fetching Blockchain.info data:', error);
+      console.error("Error fetching Blockchain.info data:", error);
       return null;
     }
   }
@@ -1351,11 +1541,12 @@ export class RealTimeDataService extends BaseDataService {
    */
   private async fetchMempoolNetworkData(): Promise<Partial<BitcoinNetworkData> | null> {
     try {
-      const [hashRateResponse, difficultyResponse, blockHeightResponse] = await Promise.all([
-        fetch(`${this.MEMPOOL_API}/v1/mining/hashrate/1m`),
-        fetch(`${this.MEMPOOL_API}/v1/difficulty-adjustment`),
-        fetch(`${this.MEMPOOL_API}/blocks/tip/height`)
-      ]);
+      const [hashRateResponse, difficultyResponse, blockHeightResponse] =
+        await Promise.all([
+          fetch(`${this.MEMPOOL_API}/v1/mining/hashrate/1m`),
+          fetch(`${this.MEMPOOL_API}/v1/difficulty-adjustment`),
+          fetch(`${this.MEMPOOL_API}/blocks/tip/height`),
+        ]);
 
       const results: Partial<BitcoinNetworkData> = {};
 
@@ -1364,9 +1555,13 @@ export class RealTimeDataService extends BaseDataService {
         const hashRateData = await hashRateResponse.json();
         if (hashRateData.currentHashrate) {
           results.hashRate = Number(hashRateData.currentHashrate);
-        } else if (hashRateData.hashrates && hashRateData.hashrates.length > 0) {
+        } else if (
+          hashRateData.hashrates &&
+          hashRateData.hashrates.length > 0
+        ) {
           // Get the most recent hashrate from the array
-          const latestHashrate = hashRateData.hashrates[hashRateData.hashrates.length - 1];
+          const latestHashrate =
+            hashRateData.hashrates[hashRateData.hashrates.length - 1];
           if (latestHashrate && latestHashrate.hashrateAvg) {
             results.hashRate = Number(latestHashrate.hashrateAvg);
           }
@@ -1386,14 +1581,14 @@ export class RealTimeDataService extends BaseDataService {
       // Get current block height
       if (blockHeightResponse.ok) {
         const blockHeight = await blockHeightResponse.json();
-        if (typeof blockHeight === 'number') {
+        if (typeof blockHeight === "number") {
           results.blockHeight = blockHeight;
         }
       }
 
       return Object.keys(results).length > 0 ? results : null;
     } catch (error) {
-      console.error('Error fetching Mempool.space network data:', error);
+      console.error("Error fetching Mempool.space network data:", error);
       return null;
     }
   }
@@ -1403,20 +1598,22 @@ export class RealTimeDataService extends BaseDataService {
    */
   private async fetchBlockstreamNetworkData(): Promise<Partial<BitcoinNetworkData> | null> {
     try {
-      const response = await fetch('https://blockstream.info/api/stats');
-      
+      const response = await fetch("https://blockstream.info/api/stats");
+
       if (response.ok) {
         const data = await response.json();
-        
+
         return {
           hashRate: data.hashrate_24h ? Number(data.hashrate_24h) : null,
           difficulty: data.difficulty ? Number(data.difficulty) : null,
-          blockHeight: data.chain_stats?.funded_txo_count ? Number(data.chain_stats.funded_txo_count) : null
+          blockHeight: data.chain_stats?.funded_txo_count
+            ? Number(data.chain_stats.funded_txo_count)
+            : null,
         };
       }
       return null;
     } catch (error) {
-      console.error('Error fetching Blockstream data:', error);
+      console.error("Error fetching Blockstream data:", error);
       return null;
     }
   }
@@ -1424,17 +1621,17 @@ export class RealTimeDataService extends BaseDataService {
   private async fetchBitcoinSentimentData(): Promise<BitcoinSentimentData | null> {
     try {
       const response = await fetch(`${this.ALTERNATIVE_API}/fng/`);
-      
+
       if (response.ok) {
         const data = await response.json();
         return {
           fearGreedIndex: Number(data.data[0].value),
-          fearGreedValue: data.data[0].value_classification
+          fearGreedValue: data.data[0].value_classification,
         };
       }
       return null;
     } catch (error) {
-      console.error('Error fetching Bitcoin sentiment data:', error);
+      console.error("Error fetching Bitcoin sentiment data:", error);
       return null;
     }
   }
@@ -1444,31 +1641,31 @@ export class RealTimeDataService extends BaseDataService {
       // Fetch mempool data in parallel
       const [mempoolResponse, feesResponse] = await Promise.all([
         fetch(`${this.MEMPOOL_API}/mempool`),
-        fetch(`${this.MEMPOOL_API}/v1/fees/recommended`)
+        fetch(`${this.MEMPOOL_API}/v1/fees/recommended`),
       ]);
 
       if (!mempoolResponse.ok || !feesResponse.ok) {
-        throw new Error('Failed to fetch mempool data');
+        throw new Error("Failed to fetch mempool data");
       }
 
       const [mempoolData, feesData] = await Promise.all([
         mempoolResponse.json(),
-        feesResponse.json()
+        feesResponse.json(),
       ]);
 
       return {
-        mempoolSize: mempoolData.vsize || null,  // Virtual size in bytes
-        mempoolTxs: mempoolData.count || null,   // Number of transactions
+        mempoolSize: mempoolData.vsize || null, // Virtual size in bytes
+        mempoolTxs: mempoolData.count || null, // Number of transactions
         mempoolFees: {
           fastestFee: feesData.fastestFee || null,
           halfHourFee: feesData.halfHourFee || null,
-          economyFee: feesData.economyFee || null
+          economyFee: feesData.economyFee || null,
         },
-        miningRevenue: mempoolData.total_fee || null,  // Total fees in satoshis
-        miningRevenue24h: null  // We'll need another endpoint for this
+        miningRevenue: mempoolData.total_fee || null, // Total fees in satoshis
+        miningRevenue24h: null, // We'll need another endpoint for this
       };
     } catch (error) {
-      console.error('Error fetching Bitcoin mempool data:', error);
+      console.error("Error fetching Bitcoin mempool data:", error);
       return null;
     }
   }
@@ -1476,7 +1673,10 @@ export class RealTimeDataService extends BaseDataService {
   // Curated altcoins data management
   private isCuratedCacheValid(): boolean {
     if (!this.curatedAltcoinsCache) return false;
-    return Date.now() - this.curatedAltcoinsCache.timestamp < this.CURATED_CACHE_DURATION;
+    return (
+      Date.now() - this.curatedAltcoinsCache.timestamp <
+      this.CURATED_CACHE_DURATION
+    );
   }
 
   private async updateCuratedAltcoinsData(): Promise<void> {
@@ -1486,7 +1686,7 @@ export class RealTimeDataService extends BaseDataService {
       if (data) {
         this.curatedAltcoinsCache = {
           data,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         };
       }
     }
@@ -1494,29 +1694,31 @@ export class RealTimeDataService extends BaseDataService {
 
   private async fetchCuratedAltcoinsData(): Promise<CuratedAltcoinsData | null> {
     try {
-      const idsParam = this.curatedCoinIds.join(',');
+      const idsParam = this.curatedCoinIds.join(",");
       const data = await this.makeQueuedRequest(async () => {
         const response = await fetch(
           `${this.COINGECKO_API}/simple/price?ids=${idsParam}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true&include_24hr_vol=true`,
           {
             headers: {
-              'Accept': 'application/json',
+              Accept: "application/json",
             },
-            signal: AbortSignal.timeout(15000)
-          }
+            signal: AbortSignal.timeout(15000),
+          },
         );
-        
+
         if (!response.ok) {
           if (response.status === 401 || response.status === 429) {
-            console.warn(`[RealTimeDataService] CoinGecko API rate limited or unauthorized (${response.status}), using fallback data`);
+            console.warn(
+              `[RealTimeDataService] CoinGecko API rate limited or unauthorized (${response.status}), using fallback data`,
+            );
             return this.getFallbackCuratedAltcoinsData();
           }
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-        
+
         return await response.json();
       });
-      
+
       // Ensure all requested IDs are present in the response (with zeroed data if missing)
       const result: CuratedAltcoinsData = {};
       this.curatedCoinIds.forEach((id) => {
@@ -1530,11 +1732,15 @@ export class RealTimeDataService extends BaseDataService {
           : { price: 0, change24h: 0, marketCap: 0, volume24h: 0 };
       });
 
-      console.log(`[RealTimeDataService] Fetched curated altcoins data for ${this.curatedCoinIds.length} coins`);
+      console.log(
+        `[RealTimeDataService] Fetched curated altcoins data for ${this.curatedCoinIds.length} coins`,
+      );
       return result;
     } catch (error) {
-      console.error('Error fetching curated altcoins data:', error);
-      console.info('[RealTimeDataService] Using fallback curated altcoins data');
+      console.error("Error fetching curated altcoins data:", error);
+      console.info(
+        "[RealTimeDataService] Using fallback curated altcoins data",
+      );
       return this.getFallbackCuratedAltcoinsData();
     }
   }
@@ -1542,7 +1748,9 @@ export class RealTimeDataService extends BaseDataService {
   // Top 100 vs BTC data management
   private isTop100CacheValid(): boolean {
     if (!this.top100VsBtcCache) return false;
-    return Date.now() - this.top100VsBtcCache.timestamp < this.TOP100_CACHE_DURATION;
+    return (
+      Date.now() - this.top100VsBtcCache.timestamp < this.TOP100_CACHE_DURATION
+    );
   }
 
   private async updateTop100VsBtcData(): Promise<void> {
@@ -1552,7 +1760,7 @@ export class RealTimeDataService extends BaseDataService {
       if (data) {
         this.top100VsBtcCache = {
           data,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         };
       }
     }
@@ -1560,85 +1768,127 @@ export class RealTimeDataService extends BaseDataService {
 
   private async fetchTop100VsBtcData(): Promise<Top100VsBtcData | null> {
     try {
-      console.log('[RealTimeDataService] Starting fetchTop100VsBtcData...');
-      
+      console.log("[RealTimeDataService] Starting fetchTop100VsBtcData...");
+
       // Step 1: Fetch top 200 coins in USD (like website) with 7d performance data
       const usdMarketData = await this.makeQueuedRequest(async () => {
         const response = await fetch(
           `${this.COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=200&page=1&price_change_percentage=24h,7d,30d`,
           {
-            headers: { 'Accept': 'application/json' },
-            signal: AbortSignal.timeout(15000)
-          }
+            headers: { Accept: "application/json" },
+            signal: AbortSignal.timeout(15000),
+          },
         );
-        
+
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-        
+
         return await response.json();
       });
 
-      console.log(`[RealTimeDataService] Fetched ${usdMarketData?.length || 0} coins from CoinGecko`);
+      console.log(
+        `[RealTimeDataService] Fetched ${usdMarketData?.length || 0} coins from CoinGecko`,
+      );
 
       // Validate the response
       if (!Array.isArray(usdMarketData)) {
-        console.error('[RealTimeDataService] Invalid usdMarketData response:', typeof usdMarketData);
+        console.error(
+          "[RealTimeDataService] Invalid usdMarketData response:",
+          typeof usdMarketData,
+        );
         return null;
       }
 
       // Step 2: Find Bitcoin's performance
-      const btc = usdMarketData.find(coin => coin.id === 'bitcoin');
+      const btc = usdMarketData.find((coin) => coin.id === "bitcoin");
       if (!btc) {
-        console.error('[RealTimeDataService] Bitcoin data not found in response');
+        console.error(
+          "[RealTimeDataService] Bitcoin data not found in response",
+        );
         return null;
       }
 
       const btcPerformance7d = btc.price_change_percentage_7d_in_currency || 0;
       const btcPerformance24h = btc.price_change_percentage_24h || 0;
-      const btcPerformance30d = btc.price_change_percentage_30d_in_currency || 0;
+      const btcPerformance30d =
+        btc.price_change_percentage_30d_in_currency || 0;
 
-      console.log(`[RealTimeDataService] Bitcoin 7d performance: ${btcPerformance7d.toFixed(2)}%`);
+      console.log(
+        `[RealTimeDataService] Bitcoin 7d performance: ${btcPerformance7d.toFixed(2)}%`,
+      );
 
       // Step 3: Filter out Bitcoin and stablecoins, calculate relative performance
-      const stablecoinSymbols = ['usdt', 'usdc', 'usds', 'tusd', 'busd', 'dai', 'frax', 'usdp', 'gusd', 'lusd', 'fei', 'tribe'];
-      
+      const stablecoinSymbols = [
+        "usdt",
+        "usdc",
+        "usds",
+        "tusd",
+        "busd",
+        "dai",
+        "frax",
+        "usdp",
+        "gusd",
+        "lusd",
+        "fei",
+        "tribe",
+      ];
+
       const altcoins = usdMarketData
-        .filter(coin => 
-          coin.id !== 'bitcoin' && 
-          typeof coin.price_change_percentage_7d_in_currency === 'number' &&
-          coin.market_cap_rank <= 200 &&
-          !stablecoinSymbols.includes(coin.symbol.toLowerCase()) // Exclude stablecoins
+        .filter(
+          (coin) =>
+            coin.id !== "bitcoin" &&
+            typeof coin.price_change_percentage_7d_in_currency === "number" &&
+            coin.market_cap_rank <= 200 &&
+            !stablecoinSymbols.includes(coin.symbol.toLowerCase()), // Exclude stablecoins
         )
-        .map(coin => ({
+        .map((coin) => ({
           id: coin.id,
           symbol: coin.symbol,
           name: coin.name,
-          image: coin.image || '',
+          image: coin.image || "",
           current_price: coin.current_price || 0,
           market_cap_rank: coin.market_cap_rank || 0,
           price_change_percentage_24h: coin.price_change_percentage_24h || 0,
-          price_change_percentage_7d_in_currency: coin.price_change_percentage_7d_in_currency || 0,
-          price_change_percentage_30d_in_currency: coin.price_change_percentage_30d_in_currency || 0,
+          price_change_percentage_7d_in_currency:
+            coin.price_change_percentage_7d_in_currency || 0,
+          price_change_percentage_30d_in_currency:
+            coin.price_change_percentage_30d_in_currency || 0,
           // Calculate relative performance vs Bitcoin (website's approach)
-          btc_relative_performance_7d: (coin.price_change_percentage_7d_in_currency || 0) - btcPerformance7d,
-          btc_relative_performance_24h: (coin.price_change_percentage_24h || 0) - btcPerformance24h,
-          btc_relative_performance_30d: (coin.price_change_percentage_30d_in_currency || 0) - btcPerformance30d
+          btc_relative_performance_7d:
+            (coin.price_change_percentage_7d_in_currency || 0) -
+            btcPerformance7d,
+          btc_relative_performance_24h:
+            (coin.price_change_percentage_24h || 0) - btcPerformance24h,
+          btc_relative_performance_30d:
+            (coin.price_change_percentage_30d_in_currency || 0) -
+            btcPerformance30d,
         }))
-        .sort((a, b) => b.btc_relative_performance_7d - a.btc_relative_performance_7d); // Sort by best 7d relative performance
+        .sort(
+          (a, b) =>
+            b.btc_relative_performance_7d - a.btc_relative_performance_7d,
+        ); // Sort by best 7d relative performance
 
       // Step 4: Separate outperformers and underperformers based on 7d performance
-      const outperformingVsBtc = altcoins.filter(coin => coin.btc_relative_performance_7d > 0);
-      const underperformingVsBtc = altcoins.filter(coin => coin.btc_relative_performance_7d <= 0);
+      const outperformingVsBtc = altcoins.filter(
+        (coin) => coin.btc_relative_performance_7d > 0,
+      );
+      const underperformingVsBtc = altcoins.filter(
+        (coin) => coin.btc_relative_performance_7d <= 0,
+      );
 
       // Step 5: Calculate analytics
       const totalCoins = altcoins.length;
       const outperformingCount = outperformingVsBtc.length;
       const underperformingCount = underperformingVsBtc.length;
-      
-      const averageRelativePerformance = altcoins.length > 0 
-        ? altcoins.reduce((sum, coin) => sum + coin.btc_relative_performance_7d, 0) / altcoins.length
-        : 0;
+
+      const averageRelativePerformance =
+        altcoins.length > 0
+          ? altcoins.reduce(
+              (sum, coin) => sum + coin.btc_relative_performance_7d,
+              0,
+            ) / altcoins.length
+          : 0;
 
       const result: Top100VsBtcData = {
         outperforming: outperformingVsBtc.slice(0, 20), // Top 20 outperformers
@@ -1649,18 +1899,19 @@ export class RealTimeDataService extends BaseDataService {
         averagePerformance: averageRelativePerformance,
         topPerformers: outperformingVsBtc.slice(0, 8), // Top 8 performers (like website)
         worstPerformers: underperformingVsBtc.slice(-5), // Worst 5 performers
-        lastUpdated: new Date()
+        lastUpdated: new Date(),
       };
 
-      console.log(`[RealTimeDataService] ✅ Fetched top 200 vs BTC data: ${outperformingCount}/${totalCoins} outperforming Bitcoin (7d), avg relative: ${averageRelativePerformance.toFixed(2)}%`);
+      console.log(
+        `[RealTimeDataService] ✅ Fetched top 200 vs BTC data: ${outperformingCount}/${totalCoins} outperforming Bitcoin (7d), avg relative: ${averageRelativePerformance.toFixed(2)}%`,
+      );
       return result;
-      
     } catch (error) {
-      console.error('[RealTimeDataService] ❌ Error in fetchTop100VsBtcData:', {
-        error: error instanceof Error ? error.message : 'Unknown error',
+      console.error("[RealTimeDataService] ❌ Error in fetchTop100VsBtcData:", {
+        error: error instanceof Error ? error.message : "Unknown error",
         stack: error instanceof Error ? error.stack : undefined,
         type: typeof error,
-        details: error
+        details: error,
       });
       return null;
     }
@@ -1669,7 +1920,10 @@ export class RealTimeDataService extends BaseDataService {
   // DEXScreener data management
   private isDexScreenerCacheValid(): boolean {
     if (!this.dexScreenerCache) return false;
-    return Date.now() - this.dexScreenerCache.timestamp < this.DEXSCREENER_CACHE_DURATION;
+    return (
+      Date.now() - this.dexScreenerCache.timestamp <
+      this.DEXSCREENER_CACHE_DURATION
+    );
   }
 
   private async updateDexScreenerData(): Promise<void> {
@@ -1679,7 +1933,7 @@ export class RealTimeDataService extends BaseDataService {
       if (data) {
         this.dexScreenerCache = {
           data,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         };
       }
     }
@@ -1687,98 +1941,117 @@ export class RealTimeDataService extends BaseDataService {
 
   private async fetchDexScreenerData(): Promise<DexScreenerData | null> {
     try {
-      console.log('[RealTimeDataService] Fetching DEXScreener data...');
-      
+      console.log("[RealTimeDataService] Fetching DEXScreener data...");
+
       // Step 1: Fetch trending/boosted tokens
-      const topTokensResponse = await fetch(`${this.DEXSCREENER_API}/token-boosts/top/v1`);
-      
+      const topTokensResponse = await fetch(
+        `${this.DEXSCREENER_API}/token-boosts/top/v1`,
+      );
+
       if (!topTokensResponse.ok) {
         throw new Error(`DEXScreener API error: ${topTokensResponse.status}`);
       }
-      
+
       const topTokens: BoostedToken[] = await topTokensResponse.json();
-      
+
       // Step 2: For each token, fetch pool data and aggregate metrics
       const enriched = await Promise.all(
-        topTokens.slice(0, 50).map(async (token): Promise<TrendingToken | null> => {
-          try {
-            const poolResponse = await fetch(
-              `${this.DEXSCREENER_API}/token-pairs/v1/${token.chainId}/${token.tokenAddress}`
-            );
-            
-            if (!poolResponse.ok) return null;
-            const pools: DexScreenerPool[] = await poolResponse.json();
-            
-            if (!pools.length) return null; // skip tokens with no pools
-            
-            const totalLiquidity = pools.reduce(
-              (sum, pool) => sum + (Number(pool.liquidity?.usd) || 0),
-              0
-            );
-            const totalVolume = pools.reduce(
-              (sum, pool) => sum + (Number(pool.volume?.h24) || 0),
-              0
-            );
-            const largestPool = pools.reduce(
-              (max, pool) =>
-                (Number(pool.liquidity?.usd) || 0) > (Number(max.liquidity?.usd) || 0)
-                  ? pool
-                  : max,
-              pools[0] || {}
-            );
-            
-            const priceUsd = largestPool.priceUsd ? Number(largestPool.priceUsd) : null;
-            const marketCap = largestPool.marketCap ? Number(largestPool.marketCap) : null;
-            const liquidityRatio = marketCap && marketCap > 0 ? totalLiquidity / marketCap : null;
-            const icon = token.icon || (largestPool.info && largestPool.info.imageUrl) || '';
-            
-            // Only return tokens with at least one valid metric
-            if (!priceUsd && !marketCap && !totalLiquidity && !totalVolume) return null;
-            
-            return {
-              address: token.tokenAddress,
-              chainId: token.chainId,
-              image: icon,
-              name: token.label || token.symbol || '',
-              symbol: token.symbol || '',
-              priceUsd,
-              marketCap,
-              totalLiquidity,
-              totalVolume,
-              poolsCount: pools.length,
-              liquidityRatio,
-            };
-          } catch (error) {
-            console.warn(`Failed to fetch pool data for token ${token.tokenAddress}:`, error);
-            return null;
-          }
-        })
+        topTokens
+          .slice(0, 50)
+          .map(async (token): Promise<TrendingToken | null> => {
+            try {
+              const poolResponse = await fetch(
+                `${this.DEXSCREENER_API}/token-pairs/v1/${token.chainId}/${token.tokenAddress}`,
+              );
+
+              if (!poolResponse.ok) return null;
+              const pools: DexScreenerPool[] = await poolResponse.json();
+
+              if (!pools.length) return null; // skip tokens with no pools
+
+              const totalLiquidity = pools.reduce(
+                (sum, pool) => sum + (Number(pool.liquidity?.usd) || 0),
+                0,
+              );
+              const totalVolume = pools.reduce(
+                (sum, pool) => sum + (Number(pool.volume?.h24) || 0),
+                0,
+              );
+              const largestPool = pools.reduce(
+                (max, pool) =>
+                  (Number(pool.liquidity?.usd) || 0) >
+                  (Number(max.liquidity?.usd) || 0)
+                    ? pool
+                    : max,
+                pools[0] || {},
+              );
+
+              const priceUsd = largestPool.priceUsd
+                ? Number(largestPool.priceUsd)
+                : null;
+              const marketCap = largestPool.marketCap
+                ? Number(largestPool.marketCap)
+                : null;
+              const liquidityRatio =
+                marketCap && marketCap > 0 ? totalLiquidity / marketCap : null;
+              const icon =
+                token.icon ||
+                (largestPool.info && largestPool.info.imageUrl) ||
+                "";
+
+              // Only return tokens with at least one valid metric
+              if (!priceUsd && !marketCap && !totalLiquidity && !totalVolume)
+                return null;
+
+              return {
+                address: token.tokenAddress,
+                chainId: token.chainId,
+                image: icon,
+                name: token.label || token.symbol || "",
+                symbol: token.symbol || "",
+                priceUsd,
+                marketCap,
+                totalLiquidity,
+                totalVolume,
+                poolsCount: pools.length,
+                liquidityRatio,
+              };
+            } catch (error) {
+              console.warn(
+                `Failed to fetch pool data for token ${token.tokenAddress}:`,
+                error,
+              );
+              return null;
+            }
+          }),
       );
-      
+
       // Step 3: Filter and rank tokens (matching website logic)
       const trendingTokens = enriched
         .filter((t): t is NonNullable<typeof t> => t !== null)
-        .filter((t) => t.chainId === 'solana') // Focus on Solana tokens
+        .filter((t) => t.chainId === "solana") // Focus on Solana tokens
         .filter(
           (t) =>
             t.totalLiquidity > 100_000 && // min $100k liquidity
             t.totalVolume > 20_000 && // min $20k 24h volume
-            t.poolsCount && t.poolsCount > 0 // at least 1 pool
+            t.poolsCount &&
+            t.poolsCount > 0, // at least 1 pool
         )
         .sort((a, b) => (b.liquidityRatio ?? 0) - (a.liquidityRatio ?? 0)) // Sort by liquidity ratio
         .slice(0, 9); // Limit to top 9
-      
+
       const result: DexScreenerData = {
         topTokens,
         trendingTokens,
-        lastUpdated: new Date()
+        lastUpdated: new Date(),
       };
-      
-      console.log(`[RealTimeDataService] Fetched DEXScreener data: ${topTokens.length} top tokens, ${trendingTokens.length} trending`);
+
+      console.log(
+        `[RealTimeDataService] Fetched DEXScreener data: ${topTokens.length} top tokens, ${trendingTokens.length} trending`,
+      );
       return result;
-      
     } catch (error) {
-      console.error('Error in fetchDexScreenerData:', error);
+      console.error("Error in fetchDexScreenerData:", error);
       return null;
     }
   }
@@ -1786,7 +2059,10 @@ export class RealTimeDataService extends BaseDataService {
   // Top Movers (Gainers/Losers) data management
   private isTopMoversCacheValid(): boolean {
     if (!this.topMoversCache) return false;
-    return Date.now() - this.topMoversCache.timestamp < this.TOP_MOVERS_CACHE_DURATION;
+    return (
+      Date.now() - this.topMoversCache.timestamp <
+      this.TOP_MOVERS_CACHE_DURATION
+    );
   }
 
   private async updateTopMoversData(): Promise<void> {
@@ -1796,7 +2072,7 @@ export class RealTimeDataService extends BaseDataService {
       if (data) {
         this.topMoversCache = {
           data,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         };
       }
     }
@@ -1804,28 +2080,33 @@ export class RealTimeDataService extends BaseDataService {
 
   private async fetchTopMoversData(): Promise<TopMoversData | null> {
     try {
-      console.log('[RealTimeDataService] Fetching top movers data...');
-      
+      console.log("[RealTimeDataService] Fetching top movers data...");
+
       const response = await fetch(
         `${this.COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&price_change_percentage=24h`,
         {
-          headers: { 'Accept': 'application/json' },
-          signal: AbortSignal.timeout(15000)
-        }
+          headers: { Accept: "application/json" },
+          signal: AbortSignal.timeout(15000),
+        },
       );
-      
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-      
+
       const data: TopMoverCoin[] = await response.json();
-      
+
       // Filter out coins without valid 24h price change percentage
-      const validCoins = data.filter((coin) => typeof coin.price_change_percentage_24h === 'number');
-      
+      const validCoins = data.filter(
+        (coin) => typeof coin.price_change_percentage_24h === "number",
+      );
+
       // Sort by 24h price change percentage descending for gainers
       const topGainers = [...validCoins]
-        .sort((a, b) => b.price_change_percentage_24h - a.price_change_percentage_24h)
+        .sort(
+          (a, b) =>
+            b.price_change_percentage_24h - a.price_change_percentage_24h,
+        )
         .slice(0, 4)
         .map((coin) => ({
           id: coin.id,
@@ -1835,10 +2116,13 @@ export class RealTimeDataService extends BaseDataService {
           market_cap_rank: coin.market_cap_rank,
           price_change_percentage_24h: coin.price_change_percentage_24h,
         }));
-      
+
       // Sort by 24h price change percentage ascending for losers
       const topLosers = [...validCoins]
-        .sort((a, b) => a.price_change_percentage_24h - b.price_change_percentage_24h)
+        .sort(
+          (a, b) =>
+            a.price_change_percentage_24h - b.price_change_percentage_24h,
+        )
         .slice(0, 4)
         .map((coin) => ({
           id: coin.id,
@@ -1848,18 +2132,19 @@ export class RealTimeDataService extends BaseDataService {
           market_cap_rank: coin.market_cap_rank,
           price_change_percentage_24h: coin.price_change_percentage_24h,
         }));
-      
+
       const result: TopMoversData = {
         topGainers,
         topLosers,
-        lastUpdated: new Date()
+        lastUpdated: new Date(),
       };
-      
-      console.log(`[RealTimeDataService] Fetched top movers: ${topGainers.length} gainers, ${topLosers.length} losers`);
+
+      console.log(
+        `[RealTimeDataService] Fetched top movers: ${topGainers.length} gainers, ${topLosers.length} losers`,
+      );
       return result;
-      
     } catch (error) {
-      console.error('Error in fetchTopMoversData:', error);
+      console.error("Error in fetchTopMoversData:", error);
       return null;
     }
   }
@@ -1867,7 +2152,10 @@ export class RealTimeDataService extends BaseDataService {
   // Trending Coins data management
   private isTrendingCoinsCacheValid(): boolean {
     if (!this.trendingCoinsCache) return false;
-    return Date.now() - this.trendingCoinsCache.timestamp < this.TRENDING_COINS_CACHE_DURATION;
+    return (
+      Date.now() - this.trendingCoinsCache.timestamp <
+      this.TRENDING_COINS_CACHE_DURATION
+    );
   }
 
   private async updateTrendingCoinsData(): Promise<void> {
@@ -1877,7 +2165,7 @@ export class RealTimeDataService extends BaseDataService {
       if (data) {
         this.trendingCoinsCache = {
           data,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         };
       }
     }
@@ -1885,19 +2173,22 @@ export class RealTimeDataService extends BaseDataService {
 
   private async fetchTrendingCoinsData(): Promise<TrendingCoinsData | null> {
     try {
-      console.log('[RealTimeDataService] Fetching trending coins data...');
-      
-      const response = await fetch('https://api.coingecko.com/api/v3/search/trending', {
-        headers: { 'Accept': 'application/json' },
-        signal: AbortSignal.timeout(15000)
-      });
-      
+      console.log("[RealTimeDataService] Fetching trending coins data...");
+
+      const response = await fetch(
+        "https://api.coingecko.com/api/v3/search/trending",
+        {
+          headers: { Accept: "application/json" },
+          signal: AbortSignal.timeout(15000),
+        },
+      );
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-      
+
       const data = await response.json();
-      
+
       // Map and validate trending coins (matches website exactly)
       const trending: TrendingCoin[] = Array.isArray(data.coins)
         ? data.coins.map((c: CoinGeckoTrendingItem) => ({
@@ -1909,17 +2200,18 @@ export class RealTimeDataService extends BaseDataService {
             score: c.item.score,
           }))
         : [];
-      
+
       const result: TrendingCoinsData = {
         coins: trending,
-        lastUpdated: new Date()
+        lastUpdated: new Date(),
       };
-      
-      console.log(`[RealTimeDataService] Fetched trending coins: ${trending.length} coins`);
+
+      console.log(
+        `[RealTimeDataService] Fetched trending coins: ${trending.length} coins`,
+      );
       return result;
-      
     } catch (error) {
-      console.error('Error in fetchTrendingCoinsData:', error);
+      console.error("Error in fetchTrendingCoinsData:", error);
       return null;
     }
   }
@@ -1927,7 +2219,10 @@ export class RealTimeDataService extends BaseDataService {
   // Curated NFTs data management
   private isCuratedNFTsCacheValid(): boolean {
     if (!this.curatedNFTsCache) return false;
-    return Date.now() - this.curatedNFTsCache.timestamp < this.CURATED_NFTS_CACHE_DURATION;
+    return (
+      Date.now() - this.curatedNFTsCache.timestamp <
+      this.CURATED_NFTS_CACHE_DURATION
+    );
   }
 
   private async updateCuratedNFTsData(): Promise<void> {
@@ -1937,7 +2232,7 @@ export class RealTimeDataService extends BaseDataService {
       if (data) {
         this.curatedNFTsCache = {
           data,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         };
       }
     }
@@ -1945,41 +2240,54 @@ export class RealTimeDataService extends BaseDataService {
 
   private async fetchCuratedNFTsData(): Promise<CuratedNFTsData | null> {
     try {
-      console.log('[RealTimeDataService] Fetching enhanced curated NFTs data...');
-      
-      const openSeaApiKey = this.runtime.getSetting('OPENSEA_API_KEY');
+      console.log(
+        "[RealTimeDataService] Fetching enhanced curated NFTs data...",
+      );
+
+      const openSeaApiKey = this.runtime.getSetting("OPENSEA_API_KEY");
       if (!openSeaApiKey) {
-        console.warn('OPENSEA_API_KEY not configured, returning null to prevent stale data');
+        console.warn(
+          "OPENSEA_API_KEY not configured, returning null to prevent stale data",
+        );
         return null; // Return null instead of fallback to prevent LLM from hallucinating
       }
 
       const headers = {
-        'Accept': 'application/json',
-        'X-API-KEY': openSeaApiKey,
-        'User-Agent': 'LiveTheLifeTV/1.0'
+        Accept: "application/json",
+        "X-API-KEY": openSeaApiKey,
+        "User-Agent": "LiveTheLifeTV/1.0",
       };
 
       // Process collections in smaller batches to avoid rate limits
       const collections: NFTCollectionData[] = [];
       const batchSize = 3;
-      
-      for (let i = 0; i < Math.min(this.curatedNFTCollections.length, 15); i += batchSize) {
+
+      for (
+        let i = 0;
+        i < Math.min(this.curatedNFTCollections.length, 15);
+        i += batchSize
+      ) {
         const batch = this.curatedNFTCollections.slice(i, i + batchSize);
-        
+
         const batchPromises = batch.map(async (collectionInfo) => {
-          return await this.fetchEnhancedCollectionData(collectionInfo, headers);
+          return await this.fetchEnhancedCollectionData(
+            collectionInfo,
+            headers,
+          );
         });
 
         try {
           const batchResults = await Promise.all(batchPromises);
-          collections.push(...batchResults.filter(Boolean) as NFTCollectionData[]);
+          collections.push(
+            ...(batchResults.filter(Boolean) as NFTCollectionData[]),
+          );
         } catch (error) {
           console.error(`Error processing batch ${i}:`, error);
         }
 
         // Rate limiting between batches
         if (i + batchSize < this.curatedNFTCollections.length) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise((resolve) => setTimeout(resolve, 1000));
         }
       }
 
@@ -1989,78 +2297,89 @@ export class RealTimeDataService extends BaseDataService {
       const result: CuratedNFTsData = {
         collections,
         summary,
-        lastUpdated: new Date()
+        lastUpdated: new Date(),
       };
 
-      console.log(`[RealTimeDataService] Enhanced NFTs data: ${collections.length} collections, total 24h volume: ${summary.totalVolume24h.toFixed(2)} ETH`);
+      console.log(
+        `[RealTimeDataService] Enhanced NFTs data: ${collections.length} collections, total 24h volume: ${summary.totalVolume24h.toFixed(2)} ETH`,
+      );
       return result;
-
     } catch (error) {
-      console.error('Error in fetchCuratedNFTsData:', error);
+      console.error("Error in fetchCuratedNFTsData:", error);
       return null; // Return null instead of fallback to prevent LLM from using stale/incorrect data
     }
   }
 
   private async fetchEnhancedCollectionData(
-    collectionInfo: any, 
-    headers: any
+    collectionInfo: any,
+    headers: any,
   ): Promise<NFTCollectionData | null> {
     try {
-      console.log(`[RealTimeDataService] Fetching collection data for: ${collectionInfo.slug}`);
-      
+      console.log(
+        `[RealTimeDataService] Fetching collection data for: ${collectionInfo.slug}`,
+      );
+
       // Fetch basic collection data
       const collectionResponse = await fetch(
         `https://api.opensea.io/api/v2/collections/${collectionInfo.slug}`,
-        { 
+        {
           headers,
-          signal: AbortSignal.timeout(15000)
-        }
+          signal: AbortSignal.timeout(15000),
+        },
       );
-      
+
       if (!collectionResponse.ok) {
-        throw new Error(`HTTP ${collectionResponse.status}: ${collectionResponse.statusText}`);
+        throw new Error(
+          `HTTP ${collectionResponse.status}: ${collectionResponse.statusText}`,
+        );
       }
-      
+
       const collectionData = await collectionResponse.json();
 
       // Fetch collection stats
       const statsResponse = await fetch(
         `https://api.opensea.io/api/v2/collections/${collectionInfo.slug}/stats`,
-        { 
+        {
           headers,
-          signal: AbortSignal.timeout(15000)
-        }
+          signal: AbortSignal.timeout(15000),
+        },
       );
-      
+
       if (!statsResponse.ok) {
-        throw new Error(`HTTP ${statsResponse.status}: ${statsResponse.statusText}`);
+        throw new Error(
+          `HTTP ${statsResponse.status}: ${statsResponse.statusText}`,
+        );
       }
-      
+
       const statsData = await statsResponse.json();
 
       // Parse enhanced stats
       const stats = this.parseCollectionStats(statsData);
-      console.log(`[RealTimeDataService] Enhanced collection stats for ${collectionInfo.slug}: Floor ${stats.floor_price} ETH, Volume ${stats.one_day_volume} ETH`);
+      console.log(
+        `[RealTimeDataService] Enhanced collection stats for ${collectionInfo.slug}: Floor ${stats.floor_price} ETH, Volume ${stats.one_day_volume} ETH`,
+      );
 
       return {
         slug: collectionInfo.slug,
         collection: collectionData,
         stats,
         lastUpdated: new Date(),
-        category: collectionInfo.category || 'utility',
+        category: collectionInfo.category || "utility",
         contractAddress: collectionData.contracts?.[0]?.address,
-        blockchain: collectionData.contracts?.[0]?.chain || 'ethereum'
+        blockchain: collectionData.contracts?.[0]?.chain || "ethereum",
       };
-
     } catch (error) {
-      console.error(`Error fetching collection data for ${collectionInfo.slug}:`, error);
+      console.error(
+        `Error fetching collection data for ${collectionInfo.slug}:`,
+        error,
+      );
       return null;
     }
   }
 
   private parseCollectionStats(statsData: any): NFTCollectionStats {
     const total = statsData?.total || {};
-    
+
     return {
       total_supply: total.supply || 0,
       num_owners: total.num_owners || 0,
@@ -2087,23 +2406,31 @@ export class RealTimeDataService extends BaseDataService {
     worstPerformers: NFTCollectionData[];
     totalCollections: number;
   } {
-    const totalVolume24h = collections.reduce((sum, c) => sum + (c.stats.one_day_volume || 0), 0);
-    const totalMarketCap = collections.reduce((sum, c) => sum + (c.stats.market_cap || 0), 0);
-    const avgFloorPrice = collections.length > 0 
-      ? collections.reduce((sum, c) => sum + (c.stats.floor_price || 0), 0) / collections.length 
-      : 0;
+    const totalVolume24h = collections.reduce(
+      (sum, c) => sum + (c.stats.one_day_volume || 0),
+      0,
+    );
+    const totalMarketCap = collections.reduce(
+      (sum, c) => sum + (c.stats.market_cap || 0),
+      0,
+    );
+    const avgFloorPrice =
+      collections.length > 0
+        ? collections.reduce((sum, c) => sum + (c.stats.floor_price || 0), 0) /
+          collections.length
+        : 0;
 
-    const sorted = [...collections].sort((a, b) => (b.stats.one_day_change || 0) - (a.stats.one_day_change || 0));
-    
+    const sorted = [...collections].sort(
+      (a, b) => (b.stats.one_day_change || 0) - (a.stats.one_day_change || 0),
+    );
+
     return {
       totalVolume24h,
       totalMarketCap,
       avgFloorPrice,
       topPerformers: sorted.slice(0, 3),
       worstPerformers: sorted.slice(-3).reverse(),
-      totalCollections: collections.length
+      totalCollections: collections.length,
     };
   }
-
-
 }

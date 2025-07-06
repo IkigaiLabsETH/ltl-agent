@@ -1,42 +1,42 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { IAgentRuntime } from '@elizaos/core';
-import { BitcoinNetworkService } from '../../services/BitcoinNetworkService';
-import { MarketDataService } from '../../services/MarketDataService';
-import { NFTDataService } from '../../services/NFTDataService';
-import { NewsDataService } from '../../services/NewsDataService';
-import { SocialSentimentService } from '../../services/SocialSentimentService';
-import { CentralizedConfigService } from '../../services/CentralizedConfigService';
-import { CacheService } from '../../services/CacheService';
-import { PerformanceMonitorService } from '../../services/PerformanceMonitorService';
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { IAgentRuntime } from "@elizaos/core";
+import { BitcoinNetworkService } from "../../services/BitcoinNetworkService";
+import { MarketDataService } from "../../services/MarketDataService";
+import { NFTDataService } from "../../services/NFTDataService";
+import { NewsDataService } from "../../services/NewsDataService";
+import { SocialSentimentService } from "../../services/SocialSentimentService";
+import { CentralizedConfigService } from "../../services/CentralizedConfigService";
+import { CacheService } from "../../services/CacheService";
+import { PerformanceMonitorService } from "../../services/PerformanceMonitorService";
 
 // Mock dependencies
-vi.mock('@elizaos/core', () => ({
+vi.mock("@elizaos/core", () => ({
   elizaLogger: {
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-    debug: vi.fn()
-  }
+    debug: vi.fn(),
+  },
 }));
 
-vi.mock('axios', () => ({
+vi.mock("axios", () => ({
   default: {
     get: vi.fn(),
-    post: vi.fn()
-  }
+    post: vi.fn(),
+  },
 }));
 
-vi.mock('../../utils', () => ({
+vi.mock("../../utils", () => ({
   LoggerWithContext: vi.fn().mockImplementation(() => ({
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-    debug: vi.fn()
+    debug: vi.fn(),
   })),
-  generateCorrelationId: vi.fn(() => 'test-correlation-id'),
+  generateCorrelationId: vi.fn(() => "test-correlation-id"),
   globalErrorHandler: {
-    handleError: vi.fn()
-  }
+    handleError: vi.fn(),
+  },
 }));
 
 /**
@@ -59,10 +59,10 @@ const PERFORMANCE_THRESHOLDS = {
   MAX_RESPONSE_TIME: 5000, // 5 seconds
   MAX_MEMORY_USAGE: 100 * 1024 * 1024, // 100MB
   MIN_OPS_PER_SECOND: 1,
-  MAX_ERROR_RATE: 0.05 // 5%
+  MAX_ERROR_RATE: 0.05, // 5%
 };
 
-describe('Performance Benchmarks', () => {
+describe("Performance Benchmarks", () => {
   let mockRuntime: any;
   let configService: CentralizedConfigService;
   let cacheService: CacheService;
@@ -78,20 +78,20 @@ describe('Performance Benchmarks', () => {
     // Create mock runtime
     mockRuntime = {
       getService: vi.fn(),
-      getSetting: vi.fn()
+      getSetting: vi.fn(),
     };
 
     // Setup service dependencies
     mockRuntime.getService.mockImplementation((serviceName: string) => {
       const serviceMap: Record<string, any> = {
-        'centralized-config': configService,
-        'cache': cacheService,
-        'performance-monitor': performanceMonitor,
-        'bitcoin-network': bitcoinNetworkService,
-        'market-data': marketDataService,
-        'nft-data': nftDataService,
-        'news-data': newsDataService,
-        'social-sentiment': socialSentimentService
+        "centralized-config": configService,
+        cache: cacheService,
+        "performance-monitor": performanceMonitor,
+        "bitcoin-network": bitcoinNetworkService,
+        "market-data": marketDataService,
+        "nft-data": nftDataService,
+        "news-data": newsDataService,
+        "social-sentiment": socialSentimentService,
       };
       return serviceMap[serviceName] || null;
     });
@@ -115,7 +115,7 @@ describe('Performance Benchmarks', () => {
       marketDataService.start(),
       nftDataService.start(),
       newsDataService.start(),
-      socialSentimentService.start()
+      socialSentimentService.start(),
     ]);
 
     benchmarkResults = [];
@@ -131,7 +131,7 @@ describe('Performance Benchmarks', () => {
       marketDataService.stop(),
       nftDataService.stop(),
       newsDataService.stop(),
-      socialSentimentService.stop()
+      socialSentimentService.stop(),
     ]);
 
     vi.clearAllMocks();
@@ -143,7 +143,7 @@ describe('Performance Benchmarks', () => {
   async function runBenchmark(
     testName: string,
     operation: () => Promise<any>,
-    iterations: number = 10
+    iterations: number = 10,
   ): Promise<BenchmarkResult> {
     const startTime = Date.now();
     const startMemory = process.memoryUsage().heapUsed;
@@ -167,7 +167,8 @@ describe('Performance Benchmarks', () => {
     const duration = endTime - startTime;
     const memoryUsage = endMemory - startMemory;
     const operationsPerSecond = iterations / (duration / 1000);
-    const averageResponseTime = responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length;
+    const averageResponseTime =
+      responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length;
     const errorRate = errors / iterations;
 
     const result: BenchmarkResult = {
@@ -177,7 +178,7 @@ describe('Performance Benchmarks', () => {
       operationsPerSecond,
       averageResponseTime,
       errorRate,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     benchmarkResults.push(result);
@@ -188,114 +189,124 @@ describe('Performance Benchmarks', () => {
    * Helper function to validate benchmark results
    */
   function validateBenchmarkResult(result: BenchmarkResult): void {
-    expect(result.duration).toBeLessThan(PERFORMANCE_THRESHOLDS.MAX_RESPONSE_TIME);
-    expect(result.memoryUsage).toBeLessThan(PERFORMANCE_THRESHOLDS.MAX_MEMORY_USAGE);
-    expect(result.operationsPerSecond).toBeGreaterThan(PERFORMANCE_THRESHOLDS.MIN_OPS_PER_SECOND);
-    expect(result.errorRate).toBeLessThan(PERFORMANCE_THRESHOLDS.MAX_ERROR_RATE);
+    expect(result.duration).toBeLessThan(
+      PERFORMANCE_THRESHOLDS.MAX_RESPONSE_TIME,
+    );
+    expect(result.memoryUsage).toBeLessThan(
+      PERFORMANCE_THRESHOLDS.MAX_MEMORY_USAGE,
+    );
+    expect(result.operationsPerSecond).toBeGreaterThan(
+      PERFORMANCE_THRESHOLDS.MIN_OPS_PER_SECOND,
+    );
+    expect(result.errorRate).toBeLessThan(
+      PERFORMANCE_THRESHOLDS.MAX_ERROR_RATE,
+    );
   }
 
-  describe('Service Initialization Performance', () => {
-    it('should initialize all services within acceptable time', async () => {
+  describe("Service Initialization Performance", () => {
+    it("should initialize all services within acceptable time", async () => {
       const result = await runBenchmark(
-        'Service Initialization',
+        "Service Initialization",
         async () => {
           const services = [
             new BitcoinNetworkService(mockRuntime),
             new MarketDataService(mockRuntime),
             new NFTDataService(mockRuntime),
             new NewsDataService(mockRuntime),
-            new SocialSentimentService(mockRuntime)
+            new SocialSentimentService(mockRuntime),
           ];
 
-          await Promise.all(services.map(service => service.start()));
-          await Promise.all(services.map(service => service.stop()));
+          await Promise.all(services.map((service) => service.start()));
+          await Promise.all(services.map((service) => service.stop()));
         },
-        5
+        5,
       );
 
       validateBenchmarkResult(result);
       expect(result.averageResponseTime).toBeLessThan(2000); // 2 seconds
     });
 
-    it('should handle concurrent service initialization', async () => {
+    it("should handle concurrent service initialization", async () => {
       const result = await runBenchmark(
-        'Concurrent Service Initialization',
+        "Concurrent Service Initialization",
         async () => {
-          const servicePromises = Array(5).fill(null).map(() => {
-            const service = new BitcoinNetworkService(mockRuntime);
-            return service.start().then(() => service.stop());
-          });
+          const servicePromises = Array(5)
+            .fill(null)
+            .map(() => {
+              const service = new BitcoinNetworkService(mockRuntime);
+              return service.start().then(() => service.stop());
+            });
 
           await Promise.all(servicePromises);
         },
-        3
+        3,
       );
 
       validateBenchmarkResult(result);
     });
   });
 
-  describe('Data Update Performance', () => {
+  describe("Data Update Performance", () => {
     beforeEach(() => {
       // Mock API responses for consistent testing
-      const { default: axios } = require('axios');
+      const { default: axios } = require("axios");
       (axios.get as any).mockResolvedValue({
         data: {
           bitcoin: { usd: 50000, usd_24h_change: 2.5 },
-          ethereum: { usd: 3000, usd_24h_change: 1.5 }
-        }
+          ethereum: { usd: 3000, usd_24h_change: 1.5 },
+        },
       });
     });
 
-    it('should update Bitcoin network data efficiently', async () => {
+    it("should update Bitcoin network data efficiently", async () => {
       const result = await runBenchmark(
-        'Bitcoin Network Data Update',
+        "Bitcoin Network Data Update",
         () => bitcoinNetworkService.updateData(),
-        20
+        20,
       );
 
       validateBenchmarkResult(result);
       expect(result.averageResponseTime).toBeLessThan(3000); // 3 seconds
     });
 
-    it('should update market data efficiently', async () => {
+    it("should update market data efficiently", async () => {
       const result = await runBenchmark(
-        'Market Data Update',
+        "Market Data Update",
         () => marketDataService.updateData(),
-        20
+        20,
       );
 
       validateBenchmarkResult(result);
       expect(result.averageResponseTime).toBeLessThan(3000); // 3 seconds
     });
 
-    it('should update NFT data efficiently', async () => {
+    it("should update NFT data efficiently", async () => {
       const result = await runBenchmark(
-        'NFT Data Update',
+        "NFT Data Update",
         () => nftDataService.updateData(),
-        15
+        15,
       );
 
       validateBenchmarkResult(result);
       expect(result.averageResponseTime).toBeLessThan(4000); // 4 seconds
     });
 
-    it('should update news data efficiently', async () => {
+    it("should update news data efficiently", async () => {
       const result = await runBenchmark(
-        'News Data Update',
+        "News Data Update",
         () => newsDataService.updateData(),
-        15
+        15,
       );
 
       validateBenchmarkResult(result);
       expect(result.averageResponseTime).toBeLessThan(4000); // 4 seconds
     });
 
-    it('should update social sentiment data efficiently', async () => {
+    it("should update social sentiment data efficiently", async () => {
       const result = await runBenchmark(
-        'Social Sentiment Data Update',
+        "Social Sentiment Data Update",
         () => socialSentimentService.updateData(),
-        15
+        15,
       );
 
       validateBenchmarkResult(result);
@@ -303,206 +314,208 @@ describe('Performance Benchmarks', () => {
     });
   });
 
-  describe('Concurrent Operations Performance', () => {
+  describe("Concurrent Operations Performance", () => {
     beforeEach(() => {
       // Mock API responses
-      const { default: axios } = require('axios');
+      const { default: axios } = require("axios");
       (axios.get as any).mockResolvedValue({
         data: {
-          bitcoin: { usd: 50000, usd_24h_change: 2.5 }
-        }
+          bitcoin: { usd: 50000, usd_24h_change: 2.5 },
+        },
       });
     });
 
-    it('should handle concurrent data updates', async () => {
+    it("should handle concurrent data updates", async () => {
       const result = await runBenchmark(
-        'Concurrent Data Updates',
+        "Concurrent Data Updates",
         async () => {
           const updates = [
             bitcoinNetworkService.updateData(),
             marketDataService.updateData(),
             nftDataService.updateData(),
             newsDataService.updateData(),
-            socialSentimentService.updateData()
+            socialSentimentService.updateData(),
           ];
 
           await Promise.all(updates);
         },
-        10
+        10,
       );
 
       validateBenchmarkResult(result);
       expect(result.averageResponseTime).toBeLessThan(5000); // 5 seconds
     });
 
-    it('should handle high concurrency scenarios', async () => {
+    it("should handle high concurrency scenarios", async () => {
       const result = await runBenchmark(
-        'High Concurrency Data Updates',
+        "High Concurrency Data Updates",
         async () => {
-          const concurrentUpdates = Array(10).fill(null).map(() => 
-            Promise.all([
-              bitcoinNetworkService.updateData(),
-              marketDataService.updateData()
-            ])
-          );
+          const concurrentUpdates = Array(10)
+            .fill(null)
+            .map(() =>
+              Promise.all([
+                bitcoinNetworkService.updateData(),
+                marketDataService.updateData(),
+              ]),
+            );
 
           await Promise.all(concurrentUpdates);
         },
-        5
+        5,
       );
 
       validateBenchmarkResult(result);
     });
 
-    it('should maintain performance under load', async () => {
+    it("should maintain performance under load", async () => {
       const result = await runBenchmark(
-        'Sustained Load Performance',
+        "Sustained Load Performance",
         async () => {
           // Simulate sustained load
           for (let i = 0; i < 5; i++) {
             await Promise.all([
               bitcoinNetworkService.updateData(),
               marketDataService.updateData(),
-              nftDataService.updateData()
+              nftDataService.updateData(),
             ]);
           }
         },
-        3
+        3,
       );
 
       validateBenchmarkResult(result);
     });
   });
 
-  describe('Caching Performance', () => {
-    it('should cache data efficiently', async () => {
+  describe("Caching Performance", () => {
+    it("should cache data efficiently", async () => {
       const result = await runBenchmark(
-        'Cache Operations',
+        "Cache Operations",
         async () => {
           // Set cache
-          await cacheService.set('test-key', 'test-value', 60000);
-          
+          await cacheService.set("test-key", "test-value", 60000);
+
           // Get cache
-          await cacheService.get('test-key');
-          
+          await cacheService.get("test-key");
+
           // Invalidate cache
-          await cacheService.invalidate('test-key');
+          await cacheService.invalidate("test-key");
         },
-        50
+        50,
       );
 
       validateBenchmarkResult(result);
       expect(result.averageResponseTime).toBeLessThan(100); // 100ms
     });
 
-    it('should handle cache misses efficiently', async () => {
+    it("should handle cache misses efficiently", async () => {
       const result = await runBenchmark(
-        'Cache Miss Performance',
+        "Cache Miss Performance",
         async () => {
           // Attempt to get non-existent cache entries
           for (let i = 0; i < 10; i++) {
             await cacheService.get(`non-existent-key-${i}`);
           }
         },
-        20
+        20,
       );
 
       validateBenchmarkResult(result);
       expect(result.averageResponseTime).toBeLessThan(50); // 50ms
     });
 
-    it('should handle cache invalidation efficiently', async () => {
+    it("should handle cache invalidation efficiently", async () => {
       // Pre-populate cache
       for (let i = 0; i < 100; i++) {
         await cacheService.set(`key-${i}`, `value-${i}`, 60000);
       }
 
       const result = await runBenchmark(
-        'Cache Invalidation Performance',
+        "Cache Invalidation Performance",
         async () => {
           // Invalidate multiple cache entries
           for (let i = 0; i < 50; i++) {
             await cacheService.invalidate(`key-${i}`);
           }
         },
-        10
+        10,
       );
 
       validateBenchmarkResult(result);
     });
   });
 
-  describe('Configuration Performance', () => {
-    it('should read configuration efficiently', async () => {
+  describe("Configuration Performance", () => {
+    it("should read configuration efficiently", async () => {
       const result = await runBenchmark(
-        'Configuration Read Performance',
+        "Configuration Read Performance",
         async () => {
           // Read multiple configuration values
           for (let i = 0; i < 100; i++) {
             configService.get(`test.config.${i}`);
           }
         },
-        20
+        20,
       );
 
       validateBenchmarkResult(result);
       expect(result.averageResponseTime).toBeLessThan(10); // 10ms
     });
 
-    it('should write configuration efficiently', async () => {
+    it("should write configuration efficiently", async () => {
       const result = await runBenchmark(
-        'Configuration Write Performance',
+        "Configuration Write Performance",
         async () => {
           // Write multiple configuration values
           for (let i = 0; i < 50; i++) {
             configService.set(`test.config.${i}`, `value-${i}`);
           }
         },
-        10
+        10,
       );
 
       validateBenchmarkResult(result);
       expect(result.averageResponseTime).toBeLessThan(50); // 50ms
     });
 
-    it('should handle configuration validation efficiently', async () => {
+    it("should handle configuration validation efficiently", async () => {
       const result = await runBenchmark(
-        'Configuration Validation Performance',
+        "Configuration Validation Performance",
         async () => {
           // Validate configuration schema
           for (let i = 0; i < 20; i++) {
             configService.validateConfig({
               services: {
                 bitcoinNetwork: { enabled: true, updateInterval: 60000 },
-                marketData: { enabled: true, updateInterval: 60000 }
-              }
+                marketData: { enabled: true, updateInterval: 60000 },
+              },
             });
           }
         },
-        10
+        10,
       );
 
       validateBenchmarkResult(result);
     });
   });
 
-  describe('Memory Usage Performance', () => {
-    it('should maintain stable memory usage during operations', async () => {
+  describe("Memory Usage Performance", () => {
+    it("should maintain stable memory usage during operations", async () => {
       const initialMemory = process.memoryUsage().heapUsed;
-      
+
       const result = await runBenchmark(
-        'Memory Usage Stability',
+        "Memory Usage Stability",
         async () => {
           // Perform memory-intensive operations
           for (let i = 0; i < 10; i++) {
             await Promise.all([
               bitcoinNetworkService.updateData(),
               marketDataService.updateData(),
-              nftDataService.updateData()
+              nftDataService.updateData(),
             ]);
           }
         },
-        5
+        5,
       );
 
       const finalMemory = process.memoryUsage().heapUsed;
@@ -512,81 +525,83 @@ describe('Performance Benchmarks', () => {
       expect(memoryIncrease).toBeLessThan(50 * 1024 * 1024); // 50MB
     });
 
-    it('should handle large data sets efficiently', async () => {
+    it("should handle large data sets efficiently", async () => {
       const result = await runBenchmark(
-        'Large Dataset Performance',
+        "Large Dataset Performance",
         async () => {
           // Simulate large dataset operations
-          const largeData = Array(10000).fill(null).map((_, i) => ({
-            id: i,
-            data: `large-data-${i}`,
-            timestamp: Date.now()
-          }));
+          const largeData = Array(10000)
+            .fill(null)
+            .map((_, i) => ({
+              id: i,
+              data: `large-data-${i}`,
+              timestamp: Date.now(),
+            }));
 
           // Store in cache
-          await cacheService.set('large-dataset', largeData, 60000);
-          
+          await cacheService.set("large-dataset", largeData, 60000);
+
           // Retrieve from cache
-          await cacheService.get('large-dataset');
+          await cacheService.get("large-dataset");
         },
-        5
+        5,
       );
 
       validateBenchmarkResult(result);
     });
   });
 
-  describe('Error Handling Performance', () => {
-    it('should handle errors efficiently', async () => {
+  describe("Error Handling Performance", () => {
+    it("should handle errors efficiently", async () => {
       // Mock API failures
-      const { default: axios } = require('axios');
-      (axios.get as any).mockRejectedValue(new Error('API Error'));
+      const { default: axios } = require("axios");
+      (axios.get as any).mockRejectedValue(new Error("API Error"));
 
       const result = await runBenchmark(
-        'Error Handling Performance',
+        "Error Handling Performance",
         async () => {
           // Trigger operations that will fail
           await Promise.allSettled([
             bitcoinNetworkService.updateData(),
             marketDataService.updateData(),
-            nftDataService.updateData()
+            nftDataService.updateData(),
           ]);
         },
-        10
+        10,
       );
 
       validateBenchmarkResult(result);
       expect(result.errorRate).toBeGreaterThan(0); // Should have errors
     });
 
-    it('should recover from errors efficiently', async () => {
+    it("should recover from errors efficiently", async () => {
       let shouldFail = true;
-      const { default: axios } = require('axios');
-      
+      const { default: axios } = require("axios");
+
       (axios.get as any).mockImplementation(() => {
         if (shouldFail) {
           shouldFail = false;
-          return Promise.reject(new Error('Temporary Error'));
+          return Promise.reject(new Error("Temporary Error"));
         }
         return Promise.resolve({ data: { bitcoin: { usd: 50000 } } });
       });
 
       const result = await runBenchmark(
-        'Error Recovery Performance',
+        "Error Recovery Performance",
         async () => {
           await bitcoinNetworkService.updateData();
         },
-        10
+        10,
       );
 
       validateBenchmarkResult(result);
     });
   });
 
-  describe('Performance Monitoring Overhead', () => {
-    it('should have minimal monitoring overhead', async () => {
+  describe("Performance Monitoring Overhead", () => {
+    it("should have minimal monitoring overhead", async () => {
       const result = await runBenchmark(
-        'Performance Monitoring Overhead',
+        "Performance Monitoring Overhead",
         async () => {
           // Record various metrics
           for (let i = 0; i < 100; i++) {
@@ -594,31 +609,31 @@ describe('Performance Benchmarks', () => {
               id: `test-metric-${i}`,
               name: `Test Metric ${i}`,
               value: Math.random() * 100,
-              unit: 'ms',
-              category: 'custom'
+              unit: "ms",
+              category: "custom",
             });
           }
 
           // Generate performance report
           await performanceMonitor.generateReport(60000);
         },
-        10
+        10,
       );
 
       validateBenchmarkResult(result);
       expect(result.averageResponseTime).toBeLessThan(1000); // 1 second
     });
 
-    it('should track metrics efficiently', async () => {
+    it("should track metrics efficiently", async () => {
       const result = await runBenchmark(
-        'Metrics Tracking Performance',
+        "Metrics Tracking Performance",
         async () => {
           // Track various performance metrics
-          performanceMonitor.recordApiPerformance('test-service', 100, true);
-          performanceMonitor.recordCachePerformance(true, 'test-key');
-          performanceMonitor.recordDatabasePerformance('SELECT', 50, true);
+          performanceMonitor.recordApiPerformance("test-service", 100, true);
+          performanceMonitor.recordCachePerformance(true, "test-key");
+          performanceMonitor.recordDatabasePerformance("SELECT", 50, true);
         },
-        100
+        100,
       );
 
       validateBenchmarkResult(result);
@@ -626,24 +641,24 @@ describe('Performance Benchmarks', () => {
     });
   });
 
-  describe('End-to-End Performance', () => {
+  describe("End-to-End Performance", () => {
     beforeEach(() => {
       // Mock comprehensive API responses
-      const { default: axios } = require('axios');
+      const { default: axios } = require("axios");
       (axios.get as any).mockResolvedValue({
         data: {
           bitcoin: { usd: 50000, usd_24h_change: 2.5 },
           ethereum: { usd: 3000, usd_24h_change: 1.5 },
-          nfts: [{ id: 1, price: 1000, collection: 'test' }],
-          news: [{ id: 1, title: 'Test News', content: 'Test content' }],
-          sentiment: { score: 0.8, volume: 1000 }
-        }
+          nfts: [{ id: 1, price: 1000, collection: "test" }],
+          news: [{ id: 1, title: "Test News", content: "Test content" }],
+          sentiment: { score: 0.8, volume: 1000 },
+        },
       });
     });
 
-    it('should handle complete workflow efficiently', async () => {
+    it("should handle complete workflow efficiently", async () => {
       const result = await runBenchmark(
-        'Complete Workflow Performance',
+        "Complete Workflow Performance",
         async () => {
           // Complete data update workflow
           await Promise.all([
@@ -651,36 +666,36 @@ describe('Performance Benchmarks', () => {
             marketDataService.updateData(),
             nftDataService.updateData(),
             newsDataService.updateData(),
-            socialSentimentService.updateData()
+            socialSentimentService.updateData(),
           ]);
 
           // Cache operations
-          await cacheService.set('workflow-result', 'success', 60000);
-          await cacheService.get('workflow-result');
+          await cacheService.set("workflow-result", "success", 60000);
+          await cacheService.get("workflow-result");
 
           // Configuration operations
-          configService.set('workflow.completed', true);
-          configService.get('workflow.completed');
+          configService.set("workflow.completed", true);
+          configService.get("workflow.completed");
 
           // Performance monitoring
           performanceMonitor.recordMetric({
-            id: 'workflow-duration',
-            name: 'Workflow Duration',
+            id: "workflow-duration",
+            name: "Workflow Duration",
             value: 1000,
-            unit: 'ms',
-            category: 'custom'
+            unit: "ms",
+            category: "custom",
           });
         },
-        5
+        5,
       );
 
       validateBenchmarkResult(result);
       expect(result.averageResponseTime).toBeLessThan(10000); // 10 seconds
     });
 
-    it('should maintain performance under sustained load', async () => {
+    it("should maintain performance under sustained load", async () => {
       const result = await runBenchmark(
-        'Sustained Load End-to-End',
+        "Sustained Load End-to-End",
         async () => {
           // Simulate sustained load for 30 seconds
           const startTime = Date.now();
@@ -691,25 +706,25 @@ describe('Performance Benchmarks', () => {
               Promise.all([
                 bitcoinNetworkService.updateData(),
                 marketDataService.updateData(),
-                cacheService.set(`key-${Date.now()}`, 'value', 60000)
-              ])
+                cacheService.set(`key-${Date.now()}`, "value", 60000),
+              ]),
             );
 
             // Small delay to prevent overwhelming
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await new Promise((resolve) => setTimeout(resolve, 100));
           }
 
           await Promise.all(operations);
         },
-        1
+        1,
       );
 
       validateBenchmarkResult(result);
     });
   });
 
-  describe('Performance Regression Testing', () => {
-    it('should maintain consistent performance across runs', async () => {
+  describe("Performance Regression Testing", () => {
+    it("should maintain consistent performance across runs", async () => {
       const results: BenchmarkResult[] = [];
 
       // Run benchmark multiple times
@@ -719,18 +734,23 @@ describe('Performance Benchmarks', () => {
           async () => {
             await Promise.all([
               bitcoinNetworkService.updateData(),
-              marketDataService.updateData()
+              marketDataService.updateData(),
             ]);
           },
-          10
+          10,
         );
         results.push(result);
       }
 
       // Calculate performance variance
-      const responseTimes = results.map(r => r.averageResponseTime);
-      const avgResponseTime = responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length;
-      const variance = responseTimes.reduce((sum, time) => sum + Math.pow(time - avgResponseTime, 2), 0) / responseTimes.length;
+      const responseTimes = results.map((r) => r.averageResponseTime);
+      const avgResponseTime =
+        responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length;
+      const variance =
+        responseTimes.reduce(
+          (sum, time) => sum + Math.pow(time - avgResponseTime, 2),
+          0,
+        ) / responseTimes.length;
       const standardDeviation = Math.sqrt(variance);
 
       // Performance should be consistent (low variance)
@@ -740,15 +760,21 @@ describe('Performance Benchmarks', () => {
 
   afterAll(() => {
     // Log benchmark summary
-    console.log('\n=== Performance Benchmark Summary ===');
-    benchmarkResults.forEach(result => {
+    console.log("\n=== Performance Benchmark Summary ===");
+    benchmarkResults.forEach((result) => {
       console.log(`${result.testName}:`);
       console.log(`  Duration: ${result.duration}ms`);
-      console.log(`  Memory Usage: ${(result.memoryUsage / 1024 / 1024).toFixed(2)}MB`);
-      console.log(`  Operations/Second: ${result.operationsPerSecond.toFixed(2)}`);
-      console.log(`  Average Response Time: ${result.averageResponseTime.toFixed(2)}ms`);
+      console.log(
+        `  Memory Usage: ${(result.memoryUsage / 1024 / 1024).toFixed(2)}MB`,
+      );
+      console.log(
+        `  Operations/Second: ${result.operationsPerSecond.toFixed(2)}`,
+      );
+      console.log(
+        `  Average Response Time: ${result.averageResponseTime.toFixed(2)}ms`,
+      );
       console.log(`  Error Rate: ${(result.errorRate * 100).toFixed(2)}%`);
-      console.log('');
+      console.log("");
     });
   });
-}); 
+});

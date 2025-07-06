@@ -1,20 +1,23 @@
-import { IAgentRuntime, elizaLogger } from '@elizaos/core';
-import { BaseDataService } from './BaseDataService';
-import { LoggerWithContext, generateCorrelationId } from '../utils/helpers';
-import { handleError, ErrorCategory } from '../utils/comprehensive-error-handling';
-import { WebSocket, WebSocketServer } from 'ws';
+import { IAgentRuntime, elizaLogger } from "@elizaos/core";
+import { BaseDataService } from "./BaseDataService";
+import { LoggerWithContext, generateCorrelationId } from "../utils/helpers";
+import {
+  handleError,
+  ErrorCategory,
+} from "../utils/comprehensive-error-handling";
+import { WebSocket, WebSocketServer } from "ws";
 
 /**
  * Stream event types
  */
-export type StreamEventType = 
-  | 'price_update'
-  | 'prediction_update'
-  | 'sentiment_update'
-  | 'trend_update'
-  | 'alert'
-  | 'performance_update'
-  | 'system_status';
+export type StreamEventType =
+  | "price_update"
+  | "prediction_update"
+  | "sentiment_update"
+  | "trend_update"
+  | "alert"
+  | "performance_update"
+  | "system_status";
 
 /**
  * Stream event interface
@@ -26,7 +29,7 @@ export interface StreamEvent {
   data: any;
   metadata?: {
     source: string;
-    priority: 'low' | 'medium' | 'high' | 'critical';
+    priority: "low" | "medium" | "high" | "critical";
     ttl?: number;
   };
 }
@@ -87,8 +90,8 @@ export interface StreamStats {
  * Provides WebSocket-based real-time data streaming for Bitcoin market data
  */
 export class RealTimeStreamingService extends BaseDataService {
-  static serviceType = 'real-time-streaming';
-  
+  static serviceType = "real-time-streaming";
+
   private contextLogger: LoggerWithContext;
   private wss: WebSocketServer | null = null;
   private clients: Map<string, ClientConnection> = new Map();
@@ -104,47 +107,52 @@ export class RealTimeStreamingService extends BaseDataService {
   };
 
   constructor(runtime: IAgentRuntime) {
-    super(runtime, 'bitcoinData');
-    this.contextLogger = new LoggerWithContext(generateCorrelationId(), 'RealTimeStreaming');
+    super(runtime, "bitcoinData");
+    this.contextLogger = new LoggerWithContext(
+      generateCorrelationId(),
+      "RealTimeStreaming",
+    );
     this.config = this.getDefaultConfig();
     this.stats = {
       totalConnections: 0,
       totalEventsSent: 0,
       startTime: Date.now(),
-      lastEventTime: Date.now()
+      lastEventTime: Date.now(),
     };
   }
 
   public get capabilityDescription(): string {
-    return 'Real-time WebSocket streaming service for live Bitcoin market data, predictions, and alerts';
+    return "Real-time WebSocket streaming service for live Bitcoin market data, predictions, and alerts";
   }
 
   static async start(runtime: IAgentRuntime) {
-    elizaLogger.info('Starting RealTimeStreamingService...');
+    elizaLogger.info("Starting RealTimeStreamingService...");
     return new RealTimeStreamingService(runtime);
   }
 
   static async stop(runtime: IAgentRuntime) {
-    elizaLogger.info('Stopping RealTimeStreamingService...');
-    const service = runtime.getService('real-time-streaming') as RealTimeStreamingService;
+    elizaLogger.info("Stopping RealTimeStreamingService...");
+    const service = runtime.getService(
+      "real-time-streaming",
+    ) as RealTimeStreamingService;
     if (service) {
       await service.stop();
     }
   }
 
   async start(): Promise<void> {
-    this.contextLogger.info('RealTimeStreamingService starting...');
+    this.contextLogger.info("RealTimeStreamingService starting...");
     await this.initializeWebSocketServer();
     this.startHeartbeat();
     this.startEventProcessing();
   }
 
   async init() {
-    this.contextLogger.info('RealTimeStreamingService initialized');
+    this.contextLogger.info("RealTimeStreamingService initialized");
   }
 
   async stop() {
-    this.contextLogger.info('RealTimeStreamingService stopping...');
+    this.contextLogger.info("RealTimeStreamingService stopping...");
     this.stopHeartbeat();
     this.stopEventProcessing();
     await this.closeAllConnections();
@@ -159,21 +167,36 @@ export class RealTimeStreamingService extends BaseDataService {
    */
   private getDefaultConfig(): StreamConfig {
     return {
-      port: parseInt(this.getSetting('STREAM_PORT', '8080')),
-      maxConnections: parseInt(this.getSetting('STREAM_MAX_CONNECTIONS', '1000')),
-      heartbeatInterval: parseInt(this.getSetting('STREAM_HEARTBEAT_INTERVAL', '30000')),
-      maxMessageSize: parseInt(this.getSetting('STREAM_MAX_MESSAGE_SIZE', '1048576')), // 1MB
-      enableCompression: this.getSetting('STREAM_ENABLE_COMPRESSION', 'true') === 'true',
+      port: parseInt(this.getSetting("STREAM_PORT", "8080")),
+      maxConnections: parseInt(
+        this.getSetting("STREAM_MAX_CONNECTIONS", "1000"),
+      ),
+      heartbeatInterval: parseInt(
+        this.getSetting("STREAM_HEARTBEAT_INTERVAL", "30000"),
+      ),
+      maxMessageSize: parseInt(
+        this.getSetting("STREAM_MAX_MESSAGE_SIZE", "1048576"),
+      ), // 1MB
+      enableCompression:
+        this.getSetting("STREAM_ENABLE_COMPRESSION", "true") === "true",
       rateLimit: {
-        enabled: this.getSetting('STREAM_RATE_LIMIT_ENABLED', 'true') === 'true',
-        maxMessagesPerMinute: parseInt(this.getSetting('STREAM_MAX_MESSAGES_PER_MINUTE', '100')),
-        maxConnectionsPerIp: parseInt(this.getSetting('STREAM_MAX_CONNECTIONS_PER_IP', '10'))
+        enabled:
+          this.getSetting("STREAM_RATE_LIMIT_ENABLED", "true") === "true",
+        maxMessagesPerMinute: parseInt(
+          this.getSetting("STREAM_MAX_MESSAGES_PER_MINUTE", "100"),
+        ),
+        maxConnectionsPerIp: parseInt(
+          this.getSetting("STREAM_MAX_CONNECTIONS_PER_IP", "10"),
+        ),
       },
       security: {
-        enableAuth: this.getSetting('STREAM_ENABLE_AUTH', 'false') === 'true',
-        allowedOrigins: this.getSetting('STREAM_ALLOWED_ORIGINS', '*').split(','),
-        apiKeyRequired: this.getSetting('STREAM_API_KEY_REQUIRED', 'false') === 'true'
-      }
+        enableAuth: this.getSetting("STREAM_ENABLE_AUTH", "false") === "true",
+        allowedOrigins: this.getSetting("STREAM_ALLOWED_ORIGINS", "*").split(
+          ",",
+        ),
+        apiKeyRequired:
+          this.getSetting("STREAM_API_KEY_REQUIRED", "false") === "true",
+      },
     };
   }
 
@@ -185,35 +208,37 @@ export class RealTimeStreamingService extends BaseDataService {
       this.wss = new WebSocketServer({
         port: this.config.port,
         maxPayload: this.config.maxMessageSize,
-        perMessageDeflate: this.config.enableCompression
+        perMessageDeflate: this.config.enableCompression,
       });
 
-      this.wss.on('connection', (ws: WebSocket, request: any) => {
+      this.wss.on("connection", (ws: WebSocket, request: any) => {
         this.handleConnection(ws, request);
       });
 
-      this.wss.on('error', (error: Error) => {
-        this.contextLogger.error('WebSocket server error', {
-          error: error.message
+      this.wss.on("error", (error: Error) => {
+        this.contextLogger.error("WebSocket server error", {
+          error: error.message,
         });
       });
 
-      this.contextLogger.info('WebSocket server started', {
+      this.contextLogger.info("WebSocket server started", {
         port: this.config.port,
-        maxConnections: this.config.maxConnections
+        maxConnections: this.config.maxConnections,
       });
     } catch (error) {
       await handleError(
-        error instanceof Error ? error : new Error('WebSocket server initialization failed'),
+        error instanceof Error
+          ? error
+          : new Error("WebSocket server initialization failed"),
         {
           correlationId: this.correlationId,
-          component: 'RealTimeStreamingService',
-          operation: 'initializeWebSocketServer'
-        }
+          component: "RealTimeStreamingService",
+          operation: "initializeWebSocketServer",
+        },
       );
-      
-      this.contextLogger.error('Failed to initialize WebSocket server', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+
+      this.contextLogger.error("Failed to initialize WebSocket server", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -226,15 +251,15 @@ export class RealTimeStreamingService extends BaseDataService {
     try {
       // Check connection limits
       if (this.clients.size >= this.config.maxConnections) {
-        this.sendError(ws, 'Maximum connections reached');
-        ws.close(1013, 'Maximum connections reached');
+        this.sendError(ws, "Maximum connections reached");
+        ws.close(1013, "Maximum connections reached");
         return;
       }
 
       // Validate origin
       if (!this.validateOrigin(request)) {
-        this.sendError(ws, 'Origin not allowed');
-        ws.close(1008, 'Origin not allowed');
+        this.sendError(ws, "Origin not allowed");
+        ws.close(1008, "Origin not allowed");
         return;
       }
 
@@ -247,55 +272,55 @@ export class RealTimeStreamingService extends BaseDataService {
         lastPing: Date.now(),
         isAlive: true,
         metadata: {
-          userAgent: request.headers['user-agent'],
+          userAgent: request.headers["user-agent"],
           ip: this.getClientIp(request),
-          connectedAt: Date.now()
-        }
+          connectedAt: Date.now(),
+        },
       };
 
       this.clients.set(clientId, client);
       this.stats.totalConnections++;
 
       // Set up event handlers
-      ws.on('message', (data: Buffer) => {
+      ws.on("message", (data: Buffer) => {
         this.handleMessage(clientId, data);
       });
 
-      ws.on('close', (code: number, reason: Buffer) => {
+      ws.on("close", (code: number, reason: Buffer) => {
         this.handleDisconnection(clientId, code, reason.toString());
       });
 
-      ws.on('error', (error: Error) => {
+      ws.on("error", (error: Error) => {
         this.handleClientError(clientId, error);
       });
 
-      ws.on('pong', () => {
+      ws.on("pong", () => {
         this.handlePong(clientId);
       });
 
       // Send welcome message
       this.sendToClient(clientId, {
-        type: 'connection_established',
+        type: "connection_established",
         data: {
           clientId,
           timestamp: Date.now(),
           config: {
             heartbeatInterval: this.config.heartbeatInterval,
-            maxMessageSize: this.config.maxMessageSize
-          }
-        }
+            maxMessageSize: this.config.maxMessageSize,
+          },
+        },
       });
 
-      this.contextLogger.info('Client connected', {
+      this.contextLogger.info("Client connected", {
         clientId,
         ip: client.metadata.ip,
-        totalConnections: this.clients.size
+        totalConnections: this.clients.size,
       });
     } catch (error) {
-      this.contextLogger.error('Failed to handle connection', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      this.contextLogger.error("Failed to handle connection", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
-      ws.close(1011, 'Internal server error');
+      ws.close(1011, "Internal server error");
     }
   }
 
@@ -312,27 +337,27 @@ export class RealTimeStreamingService extends BaseDataService {
       }
 
       switch (message.type) {
-        case 'subscribe':
+        case "subscribe":
           this.handleSubscribe(clientId, message.channels);
           break;
-        case 'unsubscribe':
+        case "unsubscribe":
           this.handleUnsubscribe(clientId, message.channels);
           break;
-        case 'ping':
+        case "ping":
           this.handlePing(clientId);
           break;
-        case 'auth':
+        case "auth":
           this.handleAuth(clientId, message.apiKey);
           break;
         default:
           this.sendError(clientId, `Unknown message type: ${message.type}`);
       }
     } catch (error) {
-      this.contextLogger.error('Failed to handle message', {
+      this.contextLogger.error("Failed to handle message", {
         clientId,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : "Unknown error",
       });
-      this.sendError(clientId, 'Invalid message format');
+      this.sendError(clientId, "Invalid message format");
     }
   }
 
@@ -350,24 +375,27 @@ export class RealTimeStreamingService extends BaseDataService {
     }
 
     this.sendToClient(clientId, {
-      type: 'subscription_confirmed',
+      type: "subscription_confirmed",
       data: {
         channels,
-        timestamp: Date.now()
-      }
+        timestamp: Date.now(),
+      },
     });
 
-    this.contextLogger.debug('Client subscribed', {
+    this.contextLogger.debug("Client subscribed", {
       clientId,
       channels,
-      totalSubscriptions: client.subscriptions.size
+      totalSubscriptions: client.subscriptions.size,
     });
   }
 
   /**
    * Handle client unsubscription
    */
-  private handleUnsubscribe(clientId: string, channels: StreamEventType[]): void {
+  private handleUnsubscribe(
+    clientId: string,
+    channels: StreamEventType[],
+  ): void {
     const client = this.clients.get(clientId);
     if (!client) {
       return;
@@ -378,17 +406,17 @@ export class RealTimeStreamingService extends BaseDataService {
     }
 
     this.sendToClient(clientId, {
-      type: 'unsubscription_confirmed',
+      type: "unsubscription_confirmed",
       data: {
         channels,
-        timestamp: Date.now()
-      }
+        timestamp: Date.now(),
+      },
     });
 
-    this.contextLogger.debug('Client unsubscribed', {
+    this.contextLogger.debug("Client unsubscribed", {
       clientId,
       channels,
-      totalSubscriptions: client.subscriptions.size
+      totalSubscriptions: client.subscriptions.size,
     });
   }
 
@@ -405,10 +433,10 @@ export class RealTimeStreamingService extends BaseDataService {
     client.isAlive = true;
 
     this.sendToClient(clientId, {
-      type: 'pong',
+      type: "pong",
       data: {
-        timestamp: Date.now()
-      }
+        timestamp: Date.now(),
+      },
     });
   }
 
@@ -430,10 +458,10 @@ export class RealTimeStreamingService extends BaseDataService {
   private handleAuth(clientId: string, apiKey: string): void {
     if (!this.config.security.apiKeyRequired) {
       this.sendToClient(clientId, {
-        type: 'auth_success',
+        type: "auth_success",
         data: {
-          timestamp: Date.now()
-        }
+          timestamp: Date.now(),
+        },
       });
       return;
     }
@@ -443,28 +471,32 @@ export class RealTimeStreamingService extends BaseDataService {
 
     if (isValid) {
       this.sendToClient(clientId, {
-        type: 'auth_success',
+        type: "auth_success",
         data: {
-          timestamp: Date.now()
-        }
+          timestamp: Date.now(),
+        },
       });
     } else {
-      this.sendError(clientId, 'Invalid API key');
-      this.disconnectClient(clientId, 1008, 'Authentication failed');
+      this.sendError(clientId, "Invalid API key");
+      this.disconnectClient(clientId, 1008, "Authentication failed");
     }
   }
 
   /**
    * Handle client disconnection
    */
-  private handleDisconnection(clientId: string, code: number, reason: string): void {
+  private handleDisconnection(
+    clientId: string,
+    code: number,
+    reason: string,
+  ): void {
     this.clients.delete(clientId);
-    
-    this.contextLogger.info('Client disconnected', {
+
+    this.contextLogger.info("Client disconnected", {
       clientId,
       code,
       reason,
-      totalConnections: this.clients.size
+      totalConnections: this.clients.size,
     });
   }
 
@@ -472,12 +504,12 @@ export class RealTimeStreamingService extends BaseDataService {
    * Handle client error
    */
   private handleClientError(clientId: string, error: Error): void {
-    this.contextLogger.error('Client error', {
+    this.contextLogger.error("Client error", {
       clientId,
-      error: error.message
+      error: error.message,
     });
-    
-    this.disconnectClient(clientId, 1011, 'Internal error');
+
+    this.disconnectClient(clientId, 1011, "Internal error");
   }
 
   /**
@@ -488,8 +520,8 @@ export class RealTimeStreamingService extends BaseDataService {
       this.performHeartbeat();
     }, this.config.heartbeatInterval);
 
-    this.contextLogger.info('Heartbeat mechanism started', {
-      interval: this.config.heartbeatInterval
+    this.contextLogger.info("Heartbeat mechanism started", {
+      interval: this.config.heartbeatInterval,
     });
   }
 
@@ -501,7 +533,7 @@ export class RealTimeStreamingService extends BaseDataService {
       clearInterval(this.heartbeatInterval);
       this.heartbeatInterval = null;
     }
-    this.contextLogger.info('Heartbeat mechanism stopped');
+    this.contextLogger.info("Heartbeat mechanism stopped");
   }
 
   /**
@@ -521,13 +553,13 @@ export class RealTimeStreamingService extends BaseDataService {
 
     // Remove dead clients
     for (const clientId of deadClients) {
-      this.disconnectClient(clientId, 1000, 'Heartbeat timeout');
+      this.disconnectClient(clientId, 1000, "Heartbeat timeout");
     }
 
     if (deadClients.length > 0) {
-      this.contextLogger.warn('Removed dead clients', {
+      this.contextLogger.warn("Removed dead clients", {
         count: deadClients.length,
-        clientIds: deadClients
+        clientIds: deadClients,
       });
     }
   }
@@ -540,7 +572,7 @@ export class RealTimeStreamingService extends BaseDataService {
       this.processEventQueue();
     }, 100); // Process events every 100ms
 
-    this.contextLogger.info('Event processing started');
+    this.contextLogger.info("Event processing started");
   }
 
   /**
@@ -551,7 +583,7 @@ export class RealTimeStreamingService extends BaseDataService {
       clearInterval(this.eventProcessingInterval);
       this.eventProcessingInterval = null;
     }
-    this.contextLogger.info('Event processing stopped');
+    this.contextLogger.info("Event processing stopped");
   }
 
   /**
@@ -581,8 +613,8 @@ export class RealTimeStreamingService extends BaseDataService {
    * Broadcast event to subscribed clients
    */
   private broadcastEvent(event: StreamEvent): void {
-    const subscribedClients = Array.from(this.clients.values()).filter(client =>
-      client.subscriptions.has(event.type)
+    const subscribedClients = Array.from(this.clients.values()).filter(
+      (client) => client.subscriptions.has(event.type),
     );
 
     for (const client of subscribedClients) {
@@ -590,13 +622,13 @@ export class RealTimeStreamingService extends BaseDataService {
         this.sendToClient(client.id, {
           type: event.type,
           data: event.data,
-          metadata: event.metadata
+          metadata: event.metadata,
         });
       } catch (error) {
-        this.contextLogger.error('Failed to send event to client', {
+        this.contextLogger.error("Failed to send event to client", {
           clientId: client.id,
           eventType: event.type,
-          error: error instanceof Error ? error.message : 'Unknown error'
+          error: error instanceof Error ? error.message : "Unknown error",
         });
       }
     }
@@ -617,11 +649,11 @@ export class RealTimeStreamingService extends BaseDataService {
       const messageStr = JSON.stringify(message);
       client.ws.send(messageStr);
     } catch (error) {
-      this.contextLogger.error('Failed to send message to client', {
+      this.contextLogger.error("Failed to send message to client", {
         clientId,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : "Unknown error",
       });
-      this.disconnectClient(clientId, 1011, 'Send error');
+      this.disconnectClient(clientId, 1011, "Send error");
     }
   }
 
@@ -630,18 +662,22 @@ export class RealTimeStreamingService extends BaseDataService {
    */
   private sendError(clientId: string, message: string): void {
     this.sendToClient(clientId, {
-      type: 'error',
+      type: "error",
       data: {
         message,
-        timestamp: Date.now()
-      }
+        timestamp: Date.now(),
+      },
     });
   }
 
   /**
    * Disconnect client
    */
-  private disconnectClient(clientId: string, code: number, reason: string): void {
+  private disconnectClient(
+    clientId: string,
+    code: number,
+    reason: string,
+  ): void {
     const client = this.clients.get(clientId);
     if (!client) {
       return;
@@ -650,9 +686,9 @@ export class RealTimeStreamingService extends BaseDataService {
     try {
       client.ws.close(code, reason);
     } catch (error) {
-      this.contextLogger.error('Failed to disconnect client', {
+      this.contextLogger.error("Failed to disconnect client", {
         clientId,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
 
@@ -663,8 +699,8 @@ export class RealTimeStreamingService extends BaseDataService {
    * Close all connections
    */
   private async closeAllConnections(): Promise<void> {
-    const disconnectPromises = Array.from(this.clients.keys()).map(clientId =>
-      this.disconnectClient(clientId, 1000, 'Server shutdown')
+    const disconnectPromises = Array.from(this.clients.keys()).map((clientId) =>
+      this.disconnectClient(clientId, 1000, "Server shutdown"),
     );
 
     await Promise.all(disconnectPromises);
@@ -674,13 +710,17 @@ export class RealTimeStreamingService extends BaseDataService {
   /**
    * Publish event to stream
    */
-  publishEvent(type: StreamEventType, data: any, metadata?: StreamEvent['metadata']): void {
+  publishEvent(
+    type: StreamEventType,
+    data: any,
+    metadata?: StreamEvent["metadata"],
+  ): void {
     const event: StreamEvent = {
       id: this.generateEventId(),
       type,
       timestamp: Date.now(),
       data,
-      metadata
+      metadata,
     };
 
     this.eventQueue.push(event);
@@ -688,7 +728,7 @@ export class RealTimeStreamingService extends BaseDataService {
     // Limit queue size
     if (this.eventQueue.length > 10000) {
       this.eventQueue = this.eventQueue.slice(-5000);
-      this.contextLogger.warn('Event queue size limit reached, trimming');
+      this.contextLogger.warn("Event queue size limit reached, trimming");
     }
   }
 
@@ -704,7 +744,7 @@ export class RealTimeStreamingService extends BaseDataService {
   }
 
   private validateOrigin(request: any): boolean {
-    if (this.config.security.allowedOrigins.includes('*')) {
+    if (this.config.security.allowedOrigins.includes("*")) {
       return true;
     }
 
@@ -713,10 +753,12 @@ export class RealTimeStreamingService extends BaseDataService {
   }
 
   private getClientIp(request: any): string {
-    return request.headers['x-forwarded-for']?.split(',')[0] ||
-           request.connection?.remoteAddress ||
-           request.socket?.remoteAddress ||
-           'unknown';
+    return (
+      request.headers["x-forwarded-for"]?.split(",")[0] ||
+      request.connection?.remoteAddress ||
+      request.socket?.remoteAddress ||
+      "unknown"
+    );
   }
 
   private validateApiKey(apiKey: string): boolean {
@@ -730,8 +772,8 @@ export class RealTimeStreamingService extends BaseDataService {
   getStats(): StreamStats {
     const now = Date.now();
     const uptime = now - this.stats.startTime;
-    const eventsPerSecond = uptime > 0 ? 
-      (this.stats.totalEventsSent / (uptime / 1000)) : 0;
+    const eventsPerSecond =
+      uptime > 0 ? this.stats.totalEventsSent / (uptime / 1000) : 0;
 
     return {
       totalConnections: this.stats.totalConnections,
@@ -741,7 +783,7 @@ export class RealTimeStreamingService extends BaseDataService {
       averageLatency: 0, // Would need to be calculated from actual measurements
       errorRate: 0, // Would need to be calculated from error tracking
       uptime,
-      memoryUsage: process.memoryUsage().heapUsed
+      memoryUsage: process.memoryUsage().heapUsed,
     };
   }
 
@@ -770,7 +812,7 @@ export class RealTimeStreamingService extends BaseDataService {
       trend_update: 0,
       alert: 0,
       performance_update: 0,
-      system_status: 0
+      system_status: 0,
     };
 
     for (const client of this.clients.values()) {
@@ -784,23 +826,23 @@ export class RealTimeStreamingService extends BaseDataService {
 
   async updateData(): Promise<void> {
     // Send system status update
-    this.publishEvent('system_status', {
+    this.publishEvent("system_status", {
       timestamp: Date.now(),
       stats: this.getStats(),
-      subscriptions: this.getSubscriptionStats()
+      subscriptions: this.getSubscriptionStats(),
     });
   }
 
   async forceUpdate(): Promise<any> {
     return {
       stats: this.getStats(),
-      clients: this.getAllClients().map(client => ({
+      clients: this.getAllClients().map((client) => ({
         id: client.id,
         subscriptions: Array.from(client.subscriptions),
         connectedAt: client.metadata.connectedAt,
-        isAlive: client.isAlive
+        isAlive: client.isAlive,
       })),
-      subscriptions: this.getSubscriptionStats()
+      subscriptions: this.getSubscriptionStats(),
     };
   }
-} 
+}

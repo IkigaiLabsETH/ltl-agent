@@ -1,17 +1,24 @@
-import { IAgentRuntime, elizaLogger } from '@elizaos/core';
-import { BaseDataService } from './BaseDataService';
-import { LoggerWithContext, generateCorrelationId } from '../utils/helpers';
-import { handleError, ErrorCategory } from '../utils/comprehensive-error-handling';
+import { IAgentRuntime, elizaLogger } from "@elizaos/core";
+import { BaseDataService } from "./BaseDataService";
+import { LoggerWithContext, generateCorrelationId } from "../utils/helpers";
+import {
+  handleError,
+  ErrorCategory,
+} from "../utils/comprehensive-error-handling";
 
 /**
  * Prediction model types
  */
-export type ModelType = 'price_prediction' | 'sentiment_analysis' | 'trend_forecast' | 'volatility_prediction';
+export type ModelType =
+  | "price_prediction"
+  | "sentiment_analysis"
+  | "trend_forecast"
+  | "volatility_prediction";
 
 /**
  * Prediction confidence levels
  */
-export type ConfidenceLevel = 'low' | 'medium' | 'high' | 'very_high';
+export type ConfidenceLevel = "low" | "medium" | "high" | "very_high";
 
 /**
  * Market prediction result
@@ -25,7 +32,7 @@ export interface MarketPrediction {
     confidence: ConfidenceLevel;
     confidenceScore: number;
     timeframe: string;
-    direction: 'up' | 'down' | 'sideways';
+    direction: "up" | "down" | "sideways";
   };
   factors: {
     technical: number;
@@ -49,7 +56,7 @@ export interface SentimentAnalysis {
   timestamp: number;
   overall: {
     score: number;
-    label: 'very_bearish' | 'bearish' | 'neutral' | 'bullish' | 'very_bullish';
+    label: "very_bearish" | "bearish" | "neutral" | "bullish" | "very_bullish";
     confidence: ConfidenceLevel;
   };
   sources: {
@@ -77,19 +84,19 @@ export interface TrendForecast {
   id: string;
   timestamp: number;
   shortTerm: {
-    direction: 'up' | 'down' | 'sideways';
+    direction: "up" | "down" | "sideways";
     confidence: ConfidenceLevel;
     timeframe: string;
     probability: number;
   };
   mediumTerm: {
-    direction: 'up' | 'down' | 'sideways';
+    direction: "up" | "down" | "sideways";
     confidence: ConfidenceLevel;
     timeframe: string;
     probability: number;
   };
   longTerm: {
-    direction: 'up' | 'down' | 'sideways';
+    direction: "up" | "down" | "sideways";
     confidence: ConfidenceLevel;
     timeframe: string;
     probability: number;
@@ -98,7 +105,7 @@ export interface TrendForecast {
   resistance: number[];
   keyLevels: Array<{
     price: number;
-    type: 'support' | 'resistance' | 'breakout';
+    type: "support" | "resistance" | "breakout";
     strength: number;
   }>;
 }
@@ -148,8 +155,8 @@ export interface FeatureConfig {
  * Uses machine learning for Bitcoin price predictions, sentiment analysis, and trend forecasting
  */
 export class PredictiveAnalyticsService extends BaseDataService {
-  static serviceType = 'predictive-analytics';
-  
+  static serviceType = "predictive-analytics";
+
   private contextLogger: LoggerWithContext;
   private models: Map<ModelType, any> = new Map();
   private predictions: Map<string, MarketPrediction> = new Map();
@@ -162,40 +169,45 @@ export class PredictiveAnalyticsService extends BaseDataService {
   private trainingInterval: NodeJS.Timeout | null = null;
 
   constructor(runtime: IAgentRuntime) {
-    super(runtime, 'bitcoinData');
-    this.contextLogger = new LoggerWithContext(generateCorrelationId(), 'PredictiveAnalytics');
+    super(runtime, "bitcoinData");
+    this.contextLogger = new LoggerWithContext(
+      generateCorrelationId(),
+      "PredictiveAnalytics",
+    );
     this.featureConfig = this.getDefaultFeatureConfig();
   }
 
   public get capabilityDescription(): string {
-    return 'Advanced machine learning-based predictive analytics for Bitcoin price predictions, sentiment analysis, and trend forecasting';
+    return "Advanced machine learning-based predictive analytics for Bitcoin price predictions, sentiment analysis, and trend forecasting";
   }
 
   static async start(runtime: IAgentRuntime) {
-    elizaLogger.info('Starting PredictiveAnalyticsService...');
+    elizaLogger.info("Starting PredictiveAnalyticsService...");
     return new PredictiveAnalyticsService(runtime);
   }
 
   static async stop(runtime: IAgentRuntime) {
-    elizaLogger.info('Stopping PredictiveAnalyticsService...');
-    const service = runtime.getService('predictive-analytics') as PredictiveAnalyticsService;
+    elizaLogger.info("Stopping PredictiveAnalyticsService...");
+    const service = runtime.getService(
+      "predictive-analytics",
+    ) as PredictiveAnalyticsService;
     if (service) {
       await service.stop();
     }
   }
 
   async start(): Promise<void> {
-    this.contextLogger.info('PredictiveAnalyticsService starting...');
+    this.contextLogger.info("PredictiveAnalyticsService starting...");
     await this.initializeModels();
     this.startTrainingSchedule();
   }
 
   async init() {
-    this.contextLogger.info('PredictiveAnalyticsService initialized');
+    this.contextLogger.info("PredictiveAnalyticsService initialized");
   }
 
   async stop() {
-    this.contextLogger.info('PredictiveAnalyticsService stopping...');
+    this.contextLogger.info("PredictiveAnalyticsService stopping...");
     this.stopTrainingSchedule();
   }
 
@@ -206,24 +218,33 @@ export class PredictiveAnalyticsService extends BaseDataService {
     return {
       technical: {
         enabled: true,
-        indicators: ['sma', 'ema', 'rsi', 'macd', 'bollinger_bands', 'volume'],
-        lookbackPeriods: [7, 14, 30, 90, 200]
+        indicators: ["sma", "ema", "rsi", "macd", "bollinger_bands", "volume"],
+        lookbackPeriods: [7, 14, 30, 90, 200],
       },
       fundamental: {
         enabled: true,
-        metrics: ['market_cap', 'volume', 'dominance', 'adoption_rate'],
-        sources: ['coingecko', 'glassnode', 'coinmetrics']
+        metrics: ["market_cap", "volume", "dominance", "adoption_rate"],
+        sources: ["coingecko", "glassnode", "coinmetrics"],
       },
       sentiment: {
         enabled: true,
-        sources: ['twitter', 'reddit', 'news', 'social_media'],
-        keywords: ['bitcoin', 'btc', 'crypto', 'bull', 'bear', 'moon', 'dump']
+        sources: ["twitter", "reddit", "news", "social_media"],
+        keywords: ["bitcoin", "btc", "crypto", "bull", "bear", "moon", "dump"],
       },
       onchain: {
         enabled: true,
-        metrics: ['active_addresses', 'transaction_count', 'hash_rate', 'difficulty'],
-        addresses: ['whale_addresses', 'exchange_addresses', 'mining_addresses']
-      }
+        metrics: [
+          "active_addresses",
+          "transaction_count",
+          "hash_rate",
+          "difficulty",
+        ],
+        addresses: [
+          "whale_addresses",
+          "exchange_addresses",
+          "mining_addresses",
+        ],
+      },
     };
   }
 
@@ -232,7 +253,7 @@ export class PredictiveAnalyticsService extends BaseDataService {
    */
   private async initializeModels(): Promise<void> {
     try {
-      this.contextLogger.info('Initializing predictive models...');
+      this.contextLogger.info("Initializing predictive models...");
 
       // Initialize price prediction model
       await this.initializePricePredictionModel();
@@ -246,19 +267,21 @@ export class PredictiveAnalyticsService extends BaseDataService {
       // Initialize volatility prediction model
       await this.initializeVolatilityPredictionModel();
 
-      this.contextLogger.info('All predictive models initialized successfully');
+      this.contextLogger.info("All predictive models initialized successfully");
     } catch (error) {
       await handleError(
-        error instanceof Error ? error : new Error('Model initialization failed'),
+        error instanceof Error
+          ? error
+          : new Error("Model initialization failed"),
         {
           correlationId: this.correlationId,
-          component: 'PredictiveAnalyticsService',
-          operation: 'initializeModels'
-        }
+          component: "PredictiveAnalyticsService",
+          operation: "initializeModels",
+        },
       );
-      
-      this.contextLogger.error('Failed to initialize predictive models', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+
+      this.contextLogger.error("Failed to initialize predictive models", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -271,32 +294,39 @@ export class PredictiveAnalyticsService extends BaseDataService {
       // In a real implementation, this would load a trained ML model
       // For now, we'll create a mock model with basic logic
       const model = {
-        type: 'price_prediction',
-        version: '1.0.0',
-        features: ['price', 'volume', 'market_cap', 'sentiment', 'onchain_metrics'],
+        type: "price_prediction",
+        version: "1.0.0",
+        features: [
+          "price",
+          "volume",
+          "market_cap",
+          "sentiment",
+          "onchain_metrics",
+        ],
         predict: async (features: any) => {
           // Mock prediction logic
           const basePrice = features.price || 50000;
           const sentimentFactor = features.sentiment || 0.5;
           const volumeFactor = features.volume || 1.0;
-          
-          const prediction = basePrice * (1 + (sentimentFactor - 0.5) * 0.1) * volumeFactor;
+
+          const prediction =
+            basePrice * (1 + (sentimentFactor - 0.5) * 0.1) * volumeFactor;
           const confidence = this.calculateConfidence(features);
-          
+
           return {
             value: prediction,
             confidence,
             confidenceScore: this.confidenceToScore(confidence),
-            direction: prediction > basePrice ? 'up' : 'down'
+            direction: prediction > basePrice ? "up" : "down",
           };
-        }
+        },
       };
 
-      this.models.set('price_prediction', model);
-      this.contextLogger.info('Price prediction model initialized');
+      this.models.set("price_prediction", model);
+      this.contextLogger.info("Price prediction model initialized");
     } catch (error) {
-      this.contextLogger.error('Failed to initialize price prediction model', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      this.contextLogger.error("Failed to initialize price prediction model", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -307,18 +337,18 @@ export class PredictiveAnalyticsService extends BaseDataService {
   private async initializeSentimentAnalysisModel(): Promise<void> {
     try {
       const model = {
-        type: 'sentiment_analysis',
-        version: '1.0.0',
-        features: ['social_sentiment', 'news_sentiment', 'technical_sentiment'],
+        type: "sentiment_analysis",
+        version: "1.0.0",
+        features: ["social_sentiment", "news_sentiment", "technical_sentiment"],
         analyze: async (data: any) => {
           // Mock sentiment analysis
           const socialScore = data.social || 0.5;
           const newsScore = data.news || 0.5;
           const technicalScore = data.technical || 0.5;
-          
+
           const overallScore = (socialScore + newsScore + technicalScore) / 3;
           const label = this.scoreToSentimentLabel(overallScore);
-          
+
           return {
             score: overallScore,
             label,
@@ -327,18 +357,21 @@ export class PredictiveAnalyticsService extends BaseDataService {
               social: socialScore,
               news: newsScore,
               technical: technicalScore,
-              onchain: data.onchain || 0.5
-            }
+              onchain: data.onchain || 0.5,
+            },
           };
-        }
+        },
       };
 
-      this.models.set('sentiment_analysis', model);
-      this.contextLogger.info('Sentiment analysis model initialized');
+      this.models.set("sentiment_analysis", model);
+      this.contextLogger.info("Sentiment analysis model initialized");
     } catch (error) {
-      this.contextLogger.error('Failed to initialize sentiment analysis model', {
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
+      this.contextLogger.error(
+        "Failed to initialize sentiment analysis model",
+        {
+          error: error instanceof Error ? error.message : "Unknown error",
+        },
+      );
     }
   }
 
@@ -348,31 +381,36 @@ export class PredictiveAnalyticsService extends BaseDataService {
   private async initializeTrendForecastModel(): Promise<void> {
     try {
       const model = {
-        type: 'trend_forecast',
-        version: '1.0.0',
-        features: ['price_trend', 'volume_trend', 'momentum', 'support_resistance'],
+        type: "trend_forecast",
+        version: "1.0.0",
+        features: [
+          "price_trend",
+          "volume_trend",
+          "momentum",
+          "support_resistance",
+        ],
         forecast: async (data: any) => {
           // Mock trend forecasting
-          const shortTerm = this.forecastTrend(data, 'short');
-          const mediumTerm = this.forecastTrend(data, 'medium');
-          const longTerm = this.forecastTrend(data, 'long');
-          
+          const shortTerm = this.forecastTrend(data, "short");
+          const mediumTerm = this.forecastTrend(data, "medium");
+          const longTerm = this.forecastTrend(data, "long");
+
           return {
             shortTerm,
             mediumTerm,
             longTerm,
             support: [45000, 48000, 50000],
             resistance: [52000, 55000, 58000],
-            keyLevels: this.generateKeyLevels(data)
+            keyLevels: this.generateKeyLevels(data),
           };
-        }
+        },
       };
 
-      this.models.set('trend_forecast', model);
-      this.contextLogger.info('Trend forecast model initialized');
+      this.models.set("trend_forecast", model);
+      this.contextLogger.info("Trend forecast model initialized");
     } catch (error) {
-      this.contextLogger.error('Failed to initialize trend forecast model', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      this.contextLogger.error("Failed to initialize trend forecast model", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -383,32 +421,36 @@ export class PredictiveAnalyticsService extends BaseDataService {
   private async initializeVolatilityPredictionModel(): Promise<void> {
     try {
       const model = {
-        type: 'volatility_prediction',
-        version: '1.0.0',
-        features: ['historical_volatility', 'market_conditions', 'news_impact'],
+        type: "volatility_prediction",
+        version: "1.0.0",
+        features: ["historical_volatility", "market_conditions", "news_impact"],
         predict: async (data: any) => {
           // Mock volatility prediction
           const baseVolatility = data.historical_volatility || 0.3;
           const marketFactor = data.market_conditions || 1.0;
           const newsFactor = data.news_impact || 1.0;
-          
-          const predictedVolatility = baseVolatility * marketFactor * newsFactor;
-          
+
+          const predictedVolatility =
+            baseVolatility * marketFactor * newsFactor;
+
           return {
             value: predictedVolatility,
             confidence: this.calculateConfidence(data),
-            timeframe: '24h',
-            riskLevel: this.volatilityToRiskLevel(predictedVolatility)
+            timeframe: "24h",
+            riskLevel: this.volatilityToRiskLevel(predictedVolatility),
           };
-        }
+        },
       };
 
-      this.models.set('volatility_prediction', model);
-      this.contextLogger.info('Volatility prediction model initialized');
+      this.models.set("volatility_prediction", model);
+      this.contextLogger.info("Volatility prediction model initialized");
     } catch (error) {
-      this.contextLogger.error('Failed to initialize volatility prediction model', {
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
+      this.contextLogger.error(
+        "Failed to initialize volatility prediction model",
+        {
+          error: error instanceof Error ? error.message : "Unknown error",
+        },
+      );
     }
   }
 
@@ -417,11 +459,14 @@ export class PredictiveAnalyticsService extends BaseDataService {
    */
   private startTrainingSchedule(): void {
     // Retrain models every 24 hours
-    this.trainingInterval = setInterval(() => {
-      this.retrainModels();
-    }, 24 * 60 * 60 * 1000);
+    this.trainingInterval = setInterval(
+      () => {
+        this.retrainModels();
+      },
+      24 * 60 * 60 * 1000,
+    );
 
-    this.contextLogger.info('Model training schedule started');
+    this.contextLogger.info("Model training schedule started");
   }
 
   /**
@@ -432,7 +477,7 @@ export class PredictiveAnalyticsService extends BaseDataService {
       clearInterval(this.trainingInterval);
       this.trainingInterval = null;
     }
-    this.contextLogger.info('Model training schedule stopped');
+    this.contextLogger.info("Model training schedule stopped");
   }
 
   /**
@@ -440,13 +485,13 @@ export class PredictiveAnalyticsService extends BaseDataService {
    */
   private async retrainModels(): Promise<void> {
     if (this.isTraining) {
-      this.contextLogger.warn('Model training already in progress, skipping');
+      this.contextLogger.warn("Model training already in progress, skipping");
       return;
     }
 
     try {
       this.isTraining = true;
-      this.contextLogger.info('Starting model retraining...');
+      this.contextLogger.info("Starting model retraining...");
 
       // Collect training data
       const trainingData = await this.collectTrainingData();
@@ -457,19 +502,19 @@ export class PredictiveAnalyticsService extends BaseDataService {
       }
 
       this.lastTraining = Date.now();
-      this.contextLogger.info('Model retraining completed successfully');
+      this.contextLogger.info("Model retraining completed successfully");
     } catch (error) {
       await handleError(
-        error instanceof Error ? error : new Error('Model retraining failed'),
+        error instanceof Error ? error : new Error("Model retraining failed"),
         {
           correlationId: this.correlationId,
-          component: 'PredictiveAnalyticsService',
-          operation: 'retrainModels'
-        }
+          component: "PredictiveAnalyticsService",
+          operation: "retrainModels",
+        },
       );
-      
-      this.contextLogger.error('Failed to retrain models', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+
+      this.contextLogger.error("Failed to retrain models", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     } finally {
       this.isTraining = false;
@@ -487,13 +532,13 @@ export class PredictiveAnalyticsService extends BaseDataService {
         price: await this.getHistoricalPriceData(),
         volume: await this.getHistoricalVolumeData(),
         sentiment: await this.getHistoricalSentimentData(),
-        onchain: await this.getHistoricalOnchainData()
+        onchain: await this.getHistoricalOnchainData(),
       };
 
       return data;
     } catch (error) {
-      this.contextLogger.error('Failed to collect training data', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      this.contextLogger.error("Failed to collect training data", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       return {};
     }
@@ -502,19 +547,23 @@ export class PredictiveAnalyticsService extends BaseDataService {
   /**
    * Retrain a specific model
    */
-  private async retrainModel(modelType: ModelType, model: any, trainingData: any): Promise<void> {
+  private async retrainModel(
+    modelType: ModelType,
+    model: any,
+    trainingData: any,
+  ): Promise<void> {
     try {
       this.contextLogger.info(`Retraining ${modelType} model...`);
-      
+
       // In a real implementation, this would use actual ML training
       // For now, we'll just update the model version
       model.version = this.incrementVersion(model.version);
       model.lastTraining = Date.now();
-      
+
       this.contextLogger.info(`${modelType} model retrained successfully`);
     } catch (error) {
       this.contextLogger.error(`Failed to retrain ${modelType} model`, {
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -522,11 +571,13 @@ export class PredictiveAnalyticsService extends BaseDataService {
   /**
    * Generate price prediction
    */
-  async generatePricePrediction(timeframe: string = '24h'): Promise<MarketPrediction> {
+  async generatePricePrediction(
+    timeframe: string = "24h",
+  ): Promise<MarketPrediction> {
     try {
-      const model = this.models.get('price_prediction');
+      const model = this.models.get("price_prediction");
       if (!model) {
-        throw new Error('Price prediction model not available');
+        throw new Error("Price prediction model not available");
       }
 
       // Collect current market features
@@ -537,41 +588,43 @@ export class PredictiveAnalyticsService extends BaseDataService {
 
       const result: MarketPrediction = {
         id: `price_pred_${Date.now()}`,
-        type: 'price_prediction',
+        type: "price_prediction",
         timestamp: Date.now(),
         prediction: {
           ...prediction,
-          timeframe
+          timeframe,
         },
         factors: {
           technical: features.technical || 0.5,
           fundamental: features.fundamental || 0.5,
           sentiment: features.sentiment || 0.5,
-          onchain: features.onchain || 0.5
+          onchain: features.onchain || 0.5,
         },
         metadata: {
           modelVersion: model.version,
           features: Object.keys(features),
-          accuracy: this.getModelAccuracy('price_prediction'),
-          lastTraining: model.lastTraining || 0
-        }
+          accuracy: this.getModelAccuracy("price_prediction"),
+          lastTraining: model.lastTraining || 0,
+        },
       };
 
       this.predictions.set(result.id, result);
-      this.contextLogger.info('Price prediction generated', { prediction: result.prediction });
+      this.contextLogger.info("Price prediction generated", {
+        prediction: result.prediction,
+      });
 
       return result;
     } catch (error) {
       await handleError(
-        error instanceof Error ? error : new Error('Price prediction failed'),
+        error instanceof Error ? error : new Error("Price prediction failed"),
         {
           correlationId: this.correlationId,
-          component: 'PredictiveAnalyticsService',
-          operation: 'generatePricePrediction',
-          params: { timeframe }
-        }
+          component: "PredictiveAnalyticsService",
+          operation: "generatePricePrediction",
+          params: { timeframe },
+        },
       );
-      
+
       throw error;
     }
   }
@@ -581,9 +634,9 @@ export class PredictiveAnalyticsService extends BaseDataService {
    */
   async generateSentimentAnalysis(): Promise<SentimentAnalysis> {
     try {
-      const model = this.models.get('sentiment_analysis');
+      const model = this.models.get("sentiment_analysis");
       if (!model) {
-        throw new Error('Sentiment analysis model not available');
+        throw new Error("Sentiment analysis model not available");
       }
 
       // Collect sentiment data
@@ -600,25 +653,27 @@ export class PredictiveAnalyticsService extends BaseDataService {
         trends: {
           change24h: this.calculateSentimentChange(24),
           change7d: this.calculateSentimentChange(168),
-          momentum: this.calculateSentimentMomentum()
+          momentum: this.calculateSentimentMomentum(),
         },
-        keywords: await this.extractKeywords(sentimentData)
+        keywords: await this.extractKeywords(sentimentData),
       };
 
       this.sentimentData.set(result.id, result);
-      this.contextLogger.info('Sentiment analysis generated', { sentiment: result.overall });
+      this.contextLogger.info("Sentiment analysis generated", {
+        sentiment: result.overall,
+      });
 
       return result;
     } catch (error) {
       await handleError(
-        error instanceof Error ? error : new Error('Sentiment analysis failed'),
+        error instanceof Error ? error : new Error("Sentiment analysis failed"),
         {
           correlationId: this.correlationId,
-          component: 'PredictiveAnalyticsService',
-          operation: 'generateSentimentAnalysis'
-        }
+          component: "PredictiveAnalyticsService",
+          operation: "generateSentimentAnalysis",
+        },
       );
-      
+
       throw error;
     }
   }
@@ -628,9 +683,9 @@ export class PredictiveAnalyticsService extends BaseDataService {
    */
   async generateTrendForecast(): Promise<TrendForecast> {
     try {
-      const model = this.models.get('trend_forecast');
+      const model = this.models.get("trend_forecast");
       if (!model) {
-        throw new Error('Trend forecast model not available');
+        throw new Error("Trend forecast model not available");
       }
 
       // Collect trend data
@@ -647,23 +702,25 @@ export class PredictiveAnalyticsService extends BaseDataService {
         longTerm: forecast.longTerm,
         support: forecast.support,
         resistance: forecast.resistance,
-        keyLevels: forecast.keyLevels
+        keyLevels: forecast.keyLevels,
       };
 
       this.trendData.set(result.id, result);
-      this.contextLogger.info('Trend forecast generated', { forecast: result.shortTerm });
+      this.contextLogger.info("Trend forecast generated", {
+        forecast: result.shortTerm,
+      });
 
       return result;
     } catch (error) {
       await handleError(
-        error instanceof Error ? error : new Error('Trend forecast failed'),
+        error instanceof Error ? error : new Error("Trend forecast failed"),
         {
           correlationId: this.correlationId,
-          component: 'PredictiveAnalyticsService',
-          operation: 'generateTrendForecast'
-        }
+          component: "PredictiveAnalyticsService",
+          operation: "generateTrendForecast",
+        },
       );
-      
+
       throw error;
     }
   }
@@ -681,13 +738,13 @@ export class PredictiveAnalyticsService extends BaseDataService {
         sentiment: 0.6,
         technical: 0.7,
         fundamental: 0.5,
-        onchain: 0.8
+        onchain: 0.8,
       };
 
       return features;
     } catch (error) {
-      this.contextLogger.error('Failed to collect price prediction features', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      this.contextLogger.error("Failed to collect price prediction features", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       return {};
     }
@@ -703,13 +760,13 @@ export class PredictiveAnalyticsService extends BaseDataService {
         social: 0.6,
         news: 0.5,
         technical: 0.7,
-        onchain: 0.8
+        onchain: 0.8,
       };
 
       return data;
     } catch (error) {
-      this.contextLogger.error('Failed to collect sentiment data', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      this.contextLogger.error("Failed to collect sentiment data", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       return {};
     }
@@ -723,18 +780,20 @@ export class PredictiveAnalyticsService extends BaseDataService {
       // In a real implementation, this would collect historical trend data
       const data = {
         price_trend: [50000, 51000, 52000, 53000, 54000],
-        volume_trend: [1000000000, 1100000000, 1200000000, 1300000000, 1400000000],
+        volume_trend: [
+          1000000000, 1100000000, 1200000000, 1300000000, 1400000000,
+        ],
         momentum: 0.7,
         support_resistance: {
           support: [45000, 48000, 50000],
-          resistance: [52000, 55000, 58000]
-        }
+          resistance: [52000, 55000, 58000],
+        },
       };
 
       return data;
     } catch (error) {
-      this.contextLogger.error('Failed to collect trend data', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      this.contextLogger.error("Failed to collect trend data", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       return {};
     }
@@ -746,10 +805,10 @@ export class PredictiveAnalyticsService extends BaseDataService {
   private calculateConfidence(features: any): ConfidenceLevel {
     // Mock confidence calculation
     const score = Math.random();
-    if (score > 0.8) return 'very_high';
-    if (score > 0.6) return 'high';
-    if (score > 0.4) return 'medium';
-    return 'low';
+    if (score > 0.8) return "very_high";
+    if (score > 0.6) return "high";
+    if (score > 0.4) return "medium";
+    return "low";
   }
 
   private confidenceToScore(confidence: ConfidenceLevel): number {
@@ -757,39 +816,47 @@ export class PredictiveAnalyticsService extends BaseDataService {
     return scores[confidence];
   }
 
-  private scoreToSentimentLabel(score: number): 'very_bearish' | 'bearish' | 'neutral' | 'bullish' | 'very_bullish' {
-    if (score < 0.2) return 'very_bearish';
-    if (score < 0.4) return 'bearish';
-    if (score < 0.6) return 'neutral';
-    if (score < 0.8) return 'bullish';
-    return 'very_bullish';
+  private scoreToSentimentLabel(
+    score: number,
+  ): "very_bearish" | "bearish" | "neutral" | "bullish" | "very_bullish" {
+    if (score < 0.2) return "very_bearish";
+    if (score < 0.4) return "bearish";
+    if (score < 0.6) return "neutral";
+    if (score < 0.8) return "bullish";
+    return "very_bullish";
   }
 
   private forecastTrend(data: any, timeframe: string): any {
-    const directions = ['up', 'down', 'sideways'];
-    const confidences: ConfidenceLevel[] = ['low', 'medium', 'high'];
-    
+    const directions = ["up", "down", "sideways"];
+    const confidences: ConfidenceLevel[] = ["low", "medium", "high"];
+
     return {
       direction: directions[Math.floor(Math.random() * directions.length)],
       confidence: confidences[Math.floor(Math.random() * confidences.length)],
       timeframe,
-      probability: Math.random()
+      probability: Math.random(),
     };
   }
 
-  private generateKeyLevels(data: any): Array<{ price: number; type: 'support' | 'resistance' | 'breakout'; strength: number }> {
+  private generateKeyLevels(
+    data: any,
+  ): Array<{
+    price: number;
+    type: "support" | "resistance" | "breakout";
+    strength: number;
+  }> {
     return [
-      { price: 45000, type: 'support', strength: 0.8 },
-      { price: 48000, type: 'support', strength: 0.6 },
-      { price: 52000, type: 'resistance', strength: 0.7 },
-      { price: 55000, type: 'resistance', strength: 0.9 }
+      { price: 45000, type: "support", strength: 0.8 },
+      { price: 48000, type: "support", strength: 0.6 },
+      { price: 52000, type: "resistance", strength: 0.7 },
+      { price: 55000, type: "resistance", strength: 0.9 },
     ];
   }
 
   private volatilityToRiskLevel(volatility: number): string {
-    if (volatility < 0.2) return 'low';
-    if (volatility < 0.4) return 'medium';
-    return 'high';
+    if (volatility < 0.2) return "low";
+    if (volatility < 0.4) return "medium";
+    return "high";
   }
 
   private calculateSentimentChange(hours: number): number {
@@ -800,11 +867,13 @@ export class PredictiveAnalyticsService extends BaseDataService {
     return Math.random() * 0.3 - 0.15; // -0.15 to 0.15
   }
 
-  private async extractKeywords(data: any): Promise<Array<{ term: string; sentiment: number; frequency: number }>> {
+  private async extractKeywords(
+    data: any,
+  ): Promise<Array<{ term: string; sentiment: number; frequency: number }>> {
     return [
-      { term: 'bitcoin', sentiment: 0.7, frequency: 100 },
-      { term: 'bull', sentiment: 0.8, frequency: 50 },
-      { term: 'bear', sentiment: 0.3, frequency: 30 }
+      { term: "bitcoin", sentiment: 0.7, frequency: 100 },
+      { term: "bull", sentiment: 0.8, frequency: 50 },
+      { term: "bear", sentiment: 0.3, frequency: 30 },
     ];
   }
 
@@ -813,36 +882,36 @@ export class PredictiveAnalyticsService extends BaseDataService {
       price_prediction: 0.75,
       sentiment_analysis: 0.82,
       trend_forecast: 0.68,
-      volatility_prediction: 0.71
+      volatility_prediction: 0.71,
     };
     return accuracies[modelType] || 0.5;
   }
 
   private incrementVersion(version: string): string {
-    const parts = version.split('.');
+    const parts = version.split(".");
     parts[2] = (parseInt(parts[2]) + 1).toString();
-    return parts.join('.');
+    return parts.join(".");
   }
 
   // Mock data collection methods
   private async getHistoricalPriceData(): Promise<any[]> {
     return Array.from({ length: 100 }, (_, i) => ({
       timestamp: Date.now() - i * 24 * 60 * 60 * 1000,
-      price: 50000 + Math.random() * 10000
+      price: 50000 + Math.random() * 10000,
     }));
   }
 
   private async getHistoricalVolumeData(): Promise<any[]> {
     return Array.from({ length: 100 }, (_, i) => ({
       timestamp: Date.now() - i * 24 * 60 * 60 * 1000,
-      volume: 1000000000 + Math.random() * 500000000
+      volume: 1000000000 + Math.random() * 500000000,
     }));
   }
 
   private async getHistoricalSentimentData(): Promise<any[]> {
     return Array.from({ length: 100 }, (_, i) => ({
       timestamp: Date.now() - i * 24 * 60 * 60 * 1000,
-      sentiment: Math.random()
+      sentiment: Math.random(),
     }));
   }
 
@@ -850,7 +919,7 @@ export class PredictiveAnalyticsService extends BaseDataService {
     return Array.from({ length: 100 }, (_, i) => ({
       timestamp: Date.now() - i * 24 * 60 * 60 * 1000,
       active_addresses: 1000000 + Math.random() * 500000,
-      transaction_count: 300000 + Math.random() * 100000
+      transaction_count: 300000 + Math.random() * 100000,
     }));
   }
 
@@ -899,7 +968,7 @@ export class PredictiveAnalyticsService extends BaseDataService {
       totalTrendForecasts: this.trendData.size,
       modelCount: this.models.size,
       lastTraining: this.lastTraining,
-      isTraining: this.isTraining
+      isTraining: this.isTraining,
     };
   }
 
@@ -915,7 +984,7 @@ export class PredictiveAnalyticsService extends BaseDataService {
       predictions: this.getAllPredictions(),
       sentiment: this.getAllSentimentAnalyses(),
       trends: this.getAllTrendForecasts(),
-      performance: this.getModelPerformance()
+      performance: this.getModelPerformance(),
     };
   }
-} 
+}

@@ -17,12 +17,14 @@ export interface CoinGeckoSimplePriceResponse {
     usd_market_cap?: number;
     usd_24h_vol?: number;
   };
-  [coinId: string]: {
-    usd?: number;
-    usd_24h_change?: number;
-    usd_market_cap?: number;
-    usd_24h_vol?: number;
-  } | undefined;
+  [coinId: string]:
+    | {
+        usd?: number;
+        usd_24h_change?: number;
+        usd_market_cap?: number;
+        usd_24h_vol?: number;
+      }
+    | undefined;
 }
 
 export interface CoinGeckoMarketDataResponse {
@@ -280,14 +282,17 @@ export interface OpenSeaCollectionResponse {
     seller_fee_basis_points: number;
     payout_address: string | null;
   }>;
-  traits: Record<string, Array<{
-    trait_type: string;
-    value: string;
-    display_type: string | null;
-    max_value: string | null;
-    trait_count: number;
-    order: string | null;
-  }>>;
+  traits: Record<
+    string,
+    Array<{
+      trait_type: string;
+      value: string;
+      display_type: string | null;
+      max_value: string | null;
+      trait_count: number;
+      order: string | null;
+    }>
+  >;
   sales_stats: {
     one_day_sales: number;
     one_day_average_price: number;
@@ -533,10 +538,13 @@ export interface CoinGeckoGlobalDataResponse {
 }
 
 export interface CoinGeckoExchangeRatesResponse {
-  rates: Record<string, {
-    name: string;
-    unit: string;
-    value: number;
-    type: string;
-  }>;
-} 
+  rates: Record<
+    string,
+    {
+      name: string;
+      unit: string;
+      value: number;
+      type: string;
+    }
+  >;
+}

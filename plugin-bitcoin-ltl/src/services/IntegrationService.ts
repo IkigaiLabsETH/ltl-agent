@@ -1,12 +1,15 @@
-import { IAgentRuntime, elizaLogger } from '@elizaos/core';
-import { BaseDataService } from './BaseDataService';
-import { LoggerWithContext, generateCorrelationId } from '../utils/helpers';
-import { handleError, ErrorCategory } from '../utils/comprehensive-error-handling';
-import { CentralizedConfigService } from './CentralizedConfigService';
-import { CacheService } from './CacheService';
-import { PerformanceMonitorService } from './PerformanceMonitorService';
-import { BitcoinNetworkService } from './BitcoinNetworkService';
-import { MarketDataService } from './MarketDataService';
+import { IAgentRuntime, elizaLogger } from "@elizaos/core";
+import { BaseDataService } from "./BaseDataService";
+import { LoggerWithContext, generateCorrelationId } from "../utils/helpers";
+import {
+  handleError,
+  ErrorCategory,
+} from "../utils/comprehensive-error-handling";
+import { CentralizedConfigService } from "./CentralizedConfigService";
+import { CacheService } from "./CacheService";
+import { PerformanceMonitorService } from "./PerformanceMonitorService";
+import { BitcoinNetworkService } from "./BitcoinNetworkService";
+import { MarketDataService } from "./MarketDataService";
 
 /**
  * Integration service status
@@ -42,8 +45,8 @@ export interface IntegrationConfig {
  * Coordinates all architecture components and provides unified interface
  */
 export class IntegrationService extends BaseDataService {
-  static serviceType = 'integration';
-  
+  static serviceType = "integration";
+
   private contextLogger: LoggerWithContext;
   private configService: CentralizedConfigService | null = null;
   private cacheService: CacheService | null = null;
@@ -57,41 +60,44 @@ export class IntegrationService extends BaseDataService {
   private errorCount: number = 0;
 
   constructor(runtime: IAgentRuntime) {
-    super(runtime, 'bitcoinData');
-    this.contextLogger = new LoggerWithContext(generateCorrelationId(), 'IntegrationService');
+    super(runtime, "bitcoinData");
+    this.contextLogger = new LoggerWithContext(
+      generateCorrelationId(),
+      "IntegrationService",
+    );
     this.integrationConfig = this.getDefaultIntegrationConfig();
   }
 
   public get capabilityDescription(): string {
-    return 'Coordinates all architecture components and provides unified interface for the Bitcoin LTL plugin';
+    return "Coordinates all architecture components and provides unified interface for the Bitcoin LTL plugin";
   }
 
   static async start(runtime: IAgentRuntime) {
-    elizaLogger.info('Starting IntegrationService...');
+    elizaLogger.info("Starting IntegrationService...");
     return new IntegrationService(runtime);
   }
 
   static async stop(runtime: IAgentRuntime) {
-    elizaLogger.info('Stopping IntegrationService...');
-    const service = runtime.getService('integration') as IntegrationService;
+    elizaLogger.info("Stopping IntegrationService...");
+    const service = runtime.getService("integration") as IntegrationService;
     if (service) {
       await service.stop();
     }
   }
 
   async start(): Promise<void> {
-    this.contextLogger.info('IntegrationService starting...');
+    this.contextLogger.info("IntegrationService starting...");
     this.startTime = Date.now();
     await this.initializeServices();
     this.startHealthChecks();
   }
 
   async init() {
-    this.contextLogger.info('IntegrationService initialized');
+    this.contextLogger.info("IntegrationService initialized");
   }
 
   async stop() {
-    this.contextLogger.info('IntegrationService stopping...');
+    this.contextLogger.info("IntegrationService stopping...");
     this.stopHealthChecks();
     await this.cleanupServices();
   }
@@ -106,7 +112,7 @@ export class IntegrationService extends BaseDataService {
       enablePerformanceMonitoring: true,
       enableCaching: true,
       enableErrorHandling: true,
-      enableMetrics: true
+      enableMetrics: true,
     };
   }
 
@@ -115,7 +121,7 @@ export class IntegrationService extends BaseDataService {
    */
   private async initializeServices(): Promise<void> {
     try {
-      this.contextLogger.info('Initializing integration services...');
+      this.contextLogger.info("Initializing integration services...");
 
       // Initialize configuration service first
       await this.initializeConfigService();
@@ -136,19 +142,23 @@ export class IntegrationService extends BaseDataService {
       this.setupServiceDependencies();
 
       this.isInitialized = true;
-      this.contextLogger.info('All integration services initialized successfully');
+      this.contextLogger.info(
+        "All integration services initialized successfully",
+      );
     } catch (error) {
       await handleError(
-        error instanceof Error ? error : new Error('Service initialization failed'),
+        error instanceof Error
+          ? error
+          : new Error("Service initialization failed"),
         {
           correlationId: this.correlationId,
-          component: 'IntegrationService',
-          operation: 'initializeServices'
-        }
+          component: "IntegrationService",
+          operation: "initializeServices",
+        },
       );
-      
-      this.contextLogger.error('Failed to initialize integration services', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+
+      this.contextLogger.error("Failed to initialize integration services", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -159,23 +169,28 @@ export class IntegrationService extends BaseDataService {
    */
   private async initializeConfigService(): Promise<void> {
     try {
-      this.configService = this.runtime.getService('centralized-config') as CentralizedConfigService;
+      this.configService = this.runtime.getService(
+        "centralized-config",
+      ) as CentralizedConfigService;
       if (!this.configService) {
-        throw new Error('CentralizedConfigService not found');
+        throw new Error("CentralizedConfigService not found");
       }
 
       // Load integration configuration from config service
-      const configData = this.configService.get('performance', {});
+      const configData = this.configService.get("performance", {});
       this.integrationConfig = {
         ...this.integrationConfig,
-        ...configData
+        ...configData,
       };
 
-      this.contextLogger.info('Configuration service initialized');
+      this.contextLogger.info("Configuration service initialized");
     } catch (error) {
-      this.contextLogger.warn('Failed to initialize configuration service, using defaults', {
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
+      this.contextLogger.warn(
+        "Failed to initialize configuration service, using defaults",
+        {
+          error: error instanceof Error ? error.message : "Unknown error",
+        },
+      );
     }
   }
 
@@ -184,18 +199,21 @@ export class IntegrationService extends BaseDataService {
    */
   private async initializeCacheService(): Promise<void> {
     try {
-      const cacheService = this.runtime.getService('cache');
+      const cacheService = this.runtime.getService("cache");
       if (!cacheService) {
-        this.contextLogger.warn('CacheService not found, caching disabled');
+        this.contextLogger.warn("CacheService not found, caching disabled");
         return;
       }
 
       this.cacheService = cacheService as unknown as CacheService;
-      this.contextLogger.info('Cache service initialized');
+      this.contextLogger.info("Cache service initialized");
     } catch (error) {
-      this.contextLogger.warn('Failed to initialize cache service, caching disabled', {
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
+      this.contextLogger.warn(
+        "Failed to initialize cache service, caching disabled",
+        {
+          error: error instanceof Error ? error.message : "Unknown error",
+        },
+      );
     }
   }
 
@@ -204,23 +222,30 @@ export class IntegrationService extends BaseDataService {
    */
   private async initializePerformanceService(): Promise<void> {
     try {
-      this.performanceService = this.runtime.getService('performance-monitor') as PerformanceMonitorService;
+      this.performanceService = this.runtime.getService(
+        "performance-monitor",
+      ) as PerformanceMonitorService;
       if (!this.performanceService) {
-        this.contextLogger.warn('PerformanceMonitorService not found, monitoring disabled');
+        this.contextLogger.warn(
+          "PerformanceMonitorService not found, monitoring disabled",
+        );
         return;
       }
 
       // Set up performance alerts
       this.performanceService.onAlert((alert) => {
-        this.contextLogger.warn('Performance alert received', { alert });
+        this.contextLogger.warn("Performance alert received", { alert });
         this.errorCount++;
       });
 
-      this.contextLogger.info('Performance monitoring service initialized');
+      this.contextLogger.info("Performance monitoring service initialized");
     } catch (error) {
-      this.contextLogger.warn('Failed to initialize performance service, monitoring disabled', {
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
+      this.contextLogger.warn(
+        "Failed to initialize performance service, monitoring disabled",
+        {
+          error: error instanceof Error ? error.message : "Unknown error",
+        },
+      );
     }
   }
 
@@ -230,23 +255,27 @@ export class IntegrationService extends BaseDataService {
   private async initializeDataServices(): Promise<void> {
     try {
       // Initialize Bitcoin Network Service
-      this.bitcoinNetworkService = this.runtime.getService('bitcoin-network') as BitcoinNetworkService;
+      this.bitcoinNetworkService = this.runtime.getService(
+        "bitcoin-network",
+      ) as BitcoinNetworkService;
       if (!this.bitcoinNetworkService) {
-        this.contextLogger.warn('BitcoinNetworkService not found');
+        this.contextLogger.warn("BitcoinNetworkService not found");
       } else {
-        this.contextLogger.info('Bitcoin Network service initialized');
+        this.contextLogger.info("Bitcoin Network service initialized");
       }
 
       // Initialize Market Data Service
-      this.marketDataService = this.runtime.getService('market-data') as MarketDataService;
+      this.marketDataService = this.runtime.getService(
+        "market-data",
+      ) as MarketDataService;
       if (!this.marketDataService) {
-        this.contextLogger.warn('MarketDataService not found');
+        this.contextLogger.warn("MarketDataService not found");
       } else {
-        this.contextLogger.info('Market Data service initialized');
+        this.contextLogger.info("Market Data service initialized");
       }
     } catch (error) {
-      this.contextLogger.warn('Failed to initialize some data services', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      this.contextLogger.warn("Failed to initialize some data services", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -258,10 +287,10 @@ export class IntegrationService extends BaseDataService {
     try {
       // Set up configuration change listeners
       if (this.configService) {
-        this.configService.watch('performance', (event) => {
-          this.contextLogger.info('Performance configuration updated', {
+        this.configService.watch("performance", (event) => {
+          this.contextLogger.info("Performance configuration updated", {
             key: event.key,
-            newValue: event.newValue
+            newValue: event.newValue,
           });
           this.updateIntegrationConfig(event.newValue);
         });
@@ -270,23 +299,27 @@ export class IntegrationService extends BaseDataService {
       // Set up cache performance monitoring
       if (this.cacheService && this.performanceService) {
         // Monitor cache performance
-        this.contextLogger.info('Cache performance monitoring enabled');
+        this.contextLogger.info("Cache performance monitoring enabled");
       }
 
       // Set up data service performance monitoring
       if (this.performanceService) {
         if (this.bitcoinNetworkService) {
-          this.contextLogger.info('Bitcoin Network service performance monitoring enabled');
+          this.contextLogger.info(
+            "Bitcoin Network service performance monitoring enabled",
+          );
         }
         if (this.marketDataService) {
-          this.contextLogger.info('Market Data service performance monitoring enabled');
+          this.contextLogger.info(
+            "Market Data service performance monitoring enabled",
+          );
         }
       }
 
-      this.contextLogger.info('Service dependencies configured');
+      this.contextLogger.info("Service dependencies configured");
     } catch (error) {
-      this.contextLogger.error('Failed to set up service dependencies', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      this.contextLogger.error("Failed to set up service dependencies", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -297,7 +330,7 @@ export class IntegrationService extends BaseDataService {
   private updateIntegrationConfig(newConfig: any): void {
     this.integrationConfig = {
       ...this.integrationConfig,
-      ...newConfig
+      ...newConfig,
     };
 
     // Restart health checks if interval changed
@@ -318,8 +351,8 @@ export class IntegrationService extends BaseDataService {
       this.performHealthCheck();
     }, this.integrationConfig.healthCheckInterval);
 
-    this.contextLogger.info('Health checks started', {
-      interval: this.integrationConfig.healthCheckInterval
+    this.contextLogger.info("Health checks started", {
+      interval: this.integrationConfig.healthCheckInterval,
     });
   }
 
@@ -331,7 +364,7 @@ export class IntegrationService extends BaseDataService {
       clearInterval(this.healthCheckInterval);
       this.healthCheckInterval = null;
     }
-    this.contextLogger.info('Health checks stopped');
+    this.contextLogger.info("Health checks stopped");
   }
 
   /**
@@ -354,46 +387,48 @@ export class IntegrationService extends BaseDataService {
           cache: this.cacheService !== null,
           performance: this.performanceService !== null,
           bitcoinNetwork: this.bitcoinNetworkService !== null,
-          marketData: this.marketDataService !== null
+          marketData: this.marketDataService !== null,
         },
         lastHealthCheck: Date.now(),
         uptime: Date.now() - this.startTime,
-        errorCount: this.errorCount
+        errorCount: this.errorCount,
       };
 
       // Check if any service is unhealthy
-      healthStatus.isHealthy = Object.values(healthStatus.services).every(healthy => healthy);
+      healthStatus.isHealthy = Object.values(healthStatus.services).every(
+        (healthy) => healthy,
+      );
 
       if (!healthStatus.isHealthy) {
-        this.contextLogger.warn('Health check failed', healthStatus);
+        this.contextLogger.warn("Health check failed", healthStatus);
         this.errorCount++;
       } else {
-        this.contextLogger.debug('Health check passed', healthStatus);
+        this.contextLogger.debug("Health check passed", healthStatus);
       }
 
       // Record health check metric
       if (this.performanceService) {
         this.performanceService.recordMetric({
-          id: 'health_check',
-          name: 'Health Check',
+          id: "health_check",
+          name: "Health Check",
           value: healthStatus.isHealthy ? 1 : 0,
-          unit: 'boolean',
-          category: 'custom',
-          metadata: healthStatus
+          unit: "boolean",
+          category: "custom",
+          metadata: healthStatus,
         });
       }
     } catch (error) {
       await handleError(
-        error instanceof Error ? error : new Error('Health check failed'),
+        error instanceof Error ? error : new Error("Health check failed"),
         {
           correlationId: this.correlationId,
-          component: 'IntegrationService',
-          operation: 'performHealthCheck'
-        }
+          component: "IntegrationService",
+          operation: "performHealthCheck",
+        },
       );
-      
-      this.contextLogger.error('Health check failed', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+
+      this.contextLogger.error("Health check failed", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       this.errorCount++;
     }
@@ -404,7 +439,7 @@ export class IntegrationService extends BaseDataService {
    */
   private async cleanupServices(): Promise<void> {
     try {
-      this.contextLogger.info('Cleaning up integration services...');
+      this.contextLogger.info("Cleaning up integration services...");
 
       // Remove configuration listeners
       if (this.configService) {
@@ -417,10 +452,10 @@ export class IntegrationService extends BaseDataService {
       }
 
       this.isInitialized = false;
-      this.contextLogger.info('Integration services cleaned up');
+      this.contextLogger.info("Integration services cleaned up");
     } catch (error) {
-      this.contextLogger.error('Failed to cleanup integration services', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      this.contextLogger.error("Failed to cleanup integration services", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -436,15 +471,17 @@ export class IntegrationService extends BaseDataService {
         cache: this.cacheService !== null,
         performance: this.performanceService !== null,
         bitcoinNetwork: this.bitcoinNetworkService !== null,
-        marketData: this.marketDataService !== null
+        marketData: this.marketDataService !== null,
       },
       lastHealthCheck: Date.now(),
       uptime: Date.now() - this.startTime,
-      errorCount: this.errorCount
+      errorCount: this.errorCount,
     };
 
     // Check actual service health
-    status.isHealthy = Object.values(status.services).every(healthy => healthy);
+    status.isHealthy = Object.values(status.services).every(
+      (healthy) => healthy,
+    );
     return status;
   }
 
@@ -463,7 +500,7 @@ export class IntegrationService extends BaseDataService {
       cache: this.cacheService,
       performance: this.performanceService,
       bitcoinNetwork: this.bitcoinNetworkService,
-      marketData: this.marketDataService
+      marketData: this.marketDataService,
     };
   }
 
@@ -480,10 +517,10 @@ export class IntegrationService extends BaseDataService {
   updateConfig(newConfig: Partial<IntegrationConfig>): void {
     this.integrationConfig = {
       ...this.integrationConfig,
-      ...newConfig
+      ...newConfig,
     };
 
-    this.contextLogger.info('Integration configuration updated', newConfig);
+    this.contextLogger.info("Integration configuration updated", newConfig);
   }
 
   /**
@@ -491,7 +528,7 @@ export class IntegrationService extends BaseDataService {
    */
   async getPerformanceReport(): Promise<any> {
     if (!this.performanceService) {
-      throw new Error('Performance monitoring not available');
+      throw new Error("Performance monitoring not available");
     }
 
     return await this.performanceService.generateReport();
@@ -502,7 +539,7 @@ export class IntegrationService extends BaseDataService {
    */
   getCacheStats(): any {
     if (!this.cacheService) {
-      throw new Error('Cache service not available');
+      throw new Error("Cache service not available");
     }
 
     return this.cacheService.getStats();
@@ -513,7 +550,7 @@ export class IntegrationService extends BaseDataService {
    */
   async refreshAllData(): Promise<void> {
     try {
-      this.contextLogger.info('Refreshing all data services...');
+      this.contextLogger.info("Refreshing all data services...");
 
       const promises: Promise<any>[] = [];
 
@@ -526,19 +563,19 @@ export class IntegrationService extends BaseDataService {
       }
 
       await Promise.all(promises);
-      this.contextLogger.info('All data services refreshed');
+      this.contextLogger.info("All data services refreshed");
     } catch (error) {
       await handleError(
-        error instanceof Error ? error : new Error('Data refresh failed'),
+        error instanceof Error ? error : new Error("Data refresh failed"),
         {
           correlationId: this.correlationId,
-          component: 'IntegrationService',
-          operation: 'refreshAllData'
-        }
+          component: "IntegrationService",
+          operation: "refreshAllData",
+        },
       );
-      
-      this.contextLogger.error('Failed to refresh data services', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+
+      this.contextLogger.error("Failed to refresh data services", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -555,14 +592,16 @@ export class IntegrationService extends BaseDataService {
     healthCheckEnabled: boolean;
   } {
     const services = this.getServices();
-    const serviceCount = Object.values(services).filter(service => service !== null).length;
+    const serviceCount = Object.values(services).filter(
+      (service) => service !== null,
+    ).length;
 
     return {
       isInitialized: this.isInitialized,
       uptime: Date.now() - this.startTime,
       errorCount: this.errorCount,
       serviceCount,
-      healthCheckEnabled: this.integrationConfig.enableHealthChecks
+      healthCheckEnabled: this.integrationConfig.enableHealthChecks,
     };
   }
 
@@ -573,4 +612,4 @@ export class IntegrationService extends BaseDataService {
   async forceUpdate(): Promise<any> {
     return this.getStatus();
   }
-} 
+}
