@@ -454,7 +454,184 @@ export class CentralizedConfigService extends BaseDataService {
    * Get default configuration
    */
   protected getDefaultConfig(): PluginConfig {
-    return ConfigSchema.parse({});
+    // Return a fully populated config with all required keys and safe defaults
+    return {
+      apis: {
+        coingecko: {
+          enabled: true,
+          apiKey: undefined,
+          baseUrl: "https://api.coingecko.com/api/v3",
+          rateLimit: 50,
+          timeout: 10000,
+        },
+        blockchain: {
+          enabled: true,
+          baseUrl: "https://api.blockchain.info",
+          timeout: 10000,
+        },
+        mempool: {
+          enabled: true,
+          baseUrl: "https://mempool.space/api",
+          timeout: 10000,
+        },
+        alternative: {
+          enabled: true,
+          baseUrl: "https://api.alternative.me",
+          timeout: 10000,
+        },
+        weather: {
+          enabled: true,
+          apiKey: undefined,
+          baseUrl: "https://api.weatherapi.com/v1",
+          timeout: 10000,
+        },
+        stocks: {
+          enabled: true,
+          apiKey: undefined,
+          baseUrl: "https://api.example.com/stocks",
+          timeout: 10000,
+        },
+        etfs: {
+          enabled: true,
+          apiKey: undefined,
+          baseUrl: "https://api.example.com/etfs",
+          timeout: 10000,
+        },
+        travel: {
+          enabled: true,
+          apiKey: undefined,
+          baseUrl: "https://api.example.com/travel",
+          timeout: 10000,
+        },
+        news: {
+          enabled: true,
+          apiKey: undefined,
+          baseUrl: "https://newsapi.org/v2",
+          timeout: 10000,
+        },
+        opensea: {
+          enabled: true,
+          apiKey: undefined,
+          baseUrl: "https://api.opensea.io/api/v1",
+          timeout: 10000,
+        },
+        twitter: {
+          enabled: true,
+          apiKey: undefined,
+          baseUrl: "https://api.twitter.com/2",
+          timeout: 10000,
+        },
+        telegram: {
+          enabled: true,
+          apiKey: undefined,
+          baseUrl: "https://api.telegram.org",
+          timeout: 10000,
+        },
+        discord: {
+          enabled: true,
+          apiKey: undefined,
+          baseUrl: "https://discord.com/api",
+          timeout: 10000,
+        },
+      },
+      services: {
+        bitcoinNetwork: {
+          enabled: true,
+          updateInterval: 180000,
+          cacheTimeout: 60000,
+          maxRetries: 3,
+          circuitBreakerThreshold: 5,
+          circuitBreakerTimeout: 60000,
+        },
+        marketData: {
+          enabled: true,
+          updateInterval: 300000,
+          cacheTimeout: 300000,
+          maxRetries: 3,
+          circuitBreakerThreshold: 5,
+          circuitBreakerTimeout: 60000,
+        },
+        realTimeData: {
+          enabled: true,
+          updateInterval: 60000,
+          cacheTimeout: 30000,
+          maxRetries: 3,
+          circuitBreakerThreshold: 5,
+          circuitBreakerTimeout: 60000,
+        },
+        newsData: {
+          enabled: true,
+          updateInterval: 300000,
+          cacheTimeout: 300000,
+          maxRetries: 3,
+          circuitBreakerThreshold: 5,
+          circuitBreakerTimeout: 60000,
+        },
+        nftData: {
+          enabled: true,
+          updateInterval: 300000,
+          cacheTimeout: 60000,
+          maxRetries: 3,
+          circuitBreakerThreshold: 5,
+          circuitBreakerTimeout: 60000,
+        },
+        socialSentiment: {
+          enabled: true,
+          updateInterval: 300000,
+          cacheTimeout: 300000,
+          maxRetries: 3,
+          circuitBreakerThreshold: 5,
+          circuitBreakerTimeout: 60000,
+        },
+      },
+      batching: {
+        enabled: true,
+        maxBatchSize: 10,
+        maxWaitTime: 1000,
+        maxConcurrentBatches: 3,
+        retryAttempts: 3,
+        retryDelay: 1000,
+      },
+      caching: {
+        enabled: true,
+        defaultTtl: 300000,
+        maxSize: 1000,
+        cleanupInterval: 600000,
+        redis: {
+          enabled: false,
+          url: undefined,
+          password: undefined,
+          db: 0,
+        },
+      },
+      logging: {
+        level: "info",
+        enableCorrelationIds: true,
+        enablePerformanceTracking: true,
+        logToFile: false,
+        logFilePath: undefined,
+      },
+      performance: {
+        enableMetrics: true,
+        metricsInterval: 60000,
+        enableHealthChecks: true,
+        healthCheckInterval: 30000,
+        enableCircuitBreakers: true,
+      },
+      security: {
+        enableRateLimiting: true,
+        maxRequestsPerMinute: 100,
+        enableRequestValidation: true,
+        allowedOrigins: ["*"],
+      },
+      features: {
+        enableRealTimeUpdates: true,
+        enablePredictiveAnalytics: false,
+        enableAdvancedCharts: true,
+        enableNotifications: true,
+        enableDataExport: false,
+      },
+    };
   }
 
   /**
