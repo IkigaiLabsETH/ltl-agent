@@ -2,6 +2,7 @@ import { IAgentRuntime, logger } from "@elizaos/core";
 import { BaseDataService } from "./BaseDataService";
 import { BitcoinIntelligenceService } from "./BitcoinIntelligenceService";
 import { MarketIntelligenceService } from "./MarketIntelligenceService";
+import { LiveAlertService } from "./LiveAlertService";
 
 export interface MarketCondition {
   type: 'BULL' | 'BEAR' | 'NEUTRAL' | 'ACCUMULATION' | 'DISTRIBUTION' | 'ROTATION';
@@ -42,6 +43,7 @@ export class AdvancedMarketIntelligenceService extends BaseDataService {
 
   private bitcoinService: BitcoinIntelligenceService | null = null;
   private marketService: MarketIntelligenceService | null = null;
+  private alertService: LiveAlertService | null = null;
 
   constructor(runtime: IAgentRuntime) {
     super(runtime, "bitcoinData");
@@ -51,6 +53,7 @@ export class AdvancedMarketIntelligenceService extends BaseDataService {
     logger.info("AdvancedMarketIntelligenceService initializing...");
     this.bitcoinService = this.runtime.getService<BitcoinIntelligenceService>("bitcoin-intelligence");
     this.marketService = this.runtime.getService<MarketIntelligenceService>("market-intelligence");
+    this.alertService = this.runtime.getService<LiveAlertService>("LiveAlertService");
     logger.info("AdvancedMarketIntelligenceService initialized successfully.");
   }
 
@@ -113,16 +116,48 @@ export class AdvancedMarketIntelligenceService extends BaseDataService {
         riskLevel = 'HIGH';
       }
 
-      // Generate opportunities based on conditions
-      const opportunities = await this.generateOpportunities(bitcoinData, marketData);
+          // Generate opportunities based on conditions
+    const opportunities = await this.generateOpportunities(bitcoinData, marketData);
 
-      return {
-        type,
-        confidence: Math.min(confidence, 0.95),
-        signals,
-        riskLevel,
-        opportunities
-      };
+    // Generate alerts for high-confidence opportunities and risks
+    if (this.alertService) {
+      // Alert for high-confidence opportunities
+      if (opportunities.length > 0) {
+        const bestOpportunity = opportunities[0];
+        if (bestOpportunity.confidence > 0.7) {
+          this.alertService.addOpportunityAlert(
+            `High-confidence opportunity detected: ${bestOpportunity.description}`,
+            bestOpportunity.confidence,
+            { opportunity: bestOpportunity, marketCondition: type }
+          );
+        }
+      }
+
+      // Alert for extreme risk conditions
+      if (riskLevel === 'EXTREME') {
+        this.alertService.addRiskAlert(
+          `Extreme market risk detected: ${signals.join(', ')}`,
+          "critical",
+          0.9,
+          { riskLevel, signals, marketCondition: type }
+        );
+      } else if (riskLevel === 'HIGH') {
+        this.alertService.addRiskAlert(
+          `High market risk detected: ${signals.join(', ')}`,
+          "warning",
+          0.8,
+          { riskLevel, signals, marketCondition: type }
+        );
+      }
+    }
+
+    return {
+      type,
+      confidence: Math.min(confidence, 0.95),
+      signals,
+      riskLevel,
+      opportunities
+    };
 
     } catch (error) {
       logger.error("Error analyzing market conditions:", error);
