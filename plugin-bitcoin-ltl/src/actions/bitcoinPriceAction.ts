@@ -5,6 +5,7 @@ import {
   State,
   HandlerCallback,
 } from "@elizaos/core";
+import { BitcoinNetworkDataService } from "../services/BitcoinNetworkDataService";
 
 /**
  * Bitcoin Price Action - Simple action to get current Bitcoin price
@@ -38,61 +39,31 @@ export const bitcoinPriceAction: Action = {
     callback?: HandlerCallback,
   ) => {
     try {
-      // Get Bitcoin price from state or runtime context
-      let bitcoinPrice = 100000; // Default fallback
-      let priceChange24h = 0;
-      let marketCap = 2000000000000;
+      // Use the real-time backend service for Bitcoin price
+      const bitcoinService = runtime.getService("bitcoin-network-data") as BitcoinNetworkDataService;
+      let bitcoinPrice: number | null | undefined = null;
+      let priceChange24h: number | null | undefined = null;
+      let marketCap: number | null | undefined = null;
 
-      // Try to get from state first
-      if (state?.values?.bitcoinPrice) {
-        bitcoinPrice = state.values.bitcoinPrice;
-        priceChange24h = state.values.bitcoinChange24h || 0;
-        marketCap = state.values.marketCap || 2000000000000;
-      } else {
-        // Try to get from runtime context
-        const extendedRuntime = runtime as any;
-        if (extendedRuntime.bitcoinContext?.price) {
-          bitcoinPrice = extendedRuntime.bitcoinContext.price;
-          priceChange24h = extendedRuntime.bitcoinContext.priceChange24h || 0;
-          marketCap = extendedRuntime.bitcoinContext.marketCap || 2000000000000;
-        } else {
-          // Try direct API call as last resort
-          try {
-            const response = await fetch(
-              "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true&include_market_cap=true",
-              {
-                method: "GET",
-                headers: {
-                  Accept: "application/json",
-                  "User-Agent": "ElizaOS-Bitcoin-LTL/1.0",
-                },
-                signal: AbortSignal.timeout(5000),
-              },
-            );
-
-            if (response.ok) {
-              const data = await response.json();
-              if (data.bitcoin && data.bitcoin.usd) {
-                bitcoinPrice = data.bitcoin.usd;
-                priceChange24h = data.bitcoin.usd_24h_change || 0;
-                marketCap = data.bitcoin.usd_market_cap || 2000000000000;
-              }
-            }
-          } catch (error) {
-            console.warn("[BitcoinPriceAction] Direct API call failed:", error);
-          }
-        }
+      if (bitcoinService && typeof bitcoinService.getComprehensiveBitcoinData === "function") {
+        const data = bitcoinService.getComprehensiveBitcoinData();
+        bitcoinPrice = data?.price?.usd;
+        priceChange24h = data?.price?.change24h;
+        marketCap = data?.network?.marketCap;
       }
 
-      // Calculate price direction
-      const priceDirection = priceChange24h > 0 ? "up" : "down";
-      const priceChange = Math.abs(priceChange24h);
+      // Fallbacks if data is missing
+      let priceDisplay = bitcoinPrice && !isNaN(bitcoinPrice) ? `$${bitcoinPrice.toLocaleString()}` : "priceless";
+      let changeDisplay = (typeof priceChange24h === "number" && !isNaN(priceChange24h)) ? `${priceChange24h > 0 ? "+" : ""}${priceChange24h.toFixed(2)}%` : "N/A";
+      let marketCapDisplay = marketCap && !isNaN(marketCap) ? `$${(marketCap / 1e9).toFixed(1)} billion` : "N/A";
 
       // Format response
-      const responseText = `Bitcoin is currently trading at $${bitcoinPrice.toLocaleString()} USD, ${priceDirection} ${priceChange.toFixed(2)}% in the last 24 hours. Market cap: $${(marketCap / 1000000000).toFixed(1)} billion.`;
+      const responseText = bitcoinPrice && !isNaN(bitcoinPrice)
+        ? `Bitcoin is currently trading at ${priceDisplay} USD, 24h change: ${changeDisplay}. Market cap: ${marketCapDisplay}.`
+        : `Bitcoin is priceless.`;
 
       const responseContent = {
-        thought: `User asked about Bitcoin price. Retrieved current price: $${bitcoinPrice.toLocaleString()} with ${priceChange24h.toFixed(2)}% 24h change.`,
+        thought: `User asked about Bitcoin price. Retrieved current price: ${priceDisplay} with ${changeDisplay} 24h change from backend service.`,
         text: responseText,
         actions: ["GET_BITCOIN_PRICE"],
       };
@@ -107,8 +78,8 @@ export const bitcoinPriceAction: Action = {
 
       const errorResponse = {
         thought:
-          "Failed to get Bitcoin price data, providing fallback information.",
-        text: "Bitcoin is currently trading around $100,000 USD. (Price data temporarily unavailable)",
+          "Failed to get Bitcoin price data from backend service, providing fallback information.",
+        text: "Bitcoin price data is temporarily unavailable.",
         actions: ["GET_BITCOIN_PRICE"],
       };
 
