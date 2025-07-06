@@ -74,21 +74,11 @@ const CURATED_ALTCOINS = [
   "sui", // SUI
   "hyperliquid", // HYPE
   "pepe", // PEPE
-  "dogwifhat", // WIF
   "bonk", // BONK
-  "jupiter", // JUP
-  "raydium", // RAY
   "uniswap", // UNI
   "aave", // AAVE
-  "compound", // COMP
   "chainlink", // LINK
-  "polygon", // MATIC
-  "avalanche-2", // AVAX
-  "cardano", // ADA
-  "polkadot", // DOT
-  "cosmos", // ATOM
-  "near", // NEAR
-  "aptos", // APT
+  "bitcoin", // BTC
 ];
 
 /**
@@ -462,21 +452,29 @@ function buildComprehensiveResponse(
 
     if (btcAnalysis.btcData) {
       const btc = btcAnalysis.btcData;
-      context.push(`₿ BITCOIN PERFORMANCE:`);
-      context.push(
-        `• 24h: ${btc.price_change_percentage_24h > 0 ? "+" : ""}${btc.price_change_percentage_24h.toFixed(2)}%`,
-      );
-      if (btc.price_change_percentage_7d_in_currency) {
+      
+      // Only show Bitcoin performance if we have meaningful data
+      const btc24h = btc.price_change_percentage_24h || 0;
+      const btc7d = btc.price_change_percentage_7d_in_currency || 0;
+      const btc30d = btc.price_change_percentage_30d_in_currency || 0;
+      
+      if (btc24h !== 0 || btc7d !== 0 || btc30d !== 0) {
+        context.push(`₿ BITCOIN PERFORMANCE:`);
         context.push(
-          `• 7d: ${btc.price_change_percentage_7d_in_currency > 0 ? "+" : ""}${btc.price_change_percentage_7d_in_currency.toFixed(2)}%`,
+          `• 24h: ${btc24h > 0 ? "+" : ""}${btc24h.toFixed(2)}%`,
         );
+        if (btc7d !== 0) {
+          context.push(
+            `• 7d: ${btc7d > 0 ? "+" : ""}${btc7d.toFixed(2)}%`,
+          );
+        }
+        if (btc30d !== 0) {
+          context.push(
+            `• 30d: ${btc30d > 0 ? "+" : ""}${btc30d.toFixed(2)}%`,
+          );
+        }
+        context.push("");
       }
-      if (btc.price_change_percentage_30d_in_currency) {
-        context.push(
-          `• 30d: ${btc.price_change_percentage_30d_in_currency > 0 ? "+" : ""}${btc.price_change_percentage_30d_in_currency.toFixed(2)}%`,
-        );
-      }
-      context.push("");
     }
 
     // Altcoins outperforming Bitcoin

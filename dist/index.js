@@ -55694,14 +55694,17 @@ var init_RealTimeDataService = __esm({
               btc7d = btcCoin.price_change_percentage_7d_in_currency || 0;
               btc30d = btcCoin.price_change_percentage_30d_in_currency || 0;
             }
-            let summary = `
+            let summary = "";
+            if (btc24h !== 0 || btc7d !== 0 || btc30d !== 0) {
+              summary += `
 \u20BF BITCOIN PERFORMANCE:`;
-            summary += `
+              summary += `
 \u2022 24h: ${btc24h > 0 ? "+" : ""}${btc24h.toFixed(2)}%`;
-            summary += `
+              summary += `
 \u2022 7d: ${btc7d > 0 ? "+" : ""}${btc7d.toFixed(2)}%`;
-            summary += `
+              summary += `
 \u2022 30d: ${btc30d > 0 ? "+" : ""}${btc30d.toFixed(2)}%`;
+            }
             const top24h = [...data.outperforming].filter(
               (c) => typeof c.btc_relative_performance_24h === "number" && c.btc_relative_performance_24h > 0
             ).sort(
@@ -55744,7 +55747,9 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_7d_in_currency?.toFixe
 ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFixed(2)}% (vs BTC ${btc30d > 0 ? "+" : ""}${btc30d.toFixed(2)}%, +${coin.btc_relative_performance_30d?.toFixed(2)}% better)`;
               });
             }
-            console.log(summary + "\n");
+            if (summary.trim()) {
+              console.log(summary + "\n");
+            }
           }
           console.log("[RealTimeDataService] \u2705 Data update cycle completed");
         } catch (error3) {
@@ -71367,21 +71372,26 @@ function buildComprehensiveResponse2(priceData, trending, global2, topCoins) {
     const btcAnalysis = analyzeBitcoinRelativePerformance2(topCoins);
     if (btcAnalysis.btcData) {
       const btc = btcAnalysis.btcData;
-      context.push(`\u20BF BITCOIN PERFORMANCE:`);
-      context.push(
-        `\u2022 24h: ${btc.price_change_percentage_24h > 0 ? "+" : ""}${btc.price_change_percentage_24h.toFixed(2)}%`
-      );
-      if (btc.price_change_percentage_7d_in_currency) {
+      const btc24h = btc.price_change_percentage_24h || 0;
+      const btc7d = btc.price_change_percentage_7d_in_currency || 0;
+      const btc30d = btc.price_change_percentage_30d_in_currency || 0;
+      if (btc24h !== 0 || btc7d !== 0 || btc30d !== 0) {
+        context.push(`\u20BF BITCOIN PERFORMANCE:`);
         context.push(
-          `\u2022 7d: ${btc.price_change_percentage_7d_in_currency > 0 ? "+" : ""}${btc.price_change_percentage_7d_in_currency.toFixed(2)}%`
+          `\u2022 24h: ${btc24h > 0 ? "+" : ""}${btc24h.toFixed(2)}%`
         );
+        if (btc7d !== 0) {
+          context.push(
+            `\u2022 7d: ${btc7d > 0 ? "+" : ""}${btc7d.toFixed(2)}%`
+          );
+        }
+        if (btc30d !== 0) {
+          context.push(
+            `\u2022 30d: ${btc30d > 0 ? "+" : ""}${btc30d.toFixed(2)}%`
+          );
+        }
+        context.push("");
       }
-      if (btc.price_change_percentage_30d_in_currency) {
-        context.push(
-          `\u2022 30d: ${btc.price_change_percentage_30d_in_currency > 0 ? "+" : ""}${btc.price_change_percentage_30d_in_currency.toFixed(2)}%`
-        );
-      }
-      context.push("");
     }
     if (btcAnalysis.outperformers.daily.length > 0) {
       const topOutperformers = btcAnalysis.outperformers.daily.sort(
