@@ -186,9 +186,64 @@ export class NFTDataService extends BaseDataService {
       generateCorrelationId(),
       "NFTDataService",
     );
-    this.configService =
-      runtime.getService<CentralizedConfigService>("centralized-config");
+    
+    // Safely get the config service with retry logic
+    this.configService = this.getConfigServiceSafely(runtime);
     this.errorHandler = new ComprehensiveErrorHandler();
+  }
+
+  /**
+   * Safely get the CentralizedConfigService with retry logic
+   */
+  private getConfigServiceSafely(runtime: IAgentRuntime): CentralizedConfigService {
+    let configService = runtime.getService<CentralizedConfigService>("centralized-config");
+    
+    if (!configService) {
+      // If not available immediately, try again after a short delay
+      setTimeout(() => {
+        configService = runtime.getService<CentralizedConfigService>("centralized-config");
+        if (configService) {
+          this.configService = configService;
+          this.contextLogger.info("CentralizedConfigService successfully retrieved");
+        } else {
+          this.contextLogger.warn("CentralizedConfigService not available after retry");
+        }
+      }, 1000);
+      
+      // Return a fallback config service for now
+      return this.createFallbackConfigService();
+    }
+    
+    return configService;
+  }
+
+  /**
+   * Create a fallback config service when the main one is not available
+   */
+  private createFallbackConfigService(): CentralizedConfigService {
+    // Create a minimal fallback that provides the essential methods
+    const fallback = {
+      get: (path: string, defaultValue?: any) => {
+        this.contextLogger.warn(`Using fallback config for path: ${path}`);
+        return defaultValue;
+      },
+      set: (path: string, value: any) => {
+        this.contextLogger.warn(`Cannot set config in fallback mode: ${path}`);
+      },
+      getAll: () => ({}),
+      watch: (path: string, listener: any) => () => {},
+      validate: () => ({ valid: true, errors: [] }),
+      getStats: () => ({ totalWatchers: 0, watchedPaths: [], lastModified: 0, configSize: 0 }),
+      updateData: async () => {},
+      forceUpdate: async () => ({}),
+      start: async () => {},
+      stop: async () => {},
+      init: async () => {},
+      capabilityDescription: "Fallback config service",
+      serviceType: "centralized-config-fallback"
+    };
+    
+    return fallback as unknown as CentralizedConfigService;
   }
 
   public get capabilityDescription(): string {
