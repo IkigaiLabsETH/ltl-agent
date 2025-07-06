@@ -56,6 +56,36 @@ const ConfigSchema = z.object({
       baseUrl: z.string().default('https://api.example.com/travel'),
       timeout: z.number().default(10000),
     }),
+    news: z.object({
+      enabled: z.boolean().default(true),
+      apiKey: z.string().optional(),
+      baseUrl: z.string().default('https://newsapi.org/v2'),
+      timeout: z.number().default(10000),
+    }),
+    opensea: z.object({
+      enabled: z.boolean().default(true),
+      apiKey: z.string().optional(),
+      baseUrl: z.string().default('https://api.opensea.io/api/v1'),
+      timeout: z.number().default(10000),
+    }),
+    twitter: z.object({
+      enabled: z.boolean().default(true),
+      apiKey: z.string().optional(),
+      baseUrl: z.string().default('https://api.twitter.com/2'),
+      timeout: z.number().default(10000),
+    }),
+    telegram: z.object({
+      enabled: z.boolean().default(true),
+      apiKey: z.string().optional(),
+      baseUrl: z.string().default('https://api.telegram.org'),
+      timeout: z.number().default(10000),
+    }),
+    discord: z.object({
+      enabled: z.boolean().default(true),
+      apiKey: z.string().optional(),
+      baseUrl: z.string().default('https://discord.com/api'),
+      timeout: z.number().default(10000),
+    }),
   }),
 
   // Service Configuration
@@ -80,6 +110,30 @@ const ConfigSchema = z.object({
       enabled: z.boolean().default(true),
       updateInterval: z.number().default(60000), // 1 minute
       cacheTimeout: z.number().default(30000), // 30 seconds
+      maxRetries: z.number().default(3),
+      circuitBreakerThreshold: z.number().default(5),
+      circuitBreakerTimeout: z.number().default(60000),
+    }),
+    newsData: z.object({
+      enabled: z.boolean().default(true),
+      updateInterval: z.number().default(300000), // 5 minutes
+      cacheTimeout: z.number().default(300000), // 5 minutes
+      maxRetries: z.number().default(3),
+      circuitBreakerThreshold: z.number().default(5),
+      circuitBreakerTimeout: z.number().default(60000),
+    }),
+    nftData: z.object({
+      enabled: z.boolean().default(true),
+      updateInterval: z.number().default(300000), // 5 minutes
+      cacheTimeout: z.number().default(60000), // 1 minute
+      maxRetries: z.number().default(3),
+      circuitBreakerThreshold: z.number().default(5),
+      circuitBreakerTimeout: z.number().default(60000),
+    }),
+    socialSentiment: z.object({
+      enabled: z.boolean().default(true),
+      updateInterval: z.number().default(300000), // 5 minutes
+      cacheTimeout: z.number().default(300000), // 5 minutes
       maxRetries: z.number().default(3),
       circuitBreakerThreshold: z.number().default(5),
       circuitBreakerTimeout: z.number().default(60000),

@@ -28,4 +28,12 @@ export {
   type BatchResponse,
   type BatchConfig,
   type QueuedRequest
-} from './request-batching'; 
+} from './request-batching';
+
+export {
+  ComprehensiveErrorHandler,
+  globalErrorHandler,
+  type ErrorSeverity,
+  type ErrorCategory,
+  type RecoveryStrategy
+} from './comprehensive-error-handling'; 
