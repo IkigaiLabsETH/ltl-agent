@@ -3503,7 +3503,7 @@ const bitcoinPlugin: Plugin = {
     SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY,
   },
 
-  async init(config: Record<string, string>, runtime: IAgentRuntime) {
+  async init(config: Record<string, any>, runtime: IAgentRuntime) {
     logger.info("🟠 Initializing Bitcoin Plugin");
     try {
       const validatedConfig = await configSchema.parseAsync(config);

@@ -202,6 +202,19 @@ const ServiceConfigSchema = z.object({
       corsOrigins: z.array(z.string()).default(["*"]),
     })
     .default({}),
+
+  // Cache Service Configuration
+  "cache-service": z.object({
+    defaultTtl: z.number().default(300000).optional(),
+    maxSize: z.number().default(1000).optional(),
+    cleanupInterval: z.number().default(600000).optional(),
+    enableRedis: z.boolean().default(false).optional(),
+    redisUrl: z.string().optional(),
+    redisPassword: z.string().optional(),
+    redisDb: z.number().optional(),
+    compressionEnabled: z.boolean().default(true).optional(),
+    compressionThreshold: z.number().default(1024).optional(),
+  }).default({}),
 });
 
 export type ServiceConfig = z.infer<typeof ServiceConfigSchema>;

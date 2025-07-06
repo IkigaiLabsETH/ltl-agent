@@ -41,6 +41,7 @@
   ],
   "dependencies": {
     "@elizaos/core": "^1.0.17",
+    "ioredis": "^5.6.1",
     "zod": "^3.24.2"
   },
   "optionalDependencies": {
@@ -50,6 +51,7 @@
     "@elizaos/cli": "^1.0.17",
     "@tailwindcss/vite": "^4.1.11",
     "@tanstack/react-query": "^5.81.5",
+    "@types/ioredis": "^5.0.0",
     "@types/node": "^22.15.3",
     "@vitejs/plugin-react-swc": "^3.10.2",
     "clsx": "^2.1.1",
@@ -81,7 +83,7 @@
     "tags": ["bitcoin", "cryptocurrency", "market-data", "investment", "thesis-tracking"],
     "capabilities": [
       "bitcoin-market-data",
-      "thesis-tracking", 
+      "thesis-tracking",
       "price-analysis",
       "institutional-adoption",
       "sovereign-living",
@@ -107,7 +109,7 @@
     ],
     "routes": [
       "/bitcoin/price",
-      "/bitcoin/thesis", 
+      "/bitcoin/thesis",
       "/bitcoin/freedom-math",
       "/bitcoin/institutional",
       "/bitcoin/health"
