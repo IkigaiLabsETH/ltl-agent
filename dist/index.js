@@ -47078,10 +47078,27 @@ function getConfigurationManager2() {
   return configurationManager2;
 }
 async function initializeConfigurationManager2(runtime) {
+  console.log("[DEBUG] initializeConfigurationManager() - Starting");
+  console.log("[DEBUG] Runtime provided:", !!runtime);
+  console.log("[DEBUG] ConfigurationManager class:", typeof ConfigurationManager2);
   if (!configurationManager2) {
-    configurationManager2 = new ConfigurationManager2(runtime);
-    await configurationManager2.initialize();
+    console.log("[DEBUG] Creating new ConfigurationManager instance...");
+    try {
+      configurationManager2 = new ConfigurationManager2(runtime);
+      console.log("[DEBUG] ConfigurationManager instance created successfully");
+      console.log("[DEBUG] Calling configurationManager.initialize()...");
+      await configurationManager2.initialize();
+      console.log("[DEBUG] configurationManager.initialize() completed successfully");
+    } catch (error3) {
+      console.log("[DEBUG] Error in initializeConfigurationManager:", error3);
+      console.log("[DEBUG] Error type:", typeof error3);
+      console.log("[DEBUG] Error message:", error3 instanceof Error ? error3.message : String(error3));
+      throw error3;
+    }
+  } else {
+    console.log("[DEBUG] ConfigurationManager already exists, returning existing instance");
   }
+  console.log("[DEBUG] initializeConfigurationManager() - Completed successfully");
   return configurationManager2;
 }
 function resetConfigurationManager2() {
@@ -47306,20 +47323,49 @@ var init_ConfigurationManager = __esm({
        */
       async initialize() {
         try {
+          console.log("[DEBUG] ConfigurationManager.initialize() - Starting initialization");
+          console.log("[DEBUG] Loading default configuration...");
           const defaultConfig = this.loadDefaultConfig();
+          console.log("[DEBUG] Default config loaded:", Object.keys(defaultConfig));
+          console.log("[DEBUG] Loading environment configuration...");
           const envConfig = this.loadFromEnvironment();
+          console.log("[DEBUG] Environment config loaded:", Object.keys(envConfig));
+          console.log("[DEBUG] Loading runtime configuration...");
           const runtimeConfig = this.loadFromRuntime();
+          console.log("[DEBUG] Runtime config loaded:", Object.keys(runtimeConfig));
+          console.log("[DEBUG] Merging configurations...");
           const mergedConfig = this.mergeConfigs(
             defaultConfig,
             envConfig,
             runtimeConfig
           );
+          console.log("[DEBUG] Configs merged successfully");
+          console.log("[DEBUG] Validating configuration with schema...");
           this.config = ServiceConfigSchema2.parse(mergedConfig);
+          console.log("[DEBUG] Configuration validated successfully");
           this.lastUpdated = Date.now();
+          console.log("[DEBUG] Configuration timestamp updated");
+          console.log("[DEBUG] Logging startup banner...");
           console.log(startupBanner());
+          console.log("[DEBUG] Logging configuration summary...");
           this.logConfigurationSummary();
+          console.log("[DEBUG] ConfigurationManager.initialize() - Initialization completed successfully");
           elizaLogger20.info(success("Service configuration loaded successfully"));
         } catch (error3) {
+          console.log("[DEBUG] ConfigurationManager.initialize() - Error occurred:", error3);
+          console.log("[DEBUG] Error type:", typeof error3);
+          console.log("[DEBUG] Error name:", error3 instanceof Error ? error3.name : "Not an Error object");
+          console.log("[DEBUG] Error message:", error3 instanceof Error ? error3.message : String(error3));
+          console.log("[DEBUG] Error stack:", error3 instanceof Error ? error3.stack : "No stack trace");
+          console.log("[DEBUG] Checking for error3 references...");
+          try {
+            console.log("[DEBUG] typeof error3:", typeof globalThis.error3);
+            if (globalThis.error3) {
+              console.log("[DEBUG] error3 found in global scope:", globalThis.error3);
+            }
+          } catch (e) {
+            console.log("[DEBUG] No error3 in global scope");
+          }
           elizaLogger20.error(error3("Failed to initialize configuration manager:"), error3);
           throw error3;
         }
@@ -47530,10 +47576,22 @@ var init_ConfigurationManager = __esm({
         const enabledServices = Object.keys(this.config).filter(
           (key) => key !== "global" && this.isServiceEnabled(key)
         );
+        const disabledServices = Object.keys(this.config).filter(
+          (key) => key !== "global" && !this.isServiceEnabled(key)
+        );
         const summary = configSummary({
           servicesEnabled: status.servicesEnabled,
           servicesDisabled: status.servicesDisabled,
+          servicesWarning: 0,
+          // No warning services in current implementation
+          servicesError: 0,
+          // No error services in current implementation
           enabledServices,
+          disabledServices,
+          warningServices: [],
+          // No warning services in current implementation
+          errorServices: [],
+          // No error services in current implementation
           globalConfig: this.config.global
         });
         console.log(summary);
@@ -60729,18 +60787,28 @@ var init_ServiceFactory = __esm({
        * Initialize all services with proper dependency injection
        */
       static async initializeServices(runtime, config) {
+        console.log("[DEBUG] ServiceFactory.initializeServices() - Starting");
+        console.log("[DEBUG] Runtime provided:", !!runtime);
+        console.log("[DEBUG] Config keys:", Object.keys(config));
         if (this.isInitialized) {
           logger43.warn(warning("Services already initialized, skipping..."));
           return;
         }
         console.log(sectionHeader("Service Initialization", "\u{1F527}"));
         try {
+          console.log("[DEBUG] Importing ConfigurationManager...");
           const { initializeConfigurationManager: initializeConfigurationManager3 } = await Promise.resolve().then(() => (init_ConfigurationManager(), ConfigurationManager_exports));
+          console.log("[DEBUG] ConfigurationManager imported successfully");
+          console.log("[DEBUG] initializeConfigurationManager function:", typeof initializeConfigurationManager3);
+          console.log("[DEBUG] Calling initializeConfigurationManager...");
           await initializeConfigurationManager3(runtime);
+          console.log("[DEBUG] initializeConfigurationManager completed successfully");
           logger43.info(success("Configuration manager initialized successfully"));
+          console.log("[DEBUG] Setting environment variables from config...");
           for (const [key, value] of Object.entries(config)) {
             if (value) process.env[key] = value;
           }
+          console.log("[DEBUG] Environment variables set");
           const serviceClasses = [
             // Core data services (no dependencies)
             BitcoinDataService2,
@@ -60788,6 +60856,11 @@ var init_ServiceFactory = __esm({
           logger43.info(success("All services initialized successfully"));
           this.logServiceStatus();
         } catch (error3) {
+          console.log("[DEBUG] ServiceFactory.initializeServices() - Error occurred:", error3);
+          console.log("[DEBUG] Error type:", typeof error3);
+          console.log("[DEBUG] Error name:", error3 instanceof Error ? error3.name : "Not an Error object");
+          console.log("[DEBUG] Error message:", error3 instanceof Error ? error3.message : String(error3));
+          console.log("[DEBUG] Error stack:", error3 instanceof Error ? error3.stack : "No stack trace");
           logger43.error(error("Critical error during service initialization:"), error3);
           throw error3;
         }
