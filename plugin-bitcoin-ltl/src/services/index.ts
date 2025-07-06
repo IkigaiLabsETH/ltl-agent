@@ -47,3 +47,8 @@ export { RealTimeDataService } from "./RealTimeDataService";
 // Health Intelligence Services
 export { HealthIntelligenceService } from "./HealthIntelligenceService";
 export { WellnessReminderService } from "./WellnessReminderService";
+
+// Bitcoin Intelligence Services (New Unified Architecture)
+export { BitcoinIntelligenceService } from "./BitcoinIntelligenceService";
+export { MarketIntelligenceService } from "./MarketIntelligenceService";
+export { InstitutionalAdoptionService } from "./InstitutionalAdoptionService";

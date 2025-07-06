@@ -35,6 +35,11 @@ import {
   StarterService,
 } from "./services";
 
+// New Bitcoin Intelligence Services
+import { BitcoinIntelligenceService } from "./services/BitcoinIntelligenceService";
+import { MarketIntelligenceService } from "./services/MarketIntelligenceService";
+import { InstitutionalAdoptionService } from "./services/InstitutionalAdoptionService";
+
 // Actions and Providers
 import {
   morningBriefingAction,
