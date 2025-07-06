@@ -196,3 +196,42 @@ export * from "./marketTypes";
 
 // Error types and handling
 export * from "./errorTypes";
+
+/**
+ * Hotel price data interface for Google Hotels scraping
+ */
+export interface PriceData {
+  currentPrice: number;
+  currency: string;
+  lastUpdated: string;
+  source: string;
+  confidence: number;
+}
+
+/**
+ * Rate opportunity interface for perfect day detection
+ */
+export interface RateOpportunity {
+  hotelId: string;
+  hotelName: string;
+  date: string;
+  currentPrice: number;
+  averagePrice: number;
+  savingsPercentage: number;
+  confidence: number;
+}
+
+/**
+ * Perfect day opportunity interface for hotel rate intelligence
+ */
+export interface PerfectDayOpportunity {
+  hotelId: string;
+  hotelName: string;
+  perfectDate: string;
+  currentRate: number;
+  averageRate: number;
+  savingsPercentage: number;
+  confidenceScore: number;
+  reasons: string[];
+  urgency: 'high' | 'medium' | 'low';
+}
