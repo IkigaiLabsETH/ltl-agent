@@ -9,10 +9,14 @@ import {
   BankingIntegration
 } from "../types/bitcoinIntelligence";
 import { ElizaOSErrorHandler, LoggerWithContext, generateCorrelationId } from "../utils";
+import { createBitcoinAPIClient } from "../utils/apiUtils";
 
 export class InstitutionalAdoptionService extends BaseDataService {
   static serviceType = "institutional-adoption";
   capabilityDescription = "Institutional adoption service tracking corporate treasuries, sovereign adoption, ETF metrics, and banking integration";
+
+  // API client
+  private apiClient: ReturnType<typeof createBitcoinAPIClient>;
 
   // Data storage
   private institutionalData: BitcoinInstitutionalData | null = null;
@@ -147,7 +151,10 @@ export class InstitutionalAdoptionService extends BaseDataService {
   ];
 
   constructor(runtime: IAgentRuntime) {
-    super(runtime, "institutionalAdoption");
+    super(runtime, "bitcoinData");
+    
+    // Initialize API client
+    this.apiClient = createBitcoinAPIClient();
   }
 
   static async start(runtime: IAgentRuntime) {
