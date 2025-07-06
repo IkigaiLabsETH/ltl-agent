@@ -819,9 +819,12 @@ export class RealTimeDataService extends BaseDataService {
 
         if (!response.ok) {
           if (response.status === 429) {
-            // Use the new rate limit error handler
-            await this.handleRateLimitError(response, 'fetchMarketData');
-            throw new Error(`HTTP 429: Rate limited, retry after backoff`);
+            // Handle rate limiting with exponential backoff
+            const retryAfter = response.headers.get('Retry-After');
+            const backoffTime = retryAfter ? parseInt(retryAfter) * 1000 : 30000; // Default 30s
+            console.warn(`[RealTimeDataService] Rate limited, backing off for ${backoffTime}ms`);
+            await new Promise(resolve => setTimeout(resolve, backoffTime));
+            throw new Error(`HTTP 429: Rate limited, retry after ${backoffTime}ms`);
           }
           if (response.status === 401 || response.status === 429) {
             console.warn(
@@ -1835,9 +1838,12 @@ export class RealTimeDataService extends BaseDataService {
 
         if (!response.ok) {
           if (response.status === 429) {
-            // Use the new rate limit error handler
-            await this.handleRateLimitError(response, 'fetchTop100VsBtcData');
-            throw new Error(`HTTP 429: Rate limited, retry after backoff`);
+            // Handle rate limiting with exponential backoff
+            const retryAfter = response.headers.get('Retry-After');
+            const backoffTime = retryAfter ? parseInt(retryAfter) * 1000 : 30000; // Default 30s
+            console.warn(`[RealTimeDataService] Rate limited, backing off for ${backoffTime}ms`);
+            await new Promise(resolve => setTimeout(resolve, backoffTime));
+            throw new Error(`HTTP 429: Rate limited, retry after ${backoffTime}ms`);
           }
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
@@ -2281,4 +2287,160 @@ export class RealTimeDataService extends BaseDataService {
       };
 
       console.log(
-        `
+        `[RealTimeDataService] Fetched trending coins: ${trending.length} coins`,
+      );
+      return result;
+    } catch (error) {
+      console.error("Error in fetchTrendingCoinsData:", error);
+      return null;
+    }
+  }
+
+  // Curated NFTs data management
+  private isCuratedNFTsCacheValid(): boolean {
+    if (!this.curatedNFTsCache) return false;
+    return (
+      Date.now() - this.curatedNFTsCache.timestamp <
+      this.CURATED_NFTS_CACHE_DURATION
+    );
+  }
+
+  private async updateCuratedNFTsData(): Promise<void> {
+    // Only fetch if cache is invalid
+    if (!this.isCuratedNFTsCacheValid()) {
+      const data = await this.fetchCuratedNFTsData();
+      if (data) {
+        this.curatedNFTsCache = {
+          data,
+          timestamp: Date.now(),
+        };
+      }
+    }
+  }
+
+  private async fetchCuratedNFTsData(): Promise<CuratedNFTsData | null> {
+    try {
+      const idsParam = this.curatedNFTCollections.map(collection => collection.slug).join(",");
+      const data = await this.makeQueuedRequest(async () => {
+        const response = await fetch(
+          `${this.COINGECKO_API}/search/nft-collections?ids=${idsParam}&order=market_cap_desc&per_page=10&page=1`,
+          {
+            headers: { Accept: "application/json" },
+            signal: AbortSignal.timeout(15000),
+          },
+        );
+
+        if (!response.ok) {
+          if (response.status === 429) {
+            // Handle rate limiting with exponential backoff
+            const retryAfter = response.headers.get('Retry-After');
+            const backoffTime = retryAfter ? parseInt(retryAfter) * 1000 : 30000; // Default 30s
+            console.warn(`[RealTimeDataService] Rate limited, backing off for ${backoffTime}ms`);
+            await new Promise(resolve => setTimeout(resolve, backoffTime));
+            throw new Error(`HTTP 429: Rate limited, retry after ${backoffTime}ms`);
+          }
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        return await response.json();
+      });
+
+      // Map and validate NFT collections (matches website exactly)
+      const collections: NFTCollectionData[] = Array.isArray(data.collections)
+        ? data.collections.map((c: any) => ({
+            slug: c.slug,
+            collection: {
+              collection: c.name,
+              name: c.name,
+              description: c.description,
+              image_url: c.image_url,
+              banner_image_url: c.banner_image_url,
+              owner: c.owner,
+              category: c.category,
+              is_disabled: c.is_disabled,
+              is_nsfw: c.is_nsfw,
+              trait_offers_enabled: c.trait_offers_enabled,
+              collection_offers_enabled: c.collection_offers_enabled,
+              opensea_url: c.opensea_url,
+              project_url: c.project_url,
+              wiki_url: c.wiki_url,
+              discord_url: c.discord_url,
+              telegram_url: c.telegram_url,
+              twitter_username: c.twitter_username,
+              instagram_username: c.instagram_username,
+              contracts: c.contracts.map((contract: any) => ({
+                address: contract.address,
+                chain: contract.chain,
+              })),
+              editors: c.editors,
+              fees: c.fees.map((fee: any) => ({
+                fee: fee.fee,
+                recipient: fee.recipient,
+                required: fee.required,
+              })),
+              rarity: {
+                strategy_id: c.rarity.strategy_id,
+                strategy_version: c.rarity.strategy_version,
+                rank_at: c.rarity.rank_at,
+                max_rank: c.rarity.max_rank,
+                tokens_scored: c.rarity.tokens_scored,
+              },
+              total_supply: c.total_supply,
+              created_date: c.created_date,
+            },
+            stats: {
+              total_supply: c.stats.total_supply,
+              num_owners: c.stats.num_owners,
+              average_price: c.stats.average_price,
+              floor_price: c.stats.floor_price,
+              market_cap: c.stats.market_cap,
+              one_day_volume: c.stats.one_day_volume,
+              one_day_change: c.stats.one_day_change,
+              one_day_sales: c.stats.one_day_sales,
+              seven_day_volume: c.stats.seven_day_volume,
+              seven_day_change: c.stats.seven_day_change,
+              seven_day_sales: c.stats.seven_day_sales,
+              thirty_day_volume: c.stats.thirty_day_volume,
+              thirty_day_change: c.stats.thirty_day_change,
+              thirty_day_sales: c.stats.thirty_day_sales,
+            },
+            lastUpdated: new Date(),
+            category: c.category,
+            floorItems: c.floorItems,
+            recentSales: c.recentSales,
+            contractAddress: c.contractAddress,
+            blockchain: c.blockchain,
+          }))
+        : [];
+
+      // Calculate summary statistics
+      const totalVolume24h = collections.reduce((total, collection) => total + collection.stats.one_day_volume, 0);
+      const totalMarketCap = collections.reduce((total, collection) => total + collection.stats.market_cap, 0);
+      const avgFloorPrice = collections.reduce((total, collection) => total + collection.stats.floor_price, 0) / collections.length;
+      const topPerformers = collections.slice(0, 5); // Top 5 performers
+      const worstPerformers = collections.slice(-5); // Bottom 5 performers
+      const totalCollections = collections.length;
+
+      const result: CuratedNFTsData = {
+        collections,
+        summary: {
+          totalVolume24h,
+          totalMarketCap,
+          avgFloorPrice,
+          topPerformers,
+          worstPerformers,
+          totalCollections,
+        },
+        lastUpdated: new Date(),
+      };
+
+      console.log(
+        `[RealTimeDataService] Fetched curated NFTs data: ${collections.length} collections`,
+      );
+      return result;
+    } catch (error) {
+      console.error("Error in fetchCuratedNFTsData:", error);
+      return null;
+    }
+  }
+}
