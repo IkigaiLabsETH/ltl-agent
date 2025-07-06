@@ -467,13 +467,17 @@ export class RealTimeDataService extends BaseDataService {
     // Adjust rate limiting based on API key availability
     const coingeckoApiKey = this.runtime.getSetting("COINGECKO_API_KEY");
     if (!coingeckoApiKey || coingeckoApiKey.startsWith("REPLACE_WITH_YOUR_ACTUAL") || coingeckoApiKey.startsWith("your_")) {
-      // Use stricter rate limiting for public API (10 seconds between requests)
-      this.serviceConfig.rateLimitDelay = 10000;
-      console.log("[RealTimeDataService] Using public CoinGecko API with 10s rate limiting");
+      // Use very conservative rate limiting for public API
+      this.serviceConfig.rateLimitDelay = 5000; // 5 seconds between requests
+      this.serviceConfig.maxRequestsPerWindow = 20; // 20 requests per minute
+      this.serviceConfig.rateLimitWindow = 60000; // 1 minute window
+      console.log("[RealTimeDataService] Using public CoinGecko API with conservative rate limiting (5s delay, 20 req/min)");
     } else {
-      // Use standard rate limiting for pro API (3 seconds between requests)
-      this.serviceConfig.rateLimitDelay = 3000;
-      console.log("[RealTimeDataService] Using CoinGecko Pro API with 3s rate limiting");
+      // Use standard rate limiting for pro API
+      this.serviceConfig.rateLimitDelay = 2000; // 2 seconds between requests
+      this.serviceConfig.maxRequestsPerWindow = 50; // 50 requests per minute
+      this.serviceConfig.rateLimitWindow = 60000; // 1 minute window
+      console.log("[RealTimeDataService] Using CoinGecko Pro API with standard rate limiting (2s delay, 50 req/min)");
     }
 
     this.useOpenSeaApi = this.runtime?.getSetting?.('USE_OPENSEA_API') ?? USE_OPENSEA_API;
@@ -826,12 +830,9 @@ export class RealTimeDataService extends BaseDataService {
 
         if (!response.ok) {
           if (response.status === 429) {
-            // Handle rate limiting with exponential backoff
-            const retryAfter = response.headers.get('Retry-After');
-            const backoffTime = retryAfter ? parseInt(retryAfter) * 1000 : 30000; // Default 30s
-            console.warn(`[RealTimeDataService] Rate limited, backing off for ${backoffTime}ms`);
-            await new Promise(resolve => setTimeout(resolve, backoffTime));
-            throw new Error(`HTTP 429: Rate limited, retry after ${backoffTime}ms`);
+            // Use the new rate limit error handler
+            await this.handleRateLimitError(response, 'fetchMarketData');
+            throw new Error(`HTTP 429: Rate limited, retry after backoff`);
           }
           if (response.status === 401 || response.status === 429) {
             console.warn(
@@ -2527,5 +2528,41 @@ export class RealTimeDataService extends BaseDataService {
       worstPerformers: sorted.slice(-3).reverse(),
       totalCollections: collections.length,
     };
+  }
+
+  /**
+   * Handle 429 rate limit errors with exponential backoff
+   */
+  private async handleRateLimitError(response: Response, context: string): Promise<void> {
+    const retryAfter = response.headers.get('Retry-After');
+    let backoffTime = 30000; // Default 30s
+
+    if (retryAfter) {
+      // Parse Retry-After header (can be seconds or HTTP date)
+      const retryAfterValue = parseInt(retryAfter);
+      if (!isNaN(retryAfterValue)) {
+        backoffTime = retryAfterValue * 1000;
+      } else {
+        // Try to parse as HTTP date
+        const retryDate = new Date(retryAfter);
+        if (!isNaN(retryDate.getTime())) {
+          backoffTime = Math.max(0, retryDate.getTime() - Date.now());
+        }
+      }
+    } else {
+      // Exponential backoff based on consecutive failures
+      const baseBackoff = Math.min(Math.pow(2, this.consecutiveFailures) * 5000, 300000);
+      const jitter = Math.random() * 10000; // 0-10s jitter
+      backoffTime = baseBackoff + jitter;
+    }
+
+    this.contextLogger.warn(
+      `[RealTimeDataService] Rate limited in ${context}, backing off for ${Math.round(backoffTime)}ms`,
+    );
+
+    // Update adaptive rate limiting
+    this.adaptiveRateLimitDelay = Math.min(this.adaptiveRateLimitDelay * 2, 60000); // Max 60s
+
+    await new Promise(resolve => setTimeout(resolve, backoffTime));
   }
 }

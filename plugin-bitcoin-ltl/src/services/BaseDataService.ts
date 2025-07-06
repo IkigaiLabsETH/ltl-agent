@@ -169,6 +169,14 @@ export abstract class BaseDataService extends Service {
   protected isProcessingQueue = false;
   protected consecutiveFailures = 0;
   protected backoffUntil = 0;
+  
+  // Enhanced rate limiting properties
+  protected adaptiveRateLimitDelay = 3000; // Start with 3s, will adapt
+  protected rateLimitHistory: number[] = []; // Track recent response times
+  protected lastRateLimitReset = Date.now();
+  protected rateLimitWindow = 60000; // 1 minute window
+  protected requestsInWindow = 0;
+  protected maxRequestsPerWindow = 30; // Conservative limit for public API
 
   // Enhanced error handling and monitoring
   protected circuitBreaker: CircuitBreaker;
@@ -194,6 +202,11 @@ export abstract class BaseDataService extends Service {
       this.serviceConfig.circuitBreakerThreshold || 5,
       this.serviceConfig.circuitBreakerTimeout || 60000,
     );
+
+    // Initialize enhanced rate limiting
+    this.adaptiveRateLimitDelay = this.serviceConfig.rateLimitDelay || 3000;
+    this.maxRequestsPerWindow = this.serviceConfig.maxRequestsPerWindow || 30;
+    this.rateLimitWindow = this.serviceConfig.rateLimitWindow || 60000;
 
     this.serviceHealth = {
       healthy: true,
@@ -372,19 +385,35 @@ export abstract class BaseDataService extends Service {
         const startTime = Date.now();
 
         try {
+          // Check rate limits before making request
+          if (!this.canMakeRequest()) {
+            const waitTime = this.rateLimitWindow - (Date.now() - this.lastRateLimitReset);
+            elizaLogger.warn(
+              `[${this.constructor.name}:${this.correlationId}] Rate limit exceeded, waiting ${waitTime}ms`,
+            );
+            await new Promise((resolve) => setTimeout(resolve, waitTime));
+            this.resetRateLimitWindow();
+          }
+
+          this.incrementRequestCount();
+
           // Execute through circuit breaker
           const result = await this.circuitBreaker.execute(requestFn);
 
           // Update metrics
           this.serviceHealth.totalRequests++;
           this.serviceHealth.lastSuccessTime = Date.now();
-          this.updateResponseTime(Date.now() - startTime);
+          const responseTime = Date.now() - startTime;
+          this.updateResponseTime(responseTime);
+          this.updateAdaptiveRateLimit(responseTime, false);
 
           resolve(result);
         } catch (error) {
           this.serviceHealth.totalRequests++;
           this.serviceHealth.totalFailures++;
           this.serviceHealth.lastFailureTime = Date.now();
+          const responseTime = Date.now() - startTime;
+          this.updateAdaptiveRateLimit(responseTime, true);
 
           // Enhanced error logging with correlation
           elizaLogger.error(
@@ -426,7 +455,6 @@ export abstract class BaseDataService extends Service {
     if (this.isProcessingQueue) return;
 
     this.isProcessingQueue = true;
-    const rateLimitDelay = this.serviceConfig.rateLimitDelay || 3000;
 
     while (this.requestQueue.length > 0) {
       // Check if we're in backoff period
@@ -439,12 +467,14 @@ export abstract class BaseDataService extends Service {
         this.backoffUntil = 0;
       }
 
-      // Ensure minimum interval between requests
+      // Ensure minimum interval between requests using adaptive delay
       const timeSinceLastRequest = Date.now() - this.lastRequestTime;
-      if (timeSinceLastRequest < rateLimitDelay) {
-        await new Promise((resolve) =>
-          setTimeout(resolve, rateLimitDelay - timeSinceLastRequest),
+      if (timeSinceLastRequest < this.adaptiveRateLimitDelay) {
+        const waitTime = this.adaptiveRateLimitDelay - timeSinceLastRequest;
+        elizaLogger.debug(
+          `[${this.constructor.name}:${this.correlationId}] Rate limiting: waiting ${waitTime}ms`,
         );
+        await new Promise((resolve) => setTimeout(resolve, waitTime));
       }
 
       const request = this.requestQueue.shift();
@@ -494,6 +524,69 @@ export abstract class BaseDataService extends Service {
    */
   protected getSetting(key: string, defaultValue?: string): string | undefined {
     return this.runtime.getSetting(key) || defaultValue;
+  }
+
+  /**
+   * Reset rate limit window if needed
+   */
+  private resetRateLimitWindow(): void {
+    const now = Date.now();
+    if (now - this.lastRateLimitReset >= this.rateLimitWindow) {
+      this.requestsInWindow = 0;
+      this.lastRateLimitReset = now;
+      elizaLogger.debug(
+        `[${this.constructor.name}:${this.correlationId}] Rate limit window reset`,
+      );
+    }
+  }
+
+  /**
+   * Update adaptive rate limiting based on response time and errors
+   */
+  private updateAdaptiveRateLimit(responseTime: number, wasError: boolean): void {
+    // Track response times (keep last 10)
+    this.rateLimitHistory.push(responseTime);
+    if (this.rateLimitHistory.length > 10) {
+      this.rateLimitHistory.shift();
+    }
+
+    if (wasError) {
+      // Increase delay on errors
+      this.adaptiveRateLimitDelay = Math.min(
+        this.adaptiveRateLimitDelay * 1.5,
+        30000, // Max 30s
+      );
+      elizaLogger.warn(
+        `[${this.constructor.name}:${this.correlationId}] Rate limit delay increased to ${this.adaptiveRateLimitDelay}ms due to error`,
+      );
+    } else {
+      // Gradually decrease delay on success
+      const avgResponseTime = this.rateLimitHistory.reduce((a, b) => a + b, 0) / this.rateLimitHistory.length;
+      if (avgResponseTime < 1000 && this.adaptiveRateLimitDelay > 2000) {
+        this.adaptiveRateLimitDelay = Math.max(
+          this.adaptiveRateLimitDelay * 0.9,
+          2000, // Min 2s
+        );
+        elizaLogger.debug(
+          `[${this.constructor.name}:${this.correlationId}] Rate limit delay decreased to ${this.adaptiveRateLimitDelay}ms`,
+        );
+      }
+    }
+  }
+
+  /**
+   * Check if we can make a request within rate limits
+   */
+  private canMakeRequest(): boolean {
+    this.resetRateLimitWindow();
+    return this.requestsInWindow < this.maxRequestsPerWindow;
+  }
+
+  /**
+   * Increment request counter
+   */
+  private incrementRequestCount(): void {
+    this.requestsInWindow++;
   }
 
   // Abstract methods that must be implemented by subclasses
