@@ -46431,104 +46431,186 @@ var init_esm = __esm({
 });
 
 // plugin-bitcoin-ltl/src/utils/terminal-formatting.ts
-function colorize(text, color, isBackground = false) {
-  if (color === "dim") {
+function resolveColor(color) {
+  switch (color) {
+    case "primary":
+      return "cyan";
+    case "secondary":
+      return "blue";
+    case "success":
+      return "green";
+    case "warning":
+      return "yellow";
+    case "error":
+      return "red";
+    case "info":
+      return "blue";
+    case "muted":
+      return "dim";
+    case "background":
+      return "black";
+    case "foreground":
+      return "white";
+    default:
+      if (colors.fg[color]) return color;
+      return "white";
+  }
+}
+function colorize(text, color, isBackground = false, theme) {
+  if (!supportsColors()) {
+    return text;
+  }
+  const resolvedColor = resolveColor(color);
+  if (resolvedColor === "dim") {
     return `${colors.dim}${text}${colors.reset}`;
   }
-  const colorCode = isBackground ? colors.bg[color] : colors.fg[color];
+  if (resolvedColor === "bright") {
+    return `${colors.bright}${text}${colors.reset}`;
+  }
+  const colorCode = isBackground ? colors.bg[resolvedColor] : colors.fg[resolvedColor];
   return `${colorCode}${text}${colors.reset}`;
 }
 function bold(text) {
-  return `${colors.bright}${text}${colors.reset}`;
+  return colorize(text, "bright");
 }
-function success(text) {
-  return `${emojis.success} ${colorize(text, "green")}`;
+function success(text, theme = "default") {
+  const currentTheme = themes[theme];
+  return `${emojis.success} ${colorize(text, resolveColor(currentTheme.colors.success))}`;
 }
-function warning(text) {
-  return `${emojis.warning} ${colorize(text, "yellow")}`;
+function warning(text, theme = "default") {
+  const currentTheme = themes[theme];
+  return `${emojis.warning} ${colorize(text, resolveColor(currentTheme.colors.warning))}`;
 }
-function error(text) {
-  return `${emojis.error} ${colorize(text, "red")}`;
+function error(text, theme = "default") {
+  const currentTheme = themes[theme];
+  return `${emojis.error} ${colorize(text, resolveColor(currentTheme.colors.error))}`;
 }
-function serviceStatus(serviceName, status) {
+function serviceStatus(serviceName, status, theme = "default") {
   const emoji = serviceEmojis[serviceName] || serviceEmojis.default;
+  const currentTheme = themes[theme];
   switch (status) {
     case "enabled":
     case "started":
-      return `${emoji} ${colorize(serviceName, "green")} ${emojis.success}`;
+      return `${emoji} ${colorize(serviceName, resolveColor(currentTheme.colors.success))} ${emojis.success}`;
     case "starting":
-      return `${emoji} ${colorize(serviceName, "yellow")} ${emojis.loading}`;
+      return `${emoji} ${colorize(serviceName, resolveColor(currentTheme.colors.warning))} ${emojis.loading}`;
     case "disabled":
     case "stopped":
-      return `${emoji} ${colorize(serviceName, "dim")} ${emojis.cross}`;
+      return `${emoji} ${colorize(serviceName, resolveColor(currentTheme.colors.muted))} ${emojis.cross}`;
     case "error":
-      return `${emoji} ${colorize(serviceName, "red")} ${emojis.error}`;
+      return `${emoji} ${colorize(serviceName, resolveColor(currentTheme.colors.error))} ${emojis.error}`;
+    case "warning":
+      return `${emoji} ${colorize(serviceName, resolveColor(currentTheme.colors.warning))} ${emojis.warning}`;
     default:
       return `${emoji} ${serviceName}`;
   }
 }
-function configSummary(data) {
+function configSummary(data, theme = "default") {
+  const currentTheme = themes[theme];
   const lines = [
-    `${emojis.config} ${bold("Configuration Summary")}`,
+    `${emojis.config} ${bold(colorize("Configuration Summary", resolveColor(currentTheme.colors.primary)))}`,
     "",
-    `${emojis.check} ${colorize(`${data.servicesEnabled} services enabled`, "green")}`,
-    `${emojis.cross} ${colorize(`${data.servicesDisabled} services disabled`, "red")}`,
+    `${emojis.check} ${colorize(`${data.servicesEnabled} services enabled`, resolveColor(currentTheme.colors.success))}`,
+    `${emojis.cross} ${colorize(`${data.servicesDisabled} services disabled`, resolveColor(currentTheme.colors.muted))}`,
+    `${emojis.warning} ${colorize(`${data.servicesWarning} services with warnings`, resolveColor(currentTheme.colors.warning))}`,
+    `${emojis.error} ${colorize(`${data.servicesError} services with errors`, resolveColor(currentTheme.colors.error))}`,
     "",
-    `${emojis.gear} ${bold("Enabled Services:")}`,
-    ...data.enabledServices.map(
-      (service) => `  ${serviceStatus(service, "enabled")}`
-    ),
-    ""
+    `${emojis.gear} ${bold(colorize("Service Status:", resolveColor(currentTheme.colors.primary)))}`
   ];
+  if (data.enabledServices.length > 0) {
+    lines.push(`${colorize("Enabled:", resolveColor(currentTheme.colors.success))}`);
+    data.enabledServices.forEach(
+      (service) => lines.push(`  ${serviceStatus(service, "enabled", theme)}`)
+    );
+  }
+  if (data.disabledServices.length > 0) {
+    lines.push(`${colorize("Disabled:", resolveColor(currentTheme.colors.muted))}`);
+    data.disabledServices.forEach(
+      (service) => lines.push(`  ${serviceStatus(service, "disabled", theme)}`)
+    );
+  }
+  if (data.warningServices.length > 0) {
+    lines.push(`${colorize("Warnings:", resolveColor(currentTheme.colors.warning))}`);
+    data.warningServices.forEach(
+      (service) => lines.push(`  ${serviceStatus(service, "warning", theme)}`)
+    );
+  }
+  if (data.errorServices.length > 0) {
+    lines.push(`${colorize("Errors:", resolveColor(currentTheme.colors.error))}`);
+    data.errorServices.forEach(
+      (service) => lines.push(`  ${serviceStatus(service, "error", theme)}`)
+    );
+  }
   if (data.globalConfig) {
-    lines.push(`${emojis.settings} ${bold("Global Configuration:")}`);
+    lines.push("");
+    lines.push(`${emojis.settings} ${bold(colorize("Global Configuration:", resolveColor(currentTheme.colors.primary)))}`);
     Object.entries(data.globalConfig).forEach(([key, value]) => {
-      lines.push(`  ${colorize(key, "cyan")}: ${value}`);
+      const formattedValue = typeof value === "object" ? JSON.stringify(value, null, 2) : String(value);
+      lines.push(`  ${colorize(key, resolveColor(currentTheme.colors.info))}: ${formattedValue}`);
     });
   }
   return lines.join("\n");
 }
-function startupBanner() {
+function startupBanner(theme = "default") {
+  const currentTheme = themes[theme];
+  const bannerEmoji = theme === "bitcoin" ? emojis.bitcoin : emojis.rocket;
   return `
-${colorize("\u2554\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2557", "cyan")}
-${colorize("\u2551", "cyan")}                    ${bold(colorize("ElizaOS Bitcoin LTL Agent", "magenta"))}                    ${colorize("\u2551", "cyan")}
-${colorize("\u2551", "cyan")}              ${colorize("Live The Life You Deserve", "dim")}              ${colorize("\u2551", "cyan")}
-${colorize("\u255A\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u255D", "cyan")}
-${emojis.rocket} ${colorize("Initializing services...", "yellow")}
+${colorize("\u2554\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2557", resolveColor(currentTheme.colors.primary))}
+${colorize("\u2551", resolveColor(currentTheme.colors.primary))}                    ${bold(colorize("ElizaOS Bitcoin LTL Agent", resolveColor(currentTheme.colors.primary)))}                    ${colorize("\u2551", resolveColor(currentTheme.colors.primary))}
+${colorize("\u2551", resolveColor(currentTheme.colors.primary))}              ${colorize("Live The Life You Deserve", resolveColor(currentTheme.colors.muted))}              ${colorize("\u2551", resolveColor(currentTheme.colors.primary))}
+${colorize("\u2551", resolveColor(currentTheme.colors.primary))}                    ${colorize(`Theme: ${currentTheme.name}`, resolveColor(currentTheme.colors.info))}                    ${colorize("\u2551", resolveColor(currentTheme.colors.primary))}
+${colorize("\u255A\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u255D", resolveColor(currentTheme.colors.primary))}
+${bannerEmoji} ${colorize("Initializing services...", resolveColor(currentTheme.colors.warning))}
 `;
 }
-function serviceStartup(serviceName) {
+function serviceStartup(serviceName, theme = "default") {
   const emoji = serviceEmojis[serviceName] || serviceEmojis.default;
-  return `${emoji} ${colorize(`${serviceName} starting...`, "yellow")}`;
+  const currentTheme = themes[theme];
+  return `${emoji} ${colorize(`${serviceName} starting...`, resolveColor(currentTheme.colors.warning))}`;
 }
-function serviceStarted(serviceName) {
+function serviceStarted(serviceName, theme = "default") {
   const emoji = serviceEmojis[serviceName] || serviceEmojis.default;
-  return `${emoji} ${colorize(`${serviceName} started successfully`, "green")}`;
+  const currentTheme = themes[theme];
+  return `${emoji} ${colorize(`${serviceName} started successfully`, resolveColor(currentTheme.colors.success))}`;
 }
-function serviceError(serviceName, error3) {
+function serviceError(serviceName, error3, theme = "default") {
   const emoji = serviceEmojis[serviceName] || serviceEmojis.default;
-  return `${emoji} ${colorize(`${serviceName} error:`, "red")} ${error3}`;
+  const currentTheme = themes[theme];
+  return `${emoji} ${colorize(`${serviceName} error:`, resolveColor(currentTheme.colors.error))} ${error3}`;
 }
-function progressBar(current, total, width = 20) {
+function progressBar(current, total, width = 20, theme = "default", showPercentage = true, showNumbers = false) {
+  const currentTheme = themes[theme];
   const percentage = Math.round(current / total * 100);
   const filled = Math.round(current / total * width);
   const empty = width - filled;
-  const filledBar = colorize("\u2588".repeat(filled), "green");
-  const emptyBar = colorize("\u2591".repeat(empty), "dim");
-  return `${filledBar}${emptyBar} ${percentage}%`;
+  const filledBar = colorize("\u2588".repeat(filled), resolveColor(currentTheme.colors.success));
+  const emptyBar = colorize("\u2591".repeat(empty), resolveColor(currentTheme.colors.muted));
+  let result = `${filledBar}${emptyBar}`;
+  if (showPercentage) {
+    result += ` ${colorize(`${percentage}%`, resolveColor(currentTheme.colors.info))}`;
+  }
+  if (showNumbers) {
+    result += ` ${colorize(`(${current}/${total})`, resolveColor(currentTheme.colors.muted))}`;
+  }
+  return result;
 }
-function divider(char = "\u2500", length = 60) {
-  return colorize(char.repeat(length), "dim");
+function divider(char = "\u2500", length = 60, theme = "default") {
+  const currentTheme = themes[theme];
+  return colorize(char.repeat(length), resolveColor(currentTheme.colors.muted));
 }
-function sectionHeader(title, emoji = emojis.star) {
+function sectionHeader(title, emoji = emojis.star, theme = "default") {
+  const currentTheme = themes[theme];
   return `
-${emoji} ${bold(colorize(title, "magenta"))}
-${divider()}`;
+${emoji} ${bold(colorize(title, resolveColor(currentTheme.colors.primary)))}`;
 }
-function subsectionHeader(title, emoji = emojis.arrow) {
-  return `${emoji} ${colorize(title, "cyan")}`;
+function subsectionHeader(title, emoji = emojis.arrow, theme = "default") {
+  const currentTheme = themes[theme];
+  return `${emoji} ${colorize(title, resolveColor(currentTheme.colors.secondary))}`;
 }
-var colors, emojis, serviceEmojis;
+function supportsColors() {
+  return process.stdout.isTTY && process.env.NO_COLOR !== "1";
+}
+var colors, emojis, serviceEmojis, themes;
 var init_terminal_formatting = __esm({
   "plugin-bitcoin-ltl/src/utils/terminal-formatting.ts"() {
     colors = {
@@ -46539,7 +46621,8 @@ var init_terminal_formatting = __esm({
       blink: "\x1B[5m",
       reverse: "\x1B[7m",
       hidden: "\x1B[8m",
-      // Foreground colors
+      strikethrough: "\x1B[9m",
+      // Standard foreground colors
       fg: {
         black: "\x1B[30m",
         red: "\x1B[31m",
@@ -46550,7 +46633,7 @@ var init_terminal_formatting = __esm({
         cyan: "\x1B[36m",
         white: "\x1B[37m"
       },
-      // Background colors
+      // Standard background colors
       bg: {
         black: "\x1B[40m",
         red: "\x1B[41m",
@@ -46560,67 +46643,179 @@ var init_terminal_formatting = __esm({
         magenta: "\x1B[45m",
         cyan: "\x1B[46m",
         white: "\x1B[47m"
+      },
+      // Extended 256-color support
+      extended: {
+        fg: (code) => `\x1B[38;5;${code}m`,
+        bg: (code) => `\x1B[48;5;${code}m`
+      },
+      // RGB color support (24-bit)
+      rgb: {
+        fg: (r, g, b) => `\x1B[38;2;${r};${g};${b}m`,
+        bg: (r, g, b) => `\x1B[48;2;${r};${g};${b}m`
       }
     };
     emojis = {
+      // Core symbols
       bitcoin: "\u20BF",
+      ethereum: "\u039E",
+      solana: "\u25CE",
+      cardano: "\u20B3",
+      polkadot: "DOT",
+      chainlink: "LINK",
+      polygon: "MATIC",
+      avalanche: "AVAX",
+      cosmos: "ATOM",
+      algorand: "ALGO",
+      stellar: "XLM",
+      ripple: "XRP",
+      litecoin: "\u0141",
+      monero: "\u0271",
+      zcash: "ZEC",
+      dash: "\xD0",
+      dogecoin: "\xD0",
+      shiba: "SHIB",
+      usdt: "USDT",
+      usdc: "USDC",
+      dai: "DAI",
+      busd: "BUSD",
+      maker: "MKR",
+      compound: "COMP",
+      aave: "AAVE",
+      uniswap: "UNI",
+      sushi: "SUSHI",
+      curve: "CRV",
+      yearn: "YFI",
+      balancer: "BAL",
+      synthetix: "SNX",
+      // Financial and market
       stock: "\u{1F4C8}",
       crypto: "\u{1FA99}",
       etf: "\u{1F4CA}",
       nft: "\u{1F5BC}\uFE0F",
+      money: "\u{1F4B0}",
+      chart: "\u{1F4CA}",
+      rocket: "\u{1F680}",
+      fire: "\u{1F525}",
+      diamond: "\u{1F48E}",
+      crown: "\u{1F451}",
+      trophy: "\u{1F3C6}",
+      medal: "\u{1F947}",
+      target: "\u{1F3AF}",
+      // Lifestyle and travel
       lifestyle: "\u{1F3E0}",
       travel: "\u2708\uFE0F",
-      weather: "\u{1F324}\uFE0F",
+      hotel: "\u{1F3E8}",
       food: "\u{1F37D}\uFE0F",
       drink: "\u{1F377}",
+      wine: "\u{1F377}",
+      coffee: "\u2615",
+      tea: "\u{1FAD6}",
+      beer: "\u{1F37A}",
+      cocktail: "\u{1F378}",
+      champagne: "\u{1F37E}",
+      whiskey: "\u{1F943}",
+      cigar: "\u{1F6AC}",
+      // Weather and environment
+      weather: "\u{1F324}\uFE0F",
+      sun: "\u2600\uFE0F",
+      moon: "\u{1F319}",
+      cloud: "\u2601\uFE0F",
+      rain: "\u{1F327}\uFE0F",
+      snow: "\u2744\uFE0F",
+      storm: "\u26C8\uFE0F",
+      rainbow: "\u{1F308}",
+      // Communication and media
       news: "\u{1F4F0}",
       alert: "\u{1F6A8}",
+      bell: "\u{1F514}",
+      megaphone: "\u{1F4E2}",
+      satellite: "\u{1F6F0}\uFE0F",
+      network: "\u{1F310}",
+      api: "\u{1F50C}",
+      webhook: "\u{1F517}",
+      socket: "\u{1F50C}",
+      server: "\u{1F5A5}\uFE0F",
+      // Status indicators
       success: "\u2705",
       warning: "\u26A0\uFE0F",
       error: "\u274C",
       info: "\u2139\uFE0F",
       loading: "\u23F3",
-      rocket: "\u{1F680}",
-      brain: "\u{1F9E0}",
-      heart: "\u2764\uFE0F",
-      star: "\u2B50",
       check: "\u2713",
       cross: "\u2717",
-      arrow: "\u2192",
-      sparkles: "\u2728",
-      fire: "\u{1F525}",
-      money: "\u{1F4B0}",
-      chart: "\u{1F4CA}",
+      question: "\u2753",
+      exclamation: "\u2757",
+      // Actions and controls
       gear: "\u2699\uFE0F",
+      settings: "\u{1F527}",
+      config: "\u2699\uFE0F",
+      lock: "\u{1F512}",
+      key: "\u{1F511}",
       shield: "\u{1F6E1}\uFE0F",
       lightning: "\u26A1",
-      crown: "\u{1F451}",
-      diamond: "\u{1F48E}",
-      trophy: "\u{1F3C6}",
-      medal: "\u{1F947}",
+      sparkles: "\u2728",
+      star: "\u2B50",
+      heart: "\u2764\uFE0F",
+      brain: "\u{1F9E0}",
       flag: "\u{1F3C1}",
-      target: "\u{1F3AF}",
       compass: "\u{1F9ED}",
       map: "\u{1F5FA}\uFE0F",
       clock: "\u{1F550}",
       calendar: "\u{1F4C5}",
-      bell: "\u{1F514}",
-      megaphone: "\u{1F4E2}",
-      satellite: "\u{1F6F0}\uFE0F",
-      network: "\u{1F310}",
-      database: "\u{1F5C4}\uFE0F",
-      cache: "\u{1F4BE}",
-      api: "\u{1F50C}",
-      webhook: "\u{1F517}",
-      socket: "\u{1F50C}",
-      server: "\u{1F5A5}\uFE0F",
-      cloud: "\u2601\uFE0F",
-      lock: "\u{1F512}",
-      key: "\u{1F511}",
+      // User and team
       user: "\u{1F464}",
       team: "\u{1F465}",
-      config: "\u2699\uFE0F",
-      settings: "\u{1F527}",
+      group: "\u{1F465}",
+      // Data and storage
+      database: "\u{1F5C4}\uFE0F",
+      cache: "\u{1F4BE}",
+      backup: "\u{1F4BE}",
+      restore: "\u{1F4E5}",
+      import: "\u{1F4E5}",
+      export: "\u{1F4E4}",
+      download: "\u2B07\uFE0F",
+      upload: "\u2B06\uFE0F",
+      // Interface elements
+      search: "\u{1F50D}",
+      filter: "\u{1F50D}",
+      sort: "\u{1F4CA}",
+      tag: "\u{1F3F7}\uFE0F",
+      bookmark: "\u{1F516}",
+      favorite: "\u2B50",
+      like: "\u{1F44D}",
+      dislike: "\u{1F44E}",
+      share: "\u{1F4E4}",
+      copy: "\u{1F4CB}",
+      paste: "\u{1F4CB}",
+      cut: "\u2702\uFE0F",
+      edit: "\u270F\uFE0F",
+      delete: "\u{1F5D1}\uFE0F",
+      add: "\u2795",
+      remove: "\u2796",
+      plus: "\u2795",
+      minus: "\u2796",
+      // Mathematical symbols
+      equal: "=",
+      greater: ">",
+      less: "<",
+      infinity: "\u221E",
+      percent: "%",
+      dollar: "$",
+      euro: "\u20AC",
+      pound: "\xA3",
+      yen: "\xA5",
+      // Arrows and navigation
+      arrow: "\u2192",
+      arrowRight: "\u2192",
+      arrowLeft: "\u2190",
+      arrowUp: "\u2191",
+      arrowDown: "\u2193",
+      arrowRightCurved: "\u21AA\uFE0F",
+      arrowLeftCurved: "\u21A9\uFE0F",
+      arrowUpCurved: "\u21AA\uFE0F",
+      arrowDownCurved: "\u21A9\uFE0F",
+      // Development and testing
       monitor: "\u{1F4FA}",
       analytics: "\u{1F4CA}",
       performance: "\u26A1",
@@ -46637,105 +46832,94 @@ var init_terminal_formatting = __esm({
       restart: "\u{1F504}",
       update: "\u{1F504}",
       sync: "\u{1F504}",
-      backup: "\u{1F4BE}",
-      restore: "\u{1F4E5}",
-      import: "\u{1F4E5}",
-      export: "\u{1F4E4}",
-      download: "\u2B07\uFE0F",
-      upload: "\u2B06\uFE0F",
-      search: "\u{1F50D}",
-      filter: "\u{1F50D}",
-      sort: "\u{1F4CA}",
-      group: "\u{1F4C1}",
-      tag: "\u{1F3F7}\uFE0F",
-      bookmark: "\u{1F516}",
-      favorite: "\u2B50",
-      like: "\u{1F44D}",
-      dislike: "\u{1F44E}",
-      share: "\u{1F4E4}",
-      copy: "\u{1F4CB}",
-      paste: "\u{1F4CB}",
-      cut: "\u2702\uFE0F",
-      edit: "\u270F\uFE0F",
-      delete: "\u{1F5D1}\uFE0F",
-      add: "\u2795",
-      remove: "\u2796",
-      plus: "\u2795",
-      minus: "\u2796",
-      equal: "=",
-      greater: ">",
-      less: "<",
-      infinity: "\u221E",
-      percent: "%",
-      dollar: "$",
-      euro: "\u20AC",
-      pound: "\xA3",
-      yen: "\xA5",
+      // Integration and connectivity
       integration: "\u{1F517}",
-      hotel: "\u{1F3E8}",
-      bitcoin_symbol: "\u20BF",
-      ethereum_symbol: "\u039E",
-      solana_symbol: "\u25CE",
-      cardano_symbol: "\u20B3",
-      polkadot_symbol: "DOT",
-      chainlink_symbol: "LINK",
-      polygon_symbol: "MATIC",
-      avalanche_symbol: "AVAX",
-      cosmos_symbol: "ATOM",
-      algorand_symbol: "ALGO",
-      stellar_symbol: "XLM",
-      ripple_symbol: "XRP",
-      litecoin_symbol: "\u0141",
-      monero_symbol: "\u0271",
-      zcash_symbol: "ZEC",
-      dash_symbol: "\xD0",
-      dogecoin_symbol: "\xD0",
-      shiba_symbol: "SHIB",
-      usdt_symbol: "USDT",
-      usdc_symbol: "USDC",
-      dai_symbol: "DAI",
-      busd_symbol: "BUSD",
-      tether_symbol: "USDT",
-      circle_symbol: "USDC",
-      maker_symbol: "MKR",
-      compound_symbol: "COMP",
-      aave_symbol: "AAVE",
-      uniswap_symbol: "UNI",
-      sushi_symbol: "SUSHI",
-      curve_symbol: "CRV",
-      yearn_symbol: "YFI",
-      balancer_symbol: "BAL",
-      synthetix_symbol: "SNX",
-      chainlink_symbol_alt: "LINK",
-      polygon_symbol_alt: "MATIC",
-      avalanche_symbol_alt: "AVAX",
-      cosmos_symbol_alt: "ATOM",
-      algorand_symbol_alt: "ALGO",
-      stellar_symbol_alt: "XLM",
-      ripple_symbol_alt: "XRP",
-      litecoin_symbol_alt: "LTC",
-      monero_symbol_alt: "XMR",
-      zcash_symbol_alt: "ZEC",
-      dash_symbol_alt: "DASH",
-      dogecoin_symbol_alt: "DOGE",
-      shiba_symbol_alt: "SHIB",
-      usdt_symbol_alt: "USDT",
-      usdc_symbol_alt: "USDC",
-      dai_symbol_alt: "DAI",
-      busd_symbol_alt: "BUSD",
-      tether_symbol_alt: "USDT",
-      circle_symbol_alt: "USDC",
-      maker_symbol_alt: "MKR",
-      compound_symbol_alt: "COMP",
-      aave_symbol_alt: "AAVE",
-      uniswap_symbol_alt: "UNI",
-      sushi_symbol_alt: "SUSHI",
-      curve_symbol_alt: "CRV",
-      yearn_symbol_alt: "YFI",
-      balancer_symbol_alt: "BAL",
-      synthetix_symbol_alt: "SNX"
+      connection: "\u{1F517}",
+      link: "\u{1F517}",
+      chain: "\u26D3\uFE0F",
+      bridge: "\u{1F309}",
+      gateway: "\u{1F6AA}",
+      portal: "\u{1F6AA}",
+      tunnel: "\u{1F687}",
+      pipe: "\u{1F517}",
+      wire: "\u{1F50C}",
+      cable: "\u{1F50C}",
+      antenna: "\u{1F4E1}",
+      router: "\u{1F4E1}",
+      switch: "\u{1F50C}",
+      repeater: "\u{1F50C}",
+      amplifier: "\u{1F50A}",
+      mixer: "\u{1F39B}\uFE0F",
+      equalizer: "\u{1F39B}\uFE0F",
+      tuner: "\u{1F39B}\uFE0F",
+      metronome: "\u{1F3B5}",
+      tuning: "\u{1F3B5}",
+      pitch: "\u{1F3B5}",
+      frequency: "\u{1F4E1}",
+      wavelength: "\u{1F4E1}",
+      amplitude: "\u{1F4E1}",
+      phase: "\u{1F4E1}",
+      cycle: "\u{1F504}",
+      oscillation: "\u{1F504}",
+      vibration: "\u{1F4F3}",
+      resonance: "\u{1F50A}",
+      echo: "\u{1F50A}",
+      reverb: "\u{1F50A}",
+      delay: "\u23F1\uFE0F",
+      timing: "\u23F1\uFE0F",
+      rhythm: "\u{1F3B5}",
+      beat: "\u{1F493}",
+      pulse: "\u{1F493}",
+      heartbeat: "\u{1F493}",
+      breathing: "\uFFFD\uFFFD",
+      respiration: "\u{1FAC1}",
+      circulation: "\u{1FA78}",
+      blood: "\u{1FA78}",
+      oxygen: "\u{1FAE7}",
+      carbon: "\u{1FAE7}",
+      nitrogen: "\u{1FAE7}",
+      hydrogen: "\u{1FAE7}",
+      helium: "\u{1FAE7}",
+      neon: "\u{1FAE7}",
+      argon: "\u{1FAE7}",
+      krypton: "\u{1FAE7}",
+      xenon: "\u{1FAE7}",
+      radon: "\u{1FAE7}",
+      uranium: "\u2622\uFE0F",
+      plutonium: "\u2622\uFE0F",
+      thorium: "\u2622\uFE0F",
+      radium: "\u2622\uFE0F",
+      polonium: "\u2622\uFE0F",
+      actinium: "\u2622\uFE0F",
+      protactinium: "\u2622\uFE0F",
+      neptunium: "\u2622\uFE0F",
+      americium: "\u2622\uFE0F",
+      curium: "\u2622\uFE0F",
+      berkelium: "\u2622\uFE0F",
+      californium: "\u2622\uFE0F",
+      einsteinium: "\u2622\uFE0F",
+      fermium: "\u2622\uFE0F",
+      mendelevium: "\u2622\uFE0F",
+      nobelium: "\u2622\uFE0F",
+      lawrencium: "\u2622\uFE0F",
+      rutherfordium: "\u2622\uFE0F",
+      dubnium: "\u2622\uFE0F",
+      seaborgium: "\u2622\uFE0F",
+      bohrium: "\u2622\uFE0F",
+      hassium: "\u2622\uFE0F",
+      meitnerium: "\u2622\uFE0F",
+      darmstadtium: "\u2622\uFE0F",
+      roentgenium: "\u2622\uFE0F",
+      copernicium: "\u2622\uFE0F",
+      nihonium: "\u2622\uFE0F",
+      flerovium: "\u2622\uFE0F",
+      moscovium: "\u2622\uFE0F",
+      livermorium: "\u2622\uFE0F",
+      tennessine: "\u2622\uFE0F",
+      oganesson: "\u2622\uFE0F"
     };
     serviceEmojis = {
+      // Core services
       bitcoinData: emojis.bitcoin,
       bitcoinNetwork: emojis.network,
       stockData: emojis.stock,
@@ -46753,6 +46937,7 @@ var init_terminal_formatting = __esm({
       performanceTracking: emojis.performance,
       knowledgeDigest: emojis.brain,
       scheduler: emojis.clock,
+      // Technical services
       "cache-service": emojis.cache,
       slackIngestion: emojis.webhook,
       configurationManager: emojis.config,
@@ -46766,7 +46951,110 @@ var init_terminal_formatting = __esm({
       socialSentimentService: emojis.heart,
       newsDataService: emojis.news,
       googleHotelsScraper: emojis.hotel,
+      // Default fallback
       default: emojis.gear
+    };
+    themes = {
+      default: {
+        name: "Default",
+        colors: {
+          primary: "cyan",
+          secondary: "blue",
+          success: "green",
+          warning: "yellow",
+          error: "red",
+          info: "blue",
+          muted: "dim",
+          background: "black",
+          foreground: "white"
+        },
+        styles: {
+          header: "bright",
+          subheader: "underscore",
+          body: "dim",
+          accent: "bright"
+        }
+      },
+      dark: {
+        name: "Dark",
+        colors: {
+          primary: "cyan",
+          secondary: "blue",
+          success: "green",
+          warning: "yellow",
+          error: "red",
+          info: "blue",
+          muted: "dim",
+          background: "black",
+          foreground: "white"
+        },
+        styles: {
+          header: "bright",
+          subheader: "underscore",
+          body: "dim",
+          accent: "bright"
+        }
+      },
+      light: {
+        name: "Light",
+        colors: {
+          primary: "blue",
+          secondary: "cyan",
+          success: "green",
+          warning: "yellow",
+          error: "red",
+          info: "blue",
+          muted: "dim",
+          background: "white",
+          foreground: "black"
+        },
+        styles: {
+          header: "bright",
+          subheader: "underscore",
+          body: "dim",
+          accent: "bright"
+        }
+      },
+      bitcoin: {
+        name: "Bitcoin",
+        colors: {
+          primary: "yellow",
+          secondary: "orange",
+          success: "green",
+          warning: "yellow",
+          error: "red",
+          info: "cyan",
+          muted: "dim",
+          background: "black",
+          foreground: "white"
+        },
+        styles: {
+          header: "bright",
+          subheader: "underscore",
+          body: "dim",
+          accent: "bright"
+        }
+      },
+      luxury: {
+        name: "Luxury",
+        colors: {
+          primary: "magenta",
+          secondary: "cyan",
+          success: "green",
+          warning: "yellow",
+          error: "red",
+          info: "blue",
+          muted: "dim",
+          background: "black",
+          foreground: "white"
+        },
+        styles: {
+          header: "bright",
+          subheader: "underscore",
+          body: "dim",
+          accent: "bright"
+        }
+      }
     };
   }
 });
