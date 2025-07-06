@@ -16,5 +16,7 @@ export default defineConfig({
     'http',
     '@elizaos/core',
     'zod',
+    // 'ws', // Ensure ws is bundled
+    // 'events', // Ensure events is bundled
   ],
 });

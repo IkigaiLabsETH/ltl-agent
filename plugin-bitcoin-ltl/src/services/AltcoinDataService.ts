@@ -444,7 +444,14 @@ export class AltcoinDataService extends BaseDataService {
   // Core data fetching methods
   private async fetchMarketData(): Promise<MarketData[]> {
     try {
-      const coingeckoApiKey = this.runtime.getSetting("COINGECKO_API_KEY");
+      let coingeckoApiKey = this.runtime.getSetting("COINGECKO_API_KEY");
+      if (
+        !coingeckoApiKey ||
+        coingeckoApiKey.startsWith("REPLACE_WITH_YOUR_ACTUAL") ||
+        coingeckoApiKey.startsWith("your_")
+      ) {
+        coingeckoApiKey = undefined;
+      }
       const baseUrl = coingeckoApiKey
         ? "https://pro-api.coingecko.com/api/v3"
         : "https://api.coingecko.com/api/v3";
