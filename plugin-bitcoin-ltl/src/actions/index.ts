@@ -37,6 +37,9 @@ import { freedomMathematicsAction } from "./freedomMathematicsAction";
 import { altcoinBTCPerformanceAction } from "./altcoinBTCPerformanceAction";
 import { cryptoPriceLookupAction } from "./cryptoPriceLookupAction";
 
+// Health Actions
+import { morningHealthAction } from "./morningHealthAction";
+
 // Core Actions
 export { morningBriefingAction };
 export { knowledgeDigestAction };
@@ -59,6 +62,9 @@ export { validateEnvironmentAction };
 export { freedomMathematicsAction };
 export { altcoinBTCPerformanceAction };
 export { cryptoPriceLookupAction };
+
+// Health Actions
+export { morningHealthAction };
 
 // Market Analysis Actions
 export { curatedAltcoinsAction };
@@ -197,6 +203,16 @@ export const actionRegistry: Record<string, ActionRegistryEntry> = {
     tags: ["knowledge", "search", "rag", "semantic", "research"],
     isCore: true,
     dependencies: ["knowledge-service", "knowledge-performance-monitor"],
+  },
+
+  MORNING_HEALTH: {
+    action: morningHealthAction,
+    category: "health",
+    priority: "high",
+    description: "Complete morning health briefing with training schedule and wellness tips",
+    tags: ["health", "wellness", "training", "biohacking", "morning", "routine"],
+    isCore: true,
+    dependencies: ["health-intelligence-service"],
   },
 
   BITCOIN_NETWORK_HEALTH: {

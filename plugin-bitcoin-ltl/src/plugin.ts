@@ -75,6 +75,7 @@ import { restaurantRecommendationAction } from "./actions/restaurantRecommendati
 import { michelinHotelAction } from "./actions/michelinHotelAction";
 import { homeCookingAction } from "./actions/homeCookingAction";
 import { beverageInsightAction } from "./actions/beverageInsightAction";
+import { morningHealthAction } from "./actions/morningHealthAction";
 
 import { allProviders } from "./providers";
 
@@ -190,6 +191,8 @@ const bitcoinPlugin: Plugin = {
     freedomMathematicsAction,
     altcoinBTCPerformanceAction,
     cryptoPriceLookupAction,
+    // Health Actions
+    morningHealthAction,
     dailyCulinaryAction,
     restaurantRecommendationAction,
     michelinHotelAction,

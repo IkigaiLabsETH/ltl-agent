@@ -43,3 +43,7 @@ export { OpportunityAlertService } from "./OpportunityAlertService";
 export { PerformanceTrackingService } from "./PerformanceTrackingService";
 export { SchedulerService } from "./SchedulerService";
 export { RealTimeDataService } from "./RealTimeDataService";
+
+// Health Intelligence Services
+export { HealthIntelligenceService } from "./HealthIntelligenceService";
+export { WellnessReminderService } from "./WellnessReminderService";
