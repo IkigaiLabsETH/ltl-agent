@@ -27,7 +27,7 @@ export class ServiceFactory {
    */
   static async initializeServices(
     runtime: IAgentRuntime,
-    config: Record<string, string>,
+    config: Record<string, any>,
   ): Promise<void> {
     if (this.isInitialized) {
       logger.warn("[ServiceFactory] Services already initialized, skipping...");

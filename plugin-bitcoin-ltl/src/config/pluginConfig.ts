@@ -30,4 +30,15 @@ export const configSchema = z.object({
     .string()
     .optional()
     .describe("Supabase anonymous key for database access"),
+  "cache-service": z.object({
+    defaultTtl: z.number().default(300000),
+    maxSize: z.number().default(1000),
+    cleanupInterval: z.number().default(600000),
+    enableRedis: z.boolean().default(false),
+    redisUrl: z.string().optional(),
+    redisPassword: z.string().optional(),
+    redisDb: z.number().optional(),
+    compressionEnabled: z.boolean().default(true),
+    compressionThreshold: z.number().default(1024),
+  }).optional().describe("CacheService configuration object (Redis optional)"),
 });

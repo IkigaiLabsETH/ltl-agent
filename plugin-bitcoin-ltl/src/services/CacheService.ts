@@ -43,6 +43,7 @@ export interface CacheConfig {
   redisDb?: number;
   compressionEnabled: boolean;
   compressionThreshold: number;
+  [key: string]: any;
 }
 
 /**
@@ -55,7 +56,7 @@ export class CacheService extends BaseDataService {
   private contextLogger: LoggerWithContext;
   private memoryCache: Map<string, CacheEntry> = new Map();
   private redisClient: any = null;
-  private config: CacheConfig;
+  public declare config: CacheConfig;
   private stats: {
     hitCount: number;
     missCount: number;
@@ -70,7 +71,7 @@ export class CacheService extends BaseDataService {
   private cleanupInterval: NodeJS.Timeout | null = null;
 
   constructor(runtime: IAgentRuntime) {
-    super(runtime, "cacheService");
+    super(runtime, "cache-service");
     this.contextLogger = new LoggerWithContext(
       generateCorrelationId(),
       "CacheService",
@@ -89,7 +90,7 @@ export class CacheService extends BaseDataService {
 
   static async stop(runtime: IAgentRuntime) {
     elizaLogger.info("Stopping CacheService...");
-    const service = runtime.getService("cache-service") as CacheService;
+    const service = runtime.getService("cache-service") as unknown as CacheService;
     if (service) {
       await service.stop();
     }
@@ -122,7 +123,7 @@ export class CacheService extends BaseDataService {
   /**
    * Get default configuration
    */
-  private getDefaultConfig(): CacheConfig {
+  protected getDefaultConfig(): CacheConfig {
     return {
       defaultTtl: 300000, // 5 minutes
       maxSize: 1000,
@@ -151,7 +152,6 @@ export class CacheService extends BaseDataService {
         port: parseInt(new URL(this.config.redisUrl).port) || 6379,
         password: this.config.redisPassword,
         db: this.config.redisDb,
-        retryDelayOnFailover: 100,
         maxRetriesPerRequest: 3,
         lazyConnect: true,
       });
@@ -233,10 +233,10 @@ export class CacheService extends BaseDataService {
   async get<T>(key: string): Promise<T | null> {
     try {
       // Try memory cache first
-      const memoryEntry = this.getFromMemory<T>(key);
-      if (memoryEntry) {
+      const memoryEntries = await this.getFromMemory(key);
+      if (memoryEntries.length > 0) {
         this.stats.hitCount++;
-        return memoryEntry.value;
+        return memoryEntries[0];
       }
 
       // Try Redis if available
@@ -377,23 +377,25 @@ export class CacheService extends BaseDataService {
   }
 
   /**
-   * Get value from memory cache
+   * Get values from memory cache by type (pattern)
    */
-  private getFromMemory<T>(key: string): CacheEntry<T> | null {
-    const entry = this.memoryCache.get(key) as CacheEntry<T> | undefined;
-
-    if (!entry) {
-      return null;
+  async getFromMemory(type: string, count?: number): Promise<any[]> {
+    const results: any[] = [];
+    let matched = 0;
+    for (const [key, entry] of this.memoryCache.entries()) {
+      if (key.includes(type)) {
+        // Check if entry is expired
+        if (Date.now() - entry.timestamp > entry.ttl) {
+          this.memoryCache.delete(key);
+          this.stats.totalSize -= entry.metadata?.size || 0;
+          continue;
+        }
+        results.push(entry.value);
+        matched++;
+        if (count && matched >= count) break;
+      }
     }
-
-    // Check if entry is expired
-    if (Date.now() - entry.timestamp > entry.ttl) {
-      this.memoryCache.delete(key);
-      this.stats.totalSize -= entry.metadata?.size || 0;
-      return null;
-    }
-
-    return entry;
+    return results;
   }
 
   /**
