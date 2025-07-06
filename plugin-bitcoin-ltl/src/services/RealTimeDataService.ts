@@ -451,11 +451,22 @@ export class RealTimeDataService extends BaseDataService {
 
   constructor(runtime: IAgentRuntime) {
     super(runtime, "realTimeData");
-    this.correlationId = generateCorrelationId();
     this.contextLogger = new LoggerWithContext(
-      this.correlationId,
+      generateCorrelationId(),
       "RealTimeDataService",
     );
+
+    // Adjust rate limiting based on API key availability
+    const coingeckoApiKey = this.runtime.getSetting("COINGECKO_API_KEY");
+    if (!coingeckoApiKey || coingeckoApiKey.startsWith("REPLACE_WITH_YOUR_ACTUAL") || coingeckoApiKey.startsWith("your_")) {
+      // Use stricter rate limiting for public API (10 seconds between requests)
+      this.serviceConfig.rateLimitDelay = 10000;
+      console.log("[RealTimeDataService] Using public CoinGecko API with 10s rate limiting");
+    } else {
+      // Use standard rate limiting for pro API (3 seconds between requests)
+      this.serviceConfig.rateLimitDelay = 3000;
+      console.log("[RealTimeDataService] Using CoinGecko Pro API with 3s rate limiting");
+    }
   }
 
   public get capabilityDescription(): string {
@@ -794,6 +805,14 @@ export class RealTimeDataService extends BaseDataService {
         });
 
         if (!response.ok) {
+          if (response.status === 429) {
+            // Handle rate limiting with exponential backoff
+            const retryAfter = response.headers.get('Retry-After');
+            const backoffTime = retryAfter ? parseInt(retryAfter) * 1000 : 30000; // Default 30s
+            console.warn(`[RealTimeDataService] Rate limited, backing off for ${backoffTime}ms`);
+            await new Promise(resolve => setTimeout(resolve, backoffTime));
+            throw new Error(`HTTP 429: Rate limited, retry after ${backoffTime}ms`);
+          }
           if (response.status === 401 || response.status === 429) {
             console.warn(
               `[RealTimeDataService] CoinGecko API rate limited or unauthorized (${response.status}), using fallback data`,
@@ -1427,6 +1446,14 @@ export class RealTimeDataService extends BaseDataService {
         );
 
         if (!response.ok) {
+          if (response.status === 429) {
+            // Handle rate limiting with exponential backoff
+            const retryAfter = response.headers.get('Retry-After');
+            const backoffTime = retryAfter ? parseInt(retryAfter) * 1000 : 30000; // Default 30s
+            console.warn(`[RealTimeDataService] Rate limited, backing off for ${backoffTime}ms`);
+            await new Promise(resolve => setTimeout(resolve, backoffTime));
+            throw new Error(`HTTP 429: Rate limited, retry after ${backoffTime}ms`);
+          }
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
 
@@ -1707,6 +1734,14 @@ export class RealTimeDataService extends BaseDataService {
         );
 
         if (!response.ok) {
+          if (response.status === 429) {
+            // Handle rate limiting with exponential backoff
+            const retryAfter = response.headers.get('Retry-After');
+            const backoffTime = retryAfter ? parseInt(retryAfter) * 1000 : 30000; // Default 30s
+            console.warn(`[RealTimeDataService] Rate limited, backing off for ${backoffTime}ms`);
+            await new Promise(resolve => setTimeout(resolve, backoffTime));
+            throw new Error(`HTTP 429: Rate limited, retry after ${backoffTime}ms`);
+          }
           if (response.status === 401 || response.status === 429) {
             console.warn(
               `[RealTimeDataService] CoinGecko API rate limited or unauthorized (${response.status}), using fallback data`,
@@ -1781,6 +1816,14 @@ export class RealTimeDataService extends BaseDataService {
         );
 
         if (!response.ok) {
+          if (response.status === 429) {
+            // Handle rate limiting with exponential backoff
+            const retryAfter = response.headers.get('Retry-After');
+            const backoffTime = retryAfter ? parseInt(retryAfter) * 1000 : 30000; // Default 30s
+            console.warn(`[RealTimeDataService] Rate limited, backing off for ${backoffTime}ms`);
+            await new Promise(resolve => setTimeout(resolve, backoffTime));
+            throw new Error(`HTTP 429: Rate limited, retry after ${backoffTime}ms`);
+          }
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
 
@@ -2080,21 +2123,29 @@ export class RealTimeDataService extends BaseDataService {
 
   private async fetchTopMoversData(): Promise<TopMoversData | null> {
     try {
-      console.log("[RealTimeDataService] Fetching top movers data...");
+      const data = await this.makeQueuedRequest(async () => {
+        const response = await fetch(
+          `${this.COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&price_change_percentage=24h`,
+          {
+            headers: { Accept: "application/json" },
+            signal: AbortSignal.timeout(15000),
+          },
+        );
 
-      const response = await fetch(
-        `${this.COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&price_change_percentage=24h`,
-        {
-          headers: { Accept: "application/json" },
-          signal: AbortSignal.timeout(15000),
-        },
-      );
+        if (!response.ok) {
+          if (response.status === 429) {
+            // Handle rate limiting with exponential backoff
+            const retryAfter = response.headers.get('Retry-After');
+            const backoffTime = retryAfter ? parseInt(retryAfter) * 1000 : 30000; // Default 30s
+            console.warn(`[RealTimeDataService] Rate limited, backing off for ${backoffTime}ms`);
+            await new Promise(resolve => setTimeout(resolve, backoffTime));
+            throw new Error(`HTTP 429: Rate limited, retry after ${backoffTime}ms`);
+          }
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const data: TopMoverCoin[] = await response.json();
+        return await response.json();
+      });
 
       // Filter out coins without valid 24h price change percentage
       const validCoins = data.filter(
@@ -2173,21 +2224,29 @@ export class RealTimeDataService extends BaseDataService {
 
   private async fetchTrendingCoinsData(): Promise<TrendingCoinsData | null> {
     try {
-      console.log("[RealTimeDataService] Fetching trending coins data...");
+      const data = await this.makeQueuedRequest(async () => {
+        const response = await fetch(
+          `${this.COINGECKO_API}/search/trending`,
+          {
+            headers: { Accept: "application/json" },
+            signal: AbortSignal.timeout(15000),
+          },
+        );
 
-      const response = await fetch(
-        "https://api.coingecko.com/api/v3/search/trending",
-        {
-          headers: { Accept: "application/json" },
-          signal: AbortSignal.timeout(15000),
-        },
-      );
+        if (!response.ok) {
+          if (response.status === 429) {
+            // Handle rate limiting with exponential backoff
+            const retryAfter = response.headers.get('Retry-After');
+            const backoffTime = retryAfter ? parseInt(retryAfter) * 1000 : 30000; // Default 30s
+            console.warn(`[RealTimeDataService] Rate limited, backing off for ${backoffTime}ms`);
+            await new Promise(resolve => setTimeout(resolve, backoffTime));
+            throw new Error(`HTTP 429: Rate limited, retry after ${backoffTime}ms`);
+          }
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
+        return await response.json();
+      });
 
       // Map and validate trending coins (matches website exactly)
       const trending: TrendingCoin[] = Array.isArray(data.coins)
