@@ -77,7 +77,7 @@ export class ProductionDeploymentService extends BaseDataService {
   private alertCallbacks: ((alert: string, severity: 'warning' | 'critical') => void)[] = [];
 
   constructor(runtime: IAgentRuntime) {
-    super(runtime, 'productionDeployment');
+    super(runtime, 'bitcoinData');
     this.contextLogger = new LoggerWithContext(generateCorrelationId(), 'ProductionDeployment');
     this.initializeDeploymentConfig();
     this.initializeMonitoringMetrics();
@@ -266,7 +266,7 @@ export class ProductionDeploymentService extends BaseDataService {
       this.contextLogger.error('Failed to perform health checks', {
         error: error instanceof Error ? error.message : 'Unknown error'
       });
-      handleError(error, ErrorCategory.OPERATIONAL, 'Health check failure');
+      handleError(error, { operation: 'Health check failure' });
     }
   }
 
@@ -288,9 +288,9 @@ export class ProductionDeploymentService extends BaseDataService {
         };
       }
 
-      // Check if service has healthCheck method
-      if (typeof service.healthCheck === 'function') {
-        const healthResult = await service.healthCheck();
+      // Type guard for healthCheck method
+      if (typeof (service as any).healthCheck === 'function') {
+        const healthResult = await (service as any).healthCheck();
         return {
           service: serviceName,
           status: healthResult.healthy ? 'healthy' : 'unhealthy',
