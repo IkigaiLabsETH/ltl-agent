@@ -1,5 +1,6 @@
 import { IAgentRuntime, logger } from "@elizaos/core";
 import { BaseDataService } from "./BaseDataService";
+import { GoogleHotelsScraper, RateOpportunity } from "./GoogleHotelsScraper";
 
 // Travel and hotel booking interfaces
 export interface HotelLocation {
@@ -127,6 +128,18 @@ export interface TravelDataCache {
   timestamp: number;
 }
 
+export interface PerfectDayOpportunity {
+  hotelId: string;
+  hotelName: string;
+  perfectDate: string;
+  currentRate: number;
+  averageRate: number;
+  savingsPercentage: number;
+  confidenceScore: number;
+  reasons: string[];
+  urgency: "high" | "medium" | "low";
+}
+
 export class TravelDataService extends BaseDataService {
   static serviceType = "travel-data";
   capabilityDescription =
@@ -137,6 +150,7 @@ export class TravelDataService extends BaseDataService {
 
   private travelDataCache: TravelDataCache | null = null;
   private readonly TRAVEL_CACHE_DURATION = 4 * 60 * 60 * 1000; // 4 hours
+  private googleHotelsScraper: GoogleHotelsScraper | null = null;
 
   // European luxury cities for lifestyle travel
   private readonly luxuryLocations: HotelLocation[] = [
@@ -1048,5 +1062,79 @@ export class TravelDataService extends BaseDataService {
 
   protected logError(message: string, error?: any): void {
     logger.error(`[${this.serviceName}] ${message}`, error);
+  }
+
+  // Perfect Day Detection Methods
+  public async detectPerfectDays(): Promise<PerfectDayOpportunity[]> {
+    try {
+      // Initialize scraper if not already done
+      if (!this.googleHotelsScraper) {
+        this.googleHotelsScraper = new GoogleHotelsScraper();
+        await this.googleHotelsScraper.initialize();
+      }
+
+      // Scrape price data for all curated hotels
+      const priceData = await this.googleHotelsScraper.scrapeAllHotels(this.curatedHotels);
+      
+      // Detect below-average rates
+      const opportunities = await this.googleHotelsScraper.detectBelowAverageRates(priceData);
+      
+      // Convert to PerfectDayOpportunity format
+      const perfectDays: PerfectDayOpportunity[] = opportunities.map(opp => ({
+        hotelId: opp.hotelId,
+        hotelName: opp.hotelName,
+        perfectDate: opp.perfectDate,
+        currentRate: opp.currentRate,
+        averageRate: opp.averageRate,
+        savingsPercentage: opp.savingsPercentage,
+        confidenceScore: opp.confidenceScore,
+        reasons: opp.reasons,
+        urgency: opp.urgency
+      }));
+
+      // Sort by savings percentage (highest first) and return top 5
+      return perfectDays
+        .sort((a, b) => b.savingsPercentage - a.savingsPercentage)
+        .slice(0, 5);
+
+    } catch (error) {
+      this.logError('Error detecting perfect days:', error);
+      // Return fallback opportunities based on simulated data
+      return this.generateFallbackPerfectDays();
+    }
+  }
+
+  private generateFallbackPerfectDays(): PerfectDayOpportunity[] {
+    // Generate fallback perfect day opportunities using existing hotel data
+    const fallbackOpportunities: PerfectDayOpportunity[] = [];
+    
+    // Select a few hotels and generate simulated perfect days
+    const selectedHotels = this.curatedHotels.slice(0, 3);
+    
+    selectedHotels.forEach((hotel, index) => {
+      const currentRate = hotel.priceRange.min + Math.random() * (hotel.priceRange.max - hotel.priceRange.min) * 0.8;
+      const averageRate = (hotel.priceRange.min + hotel.priceRange.max) / 2;
+      const savingsPercentage = ((averageRate - currentRate) / averageRate) * 100;
+      
+      if (savingsPercentage >= 10) {
+        fallbackOpportunities.push({
+          hotelId: hotel.hotelId,
+          hotelName: hotel.name,
+          perfectDate: new Date(Date.now() + (index + 1) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          currentRate: Math.round(currentRate),
+          averageRate: Math.round(averageRate),
+          savingsPercentage: Math.round(savingsPercentage * 10) / 10,
+          confidenceScore: 0.3, // Low confidence for fallback data
+          reasons: ['Simulated data - check for actual availability'],
+          urgency: savingsPercentage >= 20 ? 'high' : 'medium'
+        });
+      }
+    });
+
+    return fallbackOpportunities.sort((a, b) => b.savingsPercentage - a.savingsPercentage);
+  }
+
+  public async getPerfectDayOpportunities(): Promise<PerfectDayOpportunity[]> {
+    return this.detectPerfectDays();
   }
 }

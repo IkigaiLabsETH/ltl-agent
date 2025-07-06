@@ -12,7 +12,7 @@ import {
   ValidationPatterns,
   ResponseCreators,
 } from "./base/ActionTemplate";
-import { TravelDataService } from "../services/TravelDataService";
+import { TravelDataService, PerfectDayOpportunity } from "../services/TravelDataService";
 
 interface OptimizationCriteria {
   priority: "price" | "value" | "luxury" | "season" | "savings";

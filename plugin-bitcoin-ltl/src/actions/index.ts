@@ -21,6 +21,7 @@ import { hotelSearchAction } from "./hotelSearchAction";
 import { hotelDealAlertAction } from "./hotelDealAlertAction";
 import { bookingOptimizationAction } from "./bookingOptimizationAction";
 import { travelInsightsAction } from "./travelInsightsAction";
+import { hotelRateIntelligenceAction } from "./hotelRateIntelligenceAction";
 import { enhancedKnowledgeSearchAction } from "./enhanced-knowledge-search";
 
 // Core Actions - Newly refactored
@@ -76,6 +77,7 @@ export { hotelSearchAction };
 export { hotelDealAlertAction };
 export { bookingOptimizationAction };
 export { travelInsightsAction };
+export { hotelRateIntelligenceAction };
 
 // Action Registry with Metadata
 export interface ActionRegistryEntry {
@@ -358,6 +360,15 @@ export const actionRegistry: Record<string, ActionRegistryEntry> = {
     priority: "medium",
     description: "Travel insights and destination analysis",
     tags: ["travel", "insights", "destinations", "analysis"],
+    dependencies: ["travel-data-service"],
+  },
+
+  HOTEL_RATE_INTELLIGENCE: {
+    action: hotelRateIntelligenceAction,
+    category: "travel",
+    priority: "high",
+    description: "Hotel rate intelligence and perfect day opportunity detection",
+    tags: ["hotel", "rates", "intelligence", "perfect-days", "opportunities", "luxury"],
     dependencies: ["travel-data-service"],
   },
 };
