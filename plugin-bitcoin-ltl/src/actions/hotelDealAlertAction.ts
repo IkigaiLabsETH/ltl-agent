@@ -12,7 +12,7 @@ import {
   ValidationPatterns,
   ResponseCreators,
 } from "./base/ActionTemplate";
-import { TravelDataService } from "../services/TravelDataService";
+import { TravelDataService, PerfectDayOpportunity } from "../services/TravelDataService";
 
 interface DealAlert {
   id: string;
@@ -154,7 +154,7 @@ export const hotelDealAlertAction: Action = createActionTemplate({
       }
 
       // Find current deals based on parameters
-      const currentDeals = findCurrentDeals(travelDataService, alertParams);
+      const currentDeals = await findCurrentDeals(travelDataService, alertParams);
 
       if (currentDeals.length === 0) {
         logger.info("No current deals match criteria");
@@ -278,13 +278,16 @@ function extractAlertParameters(text: string): {
 /**
  * Find current deals based on parameters
  */
-function findCurrentDeals(
+async function findCurrentDeals(
   travelService: TravelDataService,
   params: any,
-): DealAlert[] {
+): Promise<DealAlert[]> {
   const hotels = travelService.getCuratedHotels() || [];
   const optimalWindows = travelService.getOptimalBookingWindows() || [];
   const deals: DealAlert[] = [];
+
+  // Get perfect day opportunities
+  const perfectDays = await travelService.getPerfectDayOpportunities();
 
   // Filter hotels based on parameters
   let filteredHotels = hotels;
@@ -347,8 +350,53 @@ function findCurrentDeals(
     }
   }
 
-  // Sort by savings percentage (highest first)
-  return deals.sort((a, b) => b.savingsPercentage - a.savingsPercentage);
+  // Add perfect day opportunities as high-priority deals
+  for (const perfectDay of perfectDays) {
+    // Check if perfect day meets criteria
+    if (params.maxPrice && perfectDay.currentRate > params.maxPrice) continue;
+    if (params.minSavings && perfectDay.savingsPercentage < params.minSavings) continue;
+
+    // Check city filter
+    if (params.cities && params.cities.length > 0) {
+      const hotel = hotels.find(h => h.hotelId === perfectDay.hotelId);
+      if (!hotel || !params.cities.some((city: string) => hotel.city?.toLowerCase() === city.toLowerCase())) {
+        continue;
+      }
+    }
+
+    // Check hotel name filter
+    if (params.hotels && params.hotels.length > 0) {
+      if (!params.hotels.some((name: string) => perfectDay.hotelName?.toLowerCase().includes(name.toLowerCase()))) {
+        continue;
+      }
+    }
+
+    deals.push({
+      id: `perfect-${perfectDay.hotelId}-${perfectDay.perfectDate}`,
+      hotel: { name: perfectDay.hotelName, hotelId: perfectDay.hotelId },
+      currentRate: perfectDay.currentRate,
+      previousRate: perfectDay.averageRate,
+      savings: perfectDay.averageRate - perfectDay.currentRate,
+      savingsPercentage: perfectDay.savingsPercentage,
+      validDates: [perfectDay.perfectDate, perfectDay.perfectDate],
+      urgency: perfectDay.urgency,
+      reason: `PERFECT DAY: ${perfectDay.reasons.join(', ')}`,
+      actionRecommendation: perfectDay.urgency === 'high' ? 'Book immediately - perfect day opportunity' : 'Book within 7 days - excellent value',
+    });
+  }
+
+  // Sort by savings percentage (highest first), with perfect days prioritized
+  return deals.sort((a, b) => {
+    // Perfect days get priority
+    const aIsPerfect = a.id.startsWith('perfect-');
+    const bIsPerfect = b.id.startsWith('perfect-');
+    
+    if (aIsPerfect && !bIsPerfect) return -1;
+    if (!aIsPerfect && bIsPerfect) return 1;
+    
+    // Then sort by savings percentage
+    return b.savingsPercentage - a.savingsPercentage;
+  });
 }
 
 /**
@@ -390,20 +438,43 @@ function generateActionRecommendation(urgency: string): string {
  */
 function formatDealsResponse(deals: DealAlert[], params: any): string {
   const highUrgencyDeals = deals.filter((d) => d.urgency === "high");
+  const perfectDayDeals = deals.filter((d) => d.id.startsWith('perfect-'));
   const totalSavings = deals.reduce((sum, d) => sum + d.savings, 0);
 
-  let responseText = `🚨 Hotel deals: `;
+  let responseText = "";
 
-  // Show top deals
-  const topDeals = deals
-    .slice(0, 3)
-    .map((deal) => {
-      const dates = formatDateRange(deal.validDates);
-      return `${deal.hotel.name} €${deal.currentRate}/night (was €${deal.previousRate}, ${deal.savingsPercentage.toFixed(0)}% off) ${dates}`;
-    })
-    .join(", ");
+  // Highlight perfect days first
+  if (perfectDayDeals.length > 0) {
+    responseText += `🎯 **PERFECT DAY ALERTS**: `;
+    const perfectDayTexts = perfectDayDeals
+      .slice(0, 2)
+      .map((deal) => {
+        const dates = formatDateRange(deal.validDates);
+        return `${deal.hotel.name} €${deal.currentRate}/night (${deal.savingsPercentage.toFixed(1)}% below average) ${dates}`;
+      })
+      .join(", ");
+    responseText += `${perfectDayTexts}. `;
+  }
 
-  responseText += `${topDeals}. `;
+  // Show regular deals
+  const regularDeals = deals.filter((d) => !d.id.startsWith('perfect-'));
+  if (regularDeals.length > 0) {
+    if (perfectDayDeals.length > 0) {
+      responseText += `\n\n🚨 **Additional Deals**: `;
+    } else {
+      responseText += `🚨 **Hotel deals**: `;
+    }
+    
+    const topDeals = regularDeals
+      .slice(0, 3)
+      .map((deal) => {
+        const dates = formatDateRange(deal.validDates);
+        return `${deal.hotel.name} €${deal.currentRate}/night (was €${deal.previousRate}, ${deal.savingsPercentage.toFixed(0)}% off) ${dates}`;
+      })
+      .join(", ");
+
+    responseText += `${topDeals}. `;
+  }
 
   responseText += `${deals.length} ${deals.length === 1 ? "opportunity" : "opportunities"} found. `;
 
