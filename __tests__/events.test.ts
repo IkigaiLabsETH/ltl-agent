@@ -70,6 +70,16 @@ describe('Plugin Events', () => {
       const connectedHandler = plugin.events.WORLD_CONNECTED[0];
       expect(typeof connectedHandler).toBe('function');
 
+      // Create a mock runtime with required methods for our patch
+      const mockRuntime = {
+        agentId: 'test-agent-id',
+        getWorld: async (id: string) => null, // Return null to simulate world not found
+        ensureWorldExists: async (params: any) => {
+          // Mock implementation - just return the world ID
+          return params.id;
+        },
+      };
+
       // Use any type to bypass strict type checking for testing
       const mockParams: any = {
         world: {
@@ -79,7 +89,7 @@ describe('Plugin Events', () => {
         rooms: [],
         entities: [],
         source: 'test',
-        runtime: {},
+        runtime: mockRuntime,
       };
 
       // Call the event handler
@@ -98,6 +108,21 @@ describe('Plugin Events', () => {
       const joinedHandler = plugin.events.WORLD_JOINED[0];
       expect(typeof joinedHandler).toBe('function');
 
+      // Create a mock runtime with required methods for our patch
+      const mockRuntime = {
+        agentId: 'test-agent-id',
+        getWorld: async (id: string) => null, // Return null to simulate world not found
+        ensureWorldExists: async (params: any) => {
+          // Mock implementation - just return the world ID
+          return params.id;
+        },
+        getEntityById: async (id: string) => null, // Return null to simulate entity not found
+        createEntity: async (params: any) => {
+          // Mock implementation - just return true
+          return true;
+        },
+      };
+
       // Use any type to bypass strict type checking for testing
       const mockParams: any = {
         world: {
@@ -111,7 +136,7 @@ describe('Plugin Events', () => {
         rooms: [],
         entities: [],
         source: 'test',
-        runtime: {},
+        runtime: mockRuntime,
       };
 
       // Call the event handler
