@@ -218,7 +218,7 @@ Task: Add continuous monitoring and rate change analysis.
 Add these new methods to GoogleHotelsScraper:
 
 1. startRateMonitoring(): Promise<void>
-   - Sets up interval monitoring (every 4 hours)
+   - Sets up interval monitoring (every 24 hours)
    - Scrapes all curated hotels
    - Analyzes rate changes
    - Triggers alerts for significant changes
