@@ -1,5 +1,7 @@
 var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
   get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
 }) : x)(function(x) {
@@ -13,6 +15,15 @@ var __export = (target, all3) => {
   for (var name in all3)
     __defProp(target, name, { get: all3[name], enumerable: true });
 };
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
 // plugin-bitcoin-ltl/dist/chunk-DOYRZZI4.js
 import { elizaLogger } from "@elizaos/core";
@@ -35,15 +46,15 @@ async function initializeConfigurationManager(runtime) {
 function resetConfigurationManager() {
   configurationManager = null;
 }
-var __create, __defProp2, __getOwnPropDesc, __getOwnPropNames2, __getProtoOf, __hasOwnProp, __require2, __commonJS, __export2, __copyProps, __toESM, ServiceConfigSchema, ConfigurationManager, configurationManager;
+var __create, __defProp2, __getOwnPropDesc2, __getOwnPropNames2, __getProtoOf, __hasOwnProp2, __require2, __commonJS, __export2, __copyProps2, __toESM, ServiceConfigSchema, ConfigurationManager, configurationManager;
 var init_chunk_DOYRZZI4 = __esm({
   "plugin-bitcoin-ltl/dist/chunk-DOYRZZI4.js"() {
     __create = Object.create;
     __defProp2 = Object.defineProperty;
-    __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+    __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
     __getOwnPropNames2 = Object.getOwnPropertyNames;
     __getProtoOf = Object.getPrototypeOf;
-    __hasOwnProp = Object.prototype.hasOwnProperty;
+    __hasOwnProp2 = Object.prototype.hasOwnProperty;
     __require2 = /* @__PURE__ */ ((x) => typeof __require !== "undefined" ? __require : typeof Proxy !== "undefined" ? new Proxy(x, {
       get: (a, b) => (typeof __require !== "undefined" ? __require : a)[b]
     }) : x)(function(x) {
@@ -57,15 +68,15 @@ var init_chunk_DOYRZZI4 = __esm({
       for (var name in all3)
         __defProp2(target, name, { get: all3[name], enumerable: true });
     };
-    __copyProps = (to, from, except, desc) => {
+    __copyProps2 = (to, from, except, desc) => {
       if (from && typeof from === "object" || typeof from === "function") {
         for (let key of __getOwnPropNames2(from))
-          if (!__hasOwnProp.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+          if (!__hasOwnProp2.call(to, key) && key !== except)
+            __defProp2(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc2(from, key)) || desc.enumerable });
       }
       return to;
     };
-    __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+    __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps2(
       // If the importer is in node compatibility mode or this is not an ESM
       // file that has been converted to a CommonJS file using a Babel-
       // compatible transform (i.e. "__esModule" has not been set), then set
@@ -60312,9 +60323,13 @@ var init_SocialSentimentService = __esm({
 });
 
 // plugin-bitcoin-ltl/src/services/CentralizedConfigService.ts
+var CentralizedConfigService_exports = {};
+__export(CentralizedConfigService_exports, {
+  CentralizedConfigService: () => CentralizedConfigService
+});
 import { elizaLogger as elizaLogger40 } from "@elizaos/core";
 import { z as z4 } from "zod";
-var ConfigSchema2;
+var ConfigSchema2, CentralizedConfigService;
 var init_CentralizedConfigService = __esm({
   "plugin-bitcoin-ltl/src/services/CentralizedConfigService.ts"() {
     init_BaseDataService();
@@ -60521,6 +60536,354 @@ var init_CentralizedConfigService = __esm({
         enableDataExport: z4.boolean().default(false)
       })
     });
+    CentralizedConfigService = class _CentralizedConfigService extends BaseDataService2 {
+      static serviceType = "centralized-config";
+      contextLogger;
+      pluginConfig;
+      configWatchers = /* @__PURE__ */ new Map();
+      configFile;
+      lastModified = 0;
+      constructor(runtime) {
+        super(runtime, "bitcoinData");
+        this.contextLogger = new LoggerWithContext3(
+          generateCorrelationId3(),
+          "CentralizedConfigService"
+        );
+        this.configFile = this.getSetting(
+          "CONFIG_FILE",
+          "./config/plugin-config.json"
+        );
+        this.pluginConfig = this.getDefaultConfig();
+      }
+      get capabilityDescription() {
+        return "Manages centralized configuration for all plugin services with validation, hot reloading, and environment-specific settings";
+      }
+      static async start(runtime) {
+        elizaLogger40.info("Starting CentralizedConfigService...");
+        return new _CentralizedConfigService(runtime);
+      }
+      static async stop(runtime) {
+        elizaLogger40.info("Stopping CentralizedConfigService...");
+        const service = runtime.getService(
+          "centralized-config"
+        );
+        if (service) {
+          await service.stop();
+        }
+      }
+      async start() {
+        this.contextLogger.info("CentralizedConfigService starting...");
+        await this.loadConfiguration();
+        this.startConfigWatcher();
+      }
+      async init() {
+        this.contextLogger.info("CentralizedConfigService initialized");
+      }
+      async stop() {
+        this.contextLogger.info("CentralizedConfigService stopping...");
+        this.configWatchers.clear();
+      }
+      /**
+       * Load configuration from file and environment variables
+       */
+      async loadConfiguration() {
+        try {
+          this.contextLogger.info("Loading configuration...");
+          const fileConfig = await this.loadConfigFromFile();
+          const envConfig = this.loadConfigFromEnvironment();
+          const mergedConfig = this.mergeConfigurations(fileConfig, envConfig);
+          const validatedConfig = ConfigSchema2.parse(mergedConfig);
+          this.updateConfiguration(validatedConfig);
+          this.contextLogger.info("Configuration loaded successfully");
+        } catch (error) {
+          this.contextLogger.error("Failed to load configuration", {
+            error: error instanceof Error ? error.message : "Unknown error"
+          });
+          this.pluginConfig = this.getDefaultConfig();
+          this.contextLogger.warn("Using default configuration");
+        }
+      }
+      /**
+       * Load configuration from file
+       */
+      async loadConfigFromFile() {
+        try {
+          const fs = await import("fs/promises");
+          const stats = await fs.stat(this.configFile);
+          this.lastModified = stats.mtime.getTime();
+          const content = await fs.readFile(this.configFile, "utf-8");
+          return JSON.parse(content);
+        } catch (error) {
+          this.contextLogger.warn(
+            "Config file not found or unreadable, using defaults",
+            {
+              file: this.configFile,
+              error: error instanceof Error ? error.message : "Unknown error"
+            }
+          );
+          return {};
+        }
+      }
+      /**
+       * Load configuration from environment variables
+       */
+      loadConfigFromEnvironment() {
+        const envConfig = {};
+        if (process.env.COINGECKO_API_KEY) {
+          envConfig.apis = {
+            ...envConfig.apis,
+            coingecko: { apiKey: process.env.COINGECKO_API_KEY }
+          };
+        }
+        if (process.env.WEATHER_API_KEY) {
+          envConfig.apis = {
+            ...envConfig.apis,
+            weather: { apiKey: process.env.WEATHER_API_KEY }
+          };
+        }
+        if (process.env.STOCKS_API_KEY) {
+          envConfig.apis = {
+            ...envConfig.apis,
+            stocks: { apiKey: process.env.STOCKS_API_KEY }
+          };
+        }
+        if (process.env.LOG_LEVEL) {
+          envConfig.logging = { level: process.env.LOG_LEVEL };
+        }
+        if (process.env.REDIS_URL) {
+          envConfig.caching = {
+            ...envConfig.caching,
+            redis: {
+              enabled: true,
+              url: process.env.REDIS_URL,
+              password: process.env.REDIS_PASSWORD,
+              db: parseInt(process.env.REDIS_DB || "0")
+            }
+          };
+        }
+        return envConfig;
+      }
+      /**
+       * Merge configurations with proper precedence
+       */
+      mergeConfigurations(fileConfig, envConfig) {
+        const deepMerge = (target, source) => {
+          const result = { ...target };
+          for (const key in source) {
+            if (source[key] && typeof source[key] === "object" && !Array.isArray(source[key])) {
+              result[key] = deepMerge(result[key] || {}, source[key]);
+            } else {
+              result[key] = source[key];
+            }
+          }
+          return result;
+        };
+        return deepMerge(fileConfig, envConfig);
+      }
+      /**
+       * Update configuration and notify watchers
+       */
+      updateConfiguration(newConfig) {
+        const oldConfig = this.pluginConfig;
+        this.pluginConfig = newConfig;
+        this.notifyConfigChange("root", oldConfig, newConfig);
+        this.contextLogger.info("Configuration updated");
+      }
+      /**
+       * Start file watcher for hot reloading
+       */
+      startConfigWatcher() {
+        if (!this.configFile.startsWith("./")) {
+          return;
+        }
+        try {
+          const fs = __require("fs");
+          fs.watch(this.configFile, async (eventType, filename) => {
+            if (eventType === "change") {
+              this.contextLogger.info("Config file changed, reloading...");
+              await this.loadConfiguration();
+            }
+          });
+          this.contextLogger.info("Config file watcher started", {
+            file: this.configFile
+          });
+        } catch (error) {
+          this.contextLogger.warn("Failed to start config file watcher", {
+            error: error instanceof Error ? error.message : "Unknown error"
+          });
+        }
+      }
+      /**
+       * Get default configuration
+       */
+      getDefaultConfig() {
+        return ConfigSchema2.parse({});
+      }
+      /**
+       * Get configuration value by path
+       */
+      get(path, defaultValue) {
+        const keys = path.split(".");
+        let value = this.pluginConfig;
+        for (const key of keys) {
+          if (value && typeof value === "object" && key in value) {
+            value = value[key];
+          } else {
+            return defaultValue;
+          }
+        }
+        return value;
+      }
+      /**
+       * Set configuration value by path
+       */
+      set(path, value) {
+        const keys = path.split(".");
+        const oldValue = this.get(path);
+        let current = this.pluginConfig;
+        for (let i = 0; i < keys.length - 1; i++) {
+          const key = keys[i];
+          if (!(key in current) || typeof current[key] !== "object") {
+            current[key] = {};
+          }
+          current = current[key];
+        }
+        const lastKey = keys[keys.length - 1];
+        current[lastKey] = value;
+        try {
+          ConfigSchema2.parse(this.pluginConfig);
+          this.notifyConfigChange(path, oldValue, value);
+        } catch (error) {
+          current[lastKey] = oldValue;
+          throw new Error(
+            `Invalid configuration: ${error instanceof Error ? error.message : "Unknown error"}`
+          );
+        }
+      }
+      /**
+       * Watch for configuration changes
+       */
+      watch(path, listener) {
+        if (!this.configWatchers.has(path)) {
+          this.configWatchers.set(path, /* @__PURE__ */ new Set());
+        }
+        this.configWatchers.get(path).add(listener);
+        return () => {
+          const watchers = this.configWatchers.get(path);
+          if (watchers) {
+            watchers.delete(listener);
+            if (watchers.size === 0) {
+              this.configWatchers.delete(path);
+            }
+          }
+        };
+      }
+      /**
+       * Notify watchers of configuration changes
+       */
+      notifyConfigChange(path, oldValue, newValue) {
+        const event = {
+          key: path,
+          oldValue,
+          newValue,
+          timestamp: /* @__PURE__ */ new Date()
+        };
+        const pathWatchers = this.configWatchers.get(path);
+        if (pathWatchers) {
+          pathWatchers.forEach((listener) => {
+            try {
+              listener(event);
+            } catch (error) {
+              this.contextLogger.error("Error in config change listener", {
+                path,
+                error: error instanceof Error ? error.message : "Unknown error"
+              });
+            }
+          });
+        }
+        const pathParts = path.split(".");
+        for (let i = pathParts.length - 1; i > 0; i--) {
+          const parentPath = pathParts.slice(0, i).join(".");
+          const parentWatchers = this.configWatchers.get(parentPath);
+          if (parentWatchers) {
+            parentWatchers.forEach((listener) => {
+              try {
+                listener(event);
+              } catch (error) {
+                this.contextLogger.error("Error in config change listener", {
+                  path: parentPath,
+                  error: error instanceof Error ? error.message : "Unknown error"
+                });
+              }
+            });
+          }
+        }
+      }
+      /**
+       * Get entire configuration
+       */
+      getAll() {
+        return { ...this.pluginConfig };
+      }
+      /**
+       * Validate configuration
+       */
+      validate(config) {
+        try {
+          ConfigSchema2.parse(config);
+          return { valid: true, errors: [] };
+        } catch (error) {
+          if (error instanceof z4.ZodError) {
+            return {
+              valid: false,
+              errors: error.errors.map(
+                (err) => `${err.path.join(".")}: ${err.message}`
+              )
+            };
+          }
+          return {
+            valid: false,
+            errors: ["Unknown validation error"]
+          };
+        }
+      }
+      /**
+       * Export configuration to file
+       */
+      async exportToFile(filePath) {
+        try {
+          const fs = await import("fs/promises");
+          await fs.writeFile(filePath, JSON.stringify(this.pluginConfig, null, 2));
+          this.contextLogger.info("Configuration exported", { file: filePath });
+        } catch (error) {
+          this.contextLogger.error("Failed to export configuration", {
+            file: filePath,
+            error: error instanceof Error ? error.message : "Unknown error"
+          });
+          throw error;
+        }
+      }
+      /**
+       * Get configuration statistics
+       */
+      getStats() {
+        return {
+          totalWatchers: Array.from(this.configWatchers.values()).reduce(
+            (sum, set) => sum + set.size,
+            0
+          ),
+          watchedPaths: Array.from(this.configWatchers.keys()),
+          lastModified: this.lastModified,
+          configSize: JSON.stringify(this.pluginConfig).length
+        };
+      }
+      async updateData() {
+      }
+      async forceUpdate() {
+        await this.loadConfiguration();
+        return this.pluginConfig;
+      }
+    };
   }
 });
 
@@ -74038,7 +74401,9 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
         AltcoinDataService2,
         BitcoinNetworkDataService2,
         KnowledgePerformanceMonitor2,
-        StarterService2
+        StarterService2,
+        // Register CentralizedConfigService so it is available to all services
+        (init_CentralizedConfigService(), __toCommonJS(CentralizedConfigService_exports)).CentralizedConfigService
       ],
       tests: [tests_default2]
     };
