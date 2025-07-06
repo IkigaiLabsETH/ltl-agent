@@ -46,11 +46,13 @@ interface OptimizedRecommendation {
   budgetOption: HotelComparison;
   luxuryOption: HotelComparison;
   bestValue: HotelComparison;
+  perfectDays: PerfectDayOpportunity[];
   summary: {
     totalHotelsCompared: number;
     averageSavings: number;
     bestSavingsPercentage: number;
     priceRange: { min: number; max: number };
+    perfectDayCount: number;
   };
 }
 
@@ -185,7 +187,7 @@ export const bookingOptimizationAction: Action = createActionTemplate({
       }
 
       // Perform optimization analysis
-      const optimization = performBookingOptimization(travelService, criteria);
+      const optimization = await performBookingOptimization(travelService, criteria);
 
       if (!optimization || optimization.alternatives.length === 0) {
         logger.info("No optimization results available");
@@ -310,10 +312,10 @@ function parseOptimizationCriteria(text: string): OptimizationCriteria {
 /**
  * Perform booking optimization analysis
  */
-function performBookingOptimization(
+async function performBookingOptimization(
   travelService: TravelDataService,
   criteria: OptimizationCriteria,
-): OptimizedRecommendation | null {
+): Promise<OptimizedRecommendation | null> {
   const hotels = travelService.getCuratedHotels() || [];
   const optimalWindows = travelService.getOptimalBookingWindows() || [];
 
@@ -392,6 +394,9 @@ function performBookingOptimization(
     (a, b) => b.valueScore - a.valueScore,
   )[0];
 
+  // Get perfect day opportunities
+  const perfectDays = await travelService.getPerfectDayOpportunities();
+
   // Calculate summary statistics
   const summary = {
     totalHotelsCompared: comparisons.length,
@@ -405,6 +410,7 @@ function performBookingOptimization(
       min: Math.min(...comparisons.map((c) => c.bestRate)),
       max: Math.max(...comparisons.map((c) => c.bestRate)),
     },
+    perfectDayCount: perfectDays.length,
   };
 
   return {
@@ -413,6 +419,7 @@ function performBookingOptimization(
     budgetOption,
     luxuryOption,
     bestValue,
+    perfectDays,
     summary,
   };
 }
@@ -547,7 +554,7 @@ function generateOptimizationResponse(
   criteria: OptimizationCriteria,
   optimization: OptimizedRecommendation,
 ): string {
-  const { topChoice, alternatives, summary } = optimization;
+  const { topChoice, alternatives, summary, perfectDays } = optimization;
 
   // Format top choice
   const topChoiceText = `${topChoice.hotel.name} €${topChoice.bestRate}/night (${topChoice.savingsPercentage.toFixed(0)}% savings) ${formatDateRange([topChoice.checkIn, topChoice.checkOut])}`;
@@ -562,6 +569,17 @@ function generateOptimizationResponse(
           `${alt.hotel.name} €${alt.bestRate}/night (${alt.savingsPercentage.toFixed(0)}% off)`,
       );
     alternativesText = `. Alternatives: ${altTexts.join(", ")}`;
+  }
+
+  // Format perfect days section
+  let perfectDaysText = "";
+  if (perfectDays.length > 0) {
+    const topPerfectDay = perfectDays[0];
+    perfectDaysText = `\n\n🎯 **PERFECT DAY**: ${topPerfectDay.hotelName} on ${topPerfectDay.perfectDate} - €${topPerfectDay.currentRate}/night (${topPerfectDay.savingsPercentage.toFixed(1)}% below average)`;
+    
+    if (perfectDays.length > 1) {
+      perfectDaysText += `\n💎 ${perfectDays.length} perfect opportunities found`;
+    }
   }
 
   // Format summary
@@ -579,7 +597,7 @@ function generateOptimizationResponse(
   const bitcoinQuote =
     bitcoinQuotes[Math.floor(Math.random() * bitcoinQuotes.length)];
 
-  return `${getCityDisplayName(criteria.cities)} hotel optimization: ${topChoiceText} wins overall${alternativesText}. ${summaryText}. Best value: ${topChoice.reasoning.toLowerCase()}. ${bitcoinQuote}`;
+  return `${getCityDisplayName(criteria.cities)} hotel optimization: ${topChoiceText} wins overall${alternativesText}. ${summaryText}. Best value: ${topChoice.reasoning.toLowerCase()}.${perfectDaysText} ${bitcoinQuote}`;
 }
 
 /**
