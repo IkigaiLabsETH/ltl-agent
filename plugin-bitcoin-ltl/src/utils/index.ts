@@ -36,4 +36,9 @@ export {
   type ErrorSeverity,
   type ErrorCategory,
   type RecoveryStrategy
-} from './comprehensive-error-handling'; 
+} from './comprehensive-error-handling';
+
+export {
+  ConfigMigrationUtility,
+  configMigrationHelpers
+} from './config-migration'; 
