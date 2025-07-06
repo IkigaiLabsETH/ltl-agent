@@ -1,5 +1,4 @@
 import type { Action, HandlerCallback, IAgentRuntime, Memory, State } from '@elizaos/core';
-import { MichelinGuideService } from '../services/MichelinGuideService';
 
 export const michelinHotelAction: Action = {
   name: 'MICHELIN_HOTEL_RECOMMENDATION',

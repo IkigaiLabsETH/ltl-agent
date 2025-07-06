@@ -96,7 +96,7 @@ export class RealTimeStreamingService extends BaseDataService {
   private wss: WebSocketServer | null = null;
   private clients: Map<string, ClientConnection> = new Map();
   private eventQueue: StreamEvent[] = [];
-  private config: StreamConfig;
+  private streamConfig: StreamConfig;
   private heartbeatInterval: NodeJS.Timeout | null = null;
   private eventProcessingInterval: NodeJS.Timeout | null = null;
   private stats: {
@@ -112,7 +112,7 @@ export class RealTimeStreamingService extends BaseDataService {
       generateCorrelationId(),
       "RealTimeStreaming",
     );
-    this.config = this.getDefaultConfig();
+    this.streamConfig = this.getDefaultConfig();
     this.stats = {
       totalConnections: 0,
       totalEventsSent: 0,
@@ -134,7 +134,7 @@ export class RealTimeStreamingService extends BaseDataService {
     elizaLogger.info("Stopping RealTimeStreamingService...");
     const service = runtime.getService(
       "real-time-streaming",
-    ) as RealTimeStreamingService;
+    ) as unknown as RealTimeStreamingService;
     if (service) {
       await service.stop();
     }
@@ -165,7 +165,7 @@ export class RealTimeStreamingService extends BaseDataService {
   /**
    * Get default configuration
    */
-  private getDefaultConfig(): StreamConfig {
+  protected getDefaultConfig(): StreamConfig {
     return {
       port: parseInt(this.getSetting("STREAM_PORT", "8080")),
       maxConnections: parseInt(
@@ -206,9 +206,9 @@ export class RealTimeStreamingService extends BaseDataService {
   private async initializeWebSocketServer(): Promise<void> {
     try {
       this.wss = new WebSocketServer({
-        port: this.config.port,
-        maxPayload: this.config.maxMessageSize,
-        perMessageDeflate: this.config.enableCompression,
+        port: this.streamConfig.port,
+        maxPayload: this.streamConfig.maxMessageSize,
+        perMessageDeflate: this.streamConfig.enableCompression,
       });
 
       this.wss.on("connection", (ws: WebSocket, request: any) => {
@@ -222,8 +222,8 @@ export class RealTimeStreamingService extends BaseDataService {
       });
 
       this.contextLogger.info("WebSocket server started", {
-        port: this.config.port,
-        maxConnections: this.config.maxConnections,
+        port: this.streamConfig.port,
+        maxConnections: this.streamConfig.maxConnections,
       });
     } catch (error) {
       await handleError(
@@ -250,7 +250,7 @@ export class RealTimeStreamingService extends BaseDataService {
   private handleConnection(ws: WebSocket, request: any): void {
     try {
       // Check connection limits
-      if (this.clients.size >= this.config.maxConnections) {
+      if (this.clients.size >= this.streamConfig.maxConnections) {
         this.sendError(ws, "Maximum connections reached");
         ws.close(1013, "Maximum connections reached");
         return;
@@ -305,8 +305,8 @@ export class RealTimeStreamingService extends BaseDataService {
           clientId,
           timestamp: Date.now(),
           config: {
-            heartbeatInterval: this.config.heartbeatInterval,
-            maxMessageSize: this.config.maxMessageSize,
+            heartbeatInterval: this.streamConfig.heartbeatInterval,
+            maxMessageSize: this.streamConfig.maxMessageSize,
           },
         },
       });
@@ -456,7 +456,7 @@ export class RealTimeStreamingService extends BaseDataService {
    * Handle client authentication
    */
   private handleAuth(clientId: string, apiKey: string): void {
-    if (!this.config.security.apiKeyRequired) {
+    if (!this.streamConfig.security.apiKeyRequired) {
       this.sendToClient(clientId, {
         type: "auth_success",
         data: {
@@ -518,10 +518,10 @@ export class RealTimeStreamingService extends BaseDataService {
   private startHeartbeat(): void {
     this.heartbeatInterval = setInterval(() => {
       this.performHeartbeat();
-    }, this.config.heartbeatInterval);
+    }, this.streamConfig.heartbeatInterval);
 
     this.contextLogger.info("Heartbeat mechanism started", {
-      interval: this.config.heartbeatInterval,
+      interval: this.streamConfig.heartbeatInterval,
     });
   }
 
@@ -544,7 +544,7 @@ export class RealTimeStreamingService extends BaseDataService {
     const deadClients: string[] = [];
 
     for (const [clientId, client] of this.clients) {
-      if (now - client.lastPing > this.config.heartbeatInterval * 2) {
+      if (now - client.lastPing > this.streamConfig.heartbeatInterval * 2) {
         deadClients.push(clientId);
       } else {
         client.ws.ping();
@@ -744,12 +744,12 @@ export class RealTimeStreamingService extends BaseDataService {
   }
 
   private validateOrigin(request: any): boolean {
-    if (this.config.security.allowedOrigins.includes("*")) {
+    if (this.streamConfig.security.allowedOrigins.includes("*")) {
       return true;
     }
 
     const origin = request.headers.origin;
-    return origin && this.config.security.allowedOrigins.includes(origin);
+    return origin && this.streamConfig.security.allowedOrigins.includes(origin);
   }
 
   private getClientIp(request: any): string {
