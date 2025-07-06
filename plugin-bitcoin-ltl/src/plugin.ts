@@ -52,6 +52,7 @@ import {
   hotelDealAlertAction,
   bookingOptimizationAction,
   travelInsightsAction,
+  weeklyHotelSuggestionsAction,
   etfFlowAction,
   bitcoinPriceAction,
   altcoinPriceAction,
@@ -163,6 +164,7 @@ const bitcoinPlugin: Plugin = {
     stockMarketAction,
     etfFlowAction,
     // Travel & Booking Actions
+    weeklyHotelSuggestionsAction,
     hotelSearchAction,
     hotelDealAlertAction,
     bookingOptimizationAction,

@@ -23,6 +23,7 @@ import { bookingOptimizationAction } from "./bookingOptimizationAction";
 import { travelInsightsAction } from "./travelInsightsAction";
 import { hotelRateIntelligenceAction } from "./hotelRateIntelligenceAction";
 import { enhancedKnowledgeSearchAction } from "./enhanced-knowledge-search";
+import { weeklyHotelSuggestionsAction } from "./weeklyHotelSuggestionsAction";
 
 // Core Actions - Newly refactored
 import { helloWorldAction } from "./helloWorldAction";
@@ -78,6 +79,21 @@ export { hotelDealAlertAction };
 export { bookingOptimizationAction };
 export { travelInsightsAction };
 export { hotelRateIntelligenceAction };
+export { weeklyHotelSuggestionsAction };
+
+// Export action categories for easy access
+export const ACTION_CATEGORIES = {
+  CORE: "core",
+  MARKET: "market",
+  NFT: "nft",
+  TRAVEL: "travel",
+} as const;
+
+export const ACTION_PRIORITIES = {
+  HIGH: "high",
+  MEDIUM: "medium",
+  LOW: "low",
+} as const;
 
 // Action Registry with Metadata
 export interface ActionRegistryEntry {
@@ -371,6 +387,15 @@ export const actionRegistry: Record<string, ActionRegistryEntry> = {
     tags: ["hotel", "rates", "intelligence", "perfect-days", "opportunities", "luxury"],
     dependencies: ["travel-data-service"],
   },
+
+  WEEKLY_HOTEL_SUGGESTIONS: {
+    action: weeklyHotelSuggestionsAction,
+    category: "travel",
+    priority: "high",
+    description: "Weekly hotel suggestions and recommendations",
+    tags: ["hotel", "suggestions", "recommendations", "travel"],
+    dependencies: ["travel-data-service"],
+  },
 };
 
 // Utility functions for action management
@@ -410,19 +435,4 @@ export const getActionMetadata = (
   return actionRegistry[actionName];
 };
 
-// Export action categories for easy access
-export const ACTION_CATEGORIES = {
-  CORE: "core",
-  MARKET: "market",
-  NFT: "nft",
-  TRAVEL: "travel",
-} as const;
-
-export const ACTION_PRIORITIES = {
-  HIGH: "high",
-  MEDIUM: "medium",
-  LOW: "low",
-} as const;
-
-// Default export - all actions for easy import
 export default getAllActions();
