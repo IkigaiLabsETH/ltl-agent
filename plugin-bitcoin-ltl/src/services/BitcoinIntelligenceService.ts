@@ -1,5 +1,6 @@
 import { IAgentRuntime, logger } from "@elizaos/core";
 import { BaseDataService } from "./BaseDataService";
+import { LiveAlertService } from "./LiveAlertService";
 import {
   BitcoinIntelligenceData,
   BitcoinNetworkData,
@@ -39,6 +40,8 @@ export class BitcoinIntelligenceService extends BaseDataService {
   private lastUpdateTime: Date | null = null;
   private updateInterval: number = 300; // 5 minutes default
   private isUpdating: boolean = false;
+  private lastPrice: number | null = null;
+  private lastHashRate: number | null = null;
 
   // Configuration
   private bitcoinConfig: BitcoinIntelligenceConfig;
@@ -162,6 +165,81 @@ export class BitcoinIntelligenceService extends BaseDataService {
   async getSentimentAnalysis(): Promise<BitcoinSentimentData | null> {
     const data = await this.getComprehensiveIntelligence();
     return data?.sentiment || null;
+  }
+
+  // ============================================================================
+  // ALERT GENERATION
+  // ============================================================================
+
+  /**
+   * Generate alerts based on current data vs previous state
+   */
+  private async generateAlerts(data: BitcoinIntelligenceData): Promise<void> {
+    const alertService = this.runtime.getService<LiveAlertService>("LiveAlertService");
+    if (!alertService) return;
+
+    // Price movement alerts
+    if (this.lastPrice && data.network.price) {
+      const priceChange = ((data.network.price - this.lastPrice) / this.lastPrice) * 100;
+      
+      if (Math.abs(priceChange) >= 5) {
+        const severity = Math.abs(priceChange) >= 10 ? "critical" : "warning";
+        alertService.addPriceAlert(
+          `Bitcoin price ${priceChange > 0 ? 'surged' : 'dropped'} ${Math.abs(priceChange).toFixed(1)}% in the last update`,
+          severity,
+          0.95,
+          { priceChange, currentPrice: data.network.price, previousPrice: this.lastPrice }
+        );
+      }
+    }
+
+    // Network health alerts
+    if (this.lastHashRate && data.network.hashRate) {
+      const hashRateChange = ((data.network.hashRate - this.lastHashRate) / this.lastHashRate) * 100;
+      
+      if (Math.abs(hashRateChange) >= 10) {
+        alertService.addNetworkAlert(
+          `Bitcoin hash rate ${hashRateChange > 0 ? 'increased' : 'decreased'} by ${Math.abs(hashRateChange).toFixed(1)}%`,
+          "warning",
+          0.9,
+          { hashRateChange, currentHashRate: data.network.hashRate, previousHashRate: this.lastHashRate }
+        );
+      }
+    }
+
+    // Mempool congestion alerts
+    if (data.network.mempoolSize > this.bitcoinConfig.thresholds.congestedMempool) {
+      alertService.addNetworkAlert(
+        `Mempool congestion detected: ${data.network.mempoolSize}MB backlog`,
+        "warning",
+        0.85,
+        { mempoolSize: data.network.mempoolSize, threshold: this.bitcoinConfig.thresholds.congestedMempool }
+      );
+    }
+
+    // High fee rate alerts
+    if (data.network.feeRate.fastest > this.bitcoinConfig.thresholds.highFeeRate) {
+      alertService.addNetworkAlert(
+        `High fee rate detected: ${data.network.feeRate.fastest} sat/vB (fastest)`,
+        "info",
+        0.8,
+        { feeRate: data.network.feeRate, threshold: this.bitcoinConfig.thresholds.highFeeRate }
+      );
+    }
+
+    // MVRV extreme values
+    if (data.onChain.mvrvRatio > this.bitcoinConfig.thresholds.extremeMVRV) {
+      alertService.addOnChainAlert(
+        `Extreme MVRV ratio detected: ${data.onChain.mvrvRatio.toFixed(2)} (potential overvaluation)`,
+        "warning",
+        0.9,
+        { mvrvRatio: data.onChain.mvrvRatio, threshold: this.bitcoinConfig.thresholds.extremeMVRV }
+      );
+    }
+
+    // Update last values for next comparison
+    this.lastPrice = data.network.price;
+    this.lastHashRate = data.network.hashRate;
   }
 
   // ============================================================================
@@ -312,6 +390,9 @@ export class BitcoinIntelligenceService extends BaseDataService {
         institutional: institutionalData,
         lastUpdated: new Date()
       };
+
+      // Generate alerts based on the new data
+      await this.generateAlerts(this.bitcoinIntelligenceData);
 
       this.lastUpdateTime = new Date();
 

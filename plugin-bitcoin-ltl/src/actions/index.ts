@@ -24,6 +24,10 @@ import { travelInsightsAction } from "./travelInsightsAction";
 import { hotelRateIntelligenceAction } from "./hotelRateIntelligenceAction";
 import { enhancedKnowledgeSearchAction } from "./enhanced-knowledge-search";
 import { weeklyHotelSuggestionsAction } from "./weeklyHotelSuggestionsAction";
+import { feedbackAction } from "./feedbackAction";
+import { feedbackStatsAction } from "./feedbackStatsAction";
+import { viewAlertsAction } from "./viewAlertsAction";
+import { testLiveAlertsAction } from "./testLiveAlertsAction";
 
 // New Bitcoin Intelligence Actions
 import { bitcoinMorningBriefingAction } from "./bitcoinMorningBriefingAction";
@@ -100,6 +104,14 @@ export { weeklyHotelSuggestionsAction };
 // New Bitcoin Intelligence Actions
 export { satoshiReasoningAction };
 export { advancedSatoshiReasoningAction };
+
+// Feedback Actions
+export { feedbackAction };
+export { feedbackStatsAction };
+
+// New Actions
+export { viewAlertsAction };
+export { testLiveAlertsAction };
 
 // Export action categories for easy access
 export const ACTION_CATEGORIES = {
@@ -444,6 +456,33 @@ export const actionRegistry: Record<string, ActionRegistryEntry> = {
     description: "Advanced Satoshi reasoning and insights",
     tags: ["satoshi", "reasoning", "insights", "advanced"],
     isCore: true,
+  },
+
+  FEEDBACK: {
+    action: feedbackAction,
+    category: "core",
+    priority: "high",
+    description: "User feedback and survey action",
+    tags: ["feedback", "survey"],
+    isCore: true,
+  },
+
+  VIEW_ALERTS: {
+    action: viewAlertsAction,
+    category: "core",
+    priority: "high",
+    description: "View alerts and notifications",
+    tags: ["alerts", "notifications"],
+    isCore: true,
+  },
+
+  TEST_LIVE_ALERTS: {
+    action: testLiveAlertsAction,
+    category: "testing",
+    priority: "medium",
+    description: "Generate sample alerts for testing the live alerting system",
+    tags: ["alerts", "testing", "demo"],
+    isCore: false,
   },
 };
 

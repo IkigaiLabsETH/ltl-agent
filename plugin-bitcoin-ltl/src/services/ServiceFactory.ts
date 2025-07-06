@@ -15,6 +15,7 @@ import { PerformanceTrackingService } from "./PerformanceTrackingService";
 import { KnowledgeDigestService } from "./KnowledgeDigestService";
 import { SlackIngestionService } from "./SlackIngestionService";
 import { SchedulerService } from "./SchedulerService";
+import { LiveAlertService } from "./LiveAlertService";
 
 // New Bitcoin Intelligence Services
 import { BitcoinIntelligenceService } from "./BitcoinIntelligenceService";
@@ -112,6 +113,7 @@ export class ServiceFactory {
 
         // Real-time and aggregation services
         RealTimeDataService,
+        LiveAlertService,
 
         // Analysis and intelligence services
         MorningBriefingService,
