@@ -394,8 +394,8 @@ async function performBookingOptimization(
     (a, b) => b.valueScore - a.valueScore,
   )[0];
 
-  // Get perfect day opportunities
-  const perfectDays = await travelService.getPerfectDayOpportunities();
+  // Get hybrid perfect day opportunities with enhanced intelligence
+  const perfectDays = await travelService.getHybridPerfectDays();
 
   // Calculate summary statistics
   const summary = {
@@ -571,14 +571,20 @@ function generateOptimizationResponse(
     alternativesText = `. Alternatives: ${altTexts.join(", ")}`;
   }
 
-  // Format perfect days section
+  // Format perfect days section with enhanced details
   let perfectDaysText = "";
   if (perfectDays.length > 0) {
     const topPerfectDay = perfectDays[0];
-    perfectDaysText = `\n\n🎯 **PERFECT DAY**: ${topPerfectDay.hotelName} on ${topPerfectDay.perfectDate} - €${topPerfectDay.currentRate}/night (${topPerfectDay.savingsPercentage.toFixed(1)}% below average)`;
+    const urgencyEmoji = topPerfectDay.urgency === 'high' ? '🔥' : topPerfectDay.urgency === 'medium' ? '⚡' : '💡';
+    const confidenceText = topPerfectDay.confidenceScore >= 90 ? '95% confidence' : 
+                          topPerfectDay.confidenceScore >= 80 ? '88% confidence' : '75% confidence';
+    
+    perfectDaysText = `\n\n🎯 **PERFECT DAY ALERT**: ${topPerfectDay.hotelName} on ${topPerfectDay.perfectDate} - €${topPerfectDay.currentRate}/night (${topPerfectDay.savingsPercentage.toFixed(1)}% below average)`;
+    perfectDaysText += `\n💰 Save €${(topPerfectDay.averageRate - topPerfectDay.currentRate).toFixed(0)}/night | ${urgencyEmoji} ${topPerfectDay.urgency} urgency | ${confidenceText}`;
     
     if (perfectDays.length > 1) {
-      perfectDaysText += `\n💎 ${perfectDays.length} perfect opportunities found`;
+      const highUrgencyCount = perfectDays.filter(p => p.urgency === 'high').length;
+      perfectDaysText += `\n💎 ${perfectDays.length} perfect opportunities found (${highUrgencyCount} high urgency)`;
     }
   }
 

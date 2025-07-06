@@ -28,6 +28,7 @@ interface TravelInsightResponse {
     market?: MarketInsight;
     events?: EventInsight;
     strategy?: StrategyInsight;
+    perfectDays?: PerfectDayInsight;
   };
   recommendations: string[];
   keyTakeaways: string[];
@@ -65,6 +66,24 @@ interface StrategyInsight {
   flexibilityBenefits: string[];
   seasonalStrategy: string;
   budgetOptimization: string[];
+}
+
+interface PerfectDayInsight {
+  opportunities: {
+    hotelName: string;
+    date: string;
+    currentRate: number;
+    averageRate: number;
+    savingsPercentage: number;
+    urgency: "high" | "medium" | "low";
+    confidenceScore: number;
+  }[];
+  summary: {
+    totalOpportunities: number;
+    highUrgencyCount: number;
+    averageSavings: number;
+    bestOpportunity: string;
+  };
 }
 
 export const travelInsightsAction: Action = createActionTemplate({
@@ -200,7 +219,7 @@ export const travelInsightsAction: Action = createActionTemplate({
       }
 
       // Generate comprehensive insights
-      const insights = generateTravelInsights(travelService, insightRequest);
+      const insights = await generateTravelInsights(travelService, insightRequest);
 
       // Generate insights response
       const responseText = generateInsightsResponse(insightRequest, insights);
@@ -328,10 +347,10 @@ function parseInsightRequest(text: string): InsightRequest {
 /**
  * Generate comprehensive travel insights
  */
-function generateTravelInsights(
+async function generateTravelInsights(
   travelService: TravelDataService,
   request: InsightRequest,
-): TravelInsightResponse {
+): Promise<TravelInsightResponse> {
   const travelInsights = travelService.getTravelInsights();
   const hotels = travelService.getCuratedHotels() || [];
   const optimalWindows = travelService.getOptimalBookingWindows() || [];
@@ -370,6 +389,11 @@ function generateTravelInsights(
     );
   }
 
+  // Add perfect day opportunities to insights
+  if (request.type === "overview" || request.type === "strategy") {
+    response.insights.perfectDays = await generatePerfectDayInsights(travelService, request.city);
+  }
+
   // Generate recommendations and key takeaways
   response.recommendations = generateRecommendations(
     request,
@@ -378,6 +402,66 @@ function generateTravelInsights(
   response.keyTakeaways = generateKeyTakeaways(request, response.insights);
 
   return response;
+}
+
+/**
+ * Generate perfect day insights
+ */
+async function generatePerfectDayInsights(
+  travelService: TravelDataService,
+  city?: string,
+): Promise<PerfectDayInsight> {
+  try {
+    const perfectDays = await travelService.getHybridPerfectDays();
+    
+    // Filter by city if specified
+    let filteredOpportunities = perfectDays;
+    if (city) {
+      const hotels = travelService.getCuratedHotels() || [];
+      filteredOpportunities = perfectDays.filter(opp => {
+        const hotel = hotels.find(h => h.hotelId === opp.hotelId);
+        return hotel && hotel.city?.toLowerCase() === city.toLowerCase();
+      });
+    }
+
+    const highUrgencyCount = filteredOpportunities.filter(p => p.urgency === 'high').length;
+    const averageSavings = filteredOpportunities.length > 0 
+      ? filteredOpportunities.reduce((sum, p) => sum + p.savingsPercentage, 0) / filteredOpportunities.length 
+      : 0;
+    
+    const bestOpportunity = filteredOpportunities.length > 0 
+      ? `${filteredOpportunities[0].hotelName} on ${filteredOpportunities[0].perfectDate} (${filteredOpportunities[0].savingsPercentage.toFixed(1)}% savings)`
+      : 'None available';
+
+    return {
+      opportunities: filteredOpportunities.map(opp => ({
+        hotelName: opp.hotelName,
+        date: opp.perfectDate,
+        currentRate: opp.currentRate,
+        averageRate: opp.averageRate,
+        savingsPercentage: opp.savingsPercentage,
+        urgency: opp.urgency,
+        confidenceScore: opp.confidenceScore,
+      })),
+      summary: {
+        totalOpportunities: filteredOpportunities.length,
+        highUrgencyCount,
+        averageSavings,
+        bestOpportunity,
+      },
+    };
+  } catch (error) {
+    logger.error('Error generating perfect day insights:', error);
+    return {
+      opportunities: [],
+      summary: {
+        totalOpportunities: 0,
+        highUrgencyCount: 0,
+        averageSavings: 0,
+        bestOpportunity: 'None available',
+      },
+    };
+  }
 }
 
 /**

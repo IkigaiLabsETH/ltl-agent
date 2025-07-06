@@ -286,8 +286,8 @@ async function findCurrentDeals(
   const optimalWindows = travelService.getOptimalBookingWindows() || [];
   const deals: DealAlert[] = [];
 
-  // Get perfect day opportunities
-  const perfectDays = await travelService.getPerfectDayOpportunities();
+  // Get hybrid perfect day opportunities with enhanced intelligence
+  const perfectDays = await travelService.getHybridPerfectDays();
 
   // Filter hotels based on parameters
   let filteredHotels = hotels;
@@ -371,6 +371,9 @@ async function findCurrentDeals(
       }
     }
 
+    const confidenceText = perfectDay.confidenceScore >= 90 ? '95% confidence' : 
+                          perfectDay.confidenceScore >= 80 ? '88% confidence' : '75% confidence';
+    
     deals.push({
       id: `perfect-${perfectDay.hotelId}-${perfectDay.perfectDate}`,
       hotel: { name: perfectDay.hotelName, hotelId: perfectDay.hotelId },
@@ -380,7 +383,7 @@ async function findCurrentDeals(
       savingsPercentage: perfectDay.savingsPercentage,
       validDates: [perfectDay.perfectDate, perfectDay.perfectDate],
       urgency: perfectDay.urgency,
-      reason: `PERFECT DAY: ${perfectDay.reasons.join(', ')}`,
+      reason: `PERFECT DAY: ${perfectDay.reasons.join(', ')} | ${confidenceText}`,
       actionRecommendation: perfectDay.urgency === 'high' ? 'Book immediately - perfect day opportunity' : 'Book within 7 days - excellent value',
     });
   }
@@ -450,7 +453,8 @@ function formatDealsResponse(deals: DealAlert[], params: any): string {
       .slice(0, 2)
       .map((deal) => {
         const dates = formatDateRange(deal.validDates);
-        return `${deal.hotel.name} €${deal.currentRate}/night (${deal.savingsPercentage.toFixed(1)}% below average) ${dates}`;
+        const urgencyEmoji = deal.urgency === 'high' ? '🔥' : deal.urgency === 'medium' ? '⚡' : '💡';
+        return `${deal.hotel.name} €${deal.currentRate}/night (${deal.savingsPercentage.toFixed(1)}% below average) ${dates} ${urgencyEmoji}`;
       })
       .join(", ");
     responseText += `${perfectDayTexts}. `;
