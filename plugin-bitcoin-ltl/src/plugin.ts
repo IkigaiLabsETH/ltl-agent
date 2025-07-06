@@ -1380,6 +1380,8 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
     BitcoinNetworkDataService,
     KnowledgePerformanceMonitor,
     StarterService,
+    // Register CentralizedConfigService so it is available to all services
+    require("./services/CentralizedConfigService").CentralizedConfigService,
   ],
 
   tests: [bitcoinTestSuite],
