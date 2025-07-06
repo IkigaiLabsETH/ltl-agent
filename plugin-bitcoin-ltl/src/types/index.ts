@@ -189,4 +189,10 @@ export interface ETFMarketData {
     largestOutflow: string;
   };
   lastUpdated: string;
-} 
+}
+
+// Market data types
+export * from './marketTypes';
+
+// Error types and handling
+export * from './errorTypes'; 

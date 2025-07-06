@@ -1,12 +1,41 @@
+var __create = Object.create;
 var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
+  get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
+}) : x)(function(x) {
+  if (typeof require !== "undefined") return require.apply(this, arguments);
+  throw Error('Dynamic require of "' + x + '" is not supported');
+});
 var __esm = (fn, res) => function __init() {
   return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+};
+var __commonJS = (cb, mod) => function __require2() {
+  return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
 };
 var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, { get: all[name], enumerable: true });
 };
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  mod
+));
 
 // plugin-bitcoin-ltl/src/services/ConfigurationManager.ts
 var ConfigurationManager_exports = {};
@@ -428,18 +457,3514 @@ var init_ConfigurationManager = __esm({
   }
 });
 
+// plugin-bitcoin-ltl/node_modules/ws/lib/stream.js
+var require_stream = __commonJS({
+  "plugin-bitcoin-ltl/node_modules/ws/lib/stream.js"(exports, module) {
+    "use strict";
+    var { Duplex } = __require("stream");
+    function emitClose(stream) {
+      stream.emit("close");
+    }
+    function duplexOnEnd() {
+      if (!this.destroyed && this._writableState.finished) {
+        this.destroy();
+      }
+    }
+    function duplexOnError(err) {
+      this.removeListener("error", duplexOnError);
+      this.destroy();
+      if (this.listenerCount("error") === 0) {
+        this.emit("error", err);
+      }
+    }
+    function createWebSocketStream2(ws, options) {
+      let terminateOnDestroy = true;
+      const duplex = new Duplex({
+        ...options,
+        autoDestroy: false,
+        emitClose: false,
+        objectMode: false,
+        writableObjectMode: false
+      });
+      ws.on("message", function message(msg, isBinary) {
+        const data = !isBinary && duplex._readableState.objectMode ? msg.toString() : msg;
+        if (!duplex.push(data)) ws.pause();
+      });
+      ws.once("error", function error(err) {
+        if (duplex.destroyed) return;
+        terminateOnDestroy = false;
+        duplex.destroy(err);
+      });
+      ws.once("close", function close() {
+        if (duplex.destroyed) return;
+        duplex.push(null);
+      });
+      duplex._destroy = function(err, callback) {
+        if (ws.readyState === ws.CLOSED) {
+          callback(err);
+          process.nextTick(emitClose, duplex);
+          return;
+        }
+        let called = false;
+        ws.once("error", function error(err2) {
+          called = true;
+          callback(err2);
+        });
+        ws.once("close", function close() {
+          if (!called) callback(err);
+          process.nextTick(emitClose, duplex);
+        });
+        if (terminateOnDestroy) ws.terminate();
+      };
+      duplex._final = function(callback) {
+        if (ws.readyState === ws.CONNECTING) {
+          ws.once("open", function open() {
+            duplex._final(callback);
+          });
+          return;
+        }
+        if (ws._socket === null) return;
+        if (ws._socket._writableState.finished) {
+          callback();
+          if (duplex._readableState.endEmitted) duplex.destroy();
+        } else {
+          ws._socket.once("finish", function finish() {
+            callback();
+          });
+          ws.close();
+        }
+      };
+      duplex._read = function() {
+        if (ws.isPaused) ws.resume();
+      };
+      duplex._write = function(chunk, encoding, callback) {
+        if (ws.readyState === ws.CONNECTING) {
+          ws.once("open", function open() {
+            duplex._write(chunk, encoding, callback);
+          });
+          return;
+        }
+        ws.send(chunk, callback);
+      };
+      duplex.on("end", duplexOnEnd);
+      duplex.on("error", duplexOnError);
+      return duplex;
+    }
+    module.exports = createWebSocketStream2;
+  }
+});
+
+// plugin-bitcoin-ltl/node_modules/ws/lib/constants.js
+var require_constants = __commonJS({
+  "plugin-bitcoin-ltl/node_modules/ws/lib/constants.js"(exports, module) {
+    "use strict";
+    module.exports = {
+      BINARY_TYPES: ["nodebuffer", "arraybuffer", "fragments"],
+      EMPTY_BUFFER: Buffer.alloc(0),
+      GUID: "258EAFA5-E914-47DA-95CA-C5AB0DC85B11",
+      kForOnEventAttribute: Symbol("kIsForOnEventAttribute"),
+      kListener: Symbol("kListener"),
+      kStatusCode: Symbol("status-code"),
+      kWebSocket: Symbol("websocket"),
+      NOOP: () => {
+      }
+    };
+  }
+});
+
+// plugin-bitcoin-ltl/node_modules/ws/lib/buffer-util.js
+var require_buffer_util = __commonJS({
+  "plugin-bitcoin-ltl/node_modules/ws/lib/buffer-util.js"(exports, module) {
+    "use strict";
+    var { EMPTY_BUFFER } = require_constants();
+    var FastBuffer = Buffer[Symbol.species];
+    function concat(list, totalLength) {
+      if (list.length === 0) return EMPTY_BUFFER;
+      if (list.length === 1) return list[0];
+      const target = Buffer.allocUnsafe(totalLength);
+      let offset = 0;
+      for (let i = 0; i < list.length; i++) {
+        const buf = list[i];
+        target.set(buf, offset);
+        offset += buf.length;
+      }
+      if (offset < totalLength) {
+        return new FastBuffer(target.buffer, target.byteOffset, offset);
+      }
+      return target;
+    }
+    function _mask(source, mask, output, offset, length) {
+      for (let i = 0; i < length; i++) {
+        output[offset + i] = source[i] ^ mask[i & 3];
+      }
+    }
+    function _unmask(buffer, mask) {
+      for (let i = 0; i < buffer.length; i++) {
+        buffer[i] ^= mask[i & 3];
+      }
+    }
+    function toArrayBuffer(buf) {
+      if (buf.length === buf.buffer.byteLength) {
+        return buf.buffer;
+      }
+      return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.length);
+    }
+    function toBuffer(data) {
+      toBuffer.readOnly = true;
+      if (Buffer.isBuffer(data)) return data;
+      let buf;
+      if (data instanceof ArrayBuffer) {
+        buf = new FastBuffer(data);
+      } else if (ArrayBuffer.isView(data)) {
+        buf = new FastBuffer(data.buffer, data.byteOffset, data.byteLength);
+      } else {
+        buf = Buffer.from(data);
+        toBuffer.readOnly = false;
+      }
+      return buf;
+    }
+    module.exports = {
+      concat,
+      mask: _mask,
+      toArrayBuffer,
+      toBuffer,
+      unmask: _unmask
+    };
+    if (!process.env.WS_NO_BUFFER_UTIL) {
+      try {
+        const bufferUtil = __require("bufferutil");
+        module.exports.mask = function(source, mask, output, offset, length) {
+          if (length < 48) _mask(source, mask, output, offset, length);
+          else bufferUtil.mask(source, mask, output, offset, length);
+        };
+        module.exports.unmask = function(buffer, mask) {
+          if (buffer.length < 32) _unmask(buffer, mask);
+          else bufferUtil.unmask(buffer, mask);
+        };
+      } catch (e) {
+      }
+    }
+  }
+});
+
+// plugin-bitcoin-ltl/node_modules/ws/lib/limiter.js
+var require_limiter = __commonJS({
+  "plugin-bitcoin-ltl/node_modules/ws/lib/limiter.js"(exports, module) {
+    "use strict";
+    var kDone = Symbol("kDone");
+    var kRun = Symbol("kRun");
+    var Limiter = class {
+      /**
+       * Creates a new `Limiter`.
+       *
+       * @param {Number} [concurrency=Infinity] The maximum number of jobs allowed
+       *     to run concurrently
+       */
+      constructor(concurrency) {
+        this[kDone] = () => {
+          this.pending--;
+          this[kRun]();
+        };
+        this.concurrency = concurrency || Infinity;
+        this.jobs = [];
+        this.pending = 0;
+      }
+      /**
+       * Adds a job to the queue.
+       *
+       * @param {Function} job The job to run
+       * @public
+       */
+      add(job) {
+        this.jobs.push(job);
+        this[kRun]();
+      }
+      /**
+       * Removes a job from the queue and runs it if possible.
+       *
+       * @private
+       */
+      [kRun]() {
+        if (this.pending === this.concurrency) return;
+        if (this.jobs.length) {
+          const job = this.jobs.shift();
+          this.pending++;
+          job(this[kDone]);
+        }
+      }
+    };
+    module.exports = Limiter;
+  }
+});
+
+// plugin-bitcoin-ltl/node_modules/ws/lib/permessage-deflate.js
+var require_permessage_deflate = __commonJS({
+  "plugin-bitcoin-ltl/node_modules/ws/lib/permessage-deflate.js"(exports, module) {
+    "use strict";
+    var zlib = __require("zlib");
+    var bufferUtil = require_buffer_util();
+    var Limiter = require_limiter();
+    var { kStatusCode } = require_constants();
+    var FastBuffer = Buffer[Symbol.species];
+    var TRAILER = Buffer.from([0, 0, 255, 255]);
+    var kPerMessageDeflate = Symbol("permessage-deflate");
+    var kTotalLength = Symbol("total-length");
+    var kCallback = Symbol("callback");
+    var kBuffers = Symbol("buffers");
+    var kError = Symbol("error");
+    var zlibLimiter;
+    var PerMessageDeflate = class {
+      /**
+       * Creates a PerMessageDeflate instance.
+       *
+       * @param {Object} [options] Configuration options
+       * @param {(Boolean|Number)} [options.clientMaxWindowBits] Advertise support
+       *     for, or request, a custom client window size
+       * @param {Boolean} [options.clientNoContextTakeover=false] Advertise/
+       *     acknowledge disabling of client context takeover
+       * @param {Number} [options.concurrencyLimit=10] The number of concurrent
+       *     calls to zlib
+       * @param {(Boolean|Number)} [options.serverMaxWindowBits] Request/confirm the
+       *     use of a custom server window size
+       * @param {Boolean} [options.serverNoContextTakeover=false] Request/accept
+       *     disabling of server context takeover
+       * @param {Number} [options.threshold=1024] Size (in bytes) below which
+       *     messages should not be compressed if context takeover is disabled
+       * @param {Object} [options.zlibDeflateOptions] Options to pass to zlib on
+       *     deflate
+       * @param {Object} [options.zlibInflateOptions] Options to pass to zlib on
+       *     inflate
+       * @param {Boolean} [isServer=false] Create the instance in either server or
+       *     client mode
+       * @param {Number} [maxPayload=0] The maximum allowed message length
+       */
+      constructor(options, isServer, maxPayload) {
+        this._maxPayload = maxPayload | 0;
+        this._options = options || {};
+        this._threshold = this._options.threshold !== void 0 ? this._options.threshold : 1024;
+        this._isServer = !!isServer;
+        this._deflate = null;
+        this._inflate = null;
+        this.params = null;
+        if (!zlibLimiter) {
+          const concurrency = this._options.concurrencyLimit !== void 0 ? this._options.concurrencyLimit : 10;
+          zlibLimiter = new Limiter(concurrency);
+        }
+      }
+      /**
+       * @type {String}
+       */
+      static get extensionName() {
+        return "permessage-deflate";
+      }
+      /**
+       * Create an extension negotiation offer.
+       *
+       * @return {Object} Extension parameters
+       * @public
+       */
+      offer() {
+        const params = {};
+        if (this._options.serverNoContextTakeover) {
+          params.server_no_context_takeover = true;
+        }
+        if (this._options.clientNoContextTakeover) {
+          params.client_no_context_takeover = true;
+        }
+        if (this._options.serverMaxWindowBits) {
+          params.server_max_window_bits = this._options.serverMaxWindowBits;
+        }
+        if (this._options.clientMaxWindowBits) {
+          params.client_max_window_bits = this._options.clientMaxWindowBits;
+        } else if (this._options.clientMaxWindowBits == null) {
+          params.client_max_window_bits = true;
+        }
+        return params;
+      }
+      /**
+       * Accept an extension negotiation offer/response.
+       *
+       * @param {Array} configurations The extension negotiation offers/reponse
+       * @return {Object} Accepted configuration
+       * @public
+       */
+      accept(configurations) {
+        configurations = this.normalizeParams(configurations);
+        this.params = this._isServer ? this.acceptAsServer(configurations) : this.acceptAsClient(configurations);
+        return this.params;
+      }
+      /**
+       * Releases all resources used by the extension.
+       *
+       * @public
+       */
+      cleanup() {
+        if (this._inflate) {
+          this._inflate.close();
+          this._inflate = null;
+        }
+        if (this._deflate) {
+          const callback = this._deflate[kCallback];
+          this._deflate.close();
+          this._deflate = null;
+          if (callback) {
+            callback(
+              new Error(
+                "The deflate stream was closed while data was being processed"
+              )
+            );
+          }
+        }
+      }
+      /**
+       *  Accept an extension negotiation offer.
+       *
+       * @param {Array} offers The extension negotiation offers
+       * @return {Object} Accepted configuration
+       * @private
+       */
+      acceptAsServer(offers) {
+        const opts = this._options;
+        const accepted = offers.find((params) => {
+          if (opts.serverNoContextTakeover === false && params.server_no_context_takeover || params.server_max_window_bits && (opts.serverMaxWindowBits === false || typeof opts.serverMaxWindowBits === "number" && opts.serverMaxWindowBits > params.server_max_window_bits) || typeof opts.clientMaxWindowBits === "number" && !params.client_max_window_bits) {
+            return false;
+          }
+          return true;
+        });
+        if (!accepted) {
+          throw new Error("None of the extension offers can be accepted");
+        }
+        if (opts.serverNoContextTakeover) {
+          accepted.server_no_context_takeover = true;
+        }
+        if (opts.clientNoContextTakeover) {
+          accepted.client_no_context_takeover = true;
+        }
+        if (typeof opts.serverMaxWindowBits === "number") {
+          accepted.server_max_window_bits = opts.serverMaxWindowBits;
+        }
+        if (typeof opts.clientMaxWindowBits === "number") {
+          accepted.client_max_window_bits = opts.clientMaxWindowBits;
+        } else if (accepted.client_max_window_bits === true || opts.clientMaxWindowBits === false) {
+          delete accepted.client_max_window_bits;
+        }
+        return accepted;
+      }
+      /**
+       * Accept the extension negotiation response.
+       *
+       * @param {Array} response The extension negotiation response
+       * @return {Object} Accepted configuration
+       * @private
+       */
+      acceptAsClient(response) {
+        const params = response[0];
+        if (this._options.clientNoContextTakeover === false && params.client_no_context_takeover) {
+          throw new Error('Unexpected parameter "client_no_context_takeover"');
+        }
+        if (!params.client_max_window_bits) {
+          if (typeof this._options.clientMaxWindowBits === "number") {
+            params.client_max_window_bits = this._options.clientMaxWindowBits;
+          }
+        } else if (this._options.clientMaxWindowBits === false || typeof this._options.clientMaxWindowBits === "number" && params.client_max_window_bits > this._options.clientMaxWindowBits) {
+          throw new Error(
+            'Unexpected or invalid parameter "client_max_window_bits"'
+          );
+        }
+        return params;
+      }
+      /**
+       * Normalize parameters.
+       *
+       * @param {Array} configurations The extension negotiation offers/reponse
+       * @return {Array} The offers/response with normalized parameters
+       * @private
+       */
+      normalizeParams(configurations) {
+        configurations.forEach((params) => {
+          Object.keys(params).forEach((key) => {
+            let value = params[key];
+            if (value.length > 1) {
+              throw new Error(`Parameter "${key}" must have only a single value`);
+            }
+            value = value[0];
+            if (key === "client_max_window_bits") {
+              if (value !== true) {
+                const num = +value;
+                if (!Number.isInteger(num) || num < 8 || num > 15) {
+                  throw new TypeError(
+                    `Invalid value for parameter "${key}": ${value}`
+                  );
+                }
+                value = num;
+              } else if (!this._isServer) {
+                throw new TypeError(
+                  `Invalid value for parameter "${key}": ${value}`
+                );
+              }
+            } else if (key === "server_max_window_bits") {
+              const num = +value;
+              if (!Number.isInteger(num) || num < 8 || num > 15) {
+                throw new TypeError(
+                  `Invalid value for parameter "${key}": ${value}`
+                );
+              }
+              value = num;
+            } else if (key === "client_no_context_takeover" || key === "server_no_context_takeover") {
+              if (value !== true) {
+                throw new TypeError(
+                  `Invalid value for parameter "${key}": ${value}`
+                );
+              }
+            } else {
+              throw new Error(`Unknown parameter "${key}"`);
+            }
+            params[key] = value;
+          });
+        });
+        return configurations;
+      }
+      /**
+       * Decompress data. Concurrency limited.
+       *
+       * @param {Buffer} data Compressed data
+       * @param {Boolean} fin Specifies whether or not this is the last fragment
+       * @param {Function} callback Callback
+       * @public
+       */
+      decompress(data, fin, callback) {
+        zlibLimiter.add((done) => {
+          this._decompress(data, fin, (err, result) => {
+            done();
+            callback(err, result);
+          });
+        });
+      }
+      /**
+       * Compress data. Concurrency limited.
+       *
+       * @param {(Buffer|String)} data Data to compress
+       * @param {Boolean} fin Specifies whether or not this is the last fragment
+       * @param {Function} callback Callback
+       * @public
+       */
+      compress(data, fin, callback) {
+        zlibLimiter.add((done) => {
+          this._compress(data, fin, (err, result) => {
+            done();
+            callback(err, result);
+          });
+        });
+      }
+      /**
+       * Decompress data.
+       *
+       * @param {Buffer} data Compressed data
+       * @param {Boolean} fin Specifies whether or not this is the last fragment
+       * @param {Function} callback Callback
+       * @private
+       */
+      _decompress(data, fin, callback) {
+        const endpoint = this._isServer ? "client" : "server";
+        if (!this._inflate) {
+          const key = `${endpoint}_max_window_bits`;
+          const windowBits = typeof this.params[key] !== "number" ? zlib.Z_DEFAULT_WINDOWBITS : this.params[key];
+          this._inflate = zlib.createInflateRaw({
+            ...this._options.zlibInflateOptions,
+            windowBits
+          });
+          this._inflate[kPerMessageDeflate] = this;
+          this._inflate[kTotalLength] = 0;
+          this._inflate[kBuffers] = [];
+          this._inflate.on("error", inflateOnError);
+          this._inflate.on("data", inflateOnData);
+        }
+        this._inflate[kCallback] = callback;
+        this._inflate.write(data);
+        if (fin) this._inflate.write(TRAILER);
+        this._inflate.flush(() => {
+          const err = this._inflate[kError];
+          if (err) {
+            this._inflate.close();
+            this._inflate = null;
+            callback(err);
+            return;
+          }
+          const data2 = bufferUtil.concat(
+            this._inflate[kBuffers],
+            this._inflate[kTotalLength]
+          );
+          if (this._inflate._readableState.endEmitted) {
+            this._inflate.close();
+            this._inflate = null;
+          } else {
+            this._inflate[kTotalLength] = 0;
+            this._inflate[kBuffers] = [];
+            if (fin && this.params[`${endpoint}_no_context_takeover`]) {
+              this._inflate.reset();
+            }
+          }
+          callback(null, data2);
+        });
+      }
+      /**
+       * Compress data.
+       *
+       * @param {(Buffer|String)} data Data to compress
+       * @param {Boolean} fin Specifies whether or not this is the last fragment
+       * @param {Function} callback Callback
+       * @private
+       */
+      _compress(data, fin, callback) {
+        const endpoint = this._isServer ? "server" : "client";
+        if (!this._deflate) {
+          const key = `${endpoint}_max_window_bits`;
+          const windowBits = typeof this.params[key] !== "number" ? zlib.Z_DEFAULT_WINDOWBITS : this.params[key];
+          this._deflate = zlib.createDeflateRaw({
+            ...this._options.zlibDeflateOptions,
+            windowBits
+          });
+          this._deflate[kTotalLength] = 0;
+          this._deflate[kBuffers] = [];
+          this._deflate.on("data", deflateOnData);
+        }
+        this._deflate[kCallback] = callback;
+        this._deflate.write(data);
+        this._deflate.flush(zlib.Z_SYNC_FLUSH, () => {
+          if (!this._deflate) {
+            return;
+          }
+          let data2 = bufferUtil.concat(
+            this._deflate[kBuffers],
+            this._deflate[kTotalLength]
+          );
+          if (fin) {
+            data2 = new FastBuffer(data2.buffer, data2.byteOffset, data2.length - 4);
+          }
+          this._deflate[kCallback] = null;
+          this._deflate[kTotalLength] = 0;
+          this._deflate[kBuffers] = [];
+          if (fin && this.params[`${endpoint}_no_context_takeover`]) {
+            this._deflate.reset();
+          }
+          callback(null, data2);
+        });
+      }
+    };
+    module.exports = PerMessageDeflate;
+    function deflateOnData(chunk) {
+      this[kBuffers].push(chunk);
+      this[kTotalLength] += chunk.length;
+    }
+    function inflateOnData(chunk) {
+      this[kTotalLength] += chunk.length;
+      if (this[kPerMessageDeflate]._maxPayload < 1 || this[kTotalLength] <= this[kPerMessageDeflate]._maxPayload) {
+        this[kBuffers].push(chunk);
+        return;
+      }
+      this[kError] = new RangeError("Max payload size exceeded");
+      this[kError].code = "WS_ERR_UNSUPPORTED_MESSAGE_LENGTH";
+      this[kError][kStatusCode] = 1009;
+      this.removeListener("data", inflateOnData);
+      this.reset();
+    }
+    function inflateOnError(err) {
+      this[kPerMessageDeflate]._inflate = null;
+      err[kStatusCode] = 1007;
+      this[kCallback](err);
+    }
+  }
+});
+
+// plugin-bitcoin-ltl/node_modules/ws/lib/validation.js
+var require_validation = __commonJS({
+  "plugin-bitcoin-ltl/node_modules/ws/lib/validation.js"(exports, module) {
+    "use strict";
+    var { isUtf8 } = __require("buffer");
+    var tokenChars = [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      // 0 - 15
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      // 16 - 31
+      0,
+      1,
+      0,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      1,
+      1,
+      0,
+      1,
+      1,
+      0,
+      // 32 - 47
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      // 48 - 63
+      0,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      // 64 - 79
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      // 80 - 95
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      // 96 - 111
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      1,
+      0,
+      1,
+      0
+      // 112 - 127
+    ];
+    function isValidStatusCode(code) {
+      return code >= 1e3 && code <= 1014 && code !== 1004 && code !== 1005 && code !== 1006 || code >= 3e3 && code <= 4999;
+    }
+    function _isValidUTF8(buf) {
+      const len = buf.length;
+      let i = 0;
+      while (i < len) {
+        if ((buf[i] & 128) === 0) {
+          i++;
+        } else if ((buf[i] & 224) === 192) {
+          if (i + 1 === len || (buf[i + 1] & 192) !== 128 || (buf[i] & 254) === 192) {
+            return false;
+          }
+          i += 2;
+        } else if ((buf[i] & 240) === 224) {
+          if (i + 2 >= len || (buf[i + 1] & 192) !== 128 || (buf[i + 2] & 192) !== 128 || buf[i] === 224 && (buf[i + 1] & 224) === 128 || // Overlong
+          buf[i] === 237 && (buf[i + 1] & 224) === 160) {
+            return false;
+          }
+          i += 3;
+        } else if ((buf[i] & 248) === 240) {
+          if (i + 3 >= len || (buf[i + 1] & 192) !== 128 || (buf[i + 2] & 192) !== 128 || (buf[i + 3] & 192) !== 128 || buf[i] === 240 && (buf[i + 1] & 240) === 128 || // Overlong
+          buf[i] === 244 && buf[i + 1] > 143 || buf[i] > 244) {
+            return false;
+          }
+          i += 4;
+        } else {
+          return false;
+        }
+      }
+      return true;
+    }
+    module.exports = {
+      isValidStatusCode,
+      isValidUTF8: _isValidUTF8,
+      tokenChars
+    };
+    if (isUtf8) {
+      module.exports.isValidUTF8 = function(buf) {
+        return buf.length < 24 ? _isValidUTF8(buf) : isUtf8(buf);
+      };
+    } else if (!process.env.WS_NO_UTF_8_VALIDATE) {
+      try {
+        const isValidUTF8 = __require("utf-8-validate");
+        module.exports.isValidUTF8 = function(buf) {
+          return buf.length < 32 ? _isValidUTF8(buf) : isValidUTF8(buf);
+        };
+      } catch (e) {
+      }
+    }
+  }
+});
+
+// plugin-bitcoin-ltl/node_modules/ws/lib/receiver.js
+var require_receiver = __commonJS({
+  "plugin-bitcoin-ltl/node_modules/ws/lib/receiver.js"(exports, module) {
+    "use strict";
+    var { Writable } = __require("stream");
+    var PerMessageDeflate = require_permessage_deflate();
+    var {
+      BINARY_TYPES,
+      EMPTY_BUFFER,
+      kStatusCode,
+      kWebSocket
+    } = require_constants();
+    var { concat, toArrayBuffer, unmask } = require_buffer_util();
+    var { isValidStatusCode, isValidUTF8 } = require_validation();
+    var FastBuffer = Buffer[Symbol.species];
+    var GET_INFO = 0;
+    var GET_PAYLOAD_LENGTH_16 = 1;
+    var GET_PAYLOAD_LENGTH_64 = 2;
+    var GET_MASK = 3;
+    var GET_DATA = 4;
+    var INFLATING = 5;
+    var DEFER_EVENT = 6;
+    var Receiver2 = class extends Writable {
+      /**
+       * Creates a Receiver instance.
+       *
+       * @param {Object} [options] Options object
+       * @param {Boolean} [options.allowSynchronousEvents=true] Specifies whether
+       *     any of the `'message'`, `'ping'`, and `'pong'` events can be emitted
+       *     multiple times in the same tick
+       * @param {String} [options.binaryType=nodebuffer] The type for binary data
+       * @param {Object} [options.extensions] An object containing the negotiated
+       *     extensions
+       * @param {Boolean} [options.isServer=false] Specifies whether to operate in
+       *     client or server mode
+       * @param {Number} [options.maxPayload=0] The maximum allowed message length
+       * @param {Boolean} [options.skipUTF8Validation=false] Specifies whether or
+       *     not to skip UTF-8 validation for text and close messages
+       */
+      constructor(options = {}) {
+        super();
+        this._allowSynchronousEvents = options.allowSynchronousEvents !== void 0 ? options.allowSynchronousEvents : true;
+        this._binaryType = options.binaryType || BINARY_TYPES[0];
+        this._extensions = options.extensions || {};
+        this._isServer = !!options.isServer;
+        this._maxPayload = options.maxPayload | 0;
+        this._skipUTF8Validation = !!options.skipUTF8Validation;
+        this[kWebSocket] = void 0;
+        this._bufferedBytes = 0;
+        this._buffers = [];
+        this._compressed = false;
+        this._payloadLength = 0;
+        this._mask = void 0;
+        this._fragmented = 0;
+        this._masked = false;
+        this._fin = false;
+        this._opcode = 0;
+        this._totalPayloadLength = 0;
+        this._messageLength = 0;
+        this._fragments = [];
+        this._errored = false;
+        this._loop = false;
+        this._state = GET_INFO;
+      }
+      /**
+       * Implements `Writable.prototype._write()`.
+       *
+       * @param {Buffer} chunk The chunk of data to write
+       * @param {String} encoding The character encoding of `chunk`
+       * @param {Function} cb Callback
+       * @private
+       */
+      _write(chunk, encoding, cb) {
+        if (this._opcode === 8 && this._state == GET_INFO) return cb();
+        this._bufferedBytes += chunk.length;
+        this._buffers.push(chunk);
+        this.startLoop(cb);
+      }
+      /**
+       * Consumes `n` bytes from the buffered data.
+       *
+       * @param {Number} n The number of bytes to consume
+       * @return {Buffer} The consumed bytes
+       * @private
+       */
+      consume(n) {
+        this._bufferedBytes -= n;
+        if (n === this._buffers[0].length) return this._buffers.shift();
+        if (n < this._buffers[0].length) {
+          const buf = this._buffers[0];
+          this._buffers[0] = new FastBuffer(
+            buf.buffer,
+            buf.byteOffset + n,
+            buf.length - n
+          );
+          return new FastBuffer(buf.buffer, buf.byteOffset, n);
+        }
+        const dst = Buffer.allocUnsafe(n);
+        do {
+          const buf = this._buffers[0];
+          const offset = dst.length - n;
+          if (n >= buf.length) {
+            dst.set(this._buffers.shift(), offset);
+          } else {
+            dst.set(new Uint8Array(buf.buffer, buf.byteOffset, n), offset);
+            this._buffers[0] = new FastBuffer(
+              buf.buffer,
+              buf.byteOffset + n,
+              buf.length - n
+            );
+          }
+          n -= buf.length;
+        } while (n > 0);
+        return dst;
+      }
+      /**
+       * Starts the parsing loop.
+       *
+       * @param {Function} cb Callback
+       * @private
+       */
+      startLoop(cb) {
+        this._loop = true;
+        do {
+          switch (this._state) {
+            case GET_INFO:
+              this.getInfo(cb);
+              break;
+            case GET_PAYLOAD_LENGTH_16:
+              this.getPayloadLength16(cb);
+              break;
+            case GET_PAYLOAD_LENGTH_64:
+              this.getPayloadLength64(cb);
+              break;
+            case GET_MASK:
+              this.getMask();
+              break;
+            case GET_DATA:
+              this.getData(cb);
+              break;
+            case INFLATING:
+            case DEFER_EVENT:
+              this._loop = false;
+              return;
+          }
+        } while (this._loop);
+        if (!this._errored) cb();
+      }
+      /**
+       * Reads the first two bytes of a frame.
+       *
+       * @param {Function} cb Callback
+       * @private
+       */
+      getInfo(cb) {
+        if (this._bufferedBytes < 2) {
+          this._loop = false;
+          return;
+        }
+        const buf = this.consume(2);
+        if ((buf[0] & 48) !== 0) {
+          const error = this.createError(
+            RangeError,
+            "RSV2 and RSV3 must be clear",
+            true,
+            1002,
+            "WS_ERR_UNEXPECTED_RSV_2_3"
+          );
+          cb(error);
+          return;
+        }
+        const compressed = (buf[0] & 64) === 64;
+        if (compressed && !this._extensions[PerMessageDeflate.extensionName]) {
+          const error = this.createError(
+            RangeError,
+            "RSV1 must be clear",
+            true,
+            1002,
+            "WS_ERR_UNEXPECTED_RSV_1"
+          );
+          cb(error);
+          return;
+        }
+        this._fin = (buf[0] & 128) === 128;
+        this._opcode = buf[0] & 15;
+        this._payloadLength = buf[1] & 127;
+        if (this._opcode === 0) {
+          if (compressed) {
+            const error = this.createError(
+              RangeError,
+              "RSV1 must be clear",
+              true,
+              1002,
+              "WS_ERR_UNEXPECTED_RSV_1"
+            );
+            cb(error);
+            return;
+          }
+          if (!this._fragmented) {
+            const error = this.createError(
+              RangeError,
+              "invalid opcode 0",
+              true,
+              1002,
+              "WS_ERR_INVALID_OPCODE"
+            );
+            cb(error);
+            return;
+          }
+          this._opcode = this._fragmented;
+        } else if (this._opcode === 1 || this._opcode === 2) {
+          if (this._fragmented) {
+            const error = this.createError(
+              RangeError,
+              `invalid opcode ${this._opcode}`,
+              true,
+              1002,
+              "WS_ERR_INVALID_OPCODE"
+            );
+            cb(error);
+            return;
+          }
+          this._compressed = compressed;
+        } else if (this._opcode > 7 && this._opcode < 11) {
+          if (!this._fin) {
+            const error = this.createError(
+              RangeError,
+              "FIN must be set",
+              true,
+              1002,
+              "WS_ERR_EXPECTED_FIN"
+            );
+            cb(error);
+            return;
+          }
+          if (compressed) {
+            const error = this.createError(
+              RangeError,
+              "RSV1 must be clear",
+              true,
+              1002,
+              "WS_ERR_UNEXPECTED_RSV_1"
+            );
+            cb(error);
+            return;
+          }
+          if (this._payloadLength > 125 || this._opcode === 8 && this._payloadLength === 1) {
+            const error = this.createError(
+              RangeError,
+              `invalid payload length ${this._payloadLength}`,
+              true,
+              1002,
+              "WS_ERR_INVALID_CONTROL_PAYLOAD_LENGTH"
+            );
+            cb(error);
+            return;
+          }
+        } else {
+          const error = this.createError(
+            RangeError,
+            `invalid opcode ${this._opcode}`,
+            true,
+            1002,
+            "WS_ERR_INVALID_OPCODE"
+          );
+          cb(error);
+          return;
+        }
+        if (!this._fin && !this._fragmented) this._fragmented = this._opcode;
+        this._masked = (buf[1] & 128) === 128;
+        if (this._isServer) {
+          if (!this._masked) {
+            const error = this.createError(
+              RangeError,
+              "MASK must be set",
+              true,
+              1002,
+              "WS_ERR_EXPECTED_MASK"
+            );
+            cb(error);
+            return;
+          }
+        } else if (this._masked) {
+          const error = this.createError(
+            RangeError,
+            "MASK must be clear",
+            true,
+            1002,
+            "WS_ERR_UNEXPECTED_MASK"
+          );
+          cb(error);
+          return;
+        }
+        if (this._payloadLength === 126) this._state = GET_PAYLOAD_LENGTH_16;
+        else if (this._payloadLength === 127) this._state = GET_PAYLOAD_LENGTH_64;
+        else this.haveLength(cb);
+      }
+      /**
+       * Gets extended payload length (7+16).
+       *
+       * @param {Function} cb Callback
+       * @private
+       */
+      getPayloadLength16(cb) {
+        if (this._bufferedBytes < 2) {
+          this._loop = false;
+          return;
+        }
+        this._payloadLength = this.consume(2).readUInt16BE(0);
+        this.haveLength(cb);
+      }
+      /**
+       * Gets extended payload length (7+64).
+       *
+       * @param {Function} cb Callback
+       * @private
+       */
+      getPayloadLength64(cb) {
+        if (this._bufferedBytes < 8) {
+          this._loop = false;
+          return;
+        }
+        const buf = this.consume(8);
+        const num = buf.readUInt32BE(0);
+        if (num > Math.pow(2, 53 - 32) - 1) {
+          const error = this.createError(
+            RangeError,
+            "Unsupported WebSocket frame: payload length > 2^53 - 1",
+            false,
+            1009,
+            "WS_ERR_UNSUPPORTED_DATA_PAYLOAD_LENGTH"
+          );
+          cb(error);
+          return;
+        }
+        this._payloadLength = num * Math.pow(2, 32) + buf.readUInt32BE(4);
+        this.haveLength(cb);
+      }
+      /**
+       * Payload length has been read.
+       *
+       * @param {Function} cb Callback
+       * @private
+       */
+      haveLength(cb) {
+        if (this._payloadLength && this._opcode < 8) {
+          this._totalPayloadLength += this._payloadLength;
+          if (this._totalPayloadLength > this._maxPayload && this._maxPayload > 0) {
+            const error = this.createError(
+              RangeError,
+              "Max payload size exceeded",
+              false,
+              1009,
+              "WS_ERR_UNSUPPORTED_MESSAGE_LENGTH"
+            );
+            cb(error);
+            return;
+          }
+        }
+        if (this._masked) this._state = GET_MASK;
+        else this._state = GET_DATA;
+      }
+      /**
+       * Reads mask bytes.
+       *
+       * @private
+       */
+      getMask() {
+        if (this._bufferedBytes < 4) {
+          this._loop = false;
+          return;
+        }
+        this._mask = this.consume(4);
+        this._state = GET_DATA;
+      }
+      /**
+       * Reads data bytes.
+       *
+       * @param {Function} cb Callback
+       * @private
+       */
+      getData(cb) {
+        let data = EMPTY_BUFFER;
+        if (this._payloadLength) {
+          if (this._bufferedBytes < this._payloadLength) {
+            this._loop = false;
+            return;
+          }
+          data = this.consume(this._payloadLength);
+          if (this._masked && (this._mask[0] | this._mask[1] | this._mask[2] | this._mask[3]) !== 0) {
+            unmask(data, this._mask);
+          }
+        }
+        if (this._opcode > 7) {
+          this.controlMessage(data, cb);
+          return;
+        }
+        if (this._compressed) {
+          this._state = INFLATING;
+          this.decompress(data, cb);
+          return;
+        }
+        if (data.length) {
+          this._messageLength = this._totalPayloadLength;
+          this._fragments.push(data);
+        }
+        this.dataMessage(cb);
+      }
+      /**
+       * Decompresses data.
+       *
+       * @param {Buffer} data Compressed data
+       * @param {Function} cb Callback
+       * @private
+       */
+      decompress(data, cb) {
+        const perMessageDeflate = this._extensions[PerMessageDeflate.extensionName];
+        perMessageDeflate.decompress(data, this._fin, (err, buf) => {
+          if (err) return cb(err);
+          if (buf.length) {
+            this._messageLength += buf.length;
+            if (this._messageLength > this._maxPayload && this._maxPayload > 0) {
+              const error = this.createError(
+                RangeError,
+                "Max payload size exceeded",
+                false,
+                1009,
+                "WS_ERR_UNSUPPORTED_MESSAGE_LENGTH"
+              );
+              cb(error);
+              return;
+            }
+            this._fragments.push(buf);
+          }
+          this.dataMessage(cb);
+          if (this._state === GET_INFO) this.startLoop(cb);
+        });
+      }
+      /**
+       * Handles a data message.
+       *
+       * @param {Function} cb Callback
+       * @private
+       */
+      dataMessage(cb) {
+        if (!this._fin) {
+          this._state = GET_INFO;
+          return;
+        }
+        const messageLength = this._messageLength;
+        const fragments = this._fragments;
+        this._totalPayloadLength = 0;
+        this._messageLength = 0;
+        this._fragmented = 0;
+        this._fragments = [];
+        if (this._opcode === 2) {
+          let data;
+          if (this._binaryType === "nodebuffer") {
+            data = concat(fragments, messageLength);
+          } else if (this._binaryType === "arraybuffer") {
+            data = toArrayBuffer(concat(fragments, messageLength));
+          } else {
+            data = fragments;
+          }
+          if (this._allowSynchronousEvents) {
+            this.emit("message", data, true);
+            this._state = GET_INFO;
+          } else {
+            this._state = DEFER_EVENT;
+            setImmediate(() => {
+              this.emit("message", data, true);
+              this._state = GET_INFO;
+              this.startLoop(cb);
+            });
+          }
+        } else {
+          const buf = concat(fragments, messageLength);
+          if (!this._skipUTF8Validation && !isValidUTF8(buf)) {
+            const error = this.createError(
+              Error,
+              "invalid UTF-8 sequence",
+              true,
+              1007,
+              "WS_ERR_INVALID_UTF8"
+            );
+            cb(error);
+            return;
+          }
+          if (this._state === INFLATING || this._allowSynchronousEvents) {
+            this.emit("message", buf, false);
+            this._state = GET_INFO;
+          } else {
+            this._state = DEFER_EVENT;
+            setImmediate(() => {
+              this.emit("message", buf, false);
+              this._state = GET_INFO;
+              this.startLoop(cb);
+            });
+          }
+        }
+      }
+      /**
+       * Handles a control message.
+       *
+       * @param {Buffer} data Data to handle
+       * @return {(Error|RangeError|undefined)} A possible error
+       * @private
+       */
+      controlMessage(data, cb) {
+        if (this._opcode === 8) {
+          if (data.length === 0) {
+            this._loop = false;
+            this.emit("conclude", 1005, EMPTY_BUFFER);
+            this.end();
+          } else {
+            const code = data.readUInt16BE(0);
+            if (!isValidStatusCode(code)) {
+              const error = this.createError(
+                RangeError,
+                `invalid status code ${code}`,
+                true,
+                1002,
+                "WS_ERR_INVALID_CLOSE_CODE"
+              );
+              cb(error);
+              return;
+            }
+            const buf = new FastBuffer(
+              data.buffer,
+              data.byteOffset + 2,
+              data.length - 2
+            );
+            if (!this._skipUTF8Validation && !isValidUTF8(buf)) {
+              const error = this.createError(
+                Error,
+                "invalid UTF-8 sequence",
+                true,
+                1007,
+                "WS_ERR_INVALID_UTF8"
+              );
+              cb(error);
+              return;
+            }
+            this._loop = false;
+            this.emit("conclude", code, buf);
+            this.end();
+          }
+          this._state = GET_INFO;
+          return;
+        }
+        if (this._allowSynchronousEvents) {
+          this.emit(this._opcode === 9 ? "ping" : "pong", data);
+          this._state = GET_INFO;
+        } else {
+          this._state = DEFER_EVENT;
+          setImmediate(() => {
+            this.emit(this._opcode === 9 ? "ping" : "pong", data);
+            this._state = GET_INFO;
+            this.startLoop(cb);
+          });
+        }
+      }
+      /**
+       * Builds an error object.
+       *
+       * @param {function(new:Error|RangeError)} ErrorCtor The error constructor
+       * @param {String} message The error message
+       * @param {Boolean} prefix Specifies whether or not to add a default prefix to
+       *     `message`
+       * @param {Number} statusCode The status code
+       * @param {String} errorCode The exposed error code
+       * @return {(Error|RangeError)} The error
+       * @private
+       */
+      createError(ErrorCtor, message, prefix, statusCode, errorCode) {
+        this._loop = false;
+        this._errored = true;
+        const err = new ErrorCtor(
+          prefix ? `Invalid WebSocket frame: ${message}` : message
+        );
+        Error.captureStackTrace(err, this.createError);
+        err.code = errorCode;
+        err[kStatusCode] = statusCode;
+        return err;
+      }
+    };
+    module.exports = Receiver2;
+  }
+});
+
+// plugin-bitcoin-ltl/node_modules/ws/lib/sender.js
+var require_sender = __commonJS({
+  "plugin-bitcoin-ltl/node_modules/ws/lib/sender.js"(exports, module) {
+    "use strict";
+    var { Duplex } = __require("stream");
+    var { randomFillSync: randomFillSync2 } = __require("crypto");
+    var PerMessageDeflate = require_permessage_deflate();
+    var { EMPTY_BUFFER } = require_constants();
+    var { isValidStatusCode } = require_validation();
+    var { mask: applyMask, toBuffer } = require_buffer_util();
+    var kByteLength = Symbol("kByteLength");
+    var maskBuffer = Buffer.alloc(4);
+    var RANDOM_POOL_SIZE = 8 * 1024;
+    var randomPool;
+    var randomPoolPointer = RANDOM_POOL_SIZE;
+    var Sender2 = class _Sender {
+      /**
+       * Creates a Sender instance.
+       *
+       * @param {Duplex} socket The connection socket
+       * @param {Object} [extensions] An object containing the negotiated extensions
+       * @param {Function} [generateMask] The function used to generate the masking
+       *     key
+       */
+      constructor(socket, extensions, generateMask) {
+        this._extensions = extensions || {};
+        if (generateMask) {
+          this._generateMask = generateMask;
+          this._maskBuffer = Buffer.alloc(4);
+        }
+        this._socket = socket;
+        this._firstFragment = true;
+        this._compress = false;
+        this._bufferedBytes = 0;
+        this._deflating = false;
+        this._queue = [];
+      }
+      /**
+       * Frames a piece of data according to the HyBi WebSocket protocol.
+       *
+       * @param {(Buffer|String)} data The data to frame
+       * @param {Object} options Options object
+       * @param {Boolean} [options.fin=false] Specifies whether or not to set the
+       *     FIN bit
+       * @param {Function} [options.generateMask] The function used to generate the
+       *     masking key
+       * @param {Boolean} [options.mask=false] Specifies whether or not to mask
+       *     `data`
+       * @param {Buffer} [options.maskBuffer] The buffer used to store the masking
+       *     key
+       * @param {Number} options.opcode The opcode
+       * @param {Boolean} [options.readOnly=false] Specifies whether `data` can be
+       *     modified
+       * @param {Boolean} [options.rsv1=false] Specifies whether or not to set the
+       *     RSV1 bit
+       * @return {(Buffer|String)[]} The framed data
+       * @public
+       */
+      static frame(data, options) {
+        let mask;
+        let merge = false;
+        let offset = 2;
+        let skipMasking = false;
+        if (options.mask) {
+          mask = options.maskBuffer || maskBuffer;
+          if (options.generateMask) {
+            options.generateMask(mask);
+          } else {
+            if (randomPoolPointer === RANDOM_POOL_SIZE) {
+              if (randomPool === void 0) {
+                randomPool = Buffer.alloc(RANDOM_POOL_SIZE);
+              }
+              randomFillSync2(randomPool, 0, RANDOM_POOL_SIZE);
+              randomPoolPointer = 0;
+            }
+            mask[0] = randomPool[randomPoolPointer++];
+            mask[1] = randomPool[randomPoolPointer++];
+            mask[2] = randomPool[randomPoolPointer++];
+            mask[3] = randomPool[randomPoolPointer++];
+          }
+          skipMasking = (mask[0] | mask[1] | mask[2] | mask[3]) === 0;
+          offset = 6;
+        }
+        let dataLength;
+        if (typeof data === "string") {
+          if ((!options.mask || skipMasking) && options[kByteLength] !== void 0) {
+            dataLength = options[kByteLength];
+          } else {
+            data = Buffer.from(data);
+            dataLength = data.length;
+          }
+        } else {
+          dataLength = data.length;
+          merge = options.mask && options.readOnly && !skipMasking;
+        }
+        let payloadLength = dataLength;
+        if (dataLength >= 65536) {
+          offset += 8;
+          payloadLength = 127;
+        } else if (dataLength > 125) {
+          offset += 2;
+          payloadLength = 126;
+        }
+        const target = Buffer.allocUnsafe(merge ? dataLength + offset : offset);
+        target[0] = options.fin ? options.opcode | 128 : options.opcode;
+        if (options.rsv1) target[0] |= 64;
+        target[1] = payloadLength;
+        if (payloadLength === 126) {
+          target.writeUInt16BE(dataLength, 2);
+        } else if (payloadLength === 127) {
+          target[2] = target[3] = 0;
+          target.writeUIntBE(dataLength, 4, 6);
+        }
+        if (!options.mask) return [target, data];
+        target[1] |= 128;
+        target[offset - 4] = mask[0];
+        target[offset - 3] = mask[1];
+        target[offset - 2] = mask[2];
+        target[offset - 1] = mask[3];
+        if (skipMasking) return [target, data];
+        if (merge) {
+          applyMask(data, mask, target, offset, dataLength);
+          return [target];
+        }
+        applyMask(data, mask, data, 0, dataLength);
+        return [target, data];
+      }
+      /**
+       * Sends a close message to the other peer.
+       *
+       * @param {Number} [code] The status code component of the body
+       * @param {(String|Buffer)} [data] The message component of the body
+       * @param {Boolean} [mask=false] Specifies whether or not to mask the message
+       * @param {Function} [cb] Callback
+       * @public
+       */
+      close(code, data, mask, cb) {
+        let buf;
+        if (code === void 0) {
+          buf = EMPTY_BUFFER;
+        } else if (typeof code !== "number" || !isValidStatusCode(code)) {
+          throw new TypeError("First argument must be a valid error code number");
+        } else if (data === void 0 || !data.length) {
+          buf = Buffer.allocUnsafe(2);
+          buf.writeUInt16BE(code, 0);
+        } else {
+          const length = Buffer.byteLength(data);
+          if (length > 123) {
+            throw new RangeError("The message must not be greater than 123 bytes");
+          }
+          buf = Buffer.allocUnsafe(2 + length);
+          buf.writeUInt16BE(code, 0);
+          if (typeof data === "string") {
+            buf.write(data, 2);
+          } else {
+            buf.set(data, 2);
+          }
+        }
+        const options = {
+          [kByteLength]: buf.length,
+          fin: true,
+          generateMask: this._generateMask,
+          mask,
+          maskBuffer: this._maskBuffer,
+          opcode: 8,
+          readOnly: false,
+          rsv1: false
+        };
+        if (this._deflating) {
+          this.enqueue([this.dispatch, buf, false, options, cb]);
+        } else {
+          this.sendFrame(_Sender.frame(buf, options), cb);
+        }
+      }
+      /**
+       * Sends a ping message to the other peer.
+       *
+       * @param {*} data The message to send
+       * @param {Boolean} [mask=false] Specifies whether or not to mask `data`
+       * @param {Function} [cb] Callback
+       * @public
+       */
+      ping(data, mask, cb) {
+        let byteLength;
+        let readOnly;
+        if (typeof data === "string") {
+          byteLength = Buffer.byteLength(data);
+          readOnly = false;
+        } else {
+          data = toBuffer(data);
+          byteLength = data.length;
+          readOnly = toBuffer.readOnly;
+        }
+        if (byteLength > 125) {
+          throw new RangeError("The data size must not be greater than 125 bytes");
+        }
+        const options = {
+          [kByteLength]: byteLength,
+          fin: true,
+          generateMask: this._generateMask,
+          mask,
+          maskBuffer: this._maskBuffer,
+          opcode: 9,
+          readOnly,
+          rsv1: false
+        };
+        if (this._deflating) {
+          this.enqueue([this.dispatch, data, false, options, cb]);
+        } else {
+          this.sendFrame(_Sender.frame(data, options), cb);
+        }
+      }
+      /**
+       * Sends a pong message to the other peer.
+       *
+       * @param {*} data The message to send
+       * @param {Boolean} [mask=false] Specifies whether or not to mask `data`
+       * @param {Function} [cb] Callback
+       * @public
+       */
+      pong(data, mask, cb) {
+        let byteLength;
+        let readOnly;
+        if (typeof data === "string") {
+          byteLength = Buffer.byteLength(data);
+          readOnly = false;
+        } else {
+          data = toBuffer(data);
+          byteLength = data.length;
+          readOnly = toBuffer.readOnly;
+        }
+        if (byteLength > 125) {
+          throw new RangeError("The data size must not be greater than 125 bytes");
+        }
+        const options = {
+          [kByteLength]: byteLength,
+          fin: true,
+          generateMask: this._generateMask,
+          mask,
+          maskBuffer: this._maskBuffer,
+          opcode: 10,
+          readOnly,
+          rsv1: false
+        };
+        if (this._deflating) {
+          this.enqueue([this.dispatch, data, false, options, cb]);
+        } else {
+          this.sendFrame(_Sender.frame(data, options), cb);
+        }
+      }
+      /**
+       * Sends a data message to the other peer.
+       *
+       * @param {*} data The message to send
+       * @param {Object} options Options object
+       * @param {Boolean} [options.binary=false] Specifies whether `data` is binary
+       *     or text
+       * @param {Boolean} [options.compress=false] Specifies whether or not to
+       *     compress `data`
+       * @param {Boolean} [options.fin=false] Specifies whether the fragment is the
+       *     last one
+       * @param {Boolean} [options.mask=false] Specifies whether or not to mask
+       *     `data`
+       * @param {Function} [cb] Callback
+       * @public
+       */
+      send(data, options, cb) {
+        const perMessageDeflate = this._extensions[PerMessageDeflate.extensionName];
+        let opcode = options.binary ? 2 : 1;
+        let rsv1 = options.compress;
+        let byteLength;
+        let readOnly;
+        if (typeof data === "string") {
+          byteLength = Buffer.byteLength(data);
+          readOnly = false;
+        } else {
+          data = toBuffer(data);
+          byteLength = data.length;
+          readOnly = toBuffer.readOnly;
+        }
+        if (this._firstFragment) {
+          this._firstFragment = false;
+          if (rsv1 && perMessageDeflate && perMessageDeflate.params[perMessageDeflate._isServer ? "server_no_context_takeover" : "client_no_context_takeover"]) {
+            rsv1 = byteLength >= perMessageDeflate._threshold;
+          }
+          this._compress = rsv1;
+        } else {
+          rsv1 = false;
+          opcode = 0;
+        }
+        if (options.fin) this._firstFragment = true;
+        if (perMessageDeflate) {
+          const opts = {
+            [kByteLength]: byteLength,
+            fin: options.fin,
+            generateMask: this._generateMask,
+            mask: options.mask,
+            maskBuffer: this._maskBuffer,
+            opcode,
+            readOnly,
+            rsv1
+          };
+          if (this._deflating) {
+            this.enqueue([this.dispatch, data, this._compress, opts, cb]);
+          } else {
+            this.dispatch(data, this._compress, opts, cb);
+          }
+        } else {
+          this.sendFrame(
+            _Sender.frame(data, {
+              [kByteLength]: byteLength,
+              fin: options.fin,
+              generateMask: this._generateMask,
+              mask: options.mask,
+              maskBuffer: this._maskBuffer,
+              opcode,
+              readOnly,
+              rsv1: false
+            }),
+            cb
+          );
+        }
+      }
+      /**
+       * Dispatches a message.
+       *
+       * @param {(Buffer|String)} data The message to send
+       * @param {Boolean} [compress=false] Specifies whether or not to compress
+       *     `data`
+       * @param {Object} options Options object
+       * @param {Boolean} [options.fin=false] Specifies whether or not to set the
+       *     FIN bit
+       * @param {Function} [options.generateMask] The function used to generate the
+       *     masking key
+       * @param {Boolean} [options.mask=false] Specifies whether or not to mask
+       *     `data`
+       * @param {Buffer} [options.maskBuffer] The buffer used to store the masking
+       *     key
+       * @param {Number} options.opcode The opcode
+       * @param {Boolean} [options.readOnly=false] Specifies whether `data` can be
+       *     modified
+       * @param {Boolean} [options.rsv1=false] Specifies whether or not to set the
+       *     RSV1 bit
+       * @param {Function} [cb] Callback
+       * @private
+       */
+      dispatch(data, compress, options, cb) {
+        if (!compress) {
+          this.sendFrame(_Sender.frame(data, options), cb);
+          return;
+        }
+        const perMessageDeflate = this._extensions[PerMessageDeflate.extensionName];
+        this._bufferedBytes += options[kByteLength];
+        this._deflating = true;
+        perMessageDeflate.compress(data, options.fin, (_, buf) => {
+          if (this._socket.destroyed) {
+            const err = new Error(
+              "The socket was closed while data was being compressed"
+            );
+            if (typeof cb === "function") cb(err);
+            for (let i = 0; i < this._queue.length; i++) {
+              const params = this._queue[i];
+              const callback = params[params.length - 1];
+              if (typeof callback === "function") callback(err);
+            }
+            return;
+          }
+          this._bufferedBytes -= options[kByteLength];
+          this._deflating = false;
+          options.readOnly = false;
+          this.sendFrame(_Sender.frame(buf, options), cb);
+          this.dequeue();
+        });
+      }
+      /**
+       * Executes queued send operations.
+       *
+       * @private
+       */
+      dequeue() {
+        while (!this._deflating && this._queue.length) {
+          const params = this._queue.shift();
+          this._bufferedBytes -= params[3][kByteLength];
+          Reflect.apply(params[0], this, params.slice(1));
+        }
+      }
+      /**
+       * Enqueues a send operation.
+       *
+       * @param {Array} params Send operation parameters.
+       * @private
+       */
+      enqueue(params) {
+        this._bufferedBytes += params[3][kByteLength];
+        this._queue.push(params);
+      }
+      /**
+       * Sends a frame.
+       *
+       * @param {Buffer[]} list The frame to send
+       * @param {Function} [cb] Callback
+       * @private
+       */
+      sendFrame(list, cb) {
+        if (list.length === 2) {
+          this._socket.cork();
+          this._socket.write(list[0]);
+          this._socket.write(list[1], cb);
+          this._socket.uncork();
+        } else {
+          this._socket.write(list[0], cb);
+        }
+      }
+    };
+    module.exports = Sender2;
+  }
+});
+
+// plugin-bitcoin-ltl/node_modules/ws/lib/event-target.js
+var require_event_target = __commonJS({
+  "plugin-bitcoin-ltl/node_modules/ws/lib/event-target.js"(exports, module) {
+    "use strict";
+    var { kForOnEventAttribute, kListener } = require_constants();
+    var kCode = Symbol("kCode");
+    var kData = Symbol("kData");
+    var kError = Symbol("kError");
+    var kMessage = Symbol("kMessage");
+    var kReason = Symbol("kReason");
+    var kTarget = Symbol("kTarget");
+    var kType = Symbol("kType");
+    var kWasClean = Symbol("kWasClean");
+    var Event = class {
+      /**
+       * Create a new `Event`.
+       *
+       * @param {String} type The name of the event
+       * @throws {TypeError} If the `type` argument is not specified
+       */
+      constructor(type) {
+        this[kTarget] = null;
+        this[kType] = type;
+      }
+      /**
+       * @type {*}
+       */
+      get target() {
+        return this[kTarget];
+      }
+      /**
+       * @type {String}
+       */
+      get type() {
+        return this[kType];
+      }
+    };
+    Object.defineProperty(Event.prototype, "target", { enumerable: true });
+    Object.defineProperty(Event.prototype, "type", { enumerable: true });
+    var CloseEvent = class extends Event {
+      /**
+       * Create a new `CloseEvent`.
+       *
+       * @param {String} type The name of the event
+       * @param {Object} [options] A dictionary object that allows for setting
+       *     attributes via object members of the same name
+       * @param {Number} [options.code=0] The status code explaining why the
+       *     connection was closed
+       * @param {String} [options.reason=''] A human-readable string explaining why
+       *     the connection was closed
+       * @param {Boolean} [options.wasClean=false] Indicates whether or not the
+       *     connection was cleanly closed
+       */
+      constructor(type, options = {}) {
+        super(type);
+        this[kCode] = options.code === void 0 ? 0 : options.code;
+        this[kReason] = options.reason === void 0 ? "" : options.reason;
+        this[kWasClean] = options.wasClean === void 0 ? false : options.wasClean;
+      }
+      /**
+       * @type {Number}
+       */
+      get code() {
+        return this[kCode];
+      }
+      /**
+       * @type {String}
+       */
+      get reason() {
+        return this[kReason];
+      }
+      /**
+       * @type {Boolean}
+       */
+      get wasClean() {
+        return this[kWasClean];
+      }
+    };
+    Object.defineProperty(CloseEvent.prototype, "code", { enumerable: true });
+    Object.defineProperty(CloseEvent.prototype, "reason", { enumerable: true });
+    Object.defineProperty(CloseEvent.prototype, "wasClean", { enumerable: true });
+    var ErrorEvent = class extends Event {
+      /**
+       * Create a new `ErrorEvent`.
+       *
+       * @param {String} type The name of the event
+       * @param {Object} [options] A dictionary object that allows for setting
+       *     attributes via object members of the same name
+       * @param {*} [options.error=null] The error that generated this event
+       * @param {String} [options.message=''] The error message
+       */
+      constructor(type, options = {}) {
+        super(type);
+        this[kError] = options.error === void 0 ? null : options.error;
+        this[kMessage] = options.message === void 0 ? "" : options.message;
+      }
+      /**
+       * @type {*}
+       */
+      get error() {
+        return this[kError];
+      }
+      /**
+       * @type {String}
+       */
+      get message() {
+        return this[kMessage];
+      }
+    };
+    Object.defineProperty(ErrorEvent.prototype, "error", { enumerable: true });
+    Object.defineProperty(ErrorEvent.prototype, "message", { enumerable: true });
+    var MessageEvent = class extends Event {
+      /**
+       * Create a new `MessageEvent`.
+       *
+       * @param {String} type The name of the event
+       * @param {Object} [options] A dictionary object that allows for setting
+       *     attributes via object members of the same name
+       * @param {*} [options.data=null] The message content
+       */
+      constructor(type, options = {}) {
+        super(type);
+        this[kData] = options.data === void 0 ? null : options.data;
+      }
+      /**
+       * @type {*}
+       */
+      get data() {
+        return this[kData];
+      }
+    };
+    Object.defineProperty(MessageEvent.prototype, "data", { enumerable: true });
+    var EventTarget = {
+      /**
+       * Register an event listener.
+       *
+       * @param {String} type A string representing the event type to listen for
+       * @param {(Function|Object)} handler The listener to add
+       * @param {Object} [options] An options object specifies characteristics about
+       *     the event listener
+       * @param {Boolean} [options.once=false] A `Boolean` indicating that the
+       *     listener should be invoked at most once after being added. If `true`,
+       *     the listener would be automatically removed when invoked.
+       * @public
+       */
+      addEventListener(type, handler, options = {}) {
+        for (const listener of this.listeners(type)) {
+          if (!options[kForOnEventAttribute] && listener[kListener] === handler && !listener[kForOnEventAttribute]) {
+            return;
+          }
+        }
+        let wrapper;
+        if (type === "message") {
+          wrapper = function onMessage(data, isBinary) {
+            const event = new MessageEvent("message", {
+              data: isBinary ? data : data.toString()
+            });
+            event[kTarget] = this;
+            callListener(handler, this, event);
+          };
+        } else if (type === "close") {
+          wrapper = function onClose(code, message) {
+            const event = new CloseEvent("close", {
+              code,
+              reason: message.toString(),
+              wasClean: this._closeFrameReceived && this._closeFrameSent
+            });
+            event[kTarget] = this;
+            callListener(handler, this, event);
+          };
+        } else if (type === "error") {
+          wrapper = function onError(error) {
+            const event = new ErrorEvent("error", {
+              error,
+              message: error.message
+            });
+            event[kTarget] = this;
+            callListener(handler, this, event);
+          };
+        } else if (type === "open") {
+          wrapper = function onOpen() {
+            const event = new Event("open");
+            event[kTarget] = this;
+            callListener(handler, this, event);
+          };
+        } else {
+          return;
+        }
+        wrapper[kForOnEventAttribute] = !!options[kForOnEventAttribute];
+        wrapper[kListener] = handler;
+        if (options.once) {
+          this.once(type, wrapper);
+        } else {
+          this.on(type, wrapper);
+        }
+      },
+      /**
+       * Remove an event listener.
+       *
+       * @param {String} type A string representing the event type to remove
+       * @param {(Function|Object)} handler The listener to remove
+       * @public
+       */
+      removeEventListener(type, handler) {
+        for (const listener of this.listeners(type)) {
+          if (listener[kListener] === handler && !listener[kForOnEventAttribute]) {
+            this.removeListener(type, listener);
+            break;
+          }
+        }
+      }
+    };
+    module.exports = {
+      CloseEvent,
+      ErrorEvent,
+      Event,
+      EventTarget,
+      MessageEvent
+    };
+    function callListener(listener, thisArg, event) {
+      if (typeof listener === "object" && listener.handleEvent) {
+        listener.handleEvent.call(listener, event);
+      } else {
+        listener.call(thisArg, event);
+      }
+    }
+  }
+});
+
+// plugin-bitcoin-ltl/node_modules/ws/lib/extension.js
+var require_extension = __commonJS({
+  "plugin-bitcoin-ltl/node_modules/ws/lib/extension.js"(exports, module) {
+    "use strict";
+    var { tokenChars } = require_validation();
+    function push(dest, name, elem) {
+      if (dest[name] === void 0) dest[name] = [elem];
+      else dest[name].push(elem);
+    }
+    function parse(header) {
+      const offers = /* @__PURE__ */ Object.create(null);
+      let params = /* @__PURE__ */ Object.create(null);
+      let mustUnescape = false;
+      let isEscaping = false;
+      let inQuotes = false;
+      let extensionName;
+      let paramName;
+      let start = -1;
+      let code = -1;
+      let end = -1;
+      let i = 0;
+      for (; i < header.length; i++) {
+        code = header.charCodeAt(i);
+        if (extensionName === void 0) {
+          if (end === -1 && tokenChars[code] === 1) {
+            if (start === -1) start = i;
+          } else if (i !== 0 && (code === 32 || code === 9)) {
+            if (end === -1 && start !== -1) end = i;
+          } else if (code === 59 || code === 44) {
+            if (start === -1) {
+              throw new SyntaxError(`Unexpected character at index ${i}`);
+            }
+            if (end === -1) end = i;
+            const name = header.slice(start, end);
+            if (code === 44) {
+              push(offers, name, params);
+              params = /* @__PURE__ */ Object.create(null);
+            } else {
+              extensionName = name;
+            }
+            start = end = -1;
+          } else {
+            throw new SyntaxError(`Unexpected character at index ${i}`);
+          }
+        } else if (paramName === void 0) {
+          if (end === -1 && tokenChars[code] === 1) {
+            if (start === -1) start = i;
+          } else if (code === 32 || code === 9) {
+            if (end === -1 && start !== -1) end = i;
+          } else if (code === 59 || code === 44) {
+            if (start === -1) {
+              throw new SyntaxError(`Unexpected character at index ${i}`);
+            }
+            if (end === -1) end = i;
+            push(params, header.slice(start, end), true);
+            if (code === 44) {
+              push(offers, extensionName, params);
+              params = /* @__PURE__ */ Object.create(null);
+              extensionName = void 0;
+            }
+            start = end = -1;
+          } else if (code === 61 && start !== -1 && end === -1) {
+            paramName = header.slice(start, i);
+            start = end = -1;
+          } else {
+            throw new SyntaxError(`Unexpected character at index ${i}`);
+          }
+        } else {
+          if (isEscaping) {
+            if (tokenChars[code] !== 1) {
+              throw new SyntaxError(`Unexpected character at index ${i}`);
+            }
+            if (start === -1) start = i;
+            else if (!mustUnescape) mustUnescape = true;
+            isEscaping = false;
+          } else if (inQuotes) {
+            if (tokenChars[code] === 1) {
+              if (start === -1) start = i;
+            } else if (code === 34 && start !== -1) {
+              inQuotes = false;
+              end = i;
+            } else if (code === 92) {
+              isEscaping = true;
+            } else {
+              throw new SyntaxError(`Unexpected character at index ${i}`);
+            }
+          } else if (code === 34 && header.charCodeAt(i - 1) === 61) {
+            inQuotes = true;
+          } else if (end === -1 && tokenChars[code] === 1) {
+            if (start === -1) start = i;
+          } else if (start !== -1 && (code === 32 || code === 9)) {
+            if (end === -1) end = i;
+          } else if (code === 59 || code === 44) {
+            if (start === -1) {
+              throw new SyntaxError(`Unexpected character at index ${i}`);
+            }
+            if (end === -1) end = i;
+            let value = header.slice(start, end);
+            if (mustUnescape) {
+              value = value.replace(/\\/g, "");
+              mustUnescape = false;
+            }
+            push(params, paramName, value);
+            if (code === 44) {
+              push(offers, extensionName, params);
+              params = /* @__PURE__ */ Object.create(null);
+              extensionName = void 0;
+            }
+            paramName = void 0;
+            start = end = -1;
+          } else {
+            throw new SyntaxError(`Unexpected character at index ${i}`);
+          }
+        }
+      }
+      if (start === -1 || inQuotes || code === 32 || code === 9) {
+        throw new SyntaxError("Unexpected end of input");
+      }
+      if (end === -1) end = i;
+      const token = header.slice(start, end);
+      if (extensionName === void 0) {
+        push(offers, token, params);
+      } else {
+        if (paramName === void 0) {
+          push(params, token, true);
+        } else if (mustUnescape) {
+          push(params, paramName, token.replace(/\\/g, ""));
+        } else {
+          push(params, paramName, token);
+        }
+        push(offers, extensionName, params);
+      }
+      return offers;
+    }
+    function format(extensions) {
+      return Object.keys(extensions).map((extension) => {
+        let configurations = extensions[extension];
+        if (!Array.isArray(configurations)) configurations = [configurations];
+        return configurations.map((params) => {
+          return [extension].concat(
+            Object.keys(params).map((k) => {
+              let values = params[k];
+              if (!Array.isArray(values)) values = [values];
+              return values.map((v) => v === true ? k : `${k}=${v}`).join("; ");
+            })
+          ).join("; ");
+        }).join(", ");
+      }).join(", ");
+    }
+    module.exports = { format, parse };
+  }
+});
+
+// plugin-bitcoin-ltl/node_modules/ws/lib/websocket.js
+var require_websocket = __commonJS({
+  "plugin-bitcoin-ltl/node_modules/ws/lib/websocket.js"(exports, module) {
+    "use strict";
+    var EventEmitter = __require("events");
+    var https = __require("https");
+    var http = __require("http");
+    var net = __require("net");
+    var tls = __require("tls");
+    var { randomBytes, createHash } = __require("crypto");
+    var { Duplex, Readable } = __require("stream");
+    var { URL: URL2 } = __require("url");
+    var PerMessageDeflate = require_permessage_deflate();
+    var Receiver2 = require_receiver();
+    var Sender2 = require_sender();
+    var {
+      BINARY_TYPES,
+      EMPTY_BUFFER,
+      GUID,
+      kForOnEventAttribute,
+      kListener,
+      kStatusCode,
+      kWebSocket,
+      NOOP
+    } = require_constants();
+    var {
+      EventTarget: { addEventListener, removeEventListener }
+    } = require_event_target();
+    var { format, parse } = require_extension();
+    var { toBuffer } = require_buffer_util();
+    var closeTimeout = 30 * 1e3;
+    var kAborted = Symbol("kAborted");
+    var protocolVersions = [8, 13];
+    var readyStates = ["CONNECTING", "OPEN", "CLOSING", "CLOSED"];
+    var subprotocolRegex = /^[!#$%&'*+\-.0-9A-Z^_`|a-z~]+$/;
+    var WebSocket3 = class _WebSocket extends EventEmitter {
+      /**
+       * Create a new `WebSocket`.
+       *
+       * @param {(String|URL)} address The URL to which to connect
+       * @param {(String|String[])} [protocols] The subprotocols
+       * @param {Object} [options] Connection options
+       */
+      constructor(address, protocols, options) {
+        super();
+        this._binaryType = BINARY_TYPES[0];
+        this._closeCode = 1006;
+        this._closeFrameReceived = false;
+        this._closeFrameSent = false;
+        this._closeMessage = EMPTY_BUFFER;
+        this._closeTimer = null;
+        this._extensions = {};
+        this._paused = false;
+        this._protocol = "";
+        this._readyState = _WebSocket.CONNECTING;
+        this._receiver = null;
+        this._sender = null;
+        this._socket = null;
+        if (address !== null) {
+          this._bufferedAmount = 0;
+          this._isServer = false;
+          this._redirects = 0;
+          if (protocols === void 0) {
+            protocols = [];
+          } else if (!Array.isArray(protocols)) {
+            if (typeof protocols === "object" && protocols !== null) {
+              options = protocols;
+              protocols = [];
+            } else {
+              protocols = [protocols];
+            }
+          }
+          initAsClient(this, address, protocols, options);
+        } else {
+          this._autoPong = options.autoPong;
+          this._isServer = true;
+        }
+      }
+      /**
+       * This deviates from the WHATWG interface since ws doesn't support the
+       * required default "blob" type (instead we define a custom "nodebuffer"
+       * type).
+       *
+       * @type {String}
+       */
+      get binaryType() {
+        return this._binaryType;
+      }
+      set binaryType(type) {
+        if (!BINARY_TYPES.includes(type)) return;
+        this._binaryType = type;
+        if (this._receiver) this._receiver._binaryType = type;
+      }
+      /**
+       * @type {Number}
+       */
+      get bufferedAmount() {
+        if (!this._socket) return this._bufferedAmount;
+        return this._socket._writableState.length + this._sender._bufferedBytes;
+      }
+      /**
+       * @type {String}
+       */
+      get extensions() {
+        return Object.keys(this._extensions).join();
+      }
+      /**
+       * @type {Boolean}
+       */
+      get isPaused() {
+        return this._paused;
+      }
+      /**
+       * @type {Function}
+       */
+      /* istanbul ignore next */
+      get onclose() {
+        return null;
+      }
+      /**
+       * @type {Function}
+       */
+      /* istanbul ignore next */
+      get onerror() {
+        return null;
+      }
+      /**
+       * @type {Function}
+       */
+      /* istanbul ignore next */
+      get onopen() {
+        return null;
+      }
+      /**
+       * @type {Function}
+       */
+      /* istanbul ignore next */
+      get onmessage() {
+        return null;
+      }
+      /**
+       * @type {String}
+       */
+      get protocol() {
+        return this._protocol;
+      }
+      /**
+       * @type {Number}
+       */
+      get readyState() {
+        return this._readyState;
+      }
+      /**
+       * @type {String}
+       */
+      get url() {
+        return this._url;
+      }
+      /**
+       * Set up the socket and the internal resources.
+       *
+       * @param {Duplex} socket The network socket between the server and client
+       * @param {Buffer} head The first packet of the upgraded stream
+       * @param {Object} options Options object
+       * @param {Boolean} [options.allowSynchronousEvents=false] Specifies whether
+       *     any of the `'message'`, `'ping'`, and `'pong'` events can be emitted
+       *     multiple times in the same tick
+       * @param {Function} [options.generateMask] The function used to generate the
+       *     masking key
+       * @param {Number} [options.maxPayload=0] The maximum allowed message size
+       * @param {Boolean} [options.skipUTF8Validation=false] Specifies whether or
+       *     not to skip UTF-8 validation for text and close messages
+       * @private
+       */
+      setSocket(socket, head, options) {
+        const receiver = new Receiver2({
+          allowSynchronousEvents: options.allowSynchronousEvents,
+          binaryType: this.binaryType,
+          extensions: this._extensions,
+          isServer: this._isServer,
+          maxPayload: options.maxPayload,
+          skipUTF8Validation: options.skipUTF8Validation
+        });
+        this._sender = new Sender2(socket, this._extensions, options.generateMask);
+        this._receiver = receiver;
+        this._socket = socket;
+        receiver[kWebSocket] = this;
+        socket[kWebSocket] = this;
+        receiver.on("conclude", receiverOnConclude);
+        receiver.on("drain", receiverOnDrain);
+        receiver.on("error", receiverOnError);
+        receiver.on("message", receiverOnMessage);
+        receiver.on("ping", receiverOnPing);
+        receiver.on("pong", receiverOnPong);
+        if (socket.setTimeout) socket.setTimeout(0);
+        if (socket.setNoDelay) socket.setNoDelay();
+        if (head.length > 0) socket.unshift(head);
+        socket.on("close", socketOnClose);
+        socket.on("data", socketOnData);
+        socket.on("end", socketOnEnd);
+        socket.on("error", socketOnError);
+        this._readyState = _WebSocket.OPEN;
+        this.emit("open");
+      }
+      /**
+       * Emit the `'close'` event.
+       *
+       * @private
+       */
+      emitClose() {
+        if (!this._socket) {
+          this._readyState = _WebSocket.CLOSED;
+          this.emit("close", this._closeCode, this._closeMessage);
+          return;
+        }
+        if (this._extensions[PerMessageDeflate.extensionName]) {
+          this._extensions[PerMessageDeflate.extensionName].cleanup();
+        }
+        this._receiver.removeAllListeners();
+        this._readyState = _WebSocket.CLOSED;
+        this.emit("close", this._closeCode, this._closeMessage);
+      }
+      /**
+       * Start a closing handshake.
+       *
+       *          +----------+   +-----------+   +----------+
+       *     - - -|ws.close()|-->|close frame|-->|ws.close()|- - -
+       *    |     +----------+   +-----------+   +----------+     |
+       *          +----------+   +-----------+         |
+       * CLOSING  |ws.close()|<--|close frame|<--+-----+       CLOSING
+       *          +----------+   +-----------+   |
+       *    |           |                        |   +---+        |
+       *                +------------------------+-->|fin| - - - -
+       *    |         +---+                      |   +---+
+       *     - - - - -|fin|<---------------------+
+       *              +---+
+       *
+       * @param {Number} [code] Status code explaining why the connection is closing
+       * @param {(String|Buffer)} [data] The reason why the connection is
+       *     closing
+       * @public
+       */
+      close(code, data) {
+        if (this.readyState === _WebSocket.CLOSED) return;
+        if (this.readyState === _WebSocket.CONNECTING) {
+          const msg = "WebSocket was closed before the connection was established";
+          abortHandshake(this, this._req, msg);
+          return;
+        }
+        if (this.readyState === _WebSocket.CLOSING) {
+          if (this._closeFrameSent && (this._closeFrameReceived || this._receiver._writableState.errorEmitted)) {
+            this._socket.end();
+          }
+          return;
+        }
+        this._readyState = _WebSocket.CLOSING;
+        this._sender.close(code, data, !this._isServer, (err) => {
+          if (err) return;
+          this._closeFrameSent = true;
+          if (this._closeFrameReceived || this._receiver._writableState.errorEmitted) {
+            this._socket.end();
+          }
+        });
+        this._closeTimer = setTimeout(
+          this._socket.destroy.bind(this._socket),
+          closeTimeout
+        );
+      }
+      /**
+       * Pause the socket.
+       *
+       * @public
+       */
+      pause() {
+        if (this.readyState === _WebSocket.CONNECTING || this.readyState === _WebSocket.CLOSED) {
+          return;
+        }
+        this._paused = true;
+        this._socket.pause();
+      }
+      /**
+       * Send a ping.
+       *
+       * @param {*} [data] The data to send
+       * @param {Boolean} [mask] Indicates whether or not to mask `data`
+       * @param {Function} [cb] Callback which is executed when the ping is sent
+       * @public
+       */
+      ping(data, mask, cb) {
+        if (this.readyState === _WebSocket.CONNECTING) {
+          throw new Error("WebSocket is not open: readyState 0 (CONNECTING)");
+        }
+        if (typeof data === "function") {
+          cb = data;
+          data = mask = void 0;
+        } else if (typeof mask === "function") {
+          cb = mask;
+          mask = void 0;
+        }
+        if (typeof data === "number") data = data.toString();
+        if (this.readyState !== _WebSocket.OPEN) {
+          sendAfterClose(this, data, cb);
+          return;
+        }
+        if (mask === void 0) mask = !this._isServer;
+        this._sender.ping(data || EMPTY_BUFFER, mask, cb);
+      }
+      /**
+       * Send a pong.
+       *
+       * @param {*} [data] The data to send
+       * @param {Boolean} [mask] Indicates whether or not to mask `data`
+       * @param {Function} [cb] Callback which is executed when the pong is sent
+       * @public
+       */
+      pong(data, mask, cb) {
+        if (this.readyState === _WebSocket.CONNECTING) {
+          throw new Error("WebSocket is not open: readyState 0 (CONNECTING)");
+        }
+        if (typeof data === "function") {
+          cb = data;
+          data = mask = void 0;
+        } else if (typeof mask === "function") {
+          cb = mask;
+          mask = void 0;
+        }
+        if (typeof data === "number") data = data.toString();
+        if (this.readyState !== _WebSocket.OPEN) {
+          sendAfterClose(this, data, cb);
+          return;
+        }
+        if (mask === void 0) mask = !this._isServer;
+        this._sender.pong(data || EMPTY_BUFFER, mask, cb);
+      }
+      /**
+       * Resume the socket.
+       *
+       * @public
+       */
+      resume() {
+        if (this.readyState === _WebSocket.CONNECTING || this.readyState === _WebSocket.CLOSED) {
+          return;
+        }
+        this._paused = false;
+        if (!this._receiver._writableState.needDrain) this._socket.resume();
+      }
+      /**
+       * Send a data message.
+       *
+       * @param {*} data The message to send
+       * @param {Object} [options] Options object
+       * @param {Boolean} [options.binary] Specifies whether `data` is binary or
+       *     text
+       * @param {Boolean} [options.compress] Specifies whether or not to compress
+       *     `data`
+       * @param {Boolean} [options.fin=true] Specifies whether the fragment is the
+       *     last one
+       * @param {Boolean} [options.mask] Specifies whether or not to mask `data`
+       * @param {Function} [cb] Callback which is executed when data is written out
+       * @public
+       */
+      send(data, options, cb) {
+        if (this.readyState === _WebSocket.CONNECTING) {
+          throw new Error("WebSocket is not open: readyState 0 (CONNECTING)");
+        }
+        if (typeof options === "function") {
+          cb = options;
+          options = {};
+        }
+        if (typeof data === "number") data = data.toString();
+        if (this.readyState !== _WebSocket.OPEN) {
+          sendAfterClose(this, data, cb);
+          return;
+        }
+        const opts = {
+          binary: typeof data !== "string",
+          mask: !this._isServer,
+          compress: true,
+          fin: true,
+          ...options
+        };
+        if (!this._extensions[PerMessageDeflate.extensionName]) {
+          opts.compress = false;
+        }
+        this._sender.send(data || EMPTY_BUFFER, opts, cb);
+      }
+      /**
+       * Forcibly close the connection.
+       *
+       * @public
+       */
+      terminate() {
+        if (this.readyState === _WebSocket.CLOSED) return;
+        if (this.readyState === _WebSocket.CONNECTING) {
+          const msg = "WebSocket was closed before the connection was established";
+          abortHandshake(this, this._req, msg);
+          return;
+        }
+        if (this._socket) {
+          this._readyState = _WebSocket.CLOSING;
+          this._socket.destroy();
+        }
+      }
+    };
+    Object.defineProperty(WebSocket3, "CONNECTING", {
+      enumerable: true,
+      value: readyStates.indexOf("CONNECTING")
+    });
+    Object.defineProperty(WebSocket3.prototype, "CONNECTING", {
+      enumerable: true,
+      value: readyStates.indexOf("CONNECTING")
+    });
+    Object.defineProperty(WebSocket3, "OPEN", {
+      enumerable: true,
+      value: readyStates.indexOf("OPEN")
+    });
+    Object.defineProperty(WebSocket3.prototype, "OPEN", {
+      enumerable: true,
+      value: readyStates.indexOf("OPEN")
+    });
+    Object.defineProperty(WebSocket3, "CLOSING", {
+      enumerable: true,
+      value: readyStates.indexOf("CLOSING")
+    });
+    Object.defineProperty(WebSocket3.prototype, "CLOSING", {
+      enumerable: true,
+      value: readyStates.indexOf("CLOSING")
+    });
+    Object.defineProperty(WebSocket3, "CLOSED", {
+      enumerable: true,
+      value: readyStates.indexOf("CLOSED")
+    });
+    Object.defineProperty(WebSocket3.prototype, "CLOSED", {
+      enumerable: true,
+      value: readyStates.indexOf("CLOSED")
+    });
+    [
+      "binaryType",
+      "bufferedAmount",
+      "extensions",
+      "isPaused",
+      "protocol",
+      "readyState",
+      "url"
+    ].forEach((property) => {
+      Object.defineProperty(WebSocket3.prototype, property, { enumerable: true });
+    });
+    ["open", "error", "close", "message"].forEach((method) => {
+      Object.defineProperty(WebSocket3.prototype, `on${method}`, {
+        enumerable: true,
+        get() {
+          for (const listener of this.listeners(method)) {
+            if (listener[kForOnEventAttribute]) return listener[kListener];
+          }
+          return null;
+        },
+        set(handler) {
+          for (const listener of this.listeners(method)) {
+            if (listener[kForOnEventAttribute]) {
+              this.removeListener(method, listener);
+              break;
+            }
+          }
+          if (typeof handler !== "function") return;
+          this.addEventListener(method, handler, {
+            [kForOnEventAttribute]: true
+          });
+        }
+      });
+    });
+    WebSocket3.prototype.addEventListener = addEventListener;
+    WebSocket3.prototype.removeEventListener = removeEventListener;
+    module.exports = WebSocket3;
+    function initAsClient(websocket, address, protocols, options) {
+      const opts = {
+        allowSynchronousEvents: true,
+        autoPong: true,
+        protocolVersion: protocolVersions[1],
+        maxPayload: 100 * 1024 * 1024,
+        skipUTF8Validation: false,
+        perMessageDeflate: true,
+        followRedirects: false,
+        maxRedirects: 10,
+        ...options,
+        socketPath: void 0,
+        hostname: void 0,
+        protocol: void 0,
+        timeout: void 0,
+        method: "GET",
+        host: void 0,
+        path: void 0,
+        port: void 0
+      };
+      websocket._autoPong = opts.autoPong;
+      if (!protocolVersions.includes(opts.protocolVersion)) {
+        throw new RangeError(
+          `Unsupported protocol version: ${opts.protocolVersion} (supported versions: ${protocolVersions.join(", ")})`
+        );
+      }
+      let parsedUrl;
+      if (address instanceof URL2) {
+        parsedUrl = address;
+      } else {
+        try {
+          parsedUrl = new URL2(address);
+        } catch (e) {
+          throw new SyntaxError(`Invalid URL: ${address}`);
+        }
+      }
+      if (parsedUrl.protocol === "http:") {
+        parsedUrl.protocol = "ws:";
+      } else if (parsedUrl.protocol === "https:") {
+        parsedUrl.protocol = "wss:";
+      }
+      websocket._url = parsedUrl.href;
+      const isSecure = parsedUrl.protocol === "wss:";
+      const isIpcUrl = parsedUrl.protocol === "ws+unix:";
+      let invalidUrlMessage;
+      if (parsedUrl.protocol !== "ws:" && !isSecure && !isIpcUrl) {
+        invalidUrlMessage = `The URL's protocol must be one of "ws:", "wss:", "http:", "https", or "ws+unix:"`;
+      } else if (isIpcUrl && !parsedUrl.pathname) {
+        invalidUrlMessage = "The URL's pathname is empty";
+      } else if (parsedUrl.hash) {
+        invalidUrlMessage = "The URL contains a fragment identifier";
+      }
+      if (invalidUrlMessage) {
+        const err = new SyntaxError(invalidUrlMessage);
+        if (websocket._redirects === 0) {
+          throw err;
+        } else {
+          emitErrorAndClose(websocket, err);
+          return;
+        }
+      }
+      const defaultPort = isSecure ? 443 : 80;
+      const key = randomBytes(16).toString("base64");
+      const request = isSecure ? https.request : http.request;
+      const protocolSet = /* @__PURE__ */ new Set();
+      let perMessageDeflate;
+      opts.createConnection = opts.createConnection || (isSecure ? tlsConnect : netConnect);
+      opts.defaultPort = opts.defaultPort || defaultPort;
+      opts.port = parsedUrl.port || defaultPort;
+      opts.host = parsedUrl.hostname.startsWith("[") ? parsedUrl.hostname.slice(1, -1) : parsedUrl.hostname;
+      opts.headers = {
+        ...opts.headers,
+        "Sec-WebSocket-Version": opts.protocolVersion,
+        "Sec-WebSocket-Key": key,
+        Connection: "Upgrade",
+        Upgrade: "websocket"
+      };
+      opts.path = parsedUrl.pathname + parsedUrl.search;
+      opts.timeout = opts.handshakeTimeout;
+      if (opts.perMessageDeflate) {
+        perMessageDeflate = new PerMessageDeflate(
+          opts.perMessageDeflate !== true ? opts.perMessageDeflate : {},
+          false,
+          opts.maxPayload
+        );
+        opts.headers["Sec-WebSocket-Extensions"] = format({
+          [PerMessageDeflate.extensionName]: perMessageDeflate.offer()
+        });
+      }
+      if (protocols.length) {
+        for (const protocol of protocols) {
+          if (typeof protocol !== "string" || !subprotocolRegex.test(protocol) || protocolSet.has(protocol)) {
+            throw new SyntaxError(
+              "An invalid or duplicated subprotocol was specified"
+            );
+          }
+          protocolSet.add(protocol);
+        }
+        opts.headers["Sec-WebSocket-Protocol"] = protocols.join(",");
+      }
+      if (opts.origin) {
+        if (opts.protocolVersion < 13) {
+          opts.headers["Sec-WebSocket-Origin"] = opts.origin;
+        } else {
+          opts.headers.Origin = opts.origin;
+        }
+      }
+      if (parsedUrl.username || parsedUrl.password) {
+        opts.auth = `${parsedUrl.username}:${parsedUrl.password}`;
+      }
+      if (isIpcUrl) {
+        const parts = opts.path.split(":");
+        opts.socketPath = parts[0];
+        opts.path = parts[1];
+      }
+      let req;
+      if (opts.followRedirects) {
+        if (websocket._redirects === 0) {
+          websocket._originalIpc = isIpcUrl;
+          websocket._originalSecure = isSecure;
+          websocket._originalHostOrSocketPath = isIpcUrl ? opts.socketPath : parsedUrl.host;
+          const headers = options && options.headers;
+          options = { ...options, headers: {} };
+          if (headers) {
+            for (const [key2, value] of Object.entries(headers)) {
+              options.headers[key2.toLowerCase()] = value;
+            }
+          }
+        } else if (websocket.listenerCount("redirect") === 0) {
+          const isSameHost = isIpcUrl ? websocket._originalIpc ? opts.socketPath === websocket._originalHostOrSocketPath : false : websocket._originalIpc ? false : parsedUrl.host === websocket._originalHostOrSocketPath;
+          if (!isSameHost || websocket._originalSecure && !isSecure) {
+            delete opts.headers.authorization;
+            delete opts.headers.cookie;
+            if (!isSameHost) delete opts.headers.host;
+            opts.auth = void 0;
+          }
+        }
+        if (opts.auth && !options.headers.authorization) {
+          options.headers.authorization = "Basic " + Buffer.from(opts.auth).toString("base64");
+        }
+        req = websocket._req = request(opts);
+        if (websocket._redirects) {
+          websocket.emit("redirect", websocket.url, req);
+        }
+      } else {
+        req = websocket._req = request(opts);
+      }
+      if (opts.timeout) {
+        req.on("timeout", () => {
+          abortHandshake(websocket, req, "Opening handshake has timed out");
+        });
+      }
+      req.on("error", (err) => {
+        if (req === null || req[kAborted]) return;
+        req = websocket._req = null;
+        emitErrorAndClose(websocket, err);
+      });
+      req.on("response", (res) => {
+        const location = res.headers.location;
+        const statusCode = res.statusCode;
+        if (location && opts.followRedirects && statusCode >= 300 && statusCode < 400) {
+          if (++websocket._redirects > opts.maxRedirects) {
+            abortHandshake(websocket, req, "Maximum redirects exceeded");
+            return;
+          }
+          req.abort();
+          let addr;
+          try {
+            addr = new URL2(location, address);
+          } catch (e) {
+            const err = new SyntaxError(`Invalid URL: ${location}`);
+            emitErrorAndClose(websocket, err);
+            return;
+          }
+          initAsClient(websocket, addr, protocols, options);
+        } else if (!websocket.emit("unexpected-response", req, res)) {
+          abortHandshake(
+            websocket,
+            req,
+            `Unexpected server response: ${res.statusCode}`
+          );
+        }
+      });
+      req.on("upgrade", (res, socket, head) => {
+        websocket.emit("upgrade", res);
+        if (websocket.readyState !== WebSocket3.CONNECTING) return;
+        req = websocket._req = null;
+        const upgrade = res.headers.upgrade;
+        if (upgrade === void 0 || upgrade.toLowerCase() !== "websocket") {
+          abortHandshake(websocket, socket, "Invalid Upgrade header");
+          return;
+        }
+        const digest = createHash("sha1").update(key + GUID).digest("base64");
+        if (res.headers["sec-websocket-accept"] !== digest) {
+          abortHandshake(websocket, socket, "Invalid Sec-WebSocket-Accept header");
+          return;
+        }
+        const serverProt = res.headers["sec-websocket-protocol"];
+        let protError;
+        if (serverProt !== void 0) {
+          if (!protocolSet.size) {
+            protError = "Server sent a subprotocol but none was requested";
+          } else if (!protocolSet.has(serverProt)) {
+            protError = "Server sent an invalid subprotocol";
+          }
+        } else if (protocolSet.size) {
+          protError = "Server sent no subprotocol";
+        }
+        if (protError) {
+          abortHandshake(websocket, socket, protError);
+          return;
+        }
+        if (serverProt) websocket._protocol = serverProt;
+        const secWebSocketExtensions = res.headers["sec-websocket-extensions"];
+        if (secWebSocketExtensions !== void 0) {
+          if (!perMessageDeflate) {
+            const message = "Server sent a Sec-WebSocket-Extensions header but no extension was requested";
+            abortHandshake(websocket, socket, message);
+            return;
+          }
+          let extensions;
+          try {
+            extensions = parse(secWebSocketExtensions);
+          } catch (err) {
+            const message = "Invalid Sec-WebSocket-Extensions header";
+            abortHandshake(websocket, socket, message);
+            return;
+          }
+          const extensionNames = Object.keys(extensions);
+          if (extensionNames.length !== 1 || extensionNames[0] !== PerMessageDeflate.extensionName) {
+            const message = "Server indicated an extension that was not requested";
+            abortHandshake(websocket, socket, message);
+            return;
+          }
+          try {
+            perMessageDeflate.accept(extensions[PerMessageDeflate.extensionName]);
+          } catch (err) {
+            const message = "Invalid Sec-WebSocket-Extensions header";
+            abortHandshake(websocket, socket, message);
+            return;
+          }
+          websocket._extensions[PerMessageDeflate.extensionName] = perMessageDeflate;
+        }
+        websocket.setSocket(socket, head, {
+          allowSynchronousEvents: opts.allowSynchronousEvents,
+          generateMask: opts.generateMask,
+          maxPayload: opts.maxPayload,
+          skipUTF8Validation: opts.skipUTF8Validation
+        });
+      });
+      if (opts.finishRequest) {
+        opts.finishRequest(req, websocket);
+      } else {
+        req.end();
+      }
+    }
+    function emitErrorAndClose(websocket, err) {
+      websocket._readyState = WebSocket3.CLOSING;
+      websocket.emit("error", err);
+      websocket.emitClose();
+    }
+    function netConnect(options) {
+      options.path = options.socketPath;
+      return net.connect(options);
+    }
+    function tlsConnect(options) {
+      options.path = void 0;
+      if (!options.servername && options.servername !== "") {
+        options.servername = net.isIP(options.host) ? "" : options.host;
+      }
+      return tls.connect(options);
+    }
+    function abortHandshake(websocket, stream, message) {
+      websocket._readyState = WebSocket3.CLOSING;
+      const err = new Error(message);
+      Error.captureStackTrace(err, abortHandshake);
+      if (stream.setHeader) {
+        stream[kAborted] = true;
+        stream.abort();
+        if (stream.socket && !stream.socket.destroyed) {
+          stream.socket.destroy();
+        }
+        process.nextTick(emitErrorAndClose, websocket, err);
+      } else {
+        stream.destroy(err);
+        stream.once("error", websocket.emit.bind(websocket, "error"));
+        stream.once("close", websocket.emitClose.bind(websocket));
+      }
+    }
+    function sendAfterClose(websocket, data, cb) {
+      if (data) {
+        const length = toBuffer(data).length;
+        if (websocket._socket) websocket._sender._bufferedBytes += length;
+        else websocket._bufferedAmount += length;
+      }
+      if (cb) {
+        const err = new Error(
+          `WebSocket is not open: readyState ${websocket.readyState} (${readyStates[websocket.readyState]})`
+        );
+        process.nextTick(cb, err);
+      }
+    }
+    function receiverOnConclude(code, reason) {
+      const websocket = this[kWebSocket];
+      websocket._closeFrameReceived = true;
+      websocket._closeMessage = reason;
+      websocket._closeCode = code;
+      if (websocket._socket[kWebSocket] === void 0) return;
+      websocket._socket.removeListener("data", socketOnData);
+      process.nextTick(resume, websocket._socket);
+      if (code === 1005) websocket.close();
+      else websocket.close(code, reason);
+    }
+    function receiverOnDrain() {
+      const websocket = this[kWebSocket];
+      if (!websocket.isPaused) websocket._socket.resume();
+    }
+    function receiverOnError(err) {
+      const websocket = this[kWebSocket];
+      if (websocket._socket[kWebSocket] !== void 0) {
+        websocket._socket.removeListener("data", socketOnData);
+        process.nextTick(resume, websocket._socket);
+        websocket.close(err[kStatusCode]);
+      }
+      websocket.emit("error", err);
+    }
+    function receiverOnFinish() {
+      this[kWebSocket].emitClose();
+    }
+    function receiverOnMessage(data, isBinary) {
+      this[kWebSocket].emit("message", data, isBinary);
+    }
+    function receiverOnPing(data) {
+      const websocket = this[kWebSocket];
+      if (websocket._autoPong) websocket.pong(data, !this._isServer, NOOP);
+      websocket.emit("ping", data);
+    }
+    function receiverOnPong(data) {
+      this[kWebSocket].emit("pong", data);
+    }
+    function resume(stream) {
+      stream.resume();
+    }
+    function socketOnClose() {
+      const websocket = this[kWebSocket];
+      this.removeListener("close", socketOnClose);
+      this.removeListener("data", socketOnData);
+      this.removeListener("end", socketOnEnd);
+      websocket._readyState = WebSocket3.CLOSING;
+      let chunk;
+      if (!this._readableState.endEmitted && !websocket._closeFrameReceived && !websocket._receiver._writableState.errorEmitted && (chunk = websocket._socket.read()) !== null) {
+        websocket._receiver.write(chunk);
+      }
+      websocket._receiver.end();
+      this[kWebSocket] = void 0;
+      clearTimeout(websocket._closeTimer);
+      if (websocket._receiver._writableState.finished || websocket._receiver._writableState.errorEmitted) {
+        websocket.emitClose();
+      } else {
+        websocket._receiver.on("error", receiverOnFinish);
+        websocket._receiver.on("finish", receiverOnFinish);
+      }
+    }
+    function socketOnData(chunk) {
+      if (!this[kWebSocket]._receiver.write(chunk)) {
+        this.pause();
+      }
+    }
+    function socketOnEnd() {
+      const websocket = this[kWebSocket];
+      websocket._readyState = WebSocket3.CLOSING;
+      websocket._receiver.end();
+      this.end();
+    }
+    function socketOnError() {
+      const websocket = this[kWebSocket];
+      this.removeListener("error", socketOnError);
+      this.on("error", NOOP);
+      if (websocket) {
+        websocket._readyState = WebSocket3.CLOSING;
+        this.destroy();
+      }
+    }
+  }
+});
+
+// plugin-bitcoin-ltl/node_modules/ws/lib/subprotocol.js
+var require_subprotocol = __commonJS({
+  "plugin-bitcoin-ltl/node_modules/ws/lib/subprotocol.js"(exports, module) {
+    "use strict";
+    var { tokenChars } = require_validation();
+    function parse(header) {
+      const protocols = /* @__PURE__ */ new Set();
+      let start = -1;
+      let end = -1;
+      let i = 0;
+      for (i; i < header.length; i++) {
+        const code = header.charCodeAt(i);
+        if (end === -1 && tokenChars[code] === 1) {
+          if (start === -1) start = i;
+        } else if (i !== 0 && (code === 32 || code === 9)) {
+          if (end === -1 && start !== -1) end = i;
+        } else if (code === 44) {
+          if (start === -1) {
+            throw new SyntaxError(`Unexpected character at index ${i}`);
+          }
+          if (end === -1) end = i;
+          const protocol2 = header.slice(start, end);
+          if (protocols.has(protocol2)) {
+            throw new SyntaxError(`The "${protocol2}" subprotocol is duplicated`);
+          }
+          protocols.add(protocol2);
+          start = end = -1;
+        } else {
+          throw new SyntaxError(`Unexpected character at index ${i}`);
+        }
+      }
+      if (start === -1 || end !== -1) {
+        throw new SyntaxError("Unexpected end of input");
+      }
+      const protocol = header.slice(start, i);
+      if (protocols.has(protocol)) {
+        throw new SyntaxError(`The "${protocol}" subprotocol is duplicated`);
+      }
+      protocols.add(protocol);
+      return protocols;
+    }
+    module.exports = { parse };
+  }
+});
+
+// plugin-bitcoin-ltl/node_modules/ws/lib/websocket-server.js
+var require_websocket_server = __commonJS({
+  "plugin-bitcoin-ltl/node_modules/ws/lib/websocket-server.js"(exports, module) {
+    "use strict";
+    var EventEmitter = __require("events");
+    var http = __require("http");
+    var { Duplex } = __require("stream");
+    var { createHash } = __require("crypto");
+    var extension = require_extension();
+    var PerMessageDeflate = require_permessage_deflate();
+    var subprotocol = require_subprotocol();
+    var WebSocket3 = require_websocket();
+    var { GUID, kWebSocket } = require_constants();
+    var keyRegex = /^[+/0-9A-Za-z]{22}==$/;
+    var RUNNING = 0;
+    var CLOSING = 1;
+    var CLOSED = 2;
+    var WebSocketServer2 = class extends EventEmitter {
+      /**
+       * Create a `WebSocketServer` instance.
+       *
+       * @param {Object} options Configuration options
+       * @param {Boolean} [options.allowSynchronousEvents=true] Specifies whether
+       *     any of the `'message'`, `'ping'`, and `'pong'` events can be emitted
+       *     multiple times in the same tick
+       * @param {Boolean} [options.autoPong=true] Specifies whether or not to
+       *     automatically send a pong in response to a ping
+       * @param {Number} [options.backlog=511] The maximum length of the queue of
+       *     pending connections
+       * @param {Boolean} [options.clientTracking=true] Specifies whether or not to
+       *     track clients
+       * @param {Function} [options.handleProtocols] A hook to handle protocols
+       * @param {String} [options.host] The hostname where to bind the server
+       * @param {Number} [options.maxPayload=104857600] The maximum allowed message
+       *     size
+       * @param {Boolean} [options.noServer=false] Enable no server mode
+       * @param {String} [options.path] Accept only connections matching this path
+       * @param {(Boolean|Object)} [options.perMessageDeflate=false] Enable/disable
+       *     permessage-deflate
+       * @param {Number} [options.port] The port where to bind the server
+       * @param {(http.Server|https.Server)} [options.server] A pre-created HTTP/S
+       *     server to use
+       * @param {Boolean} [options.skipUTF8Validation=false] Specifies whether or
+       *     not to skip UTF-8 validation for text and close messages
+       * @param {Function} [options.verifyClient] A hook to reject connections
+       * @param {Function} [options.WebSocket=WebSocket] Specifies the `WebSocket`
+       *     class to use. It must be the `WebSocket` class or class that extends it
+       * @param {Function} [callback] A listener for the `listening` event
+       */
+      constructor(options, callback) {
+        super();
+        options = {
+          allowSynchronousEvents: true,
+          autoPong: true,
+          maxPayload: 100 * 1024 * 1024,
+          skipUTF8Validation: false,
+          perMessageDeflate: false,
+          handleProtocols: null,
+          clientTracking: true,
+          verifyClient: null,
+          noServer: false,
+          backlog: null,
+          // use default (511 as implemented in net.js)
+          server: null,
+          host: null,
+          path: null,
+          port: null,
+          WebSocket: WebSocket3,
+          ...options
+        };
+        if (options.port == null && !options.server && !options.noServer || options.port != null && (options.server || options.noServer) || options.server && options.noServer) {
+          throw new TypeError(
+            'One and only one of the "port", "server", or "noServer" options must be specified'
+          );
+        }
+        if (options.port != null) {
+          this._server = http.createServer((req, res) => {
+            const body = http.STATUS_CODES[426];
+            res.writeHead(426, {
+              "Content-Length": body.length,
+              "Content-Type": "text/plain"
+            });
+            res.end(body);
+          });
+          this._server.listen(
+            options.port,
+            options.host,
+            options.backlog,
+            callback
+          );
+        } else if (options.server) {
+          this._server = options.server;
+        }
+        if (this._server) {
+          const emitConnection = this.emit.bind(this, "connection");
+          this._removeListeners = addListeners(this._server, {
+            listening: this.emit.bind(this, "listening"),
+            error: this.emit.bind(this, "error"),
+            upgrade: (req, socket, head) => {
+              this.handleUpgrade(req, socket, head, emitConnection);
+            }
+          });
+        }
+        if (options.perMessageDeflate === true) options.perMessageDeflate = {};
+        if (options.clientTracking) {
+          this.clients = /* @__PURE__ */ new Set();
+          this._shouldEmitClose = false;
+        }
+        this.options = options;
+        this._state = RUNNING;
+      }
+      /**
+       * Returns the bound address, the address family name, and port of the server
+       * as reported by the operating system if listening on an IP socket.
+       * If the server is listening on a pipe or UNIX domain socket, the name is
+       * returned as a string.
+       *
+       * @return {(Object|String|null)} The address of the server
+       * @public
+       */
+      address() {
+        if (this.options.noServer) {
+          throw new Error('The server is operating in "noServer" mode');
+        }
+        if (!this._server) return null;
+        return this._server.address();
+      }
+      /**
+       * Stop the server from accepting new connections and emit the `'close'` event
+       * when all existing connections are closed.
+       *
+       * @param {Function} [cb] A one-time listener for the `'close'` event
+       * @public
+       */
+      close(cb) {
+        if (this._state === CLOSED) {
+          if (cb) {
+            this.once("close", () => {
+              cb(new Error("The server is not running"));
+            });
+          }
+          process.nextTick(emitClose, this);
+          return;
+        }
+        if (cb) this.once("close", cb);
+        if (this._state === CLOSING) return;
+        this._state = CLOSING;
+        if (this.options.noServer || this.options.server) {
+          if (this._server) {
+            this._removeListeners();
+            this._removeListeners = this._server = null;
+          }
+          if (this.clients) {
+            if (!this.clients.size) {
+              process.nextTick(emitClose, this);
+            } else {
+              this._shouldEmitClose = true;
+            }
+          } else {
+            process.nextTick(emitClose, this);
+          }
+        } else {
+          const server = this._server;
+          this._removeListeners();
+          this._removeListeners = this._server = null;
+          server.close(() => {
+            emitClose(this);
+          });
+        }
+      }
+      /**
+       * See if a given request should be handled by this server instance.
+       *
+       * @param {http.IncomingMessage} req Request object to inspect
+       * @return {Boolean} `true` if the request is valid, else `false`
+       * @public
+       */
+      shouldHandle(req) {
+        if (this.options.path) {
+          const index = req.url.indexOf("?");
+          const pathname = index !== -1 ? req.url.slice(0, index) : req.url;
+          if (pathname !== this.options.path) return false;
+        }
+        return true;
+      }
+      /**
+       * Handle a HTTP Upgrade request.
+       *
+       * @param {http.IncomingMessage} req The request object
+       * @param {Duplex} socket The network socket between the server and client
+       * @param {Buffer} head The first packet of the upgraded stream
+       * @param {Function} cb Callback
+       * @public
+       */
+      handleUpgrade(req, socket, head, cb) {
+        socket.on("error", socketOnError);
+        const key = req.headers["sec-websocket-key"];
+        const upgrade = req.headers.upgrade;
+        const version = +req.headers["sec-websocket-version"];
+        if (req.method !== "GET") {
+          const message = "Invalid HTTP method";
+          abortHandshakeOrEmitwsClientError(this, req, socket, 405, message);
+          return;
+        }
+        if (upgrade === void 0 || upgrade.toLowerCase() !== "websocket") {
+          const message = "Invalid Upgrade header";
+          abortHandshakeOrEmitwsClientError(this, req, socket, 400, message);
+          return;
+        }
+        if (key === void 0 || !keyRegex.test(key)) {
+          const message = "Missing or invalid Sec-WebSocket-Key header";
+          abortHandshakeOrEmitwsClientError(this, req, socket, 400, message);
+          return;
+        }
+        if (version !== 8 && version !== 13) {
+          const message = "Missing or invalid Sec-WebSocket-Version header";
+          abortHandshakeOrEmitwsClientError(this, req, socket, 400, message);
+          return;
+        }
+        if (!this.shouldHandle(req)) {
+          abortHandshake(socket, 400);
+          return;
+        }
+        const secWebSocketProtocol = req.headers["sec-websocket-protocol"];
+        let protocols = /* @__PURE__ */ new Set();
+        if (secWebSocketProtocol !== void 0) {
+          try {
+            protocols = subprotocol.parse(secWebSocketProtocol);
+          } catch (err) {
+            const message = "Invalid Sec-WebSocket-Protocol header";
+            abortHandshakeOrEmitwsClientError(this, req, socket, 400, message);
+            return;
+          }
+        }
+        const secWebSocketExtensions = req.headers["sec-websocket-extensions"];
+        const extensions = {};
+        if (this.options.perMessageDeflate && secWebSocketExtensions !== void 0) {
+          const perMessageDeflate = new PerMessageDeflate(
+            this.options.perMessageDeflate,
+            true,
+            this.options.maxPayload
+          );
+          try {
+            const offers = extension.parse(secWebSocketExtensions);
+            if (offers[PerMessageDeflate.extensionName]) {
+              perMessageDeflate.accept(offers[PerMessageDeflate.extensionName]);
+              extensions[PerMessageDeflate.extensionName] = perMessageDeflate;
+            }
+          } catch (err) {
+            const message = "Invalid or unacceptable Sec-WebSocket-Extensions header";
+            abortHandshakeOrEmitwsClientError(this, req, socket, 400, message);
+            return;
+          }
+        }
+        if (this.options.verifyClient) {
+          const info = {
+            origin: req.headers[`${version === 8 ? "sec-websocket-origin" : "origin"}`],
+            secure: !!(req.socket.authorized || req.socket.encrypted),
+            req
+          };
+          if (this.options.verifyClient.length === 2) {
+            this.options.verifyClient(info, (verified, code, message, headers) => {
+              if (!verified) {
+                return abortHandshake(socket, code || 401, message, headers);
+              }
+              this.completeUpgrade(
+                extensions,
+                key,
+                protocols,
+                req,
+                socket,
+                head,
+                cb
+              );
+            });
+            return;
+          }
+          if (!this.options.verifyClient(info)) return abortHandshake(socket, 401);
+        }
+        this.completeUpgrade(extensions, key, protocols, req, socket, head, cb);
+      }
+      /**
+       * Upgrade the connection to WebSocket.
+       *
+       * @param {Object} extensions The accepted extensions
+       * @param {String} key The value of the `Sec-WebSocket-Key` header
+       * @param {Set} protocols The subprotocols
+       * @param {http.IncomingMessage} req The request object
+       * @param {Duplex} socket The network socket between the server and client
+       * @param {Buffer} head The first packet of the upgraded stream
+       * @param {Function} cb Callback
+       * @throws {Error} If called more than once with the same socket
+       * @private
+       */
+      completeUpgrade(extensions, key, protocols, req, socket, head, cb) {
+        if (!socket.readable || !socket.writable) return socket.destroy();
+        if (socket[kWebSocket]) {
+          throw new Error(
+            "server.handleUpgrade() was called more than once with the same socket, possibly due to a misconfiguration"
+          );
+        }
+        if (this._state > RUNNING) return abortHandshake(socket, 503);
+        const digest = createHash("sha1").update(key + GUID).digest("base64");
+        const headers = [
+          "HTTP/1.1 101 Switching Protocols",
+          "Upgrade: websocket",
+          "Connection: Upgrade",
+          `Sec-WebSocket-Accept: ${digest}`
+        ];
+        const ws = new this.options.WebSocket(null, void 0, this.options);
+        if (protocols.size) {
+          const protocol = this.options.handleProtocols ? this.options.handleProtocols(protocols, req) : protocols.values().next().value;
+          if (protocol) {
+            headers.push(`Sec-WebSocket-Protocol: ${protocol}`);
+            ws._protocol = protocol;
+          }
+        }
+        if (extensions[PerMessageDeflate.extensionName]) {
+          const params = extensions[PerMessageDeflate.extensionName].params;
+          const value = extension.format({
+            [PerMessageDeflate.extensionName]: [params]
+          });
+          headers.push(`Sec-WebSocket-Extensions: ${value}`);
+          ws._extensions = extensions;
+        }
+        this.emit("headers", headers, req);
+        socket.write(headers.concat("\r\n").join("\r\n"));
+        socket.removeListener("error", socketOnError);
+        ws.setSocket(socket, head, {
+          allowSynchronousEvents: this.options.allowSynchronousEvents,
+          maxPayload: this.options.maxPayload,
+          skipUTF8Validation: this.options.skipUTF8Validation
+        });
+        if (this.clients) {
+          this.clients.add(ws);
+          ws.on("close", () => {
+            this.clients.delete(ws);
+            if (this._shouldEmitClose && !this.clients.size) {
+              process.nextTick(emitClose, this);
+            }
+          });
+        }
+        cb(ws, req);
+      }
+    };
+    module.exports = WebSocketServer2;
+    function addListeners(server, map) {
+      for (const event of Object.keys(map)) server.on(event, map[event]);
+      return function removeListeners() {
+        for (const event of Object.keys(map)) {
+          server.removeListener(event, map[event]);
+        }
+      };
+    }
+    function emitClose(server) {
+      server._state = CLOSED;
+      server.emit("close");
+    }
+    function socketOnError() {
+      this.destroy();
+    }
+    function abortHandshake(socket, code, message, headers) {
+      message = message || http.STATUS_CODES[code];
+      headers = {
+        Connection: "close",
+        "Content-Type": "text/html",
+        "Content-Length": Buffer.byteLength(message),
+        ...headers
+      };
+      socket.once("finish", socket.destroy);
+      socket.end(
+        `HTTP/1.1 ${code} ${http.STATUS_CODES[code]}\r
+` + Object.keys(headers).map((h) => `${h}: ${headers[h]}`).join("\r\n") + "\r\n\r\n" + message
+      );
+    }
+    function abortHandshakeOrEmitwsClientError(server, req, socket, code, message) {
+      if (server.listenerCount("wsClientError")) {
+        const err = new Error(message);
+        Error.captureStackTrace(err, abortHandshakeOrEmitwsClientError);
+        server.emit("wsClientError", err, socket, req);
+      } else {
+        abortHandshake(socket, code, message);
+      }
+    }
+  }
+});
+
 // plugin-bitcoin-ltl/src/index.ts
 import {
-  logger as logger28
+  logger as logger27
 } from "@elizaos/core";
 
 // plugin-bitcoin-ltl/src/plugin.ts
 import {
   ModelType as ModelType3,
   Service as Service7,
-  logger as logger27
+  logger as logger26
 } from "@elizaos/core";
-import { z as z2 } from "zod";
+import { z as z3 } from "zod";
 
 // plugin-bitcoin-ltl/src/tests.ts
 var BitcoinTestSuite = class {
@@ -1046,55 +4571,14 @@ var BaseDataService = class extends Service {
    * Store data in ElizaOS memory system with enhanced error handling
    */
   async storeInMemory(data, type) {
-    try {
-      const memoryId = v4_default();
-      const roomId = v4_default();
-      await this.runtime.createMemory({
-        id: memoryId,
-        content: {
-          type,
-          data,
-          text: `${type} data updated`,
-          timestamp: Date.now(),
-          correlationId: this.correlationId
-        },
-        roomId,
-        agentId: this.runtime.agentId,
-        entityId: v4_default(),
-        embedding: []
-      }, "memories");
-      elizaLogger2.debug(`[${this.constructor.name}:${this.correlationId}] Stored ${type} data in memory`);
-    } catch (error) {
-      elizaLogger2.error(`[${this.constructor.name}:${this.correlationId}] Failed to store data in memory:`, error);
-      throw new DataServiceError(
-        `Failed to store ${type} data in memory: ${error.message}`,
-        "MEMORY_STORE_ERROR",
-        true,
-        this.constructor.name
-      );
-    }
+    elizaLogger2.debug(`[${this.constructor.name}:${this.correlationId}] Memory storage disabled for ${type}`);
   }
   /**
    * Retrieve recent data from ElizaOS memory system with enhanced error handling
    */
   async getFromMemory(type, count = 10) {
-    try {
-      const memories = await this.runtime.getMemories({
-        tableName: "memories",
-        count
-      });
-      const results = memories.filter((memory) => memory.content.type === type).map((memory) => memory.content.data).filter((data) => data !== void 0);
-      elizaLogger2.debug(`[${this.constructor.name}:${this.correlationId}] Retrieved ${results.length} ${type} records from memory`);
-      return results;
-    } catch (error) {
-      elizaLogger2.error(`[${this.constructor.name}:${this.correlationId}] Failed to retrieve data from memory:`, error);
-      throw new DataServiceError(
-        `Failed to retrieve ${type} data from memory: ${error.message}`,
-        "MEMORY_RETRIEVE_ERROR",
-        true,
-        this.constructor.name
-      );
-    }
+    elizaLogger2.debug(`[${this.constructor.name}:${this.correlationId}] Memory retrieval disabled for ${type}`);
+    return [];
   }
   /**
    * Queue a request to be processed with rate limiting and circuit breaker
@@ -1901,6 +5385,10 @@ var AltcoinDataService = class _AltcoinDataService extends BaseDataService {
           }
         );
         if (!response.ok) {
+          if (response.status === 401 || response.status === 429) {
+            logger2.warn(`[AltcoinDataService] CoinGecko API rate limited or unauthorized (${response.status}), using fallback data`);
+            return this.getFallbackCuratedAltcoinsData();
+          }
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         return await response.json();
@@ -1918,7 +5406,8 @@ var AltcoinDataService = class _AltcoinDataService extends BaseDataService {
       return result;
     } catch (error) {
       logger2.error("Error fetching curated altcoins data:", error);
-      return null;
+      logger2.info("[AltcoinDataService] Using fallback curated altcoins data");
+      return this.getFallbackCuratedAltcoinsData();
     }
   }
   async fetchTop100VsBtcData() {
@@ -2104,6 +5593,10 @@ var AltcoinDataService = class _AltcoinDataService extends BaseDataService {
         }
       );
       if (!response.ok) {
+        if (response.status === 401 || response.status === 429) {
+          logger2.warn(`[AltcoinDataService] CoinGecko API rate limited or unauthorized (${response.status}), using fallback data`);
+          return this.getFallbackTopMoversData();
+        }
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       const data = await response.json();
@@ -2133,7 +5626,8 @@ var AltcoinDataService = class _AltcoinDataService extends BaseDataService {
       return result;
     } catch (error) {
       logger2.error("Error in fetchTopMoversData:", error);
-      return null;
+      logger2.info("[AltcoinDataService] Using fallback top movers data");
+      return this.getFallbackTopMoversData();
     }
   }
   async fetchTrendingCoinsData() {
@@ -2144,6 +5638,10 @@ var AltcoinDataService = class _AltcoinDataService extends BaseDataService {
         signal: AbortSignal.timeout(15e3)
       });
       if (!response.ok) {
+        if (response.status === 401 || response.status === 429) {
+          logger2.warn(`[AltcoinDataService] CoinGecko API rate limited or unauthorized (${response.status}), using fallback data`);
+          return this.getFallbackTrendingCoinsData();
+        }
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       const data = await response.json();
@@ -2163,7 +5661,8 @@ var AltcoinDataService = class _AltcoinDataService extends BaseDataService {
       return result;
     } catch (error) {
       logger2.error("Error in fetchTrendingCoinsData:", error);
-      return null;
+      logger2.info("[AltcoinDataService] Using fallback trending coins data");
+      return this.getFallbackTrendingCoinsData();
     }
   }
   getSymbolFromId(id) {
@@ -2215,182 +5714,68 @@ var AltcoinDataService = class _AltcoinDataService extends BaseDataService {
       }
     ];
   }
-};
-
-// plugin-bitcoin-ltl/src/services/NFTDataService.ts
-import { logger as logger3 } from "@elizaos/core";
-var NFTDataService = class _NFTDataService extends BaseDataService {
-  static serviceType = "nft-data";
-  capabilityDescription = "Provides real-time NFT collection data and floor prices from OpenSea";
-  // Cache configuration
-  curatedNFTsCache = null;
-  CURATED_NFTS_CACHE_DURATION = 60 * 1e3;
-  // 1 minute (matches website caching)
-  // Curated NFT collections (focused on high-value generative art)
-  curatedNFTCollections = [
-    { slug: "qql", category: "generative-art" },
-    { slug: "meridian-by-matt-deslauriers", category: "generative-art" }
-  ];
-  constructor(runtime) {
-    super(runtime, "nftData");
-  }
-  static async start(runtime) {
-    logger3.info("NFTDataService starting...");
-    const service = new _NFTDataService(runtime);
-    await service.init();
-    return service;
-  }
-  static async stop(runtime) {
-    logger3.info("NFTDataService stopping...");
-    const service = runtime.getService("nft-data");
-    if (service && service.stop) {
-      await service.stop();
-    }
-  }
-  async start() {
-    logger3.info("NFTDataService starting...");
-    await this.updateData();
-    logger3.info("NFTDataService started successfully");
-  }
-  async init() {
-    logger3.info("NFTDataService initialized");
-    await this.updateCuratedNFTsData();
-  }
-  async stop() {
-    logger3.info("NFTDataService stopped");
-  }
-  // Public API methods
-  getCuratedNFTsData() {
-    if (!this.curatedNFTsCache || !this.isCuratedNFTsCacheValid()) {
-      return null;
-    }
-    return this.curatedNFTsCache.data;
-  }
-  async forceCuratedNFTsUpdate() {
-    return await this.fetchCuratedNFTsData();
-  }
-  async updateCuratedNFTsData() {
-    if (!this.isCuratedNFTsCacheValid()) {
-      const data = await this.fetchCuratedNFTsData();
-      if (data) {
-        this.curatedNFTsCache = {
-          data,
-          timestamp: Date.now()
-        };
-      }
-    }
-  }
-  // Cache management
-  isCuratedNFTsCacheValid() {
-    if (!this.curatedNFTsCache) return false;
-    return Date.now() - this.curatedNFTsCache.timestamp < this.CURATED_NFTS_CACHE_DURATION;
-  }
-  // Core NFT data fetching methods
-  async fetchCuratedNFTsData() {
-    try {
-      logger3.info("[NFTDataService] Fetching curated NFTs data...");
-      const openSeaApiKey = this.runtime.getSetting("OPENSEA_API_KEY");
-      if (!openSeaApiKey) {
-        logger3.warn("OPENSEA_API_KEY not configured, returning null");
-        return null;
-      }
-      const headers = {
-        "Accept": "application/json",
-        "X-API-KEY": openSeaApiKey,
-        "User-Agent": "LiveTheLifeTV/1.0"
+  getFallbackCuratedAltcoinsData() {
+    const fallbackData = {};
+    this.curatedCoinIds.forEach((id) => {
+      fallbackData[id] = {
+        price: Math.random() * 1e3 + 1,
+        // Random price between 1-1000
+        change24h: (Math.random() - 0.5) * 20,
+        // Random change between -10% and +10%
+        marketCap: Math.random() * 1e9 + 1e6,
+        // Random market cap
+        volume24h: Math.random() * 1e8 + 1e6
+        // Random volume
       };
-      const collections = [];
-      for (const collectionInfo of this.curatedNFTCollections.slice(0, 5)) {
-        try {
-          const collectionData = await this.fetchCollectionData(collectionInfo.slug, headers);
-          if (collectionData) {
-            collections.push({
-              slug: collectionInfo.slug,
-              collection: collectionData.collection,
-              stats: collectionData.stats,
-              lastUpdated: /* @__PURE__ */ new Date(),
-              category: collectionInfo.category,
-              contractAddress: collectionData.contractAddress,
-              blockchain: "ethereum"
-            });
-          }
-        } catch (error) {
-          logger3.warn(`Failed to fetch ${collectionInfo.slug}:`, error);
-        }
-        await new Promise((resolve) => setTimeout(resolve, 1e3));
-      }
-      const summary = this.calculateNFTSummary(collections);
-      return {
-        collections,
-        summary,
-        lastUpdated: /* @__PURE__ */ new Date()
-      };
-    } catch (error) {
-      logger3.error("Error in fetchCuratedNFTsData:", error);
-      return null;
-    }
+    });
+    return fallbackData;
   }
-  async fetchCollectionData(slug, headers) {
-    const response = await fetch(
-      `https://api.opensea.io/api/v2/collections/${slug}/stats`,
-      { headers, signal: AbortSignal.timeout(1e4) }
-    );
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-    const data = await response.json();
+  getFallbackTopMoversData() {
+    const fallbackGainers = [
+      { id: "ethereum", name: "Ethereum", symbol: "ETH", image: "", market_cap_rank: 2, price_change_percentage_24h: 5.2 },
+      { id: "solana", name: "Solana", symbol: "SOL", image: "", market_cap_rank: 5, price_change_percentage_24h: 3.8 },
+      { id: "polygon", name: "Polygon", symbol: "MATIC", image: "", market_cap_rank: 14, price_change_percentage_24h: 2.1 },
+      { id: "cardano", name: "Cardano", symbol: "ADA", image: "", market_cap_rank: 8, price_change_percentage_24h: 1.5 }
+    ];
+    const fallbackLosers = [
+      { id: "ripple", name: "XRP", symbol: "XRP", image: "", market_cap_rank: 6, price_change_percentage_24h: -2.3 },
+      { id: "dogecoin", name: "Dogecoin", symbol: "DOGE", image: "", market_cap_rank: 9, price_change_percentage_24h: -1.8 },
+      { id: "polkadot", name: "Polkadot", symbol: "DOT", image: "", market_cap_rank: 12, price_change_percentage_24h: -1.2 },
+      { id: "chainlink", name: "Chainlink", symbol: "LINK", image: "", market_cap_rank: 15, price_change_percentage_24h: -0.9 }
+    ];
     return {
-      collection: { name: slug },
-      stats: this.parseCollectionStats(data),
-      contractAddress: ""
+      topGainers: fallbackGainers,
+      topLosers: fallbackLosers,
+      lastUpdated: /* @__PURE__ */ new Date()
     };
   }
-  parseCollectionStats(statsData) {
-    const stats = statsData?.total || {};
-    const intervals = statsData?.intervals || [];
-    const oneDayInterval = intervals.find((i) => i.interval === "one_day");
+  getFallbackTrendingCoinsData() {
+    const fallbackCoins = [
+      { id: "bitcoin", name: "Bitcoin", symbol: "BTC", market_cap_rank: 1, thumb: "", score: 100 },
+      { id: "ethereum", name: "Ethereum", symbol: "ETH", market_cap_rank: 2, thumb: "", score: 95 },
+      { id: "solana", name: "Solana", symbol: "SOL", market_cap_rank: 5, thumb: "", score: 90 },
+      { id: "polygon", name: "Polygon", symbol: "MATIC", market_cap_rank: 14, thumb: "", score: 85 },
+      { id: "cardano", name: "Cardano", symbol: "ADA", market_cap_rank: 8, thumb: "", score: 80 },
+      { id: "ripple", name: "XRP", symbol: "XRP", market_cap_rank: 6, thumb: "", score: 75 },
+      { id: "dogecoin", name: "Dogecoin", symbol: "DOGE", market_cap_rank: 9, thumb: "", score: 70 },
+      { id: "polkadot", name: "Polkadot", symbol: "DOT", market_cap_rank: 12, thumb: "", score: 65 },
+      { id: "chainlink", name: "Chainlink", symbol: "LINK", market_cap_rank: 15, thumb: "", score: 60 },
+      { id: "uniswap", name: "Uniswap", symbol: "UNI", market_cap_rank: 20, thumb: "", score: 55 },
+      { id: "litecoin", name: "Litecoin", symbol: "LTC", market_cap_rank: 18, thumb: "", score: 50 },
+      { id: "stellar", name: "Stellar", symbol: "XLM", market_cap_rank: 25, thumb: "", score: 45 },
+      { id: "vechain", name: "VeChain", symbol: "VET", market_cap_rank: 30, thumb: "", score: 40 },
+      { id: "filecoin", name: "Filecoin", symbol: "FIL", market_cap_rank: 35, thumb: "", score: 35 },
+      { id: "cosmos", name: "Cosmos", symbol: "ATOM", market_cap_rank: 22, thumb: "", score: 30 }
+    ];
     return {
-      total_supply: stats.total_supply || 0,
-      num_owners: stats.num_owners || 0,
-      average_price: stats.average_price || 0,
-      floor_price: stats.floor_price || 0,
-      market_cap: stats.market_cap || 0,
-      one_day_volume: oneDayInterval?.volume || 0,
-      one_day_change: oneDayInterval?.volume_change || 0,
-      one_day_sales: oneDayInterval?.sales || 0,
-      seven_day_volume: 0,
-      seven_day_change: 0,
-      seven_day_sales: 0,
-      thirty_day_volume: 0,
-      thirty_day_change: 0,
-      thirty_day_sales: 0
+      coins: fallbackCoins,
+      lastUpdated: /* @__PURE__ */ new Date()
     };
-  }
-  calculateNFTSummary(collections) {
-    const totalVolume24h = collections.reduce((sum, c) => sum + c.stats.one_day_volume, 0);
-    const totalMarketCap = collections.reduce((sum, c) => sum + c.stats.market_cap, 0);
-    const avgFloorPrice = collections.length > 0 ? collections.reduce((sum, c) => sum + c.stats.floor_price, 0) / collections.length : 0;
-    return {
-      totalVolume24h,
-      totalMarketCap,
-      avgFloorPrice,
-      topPerformers: collections.slice(0, 3),
-      worstPerformers: collections.slice(-3),
-      totalCollections: collections.length
-    };
-  }
-  // Required abstract method implementations
-  async updateData() {
-    await this.updateCuratedNFTsData();
-  }
-  async forceUpdate() {
-    this.curatedNFTsCache = null;
-    await this.updateCuratedNFTsData();
   }
 };
 
 // plugin-bitcoin-ltl/src/services/LifestyleDataService.ts
-import { logger as logger4 } from "@elizaos/core";
+import { logger as logger3 } from "@elizaos/core";
 var LIFESTYLE_CITIES = {
   biarritz: {
     lat: 43.4833,
@@ -2491,29 +5876,29 @@ var LifestyleDataService = class _LifestyleDataService extends BaseDataService {
     super(runtime, "lifestyleData");
   }
   static async start(runtime) {
-    logger4.info("LifestyleDataService starting...");
+    logger3.info("LifestyleDataService starting...");
     const service = new _LifestyleDataService(runtime);
     await service.init();
     return service;
   }
   static async stop(runtime) {
-    logger4.info("LifestyleDataService stopping...");
+    logger3.info("LifestyleDataService stopping...");
     const service = runtime.getService("lifestyle-data");
     if (service && service.stop) {
       await service.stop();
     }
   }
   async start() {
-    logger4.info("LifestyleDataService starting...");
+    logger3.info("LifestyleDataService starting...");
     await this.updateData();
-    logger4.info("LifestyleDataService started successfully");
+    logger3.info("LifestyleDataService started successfully");
   }
   async init() {
-    logger4.info("LifestyleDataService initialized");
+    logger3.info("LifestyleDataService initialized");
     await this.updateWeatherData();
   }
   async stop() {
-    logger4.info("LifestyleDataService stopped");
+    logger3.info("LifestyleDataService stopped");
     this.weatherCache = null;
     this.travelDataCache = null;
   }
@@ -2547,7 +5932,7 @@ var LifestyleDataService = class _LifestyleDataService extends BaseDataService {
     return CURATED_LUXURY_HOTELS.filter((hotel) => hotel.city === city);
   }
   async getOptimalBookingPeriods(hotelId) {
-    logger4.info("[LifestyleDataService] Optimal booking periods not yet implemented - requires Booking.com API integration");
+    logger3.info("[LifestyleDataService] Optimal booking periods not yet implemented - requires Booking.com API integration");
     return null;
   }
   // Cache validation methods
@@ -2574,7 +5959,7 @@ var LifestyleDataService = class _LifestyleDataService extends BaseDataService {
   // Core weather data fetching (extracted from RealTimeDataService)
   async fetchWeatherData() {
     try {
-      logger4.info("[LifestyleDataService] Fetching weather data for European luxury cities...");
+      logger3.info("[LifestyleDataService] Fetching weather data for European luxury cities...");
       const cities = Object.entries(LIFESTYLE_CITIES);
       const cityWeatherPromises = cities.map(async ([cityKey, cityConfig]) => {
         try {
@@ -2583,7 +5968,7 @@ var LifestyleDataService = class _LifestyleDataService extends BaseDataService {
             { signal: AbortSignal.timeout(5e3) }
           );
           if (!weatherResponse.ok) {
-            logger4.warn(`Failed to fetch weather for ${cityKey}: ${weatherResponse.status}`);
+            logger3.warn(`Failed to fetch weather for ${cityKey}: ${weatherResponse.status}`);
             return null;
           }
           const weatherData = await weatherResponse.json();
@@ -2611,7 +5996,7 @@ var LifestyleDataService = class _LifestyleDataService extends BaseDataService {
                 marineData = await marineResponse.json();
               }
             } catch (error) {
-              logger4.warn(`Failed to fetch marine data for ${cityKey}:`, error);
+              logger3.warn(`Failed to fetch marine data for ${cityKey}:`, error);
             }
           }
           let airQualityData = null;
@@ -2624,7 +6009,7 @@ var LifestyleDataService = class _LifestyleDataService extends BaseDataService {
               airQualityData = await airQualityResponse.json();
             }
           } catch (error) {
-            logger4.warn(`Failed to fetch air quality data for ${cityKey}:`, error);
+            logger3.warn(`Failed to fetch air quality data for ${cityKey}:`, error);
           }
           return {
             city: cityKey,
@@ -2635,7 +6020,7 @@ var LifestyleDataService = class _LifestyleDataService extends BaseDataService {
             lastUpdated: /* @__PURE__ */ new Date()
           };
         } catch (error) {
-          logger4.error(`Error fetching weather for ${cityKey}:`, error);
+          logger3.error(`Error fetching weather for ${cityKey}:`, error);
           return null;
         }
       });
@@ -2650,16 +6035,16 @@ var LifestyleDataService = class _LifestyleDataService extends BaseDataService {
             cityWeatherData.push(result2);
           }
         } catch (error) {
-          logger4.error(`Error processing weather for city ${i}:`, error);
+          logger3.error(`Error processing weather for city ${i}:`, error);
         }
       }
       if (cityWeatherData.length === 0) {
-        logger4.warn("No weather data retrieved for any city");
+        logger3.warn("No weather data retrieved for any city");
         return null;
       }
       const temperatures = cityWeatherData.map((city) => city.weather.current?.temperature_2m).filter((temp) => temp !== void 0 && temp !== null);
       if (temperatures.length === 0) {
-        logger4.warn("No valid temperature data available");
+        logger3.warn("No valid temperature data available");
         return null;
       }
       const averageTemp = temperatures.reduce((sum, temp) => sum + temp, 0) / temperatures.length;
@@ -2718,10 +6103,10 @@ var LifestyleDataService = class _LifestyleDataService extends BaseDataService {
         },
         lastUpdated: /* @__PURE__ */ new Date()
       };
-      logger4.info(`[LifestyleDataService] Fetched weather data: ${cityWeatherData.length} cities, avg temp: ${averageTemp.toFixed(1)}\xB0C, best weather: ${bestWeatherCity}`);
+      logger3.info(`[LifestyleDataService] Fetched weather data: ${cityWeatherData.length} cities, avg temp: ${averageTemp.toFixed(1)}\xB0C, best weather: ${bestWeatherCity}`);
       return result;
     } catch (error) {
-      logger4.error("Error in fetchWeatherData:", error);
+      logger3.error("Error in fetchWeatherData:", error);
       return null;
     }
   }
@@ -2737,20 +6122,20 @@ var LifestyleDataService = class _LifestyleDataService extends BaseDataService {
    * - Price trend analysis and alerts
    */
   async fetchHotelRates() {
-    logger4.info("[LifestyleDataService] Hotel rate fetching prepared for Booking.com API integration");
+    logger3.info("[LifestyleDataService] Hotel rate fetching prepared for Booking.com API integration");
   }
   /**
    * Analyze rate patterns to find optimal booking windows
    * Will identify periods when luxury hotels offer significant savings
    */
   analyzeOptimalBookingPeriods(hotelRates) {
-    logger4.info("[LifestyleDataService] Rate analysis prepared for implementation");
+    logger3.info("[LifestyleDataService] Rate analysis prepared for implementation");
     return [];
   }
 };
 
 // plugin-bitcoin-ltl/src/services/StockDataService.ts
-import { logger as logger5 } from "@elizaos/core";
+import { logger as logger4 } from "@elizaos/core";
 var StockDataService = class _StockDataService extends BaseDataService {
   static serviceType = "stock-data";
   capabilityDescription = "Provides real-time stock market data for curated equities with performance analysis vs MAG7 and S&P 500";
@@ -2803,29 +6188,29 @@ var StockDataService = class _StockDataService extends BaseDataService {
     super(runtime, "stockData");
   }
   static async start(runtime) {
-    logger5.info("StockDataService starting...");
+    logger4.info("StockDataService starting...");
     const service = new _StockDataService(runtime);
     await service.init();
     return service;
   }
   static async stop(runtime) {
-    logger5.info("StockDataService stopping...");
+    logger4.info("StockDataService stopping...");
     const service = runtime.getService("stock-data");
     if (service && service.stop) {
       await service.stop();
     }
   }
   async start() {
-    logger5.info("StockDataService starting...");
+    logger4.info("StockDataService starting...");
     await this.updateData();
-    logger5.info("StockDataService started successfully");
+    logger4.info("StockDataService started successfully");
   }
   async init() {
-    logger5.info("StockDataService initialized");
+    logger4.info("StockDataService initialized");
     await this.updateData();
   }
   async stop() {
-    logger5.info("StockDataService stopped");
+    logger4.info("StockDataService stopped");
     this.stockDataCache = null;
   }
   // Required abstract method implementations
@@ -2885,14 +6270,14 @@ var StockDataService = class _StockDataService extends BaseDataService {
   // Core stock data fetching
   async fetchStockData() {
     try {
-      logger5.info("[StockDataService] Fetching comprehensive stock data...");
+      logger4.info("[StockDataService] Fetching comprehensive stock data...");
       const [curatedStocksData, mag7Data, indicesData] = await Promise.all([
         this.fetchStocksData(this.curatedStocks),
         this.fetchStocksData(this.mag7Stocks),
         this.fetchIndicesData()
       ]);
       if (!curatedStocksData || !mag7Data || !indicesData) {
-        logger5.warn("[StockDataService] Failed to fetch complete stock data");
+        logger4.warn("[StockDataService] Failed to fetch complete stock data");
         return null;
       }
       const performance = this.calculatePerformanceMetrics(curatedStocksData, mag7Data, indicesData);
@@ -2903,10 +6288,10 @@ var StockDataService = class _StockDataService extends BaseDataService {
         performance,
         lastUpdated: /* @__PURE__ */ new Date()
       };
-      logger5.info(`[StockDataService] Stock data updated: ${curatedStocksData.length} curated stocks, MAG7 avg: ${performance.mag7Average.toFixed(2)}%`);
+      logger4.info(`[StockDataService] Stock data updated: ${curatedStocksData.length} curated stocks, MAG7 avg: ${performance.mag7Average.toFixed(2)}%`);
       return result;
     } catch (error) {
-      logger5.error("[StockDataService] Error fetching stock data:", error);
+      logger4.error("[StockDataService] Error fetching stock data:", error);
       return null;
     }
   }
@@ -2919,7 +6304,7 @@ var StockDataService = class _StockDataService extends BaseDataService {
         try {
           return await this.fetchSingleStockData(stock.symbol, stock.name, stock.sector);
         } catch (error) {
-          logger5.warn(`[StockDataService] Failed to fetch ${stock.symbol}:`, error);
+          logger4.warn(`[StockDataService] Failed to fetch ${stock.symbol}:`, error);
           return null;
         }
       });
@@ -2989,7 +6374,7 @@ var StockDataService = class _StockDataService extends BaseDataService {
       }
       return null;
     } catch (error) {
-      logger5.error(`[StockDataService] Error fetching ${symbol}:`, error);
+      logger4.error(`[StockDataService] Error fetching ${symbol}:`, error);
       return null;
     }
   }
@@ -3014,13 +6399,13 @@ var StockDataService = class _StockDataService extends BaseDataService {
       const currentPrice = meta.regularMarketPrice;
       const previousClose = meta.previousClose;
       if (!currentPrice || !previousClose || previousClose === 0) {
-        logger5.warn(`[StockDataService] Invalid price data for ${symbol}: current=${currentPrice}, previous=${previousClose}`);
+        logger4.warn(`[StockDataService] Invalid price data for ${symbol}: current=${currentPrice}, previous=${previousClose}`);
         return null;
       }
       const change = currentPrice - previousClose;
       const changePercent = change / previousClose * 100;
       if (!isFinite(changePercent)) {
-        logger5.warn(`[StockDataService] Invalid changePercent for ${symbol}: ${changePercent}`);
+        logger4.warn(`[StockDataService] Invalid changePercent for ${symbol}: ${changePercent}`);
         return null;
       }
       return {
@@ -3031,7 +6416,7 @@ var StockDataService = class _StockDataService extends BaseDataService {
         marketCap: meta.marketCap || 0
       };
     } catch (error) {
-      logger5.warn(`[StockDataService] Yahoo Finance failed for ${symbol}:`, error);
+      logger4.warn(`[StockDataService] Yahoo Finance failed for ${symbol}:`, error);
       return null;
     }
   }
@@ -3053,7 +6438,7 @@ var StockDataService = class _StockDataService extends BaseDataService {
       const change = parseFloat(quote["09. change"]);
       const changePercent = parseFloat(quote["10. change percent"].replace("%", ""));
       if (!isFinite(price) || !isFinite(change) || !isFinite(changePercent)) {
-        logger5.warn(`[StockDataService] Invalid Alpha Vantage data for ${symbol}: price=${price}, change=${change}, changePercent=${changePercent}`);
+        logger4.warn(`[StockDataService] Invalid Alpha Vantage data for ${symbol}: price=${price}, change=${change}, changePercent=${changePercent}`);
         return null;
       }
       return {
@@ -3063,7 +6448,7 @@ var StockDataService = class _StockDataService extends BaseDataService {
         volume: parseInt(quote["06. volume"]) || 0
       };
     } catch (error) {
-      logger5.warn(`[StockDataService] Alpha Vantage failed for ${symbol}:`, error);
+      logger4.warn(`[StockDataService] Alpha Vantage failed for ${symbol}:`, error);
       return null;
     }
   }
@@ -3083,13 +6468,13 @@ var StockDataService = class _StockDataService extends BaseDataService {
       const currentPrice = data.c;
       const previousClose = data.pc;
       if (!currentPrice || !previousClose || previousClose === 0) {
-        logger5.warn(`[StockDataService] Invalid Finnhub data for ${symbol}: current=${currentPrice}, previous=${previousClose}`);
+        logger4.warn(`[StockDataService] Invalid Finnhub data for ${symbol}: current=${currentPrice}, previous=${previousClose}`);
         return null;
       }
       const change = currentPrice - previousClose;
       const changePercent = change / previousClose * 100;
       if (!isFinite(changePercent)) {
-        logger5.warn(`[StockDataService] Invalid changePercent for ${symbol}: ${changePercent}`);
+        logger4.warn(`[StockDataService] Invalid changePercent for ${symbol}: ${changePercent}`);
         return null;
       }
       return {
@@ -3098,7 +6483,7 @@ var StockDataService = class _StockDataService extends BaseDataService {
         changePercent
       };
     } catch (error) {
-      logger5.warn(`[StockDataService] Finnhub failed for ${symbol}:`, error);
+      logger4.warn(`[StockDataService] Finnhub failed for ${symbol}:`, error);
       return null;
     }
   }
@@ -3118,7 +6503,7 @@ var StockDataService = class _StockDataService extends BaseDataService {
           });
         }
       } catch (error) {
-        logger5.warn(`[StockDataService] Failed to fetch index ${index.symbol}:`, error);
+        logger4.warn(`[StockDataService] Failed to fetch index ${index.symbol}:`, error);
       }
     }
     return indices;
@@ -3168,7 +6553,7 @@ var StockDataService = class _StockDataService extends BaseDataService {
 };
 
 // plugin-bitcoin-ltl/src/services/TravelDataService.ts
-import { logger as logger6 } from "@elizaos/core";
+import { logger as logger5 } from "@elizaos/core";
 var TravelDataService = class extends BaseDataService {
   static serviceType = "travel-data";
   capabilityDescription = "Provides smart hotel booking optimization and travel insights for European luxury destinations";
@@ -3814,18 +7199,18 @@ var TravelDataService = class extends BaseDataService {
     );
   }
   logInfo(message) {
-    logger6.info(`[${this.serviceName}] ${message}`);
+    logger5.info(`[${this.serviceName}] ${message}`);
   }
   logWarning(message) {
-    logger6.warn(`[${this.serviceName}] ${message}`);
+    logger5.warn(`[${this.serviceName}] ${message}`);
   }
   logError(message, error) {
-    logger6.error(`[${this.serviceName}] ${message}`, error);
+    logger5.error(`[${this.serviceName}] ${message}`, error);
   }
 };
 
 // plugin-bitcoin-ltl/src/services/ETFDataService.ts
-import { logger as logger7 } from "@elizaos/core";
+import { logger as logger6 } from "@elizaos/core";
 var ETFDataService = class _ETFDataService extends BaseDataService {
   static serviceType = "etf-data";
   capabilityDescription = "Provides Bitcoin ETF flow data, tracking institutional flows and market metrics";
@@ -3850,27 +7235,27 @@ var ETFDataService = class _ETFDataService extends BaseDataService {
     this.scheduleRegularUpdates();
   }
   static async start(runtime) {
-    logger7.info("ETFDataService starting...");
+    logger6.info("ETFDataService starting...");
     return new _ETFDataService(runtime);
   }
   static async stop(runtime) {
-    logger7.info("ETFDataService stopping...");
+    logger6.info("ETFDataService stopping...");
     const service = runtime.getService("etf-data");
     if (service && service.stop && typeof service.stop === "function") {
       await service.stop();
     }
   }
   async start() {
-    logger7.info("ETFDataService starting...");
+    logger6.info("ETFDataService starting...");
     await this.updateData();
-    logger7.info("ETFDataService started successfully");
+    logger6.info("ETFDataService started successfully");
   }
   async init() {
-    logger7.info("ETFDataService initialized");
+    logger6.info("ETFDataService initialized");
     await this.updateData();
   }
   async stop() {
-    logger7.info("ETFDataService stopped");
+    logger6.info("ETFDataService stopped");
   }
   /**
    * Schedule regular updates every 5 minutes during market hours
@@ -3880,7 +7265,7 @@ var ETFDataService = class _ETFDataService extends BaseDataService {
     setInterval(() => {
       if (this.isMarketHours()) {
         this.updateData().catch((error) => {
-          logger7.error("Error in scheduled ETF data update:", error);
+          logger6.error("Error in scheduled ETF data update:", error);
         });
       }
     }, updateInterval);
@@ -3907,15 +7292,15 @@ var ETFDataService = class _ETFDataService extends BaseDataService {
    */
   async updateData() {
     try {
-      logger7.info("Updating ETF data...");
+      logger6.info("Updating ETF data...");
       await Promise.all([
         this.updateETFMarketData(),
         this.updateETFFlowData(),
         this.updateETFHoldings()
       ]);
-      logger7.info("ETF data updated successfully");
+      logger6.info("ETF data updated successfully");
     } catch (error) {
-      logger7.error("Error updating ETF data:", error);
+      logger6.error("Error updating ETF data:", error);
     }
   }
   /**
@@ -3955,7 +7340,7 @@ var ETFDataService = class _ETFDataService extends BaseDataService {
       });
       return marketData;
     } catch (error) {
-      logger7.error("Error fetching ETF market data:", error);
+      logger6.error("Error fetching ETF market data:", error);
       throw error;
     }
   }
@@ -3976,7 +7361,7 @@ var ETFDataService = class _ETFDataService extends BaseDataService {
       });
       return flowData;
     } catch (error) {
-      logger7.error("Error fetching ETF flow data:", error);
+      logger6.error("Error fetching ETF flow data:", error);
       throw error;
     }
   }
@@ -3993,7 +7378,7 @@ var ETFDataService = class _ETFDataService extends BaseDataService {
             timestamp: Date.now()
           });
         } catch (error) {
-          logger7.error(`Error updating market data for ${etf.ticker}:`, error);
+          logger6.error(`Error updating market data for ${etf.ticker}:`, error);
         }
       }
     });
@@ -4010,7 +7395,7 @@ var ETFDataService = class _ETFDataService extends BaseDataService {
           timestamp: Date.now()
         });
       } catch (error) {
-        logger7.error("Error updating ETF flow data:", error);
+        logger6.error("Error updating ETF flow data:", error);
       }
     });
   }
@@ -4027,7 +7412,7 @@ var ETFDataService = class _ETFDataService extends BaseDataService {
             timestamp: Date.now()
           });
         } catch (error) {
-          logger7.error(`Error updating holdings for ${etf.ticker}:`, error);
+          logger6.error(`Error updating holdings for ${etf.ticker}:`, error);
         }
       }
     });
@@ -4081,7 +7466,7 @@ var ETFDataService = class _ETFDataService extends BaseDataService {
       }
       return null;
     } catch (error) {
-      logger7.error(`Error fetching market data for ${ticker}:`, error);
+      logger6.error(`Error fetching market data for ${ticker}:`, error);
       return null;
     }
   }
@@ -4114,7 +7499,7 @@ var ETFDataService = class _ETFDataService extends BaseDataService {
       }
       return flowData;
     } catch (error) {
-      logger7.error("Error fetching ETF flow data:", error);
+      logger6.error("Error fetching ETF flow data:", error);
       return flowData;
     }
   }
@@ -4138,7 +7523,7 @@ var ETFDataService = class _ETFDataService extends BaseDataService {
       }
       return null;
     } catch (error) {
-      logger7.error(`Error fetching holdings for ${ticker}:`, error);
+      logger6.error(`Error fetching holdings for ${ticker}:`, error);
       return null;
     }
   }
@@ -4156,7 +7541,7 @@ var ETFDataService = class _ETFDataService extends BaseDataService {
       const data = await response.json();
       return data.bitcoin.usd;
     } catch (error) {
-      logger7.error("Error fetching Bitcoin price:", error);
+      logger6.error("Error fetching Bitcoin price:", error);
       return 0;
     }
   }
@@ -4288,8 +7673,11 @@ var ETFDataService = class _ETFDataService extends BaseDataService {
   }
 };
 
-// plugin-bitcoin-ltl/src/services/BitcoinDataService.ts
-import { elizaLogger as elizaLogger4 } from "@elizaos/core";
+// plugin-bitcoin-ltl/src/services/BitcoinNetworkService.ts
+import { elizaLogger as elizaLogger5 } from "@elizaos/core";
+
+// plugin-bitcoin-ltl/src/utils/helpers.ts
+import { logger as logger7 } from "@elizaos/core";
 
 // plugin-bitcoin-ltl/src/utils/errors.ts
 var ElizaOSError = class extends Error {
@@ -4338,7 +7726,6 @@ var MissingAPIKeyError = class extends ElizaOSError {
 };
 
 // plugin-bitcoin-ltl/src/utils/helpers.ts
-import { logger as logger8 } from "@elizaos/core";
 var ElizaOSErrorHandler2 = class {
   static handleCommonErrors(error, context) {
     const message = error.message.toLowerCase();
@@ -4438,16 +7825,16 @@ var LoggerWithContext = class {
     return `[${timestamp}] [${level}] [${this.component}] [${this.correlationId}] ${message}${logData}`;
   }
   info(message, data) {
-    logger8.info(this.formatMessage("INFO", message, data));
+    logger7.info(this.formatMessage("INFO", message, data));
   }
   warn(message, data) {
-    logger8.warn(this.formatMessage("WARN", message, data));
+    logger7.warn(this.formatMessage("WARN", message, data));
   }
   error(message, data) {
-    logger8.error(this.formatMessage("ERROR", message, data));
+    logger7.error(this.formatMessage("ERROR", message, data));
   }
   debug(message, data) {
-    logger8.debug(this.formatMessage("DEBUG", message, data));
+    logger7.debug(this.formatMessage("DEBUG", message, data));
   }
 };
 function generateCorrelationId() {
@@ -4455,7 +7842,1211 @@ function generateCorrelationId() {
 }
 var providerCache = new ProviderCache();
 
+// plugin-bitcoin-ltl/src/utils/comprehensive-error-handling.ts
+import { elizaLogger as elizaLogger4 } from "@elizaos/core";
+var ErrorSeverity = /* @__PURE__ */ ((ErrorSeverity2) => {
+  ErrorSeverity2["LOW"] = "low";
+  ErrorSeverity2["MEDIUM"] = "medium";
+  ErrorSeverity2["HIGH"] = "high";
+  ErrorSeverity2["CRITICAL"] = "critical";
+  return ErrorSeverity2;
+})(ErrorSeverity || {});
+var ErrorCategory = /* @__PURE__ */ ((ErrorCategory10) => {
+  ErrorCategory10["NETWORK"] = "network";
+  ErrorCategory10["API"] = "api";
+  ErrorCategory10["VALIDATION"] = "validation";
+  ErrorCategory10["AUTHENTICATION"] = "authentication";
+  ErrorCategory10["AUTHORIZATION"] = "authorization";
+  ErrorCategory10["RATE_LIMIT"] = "rate_limit";
+  ErrorCategory10["TIMEOUT"] = "timeout";
+  ErrorCategory10["CONFIGURATION"] = "configuration";
+  ErrorCategory10["DATABASE"] = "database";
+  ErrorCategory10["CACHE"] = "cache";
+  ErrorCategory10["BUSINESS_LOGIC"] = "business_logic";
+  ErrorCategory10["UNKNOWN"] = "unknown";
+  return ErrorCategory10;
+})(ErrorCategory || {});
+var CircuitBreaker2 = class {
+  constructor(name, threshold = 5, timeout = 6e4, successThreshold = 2) {
+    this.name = name;
+    this.threshold = threshold;
+    this.timeout = timeout;
+    this.successThreshold = successThreshold;
+  }
+  state = "closed" /* CLOSED */;
+  failureCount = 0;
+  successCount = 0;
+  lastFailureTime = 0;
+  nextAttemptTime = 0;
+  async execute(operation) {
+    if (this.state === "open" /* OPEN */) {
+      if (Date.now() >= this.nextAttemptTime) {
+        this.state = "half_open" /* HALF_OPEN */;
+        this.successCount = 0;
+        elizaLogger4.info(`[CircuitBreaker:${this.name}] Moving to HALF_OPEN state`);
+      } else {
+        throw new Error(`Circuit breaker is OPEN for ${this.name}`);
+      }
+    }
+    try {
+      const result = await operation();
+      this.onSuccess();
+      return result;
+    } catch (error) {
+      this.onFailure();
+      throw error;
+    }
+  }
+  onSuccess() {
+    this.successCount++;
+    if (this.state === "half_open" /* HALF_OPEN */) {
+      if (this.successCount >= this.successThreshold) {
+        this.state = "closed" /* CLOSED */;
+        this.failureCount = 0;
+        elizaLogger4.info(`[CircuitBreaker:${this.name}] Moving to CLOSED state`);
+      }
+    } else {
+      this.failureCount = 0;
+    }
+  }
+  onFailure() {
+    this.failureCount++;
+    this.lastFailureTime = Date.now();
+    if (this.state === "closed" /* CLOSED */ && this.failureCount >= this.threshold) {
+      this.state = "open" /* OPEN */;
+      this.nextAttemptTime = Date.now() + this.timeout;
+      elizaLogger4.warn(`[CircuitBreaker:${this.name}] Moving to OPEN state due to ${this.failureCount} failures`);
+    } else if (this.state === "half_open" /* HALF_OPEN */) {
+      this.state = "open" /* OPEN */;
+      this.nextAttemptTime = Date.now() + this.timeout;
+      elizaLogger4.warn(`[CircuitBreaker:${this.name}] Moving back to OPEN state due to failure`);
+    }
+  }
+  getState() {
+    return {
+      state: this.state,
+      failureCount: this.failureCount,
+      successCount: this.successCount,
+      nextAttemptTime: this.nextAttemptTime
+    };
+  }
+};
+var ComprehensiveErrorHandler = class {
+  config;
+  logger;
+  errorHistory = [];
+  circuitBreakers = /* @__PURE__ */ new Map();
+  recoveryStrategies = /* @__PURE__ */ new Map();
+  constructor(config = {}) {
+    this.config = {
+      enableDetailedLogging: true,
+      enableErrorReporting: false,
+      enableRecoveryStrategies: true,
+      enableCircuitBreakers: true,
+      maxErrorHistory: 1e3,
+      ...config
+    };
+    this.logger = new LoggerWithContext(generateCorrelationId(), "ComprehensiveErrorHandler");
+    this.initializeRecoveryStrategies();
+  }
+  /**
+   * Initialize default recovery strategies
+   */
+  initializeRecoveryStrategies() {
+    this.recoveryStrategies.set("network" /* NETWORK */, {
+      name: "Network Retry",
+      description: "Retry network operations with exponential backoff",
+      shouldRetry: true,
+      maxRetries: 3,
+      backoffStrategy: "exponential",
+      backoffDelay: 1e3,
+      circuitBreaker: true,
+      circuitBreakerThreshold: 5,
+      circuitBreakerTimeout: 6e4
+    });
+    this.recoveryStrategies.set("api" /* API */, {
+      name: "API Retry",
+      description: "Retry API calls with exponential backoff",
+      shouldRetry: true,
+      maxRetries: 3,
+      backoffStrategy: "exponential",
+      backoffDelay: 2e3,
+      circuitBreaker: true,
+      circuitBreakerThreshold: 3,
+      circuitBreakerTimeout: 3e4
+    });
+    this.recoveryStrategies.set("rate_limit" /* RATE_LIMIT */, {
+      name: "Rate Limit Wait",
+      description: "Wait for rate limit to reset",
+      shouldRetry: true,
+      maxRetries: 1,
+      backoffStrategy: "fixed",
+      backoffDelay: 6e4,
+      circuitBreaker: false
+    });
+    this.recoveryStrategies.set("timeout" /* TIMEOUT */, {
+      name: "Timeout Retry",
+      description: "Retry operations that timed out",
+      shouldRetry: true,
+      maxRetries: 2,
+      backoffStrategy: "linear",
+      backoffDelay: 5e3,
+      circuitBreaker: true,
+      circuitBreakerThreshold: 3,
+      circuitBreakerTimeout: 3e4
+    });
+    this.recoveryStrategies.set("validation" /* VALIDATION */, {
+      name: "Validation Error",
+      description: "Validation errors should not be retried",
+      shouldRetry: false,
+      maxRetries: 0,
+      backoffStrategy: "fixed",
+      backoffDelay: 0,
+      circuitBreaker: false
+    });
+    this.recoveryStrategies.set("authentication" /* AUTHENTICATION */, {
+      name: "Authentication Error",
+      description: "Authentication errors require re-authentication",
+      shouldRetry: false,
+      maxRetries: 0,
+      backoffStrategy: "fixed",
+      backoffDelay: 0,
+      fallbackAction: "reauthenticate",
+      circuitBreaker: false
+    });
+  }
+  /**
+   * Handle an error with comprehensive analysis and recovery
+   */
+  async handleError(error, context, operation) {
+    const errorId = generateCorrelationId();
+    const timestamp = /* @__PURE__ */ new Date();
+    const fullContext = {
+      correlationId: context.correlationId || generateCorrelationId(),
+      component: context.component || "unknown",
+      operation: context.operation || "unknown",
+      timestamp,
+      params: context.params,
+      stack: error.stack,
+      userAgent: context.userAgent,
+      requestId: context.requestId,
+      sessionId: context.sessionId
+    };
+    const category = this.categorizeError(error);
+    const severity = this.determineSeverity(error, category);
+    const recoveryStrategy = this.getRecoveryStrategy(category);
+    const comprehensiveError = {
+      id: errorId,
+      message: error.message,
+      originalError: error,
+      category,
+      severity,
+      context: fullContext,
+      recoveryStrategy,
+      metadata: this.extractMetadata(error),
+      timestamp,
+      resolved: false
+    };
+    this.logError(comprehensiveError);
+    this.addToHistory(comprehensiveError);
+    if (this.config.enableRecoveryStrategies && operation && recoveryStrategy.shouldRetry) {
+      try {
+        const result = await this.attemptRecovery(comprehensiveError, operation);
+        comprehensiveError.resolved = true;
+        comprehensiveError.resolutionTime = /* @__PURE__ */ new Date();
+        comprehensiveError.resolutionStrategy = "retry_success";
+        this.logger.info("Error resolved through recovery strategy", {
+          errorId,
+          strategy: recoveryStrategy.name,
+          attempts: recoveryStrategy.maxRetries
+        });
+        return comprehensiveError;
+      } catch (recoveryError) {
+        comprehensiveError.metadata.recoveryFailed = true;
+        comprehensiveError.metadata.recoveryError = recoveryError instanceof Error ? recoveryError.message : "Unknown recovery error";
+        this.logger.error("Recovery strategy failed", {
+          errorId,
+          strategy: recoveryStrategy.name,
+          recoveryError: recoveryError instanceof Error ? recoveryError.message : "Unknown error"
+        });
+      }
+    }
+    if (this.config.enableErrorReporting) {
+      await this.reportError(comprehensiveError);
+    }
+    return comprehensiveError;
+  }
+  /**
+   * Categorize error based on its type and message
+   */
+  categorizeError(error) {
+    const message = error.message.toLowerCase();
+    const name = error.name.toLowerCase();
+    if (name.includes("network") || message.includes("network") || message.includes("fetch")) {
+      return "network" /* NETWORK */;
+    }
+    if (name.includes("timeout") || message.includes("timeout")) {
+      return "timeout" /* TIMEOUT */;
+    }
+    if (message.includes("rate limit") || message.includes("429")) {
+      return "rate_limit" /* RATE_LIMIT */;
+    }
+    if (message.includes("unauthorized") || message.includes("401")) {
+      return "authentication" /* AUTHENTICATION */;
+    }
+    if (message.includes("forbidden") || message.includes("403")) {
+      return "authorization" /* AUTHORIZATION */;
+    }
+    if (message.includes("validation") || message.includes("invalid")) {
+      return "validation" /* VALIDATION */;
+    }
+    if (message.includes("api") || message.includes("endpoint")) {
+      return "api" /* API */;
+    }
+    if (message.includes("database") || message.includes("db")) {
+      return "database" /* DATABASE */;
+    }
+    if (message.includes("cache")) {
+      return "cache" /* CACHE */;
+    }
+    if (message.includes("config")) {
+      return "configuration" /* CONFIGURATION */;
+    }
+    return "unknown" /* UNKNOWN */;
+  }
+  /**
+   * Determine error severity
+   */
+  determineSeverity(error, category) {
+    const message = error.message.toLowerCase();
+    if (category === "authentication" /* AUTHENTICATION */ || category === "authorization" /* AUTHORIZATION */ || message.includes("critical") || message.includes("fatal")) {
+      return "critical" /* CRITICAL */;
+    }
+    if (category === "database" /* DATABASE */ || category === "configuration" /* CONFIGURATION */ || message.includes("connection") || message.includes("timeout")) {
+      return "high" /* HIGH */;
+    }
+    if (category === "api" /* API */ || category === "network" /* NETWORK */ || message.includes("retry")) {
+      return "medium" /* MEDIUM */;
+    }
+    if (category === "validation" /* VALIDATION */ || category === "rate_limit" /* RATE_LIMIT */) {
+      return "low" /* LOW */;
+    }
+    return "medium" /* MEDIUM */;
+  }
+  /**
+   * Get recovery strategy for error category
+   */
+  getRecoveryStrategy(category) {
+    return this.recoveryStrategies.get(category) || this.recoveryStrategies.get("unknown" /* UNKNOWN */);
+  }
+  /**
+   * Extract metadata from error
+   */
+  extractMetadata(error) {
+    const metadata = {
+      name: error.name,
+      stack: error.stack,
+      constructor: error.constructor.name
+    };
+    Object.getOwnPropertyNames(error).forEach((prop) => {
+      if (prop !== "name" && prop !== "message" && prop !== "stack") {
+        metadata[prop] = error[prop];
+      }
+    });
+    return metadata;
+  }
+  /**
+   * Log error with appropriate level
+   */
+  logError(error) {
+    if (!this.config.enableDetailedLogging) {
+      return;
+    }
+    const logData = {
+      errorId: error.id,
+      category: error.category,
+      severity: error.severity,
+      component: error.context.component,
+      operation: error.context.operation,
+      correlationId: error.context.correlationId,
+      strategy: error.recoveryStrategy.name,
+      metadata: error.metadata
+    };
+    switch (error.severity) {
+      case "critical" /* CRITICAL */:
+        this.logger.error(`CRITICAL ERROR: ${error.message}`, logData);
+        break;
+      case "high" /* HIGH */:
+        this.logger.error(`HIGH SEVERITY ERROR: ${error.message}`, logData);
+        break;
+      case "medium" /* MEDIUM */:
+        this.logger.warn(`MEDIUM SEVERITY ERROR: ${error.message}`, logData);
+        break;
+      case "low" /* LOW */:
+        this.logger.info(`LOW SEVERITY ERROR: ${error.message}`, logData);
+        break;
+    }
+  }
+  /**
+   * Add error to history
+   */
+  addToHistory(error) {
+    this.errorHistory.push(error);
+    if (this.errorHistory.length > this.config.maxErrorHistory) {
+      this.errorHistory = this.errorHistory.slice(-this.config.maxErrorHistory);
+    }
+  }
+  /**
+   * Attempt recovery using circuit breaker and retry logic
+   */
+  async attemptRecovery(error, operation) {
+    const strategy = error.recoveryStrategy;
+    if (strategy.circuitBreaker && this.config.enableCircuitBreakers) {
+      const circuitBreaker = this.getCircuitBreaker(error.context.component);
+      return await circuitBreaker.execute(operation);
+    }
+    let lastError;
+    for (let attempt = 0; attempt < strategy.maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (retryError) {
+        lastError = retryError;
+        if (attempt === strategy.maxRetries - 1) {
+          throw lastError;
+        }
+        const delay = this.calculateBackoffDelay(strategy, attempt);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        this.logger.warn("Retry attempt failed, retrying", {
+          errorId: error.id,
+          attempt: attempt + 1,
+          maxRetries: strategy.maxRetries,
+          delay,
+          error: lastError.message
+        });
+      }
+    }
+    throw lastError;
+  }
+  /**
+   * Calculate backoff delay based on strategy
+   */
+  calculateBackoffDelay(strategy, attempt) {
+    switch (strategy.backoffStrategy) {
+      case "fixed":
+        return strategy.backoffDelay;
+      case "linear":
+        return strategy.backoffDelay * (attempt + 1);
+      case "exponential":
+        return strategy.backoffDelay * Math.pow(2, attempt);
+      default:
+        return strategy.backoffDelay;
+    }
+  }
+  /**
+   * Get or create circuit breaker for component
+   */
+  getCircuitBreaker(component) {
+    if (!this.circuitBreakers.has(component)) {
+      const strategy = this.recoveryStrategies.get("api" /* API */);
+      const circuitBreaker = new CircuitBreaker2(
+        component,
+        strategy.circuitBreakerThreshold || 5,
+        strategy.circuitBreakerTimeout || 6e4
+      );
+      this.circuitBreakers.set(component, circuitBreaker);
+    }
+    return this.circuitBreakers.get(component);
+  }
+  /**
+   * Report error to external service
+   */
+  async reportError(error) {
+    if (!this.config.errorReportingEndpoint) {
+      return;
+    }
+    try {
+      const reportData = {
+        id: error.id,
+        message: error.message,
+        category: error.category,
+        severity: error.severity,
+        context: error.context,
+        metadata: error.metadata,
+        timestamp: error.timestamp.toISOString()
+      };
+      const response = await fetch(this.config.errorReportingEndpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${this.config.errorReportingApiKey}`
+        },
+        body: JSON.stringify(reportData)
+      });
+      if (!response.ok) {
+        this.logger.warn("Failed to report error to external service", {
+          errorId: error.id,
+          status: response.status,
+          statusText: response.statusText
+        });
+      }
+    } catch (reportError) {
+      this.logger.warn("Failed to report error to external service", {
+        errorId: error.id,
+        reportError: reportError instanceof Error ? reportError.message : "Unknown error"
+      });
+    }
+  }
+  /**
+   * Get error statistics
+   */
+  getStats() {
+    const errorsByCategory = {};
+    const errorsBySeverity = {};
+    Object.values(ErrorCategory).forEach((category) => {
+      errorsByCategory[category] = 0;
+    });
+    Object.values(ErrorSeverity).forEach((severity) => {
+      errorsBySeverity[severity] = 0;
+    });
+    this.errorHistory.forEach((error) => {
+      errorsByCategory[error.category]++;
+      errorsBySeverity[error.severity]++;
+    });
+    const resolvedErrors = this.errorHistory.filter((error) => error.resolved).length;
+    const resolutionRate = this.errorHistory.length > 0 ? resolvedErrors / this.errorHistory.length : 0;
+    const circuitBreakerStates = {};
+    this.circuitBreakers.forEach((breaker, name) => {
+      circuitBreakerStates[name] = breaker.getState().state;
+    });
+    return {
+      totalErrors: this.errorHistory.length,
+      errorsByCategory,
+      errorsBySeverity,
+      resolutionRate,
+      circuitBreakerStates
+    };
+  }
+  /**
+   * Clear error history
+   */
+  clearHistory() {
+    this.errorHistory = [];
+  }
+  /**
+   * Get recent errors
+   */
+  getRecentErrors(count = 10) {
+    return this.errorHistory.slice(-count);
+  }
+};
+var globalErrorHandler = new ComprehensiveErrorHandler();
+
+// plugin-bitcoin-ltl/src/services/MarketDataService.ts
+import { elizaLogger as elizaLogger6 } from "@elizaos/core";
+
+// plugin-bitcoin-ltl/src/services/NFTDataService.ts
+import { elizaLogger as elizaLogger7 } from "@elizaos/core";
+
+// plugin-bitcoin-ltl/src/utils/request-batching.ts
+var RequestBatcher = class {
+  queue = [];
+  processing = false;
+  activeBatches = 0;
+  config;
+  constructor(config = {}) {
+    this.config = {
+      maxBatchSize: config.maxBatchSize || 10,
+      maxWaitTime: config.maxWaitTime || 1e3,
+      maxConcurrentBatches: config.maxConcurrentBatches || 3,
+      retryAttempts: config.retryAttempts || 3,
+      retryDelay: config.retryDelay || 1e3,
+      ...config
+    };
+  }
+  /**
+   * Add a request to the batch queue
+   */
+  async addRequest(request) {
+    const id = this.generateRequestId();
+    const batchRequest2 = { ...request, id };
+    return new Promise((resolve) => {
+      this.queue.push({
+        ...batchRequest2,
+        resolve
+      });
+      this.processQueue();
+    });
+  }
+  /**
+   * Process the request queue
+   */
+  async processQueue() {
+    if (this.processing || this.activeBatches >= this.config.maxConcurrentBatches) {
+      return;
+    }
+    this.processing = true;
+    while (this.queue.length > 0 && this.activeBatches < this.config.maxConcurrentBatches) {
+      const batch = this.createBatch();
+      if (batch.length === 0) break;
+      this.activeBatches++;
+      this.executeBatch(batch).finally(() => {
+        this.activeBatches--;
+        this.processQueue();
+      });
+    }
+    this.processing = false;
+  }
+  /**
+   * Create a batch from the queue
+   */
+  createBatch() {
+    const batch = [];
+    const sortedQueue = this.queue.sort((a, b) => {
+      const priorityOrder = { high: 3, medium: 2, low: 1 };
+      return priorityOrder[b.priority] - priorityOrder[a.priority];
+    });
+    while (batch.length < this.config.maxBatchSize && sortedQueue.length > 0) {
+      const request = sortedQueue.shift();
+      batch.push(request);
+    }
+    return batch;
+  }
+  /**
+   * Execute a batch of requests
+   */
+  async executeBatch(batch) {
+    const startTime = Date.now();
+    try {
+      const promises = batch.map(async (request) => {
+        const requestStart = Date.now();
+        try {
+          const response = await this.executeSingleRequest(request);
+          const duration = Date.now() - requestStart;
+          request.resolve({
+            id: request.id,
+            success: true,
+            data: response,
+            duration,
+            statusCode: 200
+          });
+        } catch (error) {
+          const duration = Date.now() - requestStart;
+          request.resolve({
+            id: request.id,
+            success: false,
+            error: error instanceof Error ? error.message : "Unknown error",
+            duration,
+            statusCode: error instanceof Response ? error.status : void 0
+          });
+        }
+      });
+      await Promise.all(promises);
+    } catch (error) {
+      batch.forEach((request) => {
+        request.resolve({
+          id: request.id,
+          success: false,
+          error: "Batch execution failed",
+          duration: Date.now() - startTime
+        });
+      });
+    }
+  }
+  /**
+   * Execute a single request with retry logic
+   */
+  async executeSingleRequest(request) {
+    let lastError;
+    for (let attempt = 0; attempt < this.config.retryAttempts; attempt++) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), request.timeout || 1e4);
+        const response = await fetch(request.url, {
+          ...request.options,
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return await response.json();
+      } catch (error) {
+        lastError = error;
+        if (error instanceof Error && error.name === "AbortError") {
+          throw new Error(`Request timeout after ${request.timeout || 1e4}ms`);
+        }
+        if (attempt === this.config.retryAttempts - 1) {
+          throw lastError;
+        }
+        await new Promise((resolve) => setTimeout(resolve, this.config.retryDelay * Math.pow(2, attempt)));
+      }
+    }
+    throw lastError;
+  }
+  /**
+   * Generate unique request ID
+   */
+  generateRequestId() {
+    return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+  /**
+   * Get queue statistics
+   */
+  getStats() {
+    return {
+      queueLength: this.queue.length,
+      activeBatches: this.activeBatches,
+      processing: this.processing
+    };
+  }
+  /**
+   * Clear the queue
+   */
+  clearQueue() {
+    this.queue.forEach((request) => {
+      request.resolve({
+        id: request.id,
+        success: false,
+        error: "Queue cleared",
+        duration: 0
+      });
+    });
+    this.queue = [];
+  }
+};
+var globalBatcher = new RequestBatcher();
+
+// plugin-bitcoin-ltl/src/services/NFTDataService.ts
+import axios2 from "axios";
+var NFTDataService = class _NFTDataService extends BaseDataService {
+  static serviceType = "nft-data";
+  contextLogger;
+  configService;
+  errorHandler;
+  updateInterval = null;
+  // Cache management
+  curatedNFTsCache = null;
+  CURATED_NFTS_CACHE_DURATION = 60 * 1e3;
+  // 1 minute
+  // Curated NFT collections
+  curatedNFTCollections = [
+    "bored-ape-yacht-club",
+    "cryptopunks",
+    "doodles-official",
+    "azuki",
+    "clonex",
+    "meebits",
+    "world-of-women-nft",
+    "cool-cats-nft",
+    "veefriends",
+    "loot-for-adventurers"
+  ];
+  constructor(runtime) {
+    super(runtime, "nftData");
+    this.contextLogger = new LoggerWithContext(generateCorrelationId(), "NFTDataService");
+    this.configService = runtime.getService("centralized-config");
+    this.errorHandler = runtime.getService("comprehensive-error-handler");
+  }
+  get capabilityDescription() {
+    return "Provides comprehensive NFT market data, collection analytics, and curated insights for top NFT collections";
+  }
+  static async start(runtime) {
+    elizaLogger7.info("Starting NFTDataService...");
+    const service = new _NFTDataService(runtime);
+    await service.init();
+    return service;
+  }
+  static async stop(runtime) {
+    elizaLogger7.info("Stopping NFTDataService...");
+    const service = runtime.getService("nft-data");
+    if (service) {
+      await service.stop();
+    }
+  }
+  async start() {
+    this.contextLogger.info("Starting NFT data service...");
+    await this.startRealTimeUpdates();
+  }
+  async init() {
+    this.contextLogger.info("Initializing NFT data service...");
+    await this.updateData();
+  }
+  async stop() {
+    this.contextLogger.info("Stopping NFT data service...");
+    if (this.updateInterval) {
+      clearInterval(this.updateInterval);
+      this.updateInterval = null;
+    }
+  }
+  async updateData() {
+    try {
+      this.contextLogger.info("Updating NFT data...");
+      await this.updateCuratedNFTsData();
+      this.contextLogger.info("NFT data update completed");
+    } catch (error) {
+      this.errorHandler.handleError(error, "NFTDataService.updateData", "critical");
+    }
+  }
+  async forceUpdate() {
+    this.contextLogger.info("Forcing NFT data update...");
+    await this.updateData();
+  }
+  /**
+   * Start real-time updates for NFT data
+   */
+  async startRealTimeUpdates() {
+    const updateInterval = this.configService.get("services.nftData.updateInterval", 3e5);
+    this.updateInterval = setInterval(async () => {
+      try {
+        await this.updateData();
+      } catch (error) {
+        this.errorHandler.handleError(error, "NFTDataService.startRealTimeUpdates", "high");
+      }
+    }, updateInterval);
+    this.contextLogger.info(`NFT data updates scheduled every ${updateInterval}ms`);
+  }
+  /**
+   * Update curated NFTs data
+   */
+  async updateCuratedNFTsData() {
+    if (this.isCuratedNFTsCacheValid()) {
+      this.contextLogger.debug("Using cached curated NFTs data");
+      return;
+    }
+    try {
+      const data = await this.fetchCuratedNFTsData();
+      if (data) {
+        this.curatedNFTsCache = {
+          data,
+          timestamp: Date.now()
+        };
+        this.contextLogger.info("Curated NFTs data updated successfully");
+      }
+    } catch (error) {
+      this.errorHandler.handleError(error, "NFTDataService.updateCuratedNFTsData", "high");
+    }
+  }
+  /**
+   * Check if curated NFTs cache is valid
+   */
+  isCuratedNFTsCacheValid() {
+    if (!this.curatedNFTsCache) return false;
+    return Date.now() - this.curatedNFTsCache.timestamp < this.CURATED_NFTS_CACHE_DURATION;
+  }
+  /**
+   * Fetch curated NFTs data
+   */
+  async fetchCuratedNFTsData() {
+    try {
+      this.contextLogger.info("Fetching curated NFTs data...");
+      const collections = [];
+      const headers = {
+        "X-API-KEY": this.configService.get("apis.opensea.apiKey", ""),
+        "Accept": "application/json"
+      };
+      for (const collectionSlug of this.curatedNFTCollections) {
+        try {
+          const collectionData = await this.fetchEnhancedCollectionData(collectionSlug, headers);
+          if (collectionData) {
+            collections.push(collectionData);
+          }
+        } catch (error) {
+          this.errorHandler.handleError(error, `NFTDataService.fetchCuratedNFTsData.${collectionSlug}`, "medium");
+        }
+      }
+      if (collections.length === 0) {
+        this.contextLogger.warn("No NFT collections data available");
+        return null;
+      }
+      const summary = this.calculateNFTSummary(collections);
+      return {
+        collections,
+        summary,
+        lastUpdated: /* @__PURE__ */ new Date()
+      };
+    } catch (error) {
+      this.errorHandler.handleError(error, "NFTDataService.fetchCuratedNFTsData", "high");
+      return null;
+    }
+  }
+  /**
+   * Fetch enhanced collection data from OpenSea API
+   */
+  async fetchEnhancedCollectionData(collectionSlug, headers) {
+    try {
+      const baseUrl = this.configService.get("apis.opensea.baseUrl", "https://api.opensea.io/api/v1");
+      const collectionResponse = await axios2.get(`${baseUrl}/collection/${collectionSlug}`, { headers });
+      const collectionInfo = collectionResponse.data.collection;
+      const statsResponse = await axios2.get(`${baseUrl}/collection/${collectionSlug}/stats`, { headers });
+      const statsData = statsResponse.data.stats;
+      const stats = this.parseCollectionStats(statsData);
+      const category = this.determineCollectionCategory(collectionInfo);
+      return {
+        slug: collectionSlug,
+        collection: collectionInfo,
+        stats,
+        lastUpdated: /* @__PURE__ */ new Date(),
+        category,
+        contractAddress: collectionInfo.primary_asset_contracts?.[0]?.address,
+        blockchain: collectionInfo.primary_asset_contracts?.[0]?.chain
+      };
+    } catch (error) {
+      this.errorHandler.handleError(error, `NFTDataService.fetchEnhancedCollectionData.${collectionSlug}`, "medium");
+      return null;
+    }
+  }
+  /**
+   * Parse collection stats from API response
+   */
+  parseCollectionStats(statsData) {
+    return {
+      total_supply: statsData.total_supply || 0,
+      num_owners: statsData.num_owners || 0,
+      average_price: statsData.average_price || 0,
+      floor_price: statsData.floor_price || 0,
+      market_cap: statsData.market_cap || 0,
+      one_day_volume: statsData.one_day_volume || 0,
+      one_day_change: statsData.one_day_change || 0,
+      one_day_sales: statsData.one_day_sales || 0,
+      seven_day_volume: statsData.seven_day_volume || 0,
+      seven_day_change: statsData.seven_day_change || 0,
+      seven_day_sales: statsData.seven_day_sales || 0,
+      thirty_day_volume: statsData.thirty_day_volume || 0,
+      thirty_day_change: statsData.thirty_day_change || 0,
+      thirty_day_sales: statsData.thirty_day_sales || 0
+    };
+  }
+  /**
+   * Determine collection category based on metadata
+   */
+  determineCollectionCategory(collectionInfo) {
+    const name = collectionInfo.name?.toLowerCase() || "";
+    const description = collectionInfo.description?.toLowerCase() || "";
+    if (["bored ape yacht club", "cryptopunks", "azuki", "clonex"].some((term) => name.includes(term))) {
+      return "blue-chip";
+    }
+    if (["pfp", "profile picture", "avatar"].some((term) => description.includes(term))) {
+      return "pfp";
+    }
+    if (["generative", "algorithmic", "procedural"].some((term) => description.includes(term))) {
+      return "generative-art";
+    }
+    if (["utility", "access", "membership", "governance"].some((term) => description.includes(term))) {
+      return "utility";
+    }
+    return "digital-art";
+  }
+  /**
+   * Calculate NFT summary statistics
+   */
+  calculateNFTSummary(collections) {
+    const totalVolume24h = collections.reduce((sum, collection) => sum + collection.stats.one_day_volume, 0);
+    const totalMarketCap = collections.reduce((sum, collection) => sum + collection.stats.market_cap, 0);
+    const avgFloorPrice = collections.reduce((sum, collection) => sum + collection.stats.floor_price, 0) / collections.length;
+    const sortedByPerformance = [...collections].sort((a, b) => b.stats.one_day_change - a.stats.one_day_change);
+    const topPerformers = sortedByPerformance.slice(0, 3);
+    const worstPerformers = sortedByPerformance.slice(-3).reverse();
+    return {
+      totalVolume24h,
+      totalMarketCap,
+      avgFloorPrice,
+      topPerformers,
+      worstPerformers,
+      totalCollections: collections.length
+    };
+  }
+  /**
+   * Get curated NFTs data
+   */
+  getCuratedNFTsData() {
+    if (!this.curatedNFTsCache) {
+      this.contextLogger.warn("No curated NFTs data available");
+      return null;
+    }
+    return this.curatedNFTsCache.data;
+  }
+  /**
+   * Force update curated NFTs data
+   */
+  async forceCuratedNFTsUpdate() {
+    this.contextLogger.info("Forcing curated NFTs data update...");
+    this.curatedNFTsCache = null;
+    await this.updateCuratedNFTsData();
+    return this.getCuratedNFTsData();
+  }
+  /**
+   * Get NFT collection by slug
+   */
+  getNFTCollection(slug) {
+    const data = this.getCuratedNFTsData();
+    return data?.collections.find((collection) => collection.slug === slug);
+  }
+  /**
+   * Get NFT collections by category
+   */
+  getNFTCollectionsByCategory(category) {
+    const data = this.getCuratedNFTsData();
+    return data?.collections.filter((collection) => collection.category === category) || [];
+  }
+  /**
+   * Get service statistics
+   */
+  getStats() {
+    const data = this.getCuratedNFTsData();
+    return {
+      cacheStatus: this.isCuratedNFTsCacheValid() ? "valid" : "expired",
+      lastUpdate: this.curatedNFTsCache?.timestamp ? new Date(this.curatedNFTsCache.timestamp) : null,
+      collectionsCount: data?.collections.length || 0,
+      totalVolume24h: data?.summary.totalVolume24h || 0,
+      cacheHitRate: this.isCuratedNFTsCacheValid() ? 100 : 0
+    };
+  }
+};
+
+// plugin-bitcoin-ltl/src/services/NewsDataService.ts
+import { elizaLogger as elizaLogger8 } from "@elizaos/core";
+import axios3 from "axios";
+
+// plugin-bitcoin-ltl/src/services/SocialSentimentService.ts
+import { elizaLogger as elizaLogger9 } from "@elizaos/core";
+import axios4 from "axios";
+
+// plugin-bitcoin-ltl/src/services/CentralizedConfigService.ts
+import { elizaLogger as elizaLogger10 } from "@elizaos/core";
+import { z as z2 } from "zod";
+var ConfigSchema = z2.object({
+  // API Configuration
+  apis: z2.object({
+    coingecko: z2.object({
+      enabled: z2.boolean().default(true),
+      apiKey: z2.string().optional(),
+      baseUrl: z2.string().default("https://api.coingecko.com/api/v3"),
+      rateLimit: z2.number().default(50),
+      // requests per minute
+      timeout: z2.number().default(1e4)
+    }),
+    blockchain: z2.object({
+      enabled: z2.boolean().default(true),
+      baseUrl: z2.string().default("https://api.blockchain.info"),
+      timeout: z2.number().default(1e4)
+    }),
+    mempool: z2.object({
+      enabled: z2.boolean().default(true),
+      baseUrl: z2.string().default("https://mempool.space/api"),
+      timeout: z2.number().default(1e4)
+    }),
+    alternative: z2.object({
+      enabled: z2.boolean().default(true),
+      baseUrl: z2.string().default("https://api.alternative.me"),
+      timeout: z2.number().default(1e4)
+    }),
+    weather: z2.object({
+      enabled: z2.boolean().default(true),
+      apiKey: z2.string().optional(),
+      baseUrl: z2.string().default("https://api.weatherapi.com/v1"),
+      timeout: z2.number().default(1e4)
+    }),
+    stocks: z2.object({
+      enabled: z2.boolean().default(true),
+      apiKey: z2.string().optional(),
+      baseUrl: z2.string().default("https://api.example.com/stocks"),
+      timeout: z2.number().default(1e4)
+    }),
+    etfs: z2.object({
+      enabled: z2.boolean().default(true),
+      apiKey: z2.string().optional(),
+      baseUrl: z2.string().default("https://api.example.com/etfs"),
+      timeout: z2.number().default(1e4)
+    }),
+    travel: z2.object({
+      enabled: z2.boolean().default(true),
+      apiKey: z2.string().optional(),
+      baseUrl: z2.string().default("https://api.example.com/travel"),
+      timeout: z2.number().default(1e4)
+    }),
+    news: z2.object({
+      enabled: z2.boolean().default(true),
+      apiKey: z2.string().optional(),
+      baseUrl: z2.string().default("https://newsapi.org/v2"),
+      timeout: z2.number().default(1e4)
+    }),
+    opensea: z2.object({
+      enabled: z2.boolean().default(true),
+      apiKey: z2.string().optional(),
+      baseUrl: z2.string().default("https://api.opensea.io/api/v1"),
+      timeout: z2.number().default(1e4)
+    }),
+    twitter: z2.object({
+      enabled: z2.boolean().default(true),
+      apiKey: z2.string().optional(),
+      baseUrl: z2.string().default("https://api.twitter.com/2"),
+      timeout: z2.number().default(1e4)
+    }),
+    telegram: z2.object({
+      enabled: z2.boolean().default(true),
+      apiKey: z2.string().optional(),
+      baseUrl: z2.string().default("https://api.telegram.org"),
+      timeout: z2.number().default(1e4)
+    }),
+    discord: z2.object({
+      enabled: z2.boolean().default(true),
+      apiKey: z2.string().optional(),
+      baseUrl: z2.string().default("https://discord.com/api"),
+      timeout: z2.number().default(1e4)
+    })
+  }),
+  // Service Configuration
+  services: z2.object({
+    bitcoinNetwork: z2.object({
+      enabled: z2.boolean().default(true),
+      updateInterval: z2.number().default(18e4),
+      // 3 minutes
+      cacheTimeout: z2.number().default(6e4),
+      // 1 minute
+      maxRetries: z2.number().default(3),
+      circuitBreakerThreshold: z2.number().default(5),
+      circuitBreakerTimeout: z2.number().default(6e4)
+    }),
+    marketData: z2.object({
+      enabled: z2.boolean().default(true),
+      updateInterval: z2.number().default(3e5),
+      // 5 minutes
+      cacheTimeout: z2.number().default(3e5),
+      // 5 minutes
+      maxRetries: z2.number().default(3),
+      circuitBreakerThreshold: z2.number().default(5),
+      circuitBreakerTimeout: z2.number().default(6e4)
+    }),
+    realTimeData: z2.object({
+      enabled: z2.boolean().default(true),
+      updateInterval: z2.number().default(6e4),
+      // 1 minute
+      cacheTimeout: z2.number().default(3e4),
+      // 30 seconds
+      maxRetries: z2.number().default(3),
+      circuitBreakerThreshold: z2.number().default(5),
+      circuitBreakerTimeout: z2.number().default(6e4)
+    }),
+    newsData: z2.object({
+      enabled: z2.boolean().default(true),
+      updateInterval: z2.number().default(3e5),
+      // 5 minutes
+      cacheTimeout: z2.number().default(3e5),
+      // 5 minutes
+      maxRetries: z2.number().default(3),
+      circuitBreakerThreshold: z2.number().default(5),
+      circuitBreakerTimeout: z2.number().default(6e4)
+    }),
+    nftData: z2.object({
+      enabled: z2.boolean().default(true),
+      updateInterval: z2.number().default(3e5),
+      // 5 minutes
+      cacheTimeout: z2.number().default(6e4),
+      // 1 minute
+      maxRetries: z2.number().default(3),
+      circuitBreakerThreshold: z2.number().default(5),
+      circuitBreakerTimeout: z2.number().default(6e4)
+    }),
+    socialSentiment: z2.object({
+      enabled: z2.boolean().default(true),
+      updateInterval: z2.number().default(3e5),
+      // 5 minutes
+      cacheTimeout: z2.number().default(3e5),
+      // 5 minutes
+      maxRetries: z2.number().default(3),
+      circuitBreakerThreshold: z2.number().default(5),
+      circuitBreakerTimeout: z2.number().default(6e4)
+    })
+  }),
+  // Request Batching Configuration
+  batching: z2.object({
+    enabled: z2.boolean().default(true),
+    maxBatchSize: z2.number().default(10),
+    maxWaitTime: z2.number().default(1e3),
+    maxConcurrentBatches: z2.number().default(3),
+    retryAttempts: z2.number().default(3),
+    retryDelay: z2.number().default(1e3)
+  }),
+  // Caching Configuration
+  caching: z2.object({
+    enabled: z2.boolean().default(true),
+    defaultTtl: z2.number().default(3e5),
+    // 5 minutes
+    maxSize: z2.number().default(1e3),
+    cleanupInterval: z2.number().default(6e5),
+    // 10 minutes
+    redis: z2.object({
+      enabled: z2.boolean().default(false),
+      url: z2.string().optional(),
+      password: z2.string().optional(),
+      db: z2.number().default(0)
+    })
+  }),
+  // Logging Configuration
+  logging: z2.object({
+    level: z2.enum(["debug", "info", "warn", "error"]).default("info"),
+    enableCorrelationIds: z2.boolean().default(true),
+    enablePerformanceTracking: z2.boolean().default(true),
+    logToFile: z2.boolean().default(false),
+    logFilePath: z2.string().optional()
+  }),
+  // Performance Configuration
+  performance: z2.object({
+    enableMetrics: z2.boolean().default(true),
+    metricsInterval: z2.number().default(6e4),
+    // 1 minute
+    enableHealthChecks: z2.boolean().default(true),
+    healthCheckInterval: z2.number().default(3e4),
+    // 30 seconds
+    enableCircuitBreakers: z2.boolean().default(true)
+  }),
+  // Security Configuration
+  security: z2.object({
+    enableRateLimiting: z2.boolean().default(true),
+    maxRequestsPerMinute: z2.number().default(100),
+    enableRequestValidation: z2.boolean().default(true),
+    allowedOrigins: z2.array(z2.string()).default(["*"])
+  }),
+  // Feature Flags
+  features: z2.object({
+    enableRealTimeUpdates: z2.boolean().default(true),
+    enablePredictiveAnalytics: z2.boolean().default(false),
+    enableAdvancedCharts: z2.boolean().default(true),
+    enableNotifications: z2.boolean().default(true),
+    enableDataExport: z2.boolean().default(false)
+  })
+});
+
+// plugin-bitcoin-ltl/src/services/CacheService.ts
+import { elizaLogger as elizaLogger11 } from "@elizaos/core";
+
+// plugin-bitcoin-ltl/src/services/PerformanceMonitorService.ts
+import { elizaLogger as elizaLogger12 } from "@elizaos/core";
+
+// plugin-bitcoin-ltl/src/services/IntegrationService.ts
+import { elizaLogger as elizaLogger13 } from "@elizaos/core";
+
+// plugin-bitcoin-ltl/src/services/PredictiveAnalyticsService.ts
+import { elizaLogger as elizaLogger14 } from "@elizaos/core";
+
+// plugin-bitcoin-ltl/src/services/RealTimeStreamingService.ts
+import { elizaLogger as elizaLogger15 } from "@elizaos/core";
+
+// plugin-bitcoin-ltl/node_modules/ws/wrapper.mjs
+var import_stream = __toESM(require_stream(), 1);
+var import_receiver = __toESM(require_receiver(), 1);
+var import_sender = __toESM(require_sender(), 1);
+var import_websocket = __toESM(require_websocket(), 1);
+var import_websocket_server = __toESM(require_websocket_server(), 1);
+
+// plugin-bitcoin-ltl/src/services/AdvancedAlertingService.ts
+import { elizaLogger as elizaLogger16 } from "@elizaos/core";
+
+// plugin-bitcoin-ltl/src/services/ProductionDeploymentService.ts
+import { elizaLogger as elizaLogger17 } from "@elizaos/core";
+
 // plugin-bitcoin-ltl/src/services/BitcoinDataService.ts
+import { elizaLogger as elizaLogger18 } from "@elizaos/core";
 var BitcoinDataService = class _BitcoinDataService extends BaseDataService {
   static serviceType = "bitcoin-data";
   capabilityDescription = "Provides Bitcoin market data, analysis, and thesis tracking capabilities";
@@ -4473,11 +9064,11 @@ var BitcoinDataService = class _BitcoinDataService extends BaseDataService {
         contextLogger.warn(`Environment Issue: ${issue}`);
       });
     }
-    elizaLogger4.info("BitcoinDataService starting...");
+    elizaLogger18.info("BitcoinDataService starting...");
     return new _BitcoinDataService(runtime);
   }
   static async stop(runtime) {
-    elizaLogger4.info("BitcoinDataService stopping...");
+    elizaLogger18.info("BitcoinDataService stopping...");
     const service = runtime.getService("bitcoin-data");
     if (!service) {
       throw new Error("BitcoinDataService not found");
@@ -4487,15 +9078,15 @@ var BitcoinDataService = class _BitcoinDataService extends BaseDataService {
     }
   }
   async start() {
-    elizaLogger4.info("BitcoinDataService starting...");
+    elizaLogger18.info("BitcoinDataService starting...");
     await this.updateData();
-    elizaLogger4.info("BitcoinDataService started successfully");
+    elizaLogger18.info("BitcoinDataService started successfully");
   }
   async init() {
-    elizaLogger4.info("BitcoinDataService initialized");
+    elizaLogger18.info("BitcoinDataService initialized");
   }
   async stop() {
-    elizaLogger4.info("BitcoinDataService stopped");
+    elizaLogger18.info("BitcoinDataService stopped");
   }
   /**
    * Required abstract method implementation for BaseDataService
@@ -4506,9 +9097,9 @@ var BitcoinDataService = class _BitcoinDataService extends BaseDataService {
       await this.getBitcoinPrice();
       const currentPrice = await this.getBitcoinPrice();
       await this.calculateThesisMetrics(currentPrice);
-      elizaLogger4.info("[BitcoinDataService] Data update completed successfully");
+      elizaLogger18.info("[BitcoinDataService] Data update completed successfully");
     } catch (error) {
-      elizaLogger4.error("[BitcoinDataService] Error updating data:", error);
+      elizaLogger18.error("[BitcoinDataService] Error updating data:", error);
     }
   }
   /**
@@ -4516,7 +9107,7 @@ var BitcoinDataService = class _BitcoinDataService extends BaseDataService {
    */
   async forceUpdate() {
     try {
-      elizaLogger4.info("[BitcoinDataService] Force updating all Bitcoin data...");
+      elizaLogger18.info("[BitcoinDataService] Force updating all Bitcoin data...");
       const [marketData, currentPrice, thesisData] = await Promise.all([
         this.getEnhancedMarketData(),
         this.getBitcoinPrice(),
@@ -4528,10 +9119,10 @@ var BitcoinDataService = class _BitcoinDataService extends BaseDataService {
         thesisData,
         timestamp: Date.now()
       };
-      elizaLogger4.info("[BitcoinDataService] Force update completed successfully");
+      elizaLogger18.info("[BitcoinDataService] Force update completed successfully");
       return result;
     } catch (error) {
-      elizaLogger4.error("[BitcoinDataService] Error in force update:", error);
+      elizaLogger18.error("[BitcoinDataService] Error in force update:", error);
       throw error;
     }
   }
@@ -4554,7 +9145,7 @@ var BitcoinDataService = class _BitcoinDataService extends BaseDataService {
         const fs = await import("fs");
         if (fs.existsSync(dataDir)) {
           fs.rmSync(dataDir, { recursive: true, force: true });
-          elizaLogger4.info(`Deleted PGLite database directory: ${dataDir}`);
+          elizaLogger18.info(`Deleted PGLite database directory: ${dataDir}`);
           return {
             success: true,
             message: `Memory reset successful. Deleted database directory: ${dataDir}. Restart the agent to create a fresh database.`
@@ -4568,7 +9159,7 @@ var BitcoinDataService = class _BitcoinDataService extends BaseDataService {
       }
     } catch (error) {
       const enhancedError = ElizaOSErrorHandler2.handleCommonErrors(error, "MemoryReset");
-      elizaLogger4.error("Failed to reset memory:", enhancedError.message);
+      elizaLogger18.error("Failed to reset memory:", enhancedError.message);
       return {
         success: false,
         message: `Memory reset failed: ${enhancedError.message}`
@@ -4651,7 +9242,7 @@ var BitcoinDataService = class _BitcoinDataService extends BaseDataService {
         const cached = cachedData[0];
         const cacheAge = Date.now() - cached.timestamp;
         if (cacheAge < 6e4) {
-          elizaLogger4.debug("[BitcoinDataService] Using cached Bitcoin price:", cached.price);
+          elizaLogger18.debug("[BitcoinDataService] Using cached Bitcoin price:", cached.price);
           return cached.price;
         }
       }
@@ -4674,10 +9265,10 @@ var BitcoinDataService = class _BitcoinDataService extends BaseDataService {
       }, "bitcoin-price");
       return price;
     } catch (error) {
-      elizaLogger4.error("Error fetching Bitcoin price:", error);
+      elizaLogger18.error("Error fetching Bitcoin price:", error);
       const fallbackData = await this.getFromMemory("bitcoin-price", 1);
       if (fallbackData.length > 0) {
-        elizaLogger4.warn("[BitcoinDataService] Using fallback price from memory");
+        elizaLogger18.warn("[BitcoinDataService] Using fallback price from memory");
         return fallbackData[0].price;
       }
       return 1e5;
@@ -4721,7 +9312,7 @@ var BitcoinDataService = class _BitcoinDataService extends BaseDataService {
       timestamp: Date.now(),
       calculatedAt: (/* @__PURE__ */ new Date()).toISOString()
     }, "bitcoin-thesis");
-    elizaLogger4.info(`[BitcoinDataService] Thesis metrics calculated: ${progressPercentage.toFixed(2)}% progress to $1M target`);
+    elizaLogger18.info(`[BitcoinDataService] Thesis metrics calculated: ${progressPercentage.toFixed(2)}% progress to $1M target`);
     return thesisData;
   }
   /**
@@ -4734,7 +9325,7 @@ var BitcoinDataService = class _BitcoinDataService extends BaseDataService {
         const cached = cachedData[0];
         const cacheAge = Date.now() - cached.timestamp;
         if (cacheAge < 3e5) {
-          elizaLogger4.debug("[BitcoinDataService] Using cached market data");
+          elizaLogger18.debug("[BitcoinDataService] Using cached market data");
           return cached;
         }
       }
@@ -4773,13 +9364,13 @@ var BitcoinDataService = class _BitcoinDataService extends BaseDataService {
         timestamp: Date.now(),
         source: "coingecko-enhanced"
       }, "bitcoin-market-data");
-      elizaLogger4.info(`[BitcoinDataService] Enhanced market data updated: $${marketData.price.toLocaleString()}`);
+      elizaLogger18.info(`[BitcoinDataService] Enhanced market data updated: $${marketData.price.toLocaleString()}`);
       return marketData;
     } catch (error) {
-      elizaLogger4.error("Error fetching enhanced market data:", error);
+      elizaLogger18.error("Error fetching enhanced market data:", error);
       const fallbackData = await this.getFromMemory("bitcoin-market-data", 1);
       if (fallbackData.length > 0) {
-        elizaLogger4.warn("[BitcoinDataService] Using fallback market data from memory");
+        elizaLogger18.warn("[BitcoinDataService] Using fallback market data from memory");
         return fallbackData[0];
       }
       return {
@@ -4846,7 +9437,7 @@ var BitcoinDataService = class _BitcoinDataService extends BaseDataService {
       timestamp: Date.now(),
       calculatedAt: (/* @__PURE__ */ new Date()).toISOString()
     }, "bitcoin-freedom-math");
-    elizaLogger4.info(`Freedom Mathematics calculated for $${targetFreedom.toLocaleString()}`, {
+    elizaLogger18.info(`Freedom Mathematics calculated for $${targetFreedom.toLocaleString()}`, {
       currentBTCNeeded: `${btcNeeded.toFixed(2)} BTC`,
       conservativeTarget: `${safeLevels.conservative.toFixed(2)} BTC`
     });
@@ -4860,10 +9451,10 @@ var BitcoinDataService = class _BitcoinDataService extends BaseDataService {
       const thesisHistory = await this.getFromMemory("bitcoin-thesis", 50);
       const cutoffTime = Date.now() - days * 24 * 60 * 60 * 1e3;
       const recentHistory = thesisHistory.filter((entry) => entry.timestamp > cutoffTime);
-      elizaLogger4.info(`[BitcoinDataService] Retrieved ${recentHistory.length} thesis progress entries from last ${days} days`);
+      elizaLogger18.info(`[BitcoinDataService] Retrieved ${recentHistory.length} thesis progress entries from last ${days} days`);
       return recentHistory;
     } catch (error) {
-      elizaLogger4.error("Error retrieving thesis progress history:", error);
+      elizaLogger18.error("Error retrieving thesis progress history:", error);
       return [];
     }
   }
@@ -4875,10 +9466,10 @@ var BitcoinDataService = class _BitcoinDataService extends BaseDataService {
       const freedomHistory = await this.getFromMemory("bitcoin-freedom-math", 50);
       const cutoffTime = Date.now() - days * 24 * 60 * 60 * 1e3;
       const recentHistory = freedomHistory.filter((entry) => entry.timestamp > cutoffTime);
-      elizaLogger4.info(`[BitcoinDataService] Retrieved ${recentHistory.length} freedom math entries from last ${days} days`);
+      elizaLogger18.info(`[BitcoinDataService] Retrieved ${recentHistory.length} freedom math entries from last ${days} days`);
       return recentHistory;
     } catch (error) {
-      elizaLogger4.error("Error retrieving freedom math history:", error);
+      elizaLogger18.error("Error retrieving freedom math history:", error);
       return [];
     }
   }
@@ -4917,7 +9508,7 @@ var BitcoinDataService = class _BitcoinDataService extends BaseDataService {
       adoptionScore: 75
       // Based on current institutional momentum
     };
-    elizaLogger4.info("Institutional adoption analysis complete", {
+    elizaLogger18.info("Institutional adoption analysis complete", {
       adoptionScore: `${analysis.adoptionScore}/100`,
       corporateCount: analysis.corporateAdoption.length,
       bankingCount: analysis.bankingIntegration.length
@@ -4927,7 +9518,7 @@ var BitcoinDataService = class _BitcoinDataService extends BaseDataService {
 };
 
 // plugin-bitcoin-ltl/src/services/ContentIngestionService.ts
-import { elizaLogger as elizaLogger5 } from "@elizaos/core";
+import { elizaLogger as elizaLogger19 } from "@elizaos/core";
 var ContentIngestionService2 = class extends BaseDataService {
   constructor(runtime, serviceName, configKey = "bitcoinData") {
     super(runtime, configKey);
@@ -4944,11 +9535,11 @@ var ContentIngestionService2 = class extends BaseDataService {
     return "Ingests and processes content from various sources for analysis";
   }
   static async start(runtime) {
-    elizaLogger5.info("ContentIngestionService starting...");
+    elizaLogger19.info("ContentIngestionService starting...");
     return null;
   }
   static async stop(runtime) {
-    elizaLogger5.info("ContentIngestionService stopping...");
+    elizaLogger19.info("ContentIngestionService stopping...");
   }
   async start() {
     this.contextLogger.info(`${this.serviceName} starting...`);
@@ -5190,7 +9781,7 @@ var ContentIngestionService2 = class extends BaseDataService {
 };
 
 // plugin-bitcoin-ltl/src/services/SlackIngestionService.ts
-import { elizaLogger as elizaLogger6 } from "@elizaos/core";
+import { elizaLogger as elizaLogger20 } from "@elizaos/core";
 var SlackIngestionService = class _SlackIngestionService extends ContentIngestionService2 {
   static serviceType = "slack-ingestion";
   channels = [];
@@ -5203,13 +9794,13 @@ var SlackIngestionService = class _SlackIngestionService extends ContentIngestio
     return "Monitors Slack channels for curated content and research updates";
   }
   static async start(runtime) {
-    elizaLogger6.info("SlackIngestionService starting...");
+    elizaLogger20.info("SlackIngestionService starting...");
     const service = new _SlackIngestionService(runtime);
     await service.init();
     return service;
   }
   static async stop(runtime) {
-    elizaLogger6.info("SlackIngestionService stopping...");
+    elizaLogger20.info("SlackIngestionService stopping...");
     const service = runtime.getService("slack-ingestion");
     if (service && service.stop) {
       await service.stop();
@@ -5469,7 +10060,7 @@ var SlackIngestionService = class _SlackIngestionService extends ContentIngestio
 };
 
 // plugin-bitcoin-ltl/src/services/MorningBriefingService.ts
-import { elizaLogger as elizaLogger7 } from "@elizaos/core";
+import { elizaLogger as elizaLogger21 } from "@elizaos/core";
 var MorningBriefingService = class _MorningBriefingService extends BaseDataService {
   static serviceType = "morning-briefing";
   capabilityDescription = "Generates proactive morning intelligence briefings with market data and curated insights";
@@ -5481,25 +10072,25 @@ var MorningBriefingService = class _MorningBriefingService extends BaseDataServi
     this.briefingConfig = this.getDefaultBriefingConfig();
   }
   static async start(runtime) {
-    elizaLogger7.info("MorningBriefingService starting...");
+    elizaLogger21.info("MorningBriefingService starting...");
     const service = new _MorningBriefingService(runtime);
     await service.init();
     return service;
   }
   static async stop(runtime) {
-    elizaLogger7.info("MorningBriefingService stopping...");
+    elizaLogger21.info("MorningBriefingService stopping...");
     const service = runtime.getService("morning-briefing");
     if (service && service.stop) {
       await service.stop();
     }
   }
   async start() {
-    elizaLogger7.info(`[MorningBriefingService:${this.correlationId}] Service starting...`);
+    elizaLogger21.info(`[MorningBriefingService:${this.correlationId}] Service starting...`);
     await this.updateData();
-    elizaLogger7.info(`[MorningBriefingService:${this.correlationId}] Service started successfully`);
+    elizaLogger21.info(`[MorningBriefingService:${this.correlationId}] Service started successfully`);
   }
   async init() {
-    elizaLogger7.info(`[MorningBriefingService:${this.correlationId}] Service initialized`);
+    elizaLogger21.info(`[MorningBriefingService:${this.correlationId}] Service initialized`);
     this.scheduleDailyBriefing();
     if (!this.lastBriefing) {
       await this.generateMorningBriefing();
@@ -5509,7 +10100,7 @@ var MorningBriefingService = class _MorningBriefingService extends BaseDataServi
     if (this.scheduledBriefing) {
       clearTimeout(this.scheduledBriefing);
     }
-    elizaLogger7.info(`[MorningBriefingService:${this.correlationId}] Service stopped`);
+    elizaLogger21.info(`[MorningBriefingService:${this.correlationId}] Service stopped`);
   }
   /**
    * Required abstract method implementation
@@ -5522,7 +10113,7 @@ var MorningBriefingService = class _MorningBriefingService extends BaseDataServi
         await this.generateMorningBriefing();
       }
     } catch (error) {
-      elizaLogger7.error(`[MorningBriefingService:${this.correlationId}] Error updating data:`, error);
+      elizaLogger21.error(`[MorningBriefingService:${this.correlationId}] Error updating data:`, error);
     }
   }
   /**
@@ -5532,7 +10123,7 @@ var MorningBriefingService = class _MorningBriefingService extends BaseDataServi
     try {
       return await this.generateMorningBriefing();
     } catch (error) {
-      elizaLogger7.error(`[MorningBriefingService:${this.correlationId}] Error in force update:`, error);
+      elizaLogger21.error(`[MorningBriefingService:${this.correlationId}] Error in force update:`, error);
       throw error;
     }
   }
@@ -5560,7 +10151,7 @@ var MorningBriefingService = class _MorningBriefingService extends BaseDataServi
    * Handle configuration changes
    */
   async onConfigurationChanged(newConfig) {
-    elizaLogger7.info(`[MorningBriefingService:${this.correlationId}] Configuration updated`);
+    elizaLogger21.info(`[MorningBriefingService:${this.correlationId}] Configuration updated`);
     if (newConfig.deliveryTime) {
       this.briefingConfig.deliveryTime = newConfig.deliveryTime;
       if (this.scheduledBriefing) {
@@ -5604,10 +10195,10 @@ var MorningBriefingService = class _MorningBriefingService extends BaseDataServi
       await this.generateMorningBriefing();
       this.scheduleDailyBriefing();
     }, msUntilNext);
-    elizaLogger7.info(`[MorningBriefingService:${this.correlationId}] Next morning briefing scheduled for ${next.toLocaleString()}`);
+    elizaLogger21.info(`[MorningBriefingService:${this.correlationId}] Next morning briefing scheduled for ${next.toLocaleString()}`);
   }
   async generateMorningBriefing() {
-    elizaLogger7.info(`[MorningBriefingService:${this.correlationId}] Generating morning intelligence briefing...`);
+    elizaLogger21.info(`[MorningBriefingService:${this.correlationId}] Generating morning intelligence briefing...`);
     try {
       const [weatherData, marketPulse, knowledgeDigest, opportunities] = await Promise.all([
         this.briefingConfig.includeWeather ? this.getWeatherData() : Promise.resolve(null),
@@ -5616,12 +10207,11 @@ var MorningBriefingService = class _MorningBriefingService extends BaseDataServi
         this.getOpportunities()
       ]);
       const briefing = await this.compileBriefing(weatherData, marketPulse, knowledgeDigest, opportunities);
-      await this.storeInMemory(briefing, "morning-briefing");
-      elizaLogger7.info(`[MorningBriefingService:${this.correlationId}] Morning briefing generated: ${briefing.briefingId}`);
+      elizaLogger21.info(`[MorningBriefingService:${this.correlationId}] Morning briefing generated: ${briefing.briefingId}`);
       this.lastBriefing = /* @__PURE__ */ new Date();
       return briefing;
     } catch (error) {
-      elizaLogger7.error(`[MorningBriefingService:${this.correlationId}] Failed to generate morning briefing:`, error);
+      elizaLogger21.error(`[MorningBriefingService:${this.correlationId}] Failed to generate morning briefing:`, error);
       throw error;
     }
   }
@@ -5629,12 +10219,12 @@ var MorningBriefingService = class _MorningBriefingService extends BaseDataServi
     try {
       const realTimeDataService = this.runtime.getService("RealTimeDataService");
       if (!realTimeDataService) {
-        elizaLogger7.warn(`[MorningBriefingService:${this.correlationId}] RealTimeDataService not available for weather data`);
+        elizaLogger21.warn(`[MorningBriefingService:${this.correlationId}] RealTimeDataService not available for weather data`);
         return null;
       }
       const weatherData = realTimeDataService.getWeatherData();
       if (!weatherData) {
-        elizaLogger7.warn(`[MorningBriefingService:${this.correlationId}] No weather data available`);
+        elizaLogger21.warn(`[MorningBriefingService:${this.correlationId}] No weather data available`);
         return null;
       }
       const monaco = weatherData.cities.find((c) => c.city === "monaco");
@@ -5681,7 +10271,7 @@ var MorningBriefingService = class _MorningBriefingService extends BaseDataServi
         windSpeed: Math.round(primaryCity.weather.current?.wind_speed_10m || 0)
       };
     } catch (error) {
-      elizaLogger7.error(`[MorningBriefingService:${this.correlationId}] Error fetching weather data:`, error);
+      elizaLogger21.error(`[MorningBriefingService:${this.correlationId}] Error fetching weather data:`, error);
       return null;
     }
   }
@@ -5689,7 +10279,7 @@ var MorningBriefingService = class _MorningBriefingService extends BaseDataServi
     try {
       const bitcoinService = this.runtime.getService("bitcoin-data");
       if (!bitcoinService) {
-        elizaLogger7.warn(`[MorningBriefingService:${this.correlationId}] BitcoinDataService not available`);
+        elizaLogger21.warn(`[MorningBriefingService:${this.correlationId}] BitcoinDataService not available`);
         return null;
       }
       const bitcoinPrice = await bitcoinService.getBitcoinPrice();
@@ -5699,9 +10289,9 @@ var MorningBriefingService = class _MorningBriefingService extends BaseDataServi
       if (stockDataService && stockDataService.getStockData) {
         try {
           stockData = stockDataService.getStockData();
-          elizaLogger7.info(`[MorningBriefingService:${this.correlationId}] Stock data loaded for morning briefing`);
+          elizaLogger21.info(`[MorningBriefingService:${this.correlationId}] Stock data loaded for morning briefing`);
         } catch (error) {
-          elizaLogger7.warn(`[MorningBriefingService:${this.correlationId}] Failed to get stock data:`, error);
+          elizaLogger21.warn(`[MorningBriefingService:${this.correlationId}] Failed to get stock data:`, error);
         }
       }
       let stocksSection = {
@@ -5795,10 +10385,10 @@ var MorningBriefingService = class _MorningBriefingService extends BaseDataServi
               totalOutperforming: top100VsBtcData.outperformingCount,
               isAltseason
             };
-            elizaLogger7.info(`[MorningBriefingService:${this.correlationId}] Real altcoin data loaded: ${top100VsBtcData.outperformingCount}/${top100VsBtcData.totalCoins} outperforming BTC (${outperformingPercent.toFixed(1)}%)`);
+            elizaLogger21.info(`[MorningBriefingService:${this.correlationId}] Real altcoin data loaded: ${top100VsBtcData.outperformingCount}/${top100VsBtcData.totalCoins} outperforming BTC (${outperformingPercent.toFixed(1)}%)`);
           }
         } catch (error) {
-          elizaLogger7.warn(`[MorningBriefingService:${this.correlationId}] Failed to get real altcoin data, using fallback:`, error);
+          elizaLogger21.warn(`[MorningBriefingService:${this.correlationId}] Failed to get real altcoin data, using fallback:`, error);
         }
       }
       const marketPulse = {
@@ -5823,7 +10413,7 @@ var MorningBriefingService = class _MorningBriefingService extends BaseDataServi
       };
       return marketPulse;
     } catch (error) {
-      elizaLogger7.error(`[MorningBriefingService:${this.correlationId}] Failed to get market pulse:`, error);
+      elizaLogger21.error(`[MorningBriefingService:${this.correlationId}] Failed to get market pulse:`, error);
       return null;
     }
   }
@@ -5870,7 +10460,7 @@ var MorningBriefingService = class _MorningBriefingService extends BaseDataServi
       };
       return knowledgeDigest;
     } catch (error) {
-      elizaLogger7.error(`[MorningBriefingService:${this.correlationId}] Failed to get knowledge digest:`, error);
+      elizaLogger21.error(`[MorningBriefingService:${this.correlationId}] Failed to get knowledge digest:`, error);
       return null;
     }
   }
@@ -5969,7 +10559,7 @@ var MorningBriefingService = class _MorningBriefingService extends BaseDataServi
    * Generate briefing on demand
    */
   async generateOnDemandBriefing() {
-    elizaLogger7.info(`[MorningBriefingService:${this.correlationId}] Generating on-demand briefing...`);
+    elizaLogger21.info(`[MorningBriefingService:${this.correlationId}] Generating on-demand briefing...`);
     return await this.generateMorningBriefing();
   }
   /**
@@ -5981,7 +10571,7 @@ var MorningBriefingService = class _MorningBriefingService extends BaseDataServi
       clearTimeout(this.scheduledBriefing);
       this.scheduleDailyBriefing();
     }
-    elizaLogger7.info(`[MorningBriefingService:${this.correlationId}] Briefing configuration updated`);
+    elizaLogger21.info(`[MorningBriefingService:${this.correlationId}] Briefing configuration updated`);
   }
   /**
    * Get briefing history
@@ -5994,7 +10584,7 @@ var MorningBriefingService = class _MorningBriefingService extends BaseDataServi
         totalGenerated: recentBriefings.length
       };
     } catch (error) {
-      elizaLogger7.error(`[MorningBriefingService:${this.correlationId}] Failed to get briefing history:`, error);
+      elizaLogger21.error(`[MorningBriefingService:${this.correlationId}] Failed to get briefing history:`, error);
       return {
         lastBriefing: this.lastBriefing,
         totalGenerated: 0
@@ -6010,7 +10600,7 @@ var MorningBriefingService = class _MorningBriefingService extends BaseDataServi
 };
 
 // plugin-bitcoin-ltl/src/services/KnowledgeDigestService.ts
-import { elizaLogger as elizaLogger8 } from "@elizaos/core";
+import { elizaLogger as elizaLogger22 } from "@elizaos/core";
 var KnowledgeDigestService = class _KnowledgeDigestService extends BaseDataService {
   static serviceType = "knowledge-digest";
   capabilityDescription = "Generates daily knowledge digests from ingested content and research";
@@ -6020,29 +10610,29 @@ var KnowledgeDigestService = class _KnowledgeDigestService extends BaseDataServi
     super(runtime, "knowledgeDigest");
   }
   static async start(runtime) {
-    elizaLogger8.info("KnowledgeDigestService starting...");
+    elizaLogger22.info("KnowledgeDigestService starting...");
     const service = new _KnowledgeDigestService(runtime);
     await service.init();
     return service;
   }
   static async stop(runtime) {
-    elizaLogger8.info("KnowledgeDigestService stopping...");
+    elizaLogger22.info("KnowledgeDigestService stopping...");
     const service = runtime.getService("knowledge-digest");
     if (service && service.stop) {
       await service.stop();
     }
   }
   async start() {
-    elizaLogger8.info(`[KnowledgeDigestService:${this.correlationId}] Service starting...`);
+    elizaLogger22.info(`[KnowledgeDigestService:${this.correlationId}] Service starting...`);
     await this.updateData();
-    elizaLogger8.info(`[KnowledgeDigestService:${this.correlationId}] Service started successfully`);
+    elizaLogger22.info(`[KnowledgeDigestService:${this.correlationId}] Service started successfully`);
   }
   async init() {
-    elizaLogger8.info(`[KnowledgeDigestService:${this.correlationId}] Service initialized`);
+    elizaLogger22.info(`[KnowledgeDigestService:${this.correlationId}] Service initialized`);
     await this.loadDigestHistory();
   }
   async stop() {
-    elizaLogger8.info(`[KnowledgeDigestService:${this.correlationId}] Service stopped`);
+    elizaLogger22.info(`[KnowledgeDigestService:${this.correlationId}] Service stopped`);
   }
   /**
    * Required abstract method implementation
@@ -6054,7 +10644,7 @@ var KnowledgeDigestService = class _KnowledgeDigestService extends BaseDataServi
         await this.generateDailyDigest(today);
       }
     } catch (error) {
-      elizaLogger8.error(`[KnowledgeDigestService:${this.correlationId}] Error updating data:`, error);
+      elizaLogger22.error(`[KnowledgeDigestService:${this.correlationId}] Error updating data:`, error);
     }
   }
   /**
@@ -6065,7 +10655,7 @@ var KnowledgeDigestService = class _KnowledgeDigestService extends BaseDataServi
       const today = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
       return await this.generateDailyDigest(today);
     } catch (error) {
-      elizaLogger8.error(`[KnowledgeDigestService:${this.correlationId}] Error in force update:`, error);
+      elizaLogger22.error(`[KnowledgeDigestService:${this.correlationId}] Error in force update:`, error);
       throw error;
     }
   }
@@ -6089,7 +10679,7 @@ var KnowledgeDigestService = class _KnowledgeDigestService extends BaseDataServi
    * Handle configuration changes
    */
   async onConfigurationChanged(newConfig) {
-    elizaLogger8.info(`[KnowledgeDigestService:${this.correlationId}] Configuration updated`);
+    elizaLogger22.info(`[KnowledgeDigestService:${this.correlationId}] Configuration updated`);
     if (newConfig.maxHistoryDays !== this.serviceConfig.maxHistoryDays) {
       await this.cleanup();
     }
@@ -6100,9 +10690,9 @@ var KnowledgeDigestService = class _KnowledgeDigestService extends BaseDataServi
       for (const digest of recentDigests) {
         this.digestCache.set(digest.date, digest);
       }
-      elizaLogger8.info(`[KnowledgeDigestService:${this.correlationId}] Loaded ${recentDigests.length} digests from memory`);
+      elizaLogger22.info(`[KnowledgeDigestService:${this.correlationId}] Loaded ${recentDigests.length} digests from memory`);
     } catch (error) {
-      elizaLogger8.error(`[KnowledgeDigestService:${this.correlationId}] Failed to load digest history:`, error);
+      elizaLogger22.error(`[KnowledgeDigestService:${this.correlationId}] Failed to load digest history:`, error);
     }
   }
   async addContent(content) {
@@ -6117,7 +10707,7 @@ var KnowledgeDigestService = class _KnowledgeDigestService extends BaseDataServi
         await this.generateDailyDigest(today);
       }
     } catch (error) {
-      elizaLogger8.error(`[KnowledgeDigestService:${this.correlationId}] Failed to add content to digest:`, error);
+      elizaLogger22.error(`[KnowledgeDigestService:${this.correlationId}] Failed to add content to digest:`, error);
     }
   }
   async generateDailyDigest(date) {
@@ -6144,7 +10734,7 @@ var KnowledgeDigestService = class _KnowledgeDigestService extends BaseDataServi
       await this.storeInMemory(digest, "knowledge-digest");
       return digest;
     } catch (error) {
-      elizaLogger8.error(`[KnowledgeDigestService:${this.correlationId}] Failed to generate daily digest:`, error);
+      elizaLogger22.error(`[KnowledgeDigestService:${this.correlationId}] Failed to generate daily digest:`, error);
       throw error;
     }
   }
@@ -6306,7 +10896,7 @@ var KnowledgeDigestService = class _KnowledgeDigestService extends BaseDataServi
       }
       return null;
     } catch (error) {
-      elizaLogger8.error(`[KnowledgeDigestService:${this.correlationId}] Failed to get digest:`, error);
+      elizaLogger22.error(`[KnowledgeDigestService:${this.correlationId}] Failed to get digest:`, error);
       return null;
     }
   }
@@ -6382,15 +10972,15 @@ var KnowledgeDigestService = class _KnowledgeDigestService extends BaseDataServi
           removedDigests++;
         }
       }
-      elizaLogger8.info(`[KnowledgeDigestService:${this.correlationId}] Cleanup completed: removed ${removedContent} content entries and ${removedDigests} digests`);
+      elizaLogger22.info(`[KnowledgeDigestService:${this.correlationId}] Cleanup completed: removed ${removedContent} content entries and ${removedDigests} digests`);
     } catch (error) {
-      elizaLogger8.error(`[KnowledgeDigestService:${this.correlationId}] Error during cleanup:`, error);
+      elizaLogger22.error(`[KnowledgeDigestService:${this.correlationId}] Error during cleanup:`, error);
     }
   }
 };
 
 // plugin-bitcoin-ltl/src/services/OpportunityAlertService.ts
-import { elizaLogger as elizaLogger9 } from "@elizaos/core";
+import { elizaLogger as elizaLogger23 } from "@elizaos/core";
 var OpportunityAlertService = class _OpportunityAlertService extends BaseDataService {
   static serviceType = "opportunity-alert";
   contextLogger;
@@ -6409,13 +10999,13 @@ var OpportunityAlertService = class _OpportunityAlertService extends BaseDataSer
     return "Monitors for investment opportunities and generates real-time alerts";
   }
   static async start(runtime) {
-    elizaLogger9.info("OpportunityAlertService starting...");
+    elizaLogger23.info("OpportunityAlertService starting...");
     const service = new _OpportunityAlertService(runtime);
     await service.init();
     return service;
   }
   static async stop(runtime) {
-    elizaLogger9.info("OpportunityAlertService stopping...");
+    elizaLogger23.info("OpportunityAlertService stopping...");
     const service = runtime.getService("opportunity-alert");
     if (service && service.stop) {
       await service.stop();
@@ -6790,7 +11380,7 @@ var OpportunityAlertService = class _OpportunityAlertService extends BaseDataSer
 };
 
 // plugin-bitcoin-ltl/src/services/PerformanceTrackingService.ts
-import { elizaLogger as elizaLogger10 } from "@elizaos/core";
+import { elizaLogger as elizaLogger24 } from "@elizaos/core";
 var PerformanceTrackingService = class _PerformanceTrackingService extends BaseDataService {
   static serviceType = "performance-tracking";
   contextLogger;
@@ -6808,13 +11398,13 @@ var PerformanceTrackingService = class _PerformanceTrackingService extends BaseD
     return "Tracks prediction accuracy and performance over time";
   }
   static async start(runtime) {
-    elizaLogger10.info("PerformanceTrackingService starting...");
+    elizaLogger24.info("PerformanceTrackingService starting...");
     const service = new _PerformanceTrackingService(runtime);
     await service.init();
     return service;
   }
   static async stop(runtime) {
-    elizaLogger10.info("PerformanceTrackingService stopping...");
+    elizaLogger24.info("PerformanceTrackingService stopping...");
     const service = runtime.getService("performance-tracking");
     if (service && service.stop) {
       await service.stop();
@@ -7358,7 +11948,7 @@ var PerformanceTrackingService = class _PerformanceTrackingService extends BaseD
 };
 
 // plugin-bitcoin-ltl/src/services/SchedulerService.ts
-import { elizaLogger as elizaLogger11 } from "@elizaos/core";
+import { elizaLogger as elizaLogger25 } from "@elizaos/core";
 var SchedulerService = class _SchedulerService extends BaseDataService {
   static serviceType = "scheduler";
   contextLogger;
@@ -7379,13 +11969,13 @@ var SchedulerService = class _SchedulerService extends BaseDataService {
     return "Coordinates automated briefings, digests, and alerts across all services";
   }
   static async start(runtime) {
-    elizaLogger11.info("SchedulerService starting...");
+    elizaLogger25.info("SchedulerService starting...");
     const service = new _SchedulerService(runtime);
     await service.init();
     return service;
   }
   static async stop(runtime) {
-    elizaLogger11.info("SchedulerService stopping...");
+    elizaLogger25.info("SchedulerService stopping...");
     const service = runtime.getService("scheduler");
     if (service && service.stop) {
       await service.stop();
@@ -7876,8 +12466,8 @@ var SchedulerService = class _SchedulerService extends BaseDataService {
 };
 
 // plugin-bitcoin-ltl/src/services/RealTimeDataService.ts
-import { elizaLogger as elizaLogger12 } from "@elizaos/core";
-import axios2 from "axios";
+import { elizaLogger as elizaLogger26 } from "@elizaos/core";
+import axios5 from "axios";
 var RealTimeDataService = class _RealTimeDataService extends BaseDataService {
   static serviceType = "real-time-data";
   contextLogger;
@@ -7963,25 +12553,25 @@ var RealTimeDataService = class _RealTimeDataService extends BaseDataService {
     return "Provides real-time market data, news feeds, and social sentiment analysis";
   }
   static async start(runtime) {
-    elizaLogger12.info("RealTimeDataService starting...");
+    elizaLogger26.info("RealTimeDataService starting...");
     const service = new _RealTimeDataService(runtime);
     await service.init();
     return service;
   }
   static async stop(runtime) {
-    elizaLogger12.info("RealTimeDataService stopping...");
+    elizaLogger26.info("RealTimeDataService stopping...");
     const service = runtime.getService("real-time-data");
     if (service && service.stop) {
       await service.stop();
     }
   }
   async start() {
-    elizaLogger12.info("RealTimeDataService starting...");
+    elizaLogger26.info("RealTimeDataService starting...");
     await this.updateData();
-    elizaLogger12.info("RealTimeDataService started successfully");
+    elizaLogger26.info("RealTimeDataService started successfully");
   }
   async init() {
-    elizaLogger12.info("RealTimeDataService initialized");
+    elizaLogger26.info("RealTimeDataService initialized");
     await this.startRealTimeUpdates();
   }
   async stop() {
@@ -7989,7 +12579,7 @@ var RealTimeDataService = class _RealTimeDataService extends BaseDataService {
       clearInterval(this.updateInterval);
       this.updateInterval = null;
     }
-    elizaLogger12.info("RealTimeDataService stopped");
+    elizaLogger26.info("RealTimeDataService stopped");
   }
   // Required abstract methods from BaseDataService
   async updateData() {
@@ -8189,6 +12779,10 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
           signal: AbortSignal.timeout(15e3)
         });
         if (!response.ok) {
+          if (response.status === 401 || response.status === 429) {
+            console.warn(`[RealTimeDataService] CoinGecko API rate limited or unauthorized (${response.status}), using fallback data`);
+            return this.getFallbackMarketData();
+          }
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         return await response.json();
@@ -8220,7 +12814,7 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
       const symbols = ["MSFT", "GOOGL", "TSLA"];
       const stockPromises = symbols.map(async (symbol) => {
         try {
-          const response = await axios2.get("https://www.alphavantage.co/query", {
+          const response = await axios5.get("https://www.alphavantage.co/query", {
             params: {
               function: "GLOBAL_QUOTE",
               symbol,
@@ -8267,7 +12861,7 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
       if (!newsApiKey) {
         return this.getFallbackNewsData();
       }
-      const response = await axios2.get("https://newsapi.org/v2/everything", {
+      const response = await axios5.get("https://newsapi.org/v2/everything", {
         params: {
           q: 'bitcoin OR cryptocurrency OR "strategic bitcoin reserve" OR "bitcoin ETF" OR blockchain',
           sortBy: "publishedAt",
@@ -8505,6 +13099,22 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
         trendingKeywords: ["bitcoin", "hodl", "moon"]
       }
     ];
+  }
+  getFallbackCuratedAltcoinsData() {
+    const fallbackData = {};
+    this.curatedCoinIds.forEach((id) => {
+      fallbackData[id] = {
+        price: Math.random() * 1e3 + 1,
+        // Random price between 1-1000
+        change24h: (Math.random() - 0.5) * 20,
+        // Random change between -10% and +10%
+        marketCap: Math.random() * 1e9 + 1e6,
+        // Random market cap
+        volume24h: Math.random() * 1e8 + 1e6
+        // Random volume
+      };
+    });
+    return fallbackData;
   }
   // Public API methods
   getMarketData() {
@@ -8858,6 +13468,10 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
           }
         );
         if (!response.ok) {
+          if (response.status === 401 || response.status === 429) {
+            console.warn(`[RealTimeDataService] CoinGecko API rate limited or unauthorized (${response.status}), using fallback data`);
+            return this.getFallbackCuratedAltcoinsData();
+          }
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         return await response.json();
@@ -8875,7 +13489,8 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
       return result;
     } catch (error) {
       console.error("Error fetching curated altcoins data:", error);
-      return null;
+      console.info("[RealTimeDataService] Using fallback curated altcoins data");
+      return this.getFallbackCuratedAltcoinsData();
     }
   }
   // Top 100 vs BTC data management
@@ -9474,7 +14089,7 @@ var KnowledgePerformanceMonitor = class extends Service6 {
 
 // plugin-bitcoin-ltl/src/actions/morningBriefingAction.ts
 import {
-  logger as logger9
+  logger as logger8
 } from "@elizaos/core";
 
 // plugin-bitcoin-ltl/src/actions/base/ActionTemplate.ts
@@ -10028,12 +14643,12 @@ var morningBriefingAction = createActionTemplate({
     return ValidationPatterns.isMorningRequest(text);
   },
   handlerFn: async (runtime, message, state, options, callback) => {
-    logger9.info("Morning briefing action triggered");
+    logger8.info("Morning briefing action triggered");
     const thoughtProcess = "User is requesting a morning briefing. I need to gather comprehensive market data, weather information, and research insights to provide a complete intelligence update that will help them start their day with full context of current conditions.";
     try {
       const briefingService = runtime.getService("morning-briefing");
       if (!briefingService) {
-        logger9.warn("MorningBriefingService not available");
+        logger8.warn("MorningBriefingService not available");
         const fallbackResponse = ResponseCreators.createErrorResponse(
           "MORNING_BRIEFING",
           "Morning briefing service unavailable",
@@ -10055,10 +14670,10 @@ var morningBriefingAction = createActionTemplate({
       if (callback) {
         await callback(response);
       }
-      logger9.info("Morning briefing delivered successfully");
+      logger8.info("Morning briefing delivered successfully");
       return true;
     } catch (error) {
-      logger9.error("Failed to generate morning briefing:", error.message);
+      logger8.error("Failed to generate morning briefing:", error.message);
       let errorMessage = "Systems operational. Bitcoin protocol unchanged. Market data temporarily unavailable.";
       const errorMsg = error.message.toLowerCase();
       if (errorMsg.includes("rate limit") || errorMsg.includes("429") || errorMsg.includes("too many requests")) {
@@ -10128,7 +14743,7 @@ async function formatBriefingForDelivery(briefing, runtime) {
 
 // plugin-bitcoin-ltl/src/actions/knowledgeDigestAction.ts
 import {
-  logger as logger10
+  logger as logger9
 } from "@elizaos/core";
 var knowledgeDigestAction = createActionTemplate({
   name: "KNOWLEDGE_DIGEST",
@@ -10183,7 +14798,7 @@ var knowledgeDigestAction = createActionTemplate({
     return ValidationPatterns.isKnowledgeDigestRequest(text);
   },
   handlerFn: async (runtime, message, state, options, callback) => {
-    logger10.info("Knowledge digest action triggered");
+    logger9.info("Knowledge digest action triggered");
     const thoughtProcess = "User is requesting a knowledge digest. I need to synthesize recent research insights, track prediction accuracy, analyze performance metrics, and provide comprehensive intelligence from our curated sources including research channels, market data, and institutional signals.";
     try {
       let digestIntelligence;
@@ -10193,7 +14808,7 @@ var knowledgeDigestAction = createActionTemplate({
       } else {
         const digestService = runtime.getService("knowledge-digest");
         if (!digestService) {
-          logger10.warn("Knowledge digest service not available");
+          logger9.warn("Knowledge digest service not available");
           const fallbackResponse = ResponseCreators.createErrorResponse(
             "KNOWLEDGE_DIGEST",
             "Knowledge digest service unavailable",
@@ -10208,7 +14823,7 @@ var knowledgeDigestAction = createActionTemplate({
         digestIntelligence = await digestService.formatDigestForDelivery(digest);
       }
       if (!digestIntelligence) {
-        logger10.warn("Insufficient content for digest generation");
+        logger9.warn("Insufficient content for digest generation");
         const noContentResponse = ResponseCreators.createErrorResponse(
           "KNOWLEDGE_DIGEST",
           "Insufficient content available",
@@ -10235,10 +14850,10 @@ var knowledgeDigestAction = createActionTemplate({
       if (callback) {
         await callback(response);
       }
-      logger10.info("Knowledge digest delivered successfully");
+      logger9.info("Knowledge digest delivered successfully");
       return true;
     } catch (error) {
-      logger10.error("Failed to generate knowledge digest:", error.message);
+      logger9.error("Failed to generate knowledge digest:", error.message);
       let errorMessage = "Knowledge synthesis systems operational. Research monitoring continues. Intelligence processing may be delayed.";
       const errorMsg = error.message.toLowerCase();
       if (errorMsg.includes("rate limit") || errorMsg.includes("429") || errorMsg.includes("too many requests")) {
@@ -10287,7 +14902,7 @@ function formatDigestForDelivery(digestIntelligence) {
 
 // plugin-bitcoin-ltl/src/actions/opportunityAlertsAction.ts
 import {
-  logger as logger11
+  logger as logger10
 } from "@elizaos/core";
 var opportunityAlertsAction = createActionTemplate({
   name: "OPPORTUNITY_ALERTS",
@@ -10342,12 +14957,12 @@ var opportunityAlertsAction = createActionTemplate({
     return ValidationPatterns.isOpportunityAlertsRequest(text);
   },
   handlerFn: async (runtime, message, state, options, callback) => {
-    logger11.info("Opportunity alerts action triggered");
+    logger10.info("Opportunity alerts action triggered");
     const thoughtProcess = "User is requesting opportunity alerts. I need to check the alert service for active market opportunities, categorize them by urgency and type, analyze confidence levels, and provide actionable insights for investment decisions while emphasizing proper risk management.";
     try {
       const alertService = runtime.getService("opportunity-alert");
       if (!alertService) {
-        logger11.warn("Opportunity alert service not available");
+        logger10.warn("Opportunity alert service not available");
         const fallbackResponse = ResponseCreators.createErrorResponse(
           "OPPORTUNITY_ALERTS",
           "Alert service unavailable",
@@ -10361,7 +14976,7 @@ var opportunityAlertsAction = createActionTemplate({
       const activeAlerts = await alertService.getActiveAlerts();
       const metrics = await alertService.getMetrics();
       if (activeAlerts.length === 0) {
-        logger11.info("No active opportunity alerts");
+        logger10.info("No active opportunity alerts");
         const noAlertsResponse = ResponseCreators.createStandardResponse(
           "Currently no active opportunity alerts detected. Markets are in consolidation phase, which is normal. I'll continue monitoring for quality entry signals and actionable opportunities.",
           "No active opportunity alerts. Markets consolidating. Continue monitoring for entry signals. Patience is the companion of wisdom in markets.",
@@ -10406,10 +15021,10 @@ var opportunityAlertsAction = createActionTemplate({
       if (callback) {
         await callback(response);
       }
-      logger11.info("Opportunity alerts delivered successfully");
+      logger10.info("Opportunity alerts delivered successfully");
       return true;
     } catch (error) {
-      logger11.error("Failed to get opportunity alerts:", error.message);
+      logger10.error("Failed to get opportunity alerts:", error.message);
       let errorMessage = "Alert systems operational. Manual monitoring continues. Market vigilance maintained.";
       const errorMsg = error.message.toLowerCase();
       if (errorMsg.includes("rate limit") || errorMsg.includes("429") || errorMsg.includes("too many requests")) {
@@ -10452,7 +15067,7 @@ function formatAlertsForDelivery(activeAlerts, immediateAlerts, upcomingAlerts, 
 
 // plugin-bitcoin-ltl/src/actions/bitcoinNetworkHealthAction.ts
 import {
-  logger as logger12
+  logger as logger11
 } from "@elizaos/core";
 var bitcoinNetworkHealthAction = createActionTemplate({
   name: "BITCOIN_NETWORK_HEALTH",
@@ -10507,12 +15122,12 @@ var bitcoinNetworkHealthAction = createActionTemplate({
     return ValidationPatterns.isNetworkHealthRequest(text);
   },
   handlerFn: async (runtime, message, state, options, callback) => {
-    logger12.info("Bitcoin network health action triggered");
+    logger11.info("Bitcoin network health action triggered");
     const thoughtProcess = "User is requesting Bitcoin network health information. I need to gather comprehensive metrics including hashrate, difficulty adjustments, mempool status, node distribution, and security indicators to provide a complete assessment of network operations.";
     try {
       const networkService = runtime.getService("real-time-data");
       if (!networkService) {
-        logger12.warn("RealTimeDataService not available");
+        logger11.warn("RealTimeDataService not available");
         const fallbackResponse = ResponseCreators.createErrorResponse(
           "BITCOIN_NETWORK_HEALTH",
           "Network service unavailable",
@@ -10534,10 +15149,10 @@ var bitcoinNetworkHealthAction = createActionTemplate({
       if (callback) {
         await callback(response);
       }
-      logger12.info("Bitcoin network health report delivered successfully");
+      logger11.info("Bitcoin network health report delivered successfully");
       return true;
     } catch (error) {
-      logger12.error("Failed to get network health data:", error.message);
+      logger11.error("Failed to get network health data:", error.message);
       let errorMessage = "Network fundamentals operational. Hashrate securing the chain. Blocks continuing every ~10 minutes.";
       const errorMsg = error.message.toLowerCase();
       if (errorMsg.includes("rate limit") || errorMsg.includes("429") || errorMsg.includes("too many requests")) {
@@ -10960,7 +15575,7 @@ function getCoinSymbol(coinId) {
 
 // plugin-bitcoin-ltl/src/actions/weatherAction.ts
 import {
-  logger as logger13
+  logger as logger12
 } from "@elizaos/core";
 var formatValue = (value, unit = "", decimals = 1) => {
   if (value === void 0 || value === null || !isFinite(value)) return "N/A";
@@ -11023,7 +15638,7 @@ var weatherAction = createActionTemplate({
     return ValidationPatterns.isWeatherRequest(text);
   },
   handlerFn: async (runtime, message, state, options, callback) => {
-    logger13.info("Weather analysis action triggered");
+    logger12.info("Weather analysis action triggered");
     const messageText = message.content?.text?.toLowerCase() || "";
     let thoughtProcess = "User is requesting weather information. I need to analyze current conditions across European lifestyle cities and provide actionable insights for daily decisions.";
     if (messageText.includes("surf") || messageText.includes("wave")) {
@@ -11034,7 +15649,7 @@ var weatherAction = createActionTemplate({
     try {
       const lifestyleDataService = runtime.getService("lifestyle-data");
       if (!lifestyleDataService) {
-        logger13.warn("Lifestyle data service not available");
+        logger12.warn("Lifestyle data service not available");
         const fallbackResponse = ResponseCreators.createErrorResponse(
           "WEATHER_ANALYSIS",
           "Weather service unavailable",
@@ -11056,7 +15671,7 @@ var weatherAction = createActionTemplate({
         }
       }
       if (!weatherData || !weatherData.cities || weatherData.cities.length === 0) {
-        logger13.warn("No weather data available");
+        logger12.warn("No weather data available");
         const noDataResponse = ResponseCreators.createErrorResponse(
           "WEATHER_ANALYSIS",
           "Weather data unavailable",
@@ -11104,10 +15719,10 @@ var weatherAction = createActionTemplate({
       if (callback) {
         await callback(response);
       }
-      logger13.info("Weather analysis delivered successfully");
+      logger12.info("Weather analysis delivered successfully");
       return true;
     } catch (error) {
-      logger13.error("Failed to get weather data:", error.message);
+      logger12.error("Failed to get weather data:", error.message);
       let errorMessage = "Weather monitoring systems operational. Natural patterns continue regardless of our observation capabilities.";
       const errorMsg = error.message.toLowerCase();
       if (errorMsg.includes("rate limit") || errorMsg.includes("429") || errorMsg.includes("too many requests")) {
@@ -11220,7 +15835,7 @@ function assessSurfConditions(marine) {
 
 // plugin-bitcoin-ltl/src/actions/curatedAltcoinsAction.ts
 import {
-  logger as logger14
+  logger as logger13
 } from "@elizaos/core";
 var curatedAltcoinsAction = createActionTemplate({
   name: "CURATED_ALTCOINS",
@@ -11275,12 +15890,12 @@ var curatedAltcoinsAction = createActionTemplate({
     return ValidationPatterns.isAltcoinRequest(text);
   },
   handlerFn: async (runtime, message, state, options, callback) => {
-    logger14.info("Curated altcoins action triggered");
+    logger13.info("Curated altcoins action triggered");
     const thoughtProcess = "User is requesting altcoin analysis. I need to analyze the curated portfolio performance covering Layer 1s, DeFi protocols, and memecoins, then categorize performance trends and provide market sentiment analysis with actionable insights.";
     try {
       const service = runtime.getService("real-time-data");
       if (!service) {
-        logger14.warn("RealTimeDataService not available for curated altcoins");
+        logger13.warn("RealTimeDataService not available for curated altcoins");
         const fallbackResponse = ResponseCreators.createErrorResponse(
           "CURATED_ALTCOINS",
           "Real-time data service unavailable",
@@ -11293,7 +15908,7 @@ var curatedAltcoinsAction = createActionTemplate({
       }
       const curatedData = service.getCuratedAltcoinsData();
       if (!curatedData) {
-        logger14.warn("No curated altcoins data available");
+        logger13.warn("No curated altcoins data available");
         const noDataResponse = ResponseCreators.createErrorResponse(
           "CURATED_ALTCOINS",
           "Curated altcoins data unavailable",
@@ -11330,10 +15945,10 @@ var curatedAltcoinsAction = createActionTemplate({
       if (callback) {
         await callback(response);
       }
-      logger14.info("Curated altcoins analysis delivered successfully");
+      logger13.info("Curated altcoins analysis delivered successfully");
       return true;
     } catch (error) {
-      logger14.error("Failed to analyze curated altcoins:", error.message);
+      logger13.error("Failed to analyze curated altcoins:", error.message);
       let errorMessage = "Altcoin analysis systems operational. Markets are volatile beasts - price discovery continues.";
       const errorMsg = error.message.toLowerCase();
       if (errorMsg.includes("rate limit") || errorMsg.includes("429") || errorMsg.includes("too many requests")) {
@@ -11455,7 +16070,7 @@ function getCoinSymbol2(coinId) {
 
 // plugin-bitcoin-ltl/src/actions/top100VsBtcAction.ts
 import {
-  logger as logger15
+  logger as logger14
 } from "@elizaos/core";
 var top100VsBtcAction = createActionTemplate({
   name: "TOP100_VS_BTC_ACTION",
@@ -11510,12 +16125,12 @@ var top100VsBtcAction = createActionTemplate({
     return ValidationPatterns.isBtcRelativePerformanceRequest(text);
   },
   handlerFn: async (runtime, message, state, options, callback) => {
-    logger15.info("Top 100 vs BTC analysis action triggered");
+    logger14.info("Top 100 vs BTC analysis action triggered");
     const thoughtProcess = "User is requesting top 100 vs Bitcoin performance analysis. I need to analyze relative performance across timeframes, identify outperformers/underperformers, assess Bitcoin dominance trends, and provide perspective on altseason dynamics.";
     try {
       const realTimeDataService = runtime.getService("real-time-data");
       if (!realTimeDataService) {
-        logger15.warn("RealTimeDataService not available");
+        logger14.warn("RealTimeDataService not available");
         const fallbackResponse = ResponseCreators.createErrorResponse(
           "TOP100_VS_BTC_ACTION",
           "Market data service unavailable",
@@ -11528,7 +16143,7 @@ var top100VsBtcAction = createActionTemplate({
       }
       const top100Data = realTimeDataService.getTop100VsBtcData();
       if (!top100Data) {
-        logger15.warn("Top 100 vs BTC data not available");
+        logger14.warn("Top 100 vs BTC data not available");
         const noDataResponse = ResponseCreators.createErrorResponse(
           "TOP100_VS_BTC_ACTION",
           "Performance data unavailable",
@@ -11557,10 +16172,10 @@ var top100VsBtcAction = createActionTemplate({
       if (callback) {
         await callback(response);
       }
-      logger15.info("Top 100 vs BTC analysis delivered successfully");
+      logger14.info("Top 100 vs BTC analysis delivered successfully");
       return true;
     } catch (error) {
-      logger15.error("Failed to analyze top 100 vs BTC:", error.message);
+      logger14.error("Failed to analyze top 100 vs BTC:", error.message);
       const errorResponse = ResponseCreators.createErrorResponse(
         "TOP100_VS_BTC_ACTION",
         error.message,
@@ -11631,7 +16246,7 @@ function analyzeTop100VsBtc(data) {
 
 // plugin-bitcoin-ltl/src/actions/btcRelativePerformanceAction.ts
 import {
-  logger as logger16
+  logger as logger15
 } from "@elizaos/core";
 var btcRelativePerformanceAction = createActionTemplate({
   name: "BTC_RELATIVE_PERFORMANCE",
@@ -11686,12 +16301,12 @@ var btcRelativePerformanceAction = createActionTemplate({
     return ValidationPatterns.isBtcRelativePerformanceRequest(text);
   },
   handlerFn: async (runtime, message, state, options, callback) => {
-    logger16.info("BTC relative performance action triggered");
+    logger15.info("BTC relative performance action triggered");
     const thoughtProcess = "User is requesting Bitcoin relative performance analysis. I need to analyze which altcoins are outperforming Bitcoin on a 7-day basis, assess if this indicates altseason, and provide context about Bitcoin's role as the monetary base layer.";
     try {
       const realTimeDataService = runtime.getService("real-time-data");
       if (!realTimeDataService) {
-        logger16.warn("RealTimeDataService not available for BTC relative performance");
+        logger15.warn("RealTimeDataService not available for BTC relative performance");
         const fallbackResponse = ResponseCreators.createErrorResponse(
           "BTC_RELATIVE_PERFORMANCE",
           "Real-time data service unavailable",
@@ -11707,7 +16322,7 @@ var btcRelativePerformanceAction = createActionTemplate({
         btcData = await realTimeDataService.forceTop100VsBtcUpdate();
       }
       if (!btcData) {
-        logger16.warn("No BTC relative performance data available");
+        logger15.warn("No BTC relative performance data available");
         const noDataResponse = ResponseCreators.createErrorResponse(
           "BTC_RELATIVE_PERFORMANCE",
           "BTC relative performance data unavailable",
@@ -11754,10 +16369,10 @@ var btcRelativePerformanceAction = createActionTemplate({
       if (callback) {
         await callback(response);
       }
-      logger16.info("BTC relative performance analysis delivered successfully");
+      logger15.info("BTC relative performance analysis delivered successfully");
       return true;
     } catch (error) {
-      logger16.error("Failed to analyze BTC relative performance:", error.message);
+      logger15.error("Failed to analyze BTC relative performance:", error.message);
       const errorResponse = ResponseCreators.createErrorResponse(
         "BTC_RELATIVE_PERFORMANCE",
         error.message,
@@ -11796,7 +16411,7 @@ function formatBtcRelativeResponse(topPerformers, totalOutperforming, totalCoins
 
 // plugin-bitcoin-ltl/src/actions/dexScreenerAction.ts
 import {
-  logger as logger17
+  logger as logger16
 } from "@elizaos/core";
 var dexScreenerAction = createActionTemplate({
   name: "DEX_SCREENER_ACTION",
@@ -11851,12 +16466,12 @@ var dexScreenerAction = createActionTemplate({
     return ValidationPatterns.isDexScreenerRequest(text);
   },
   handlerFn: async (runtime, message, state, options, callback) => {
-    logger17.info("DEXScreener action triggered");
+    logger16.info("DEXScreener action triggered");
     const thoughtProcess = "User is requesting DEXScreener analysis. I need to analyze trending tokens, assess liquidity quality, identify Solana gems, and provide perspective on these speculative plays versus sound money principles.";
     try {
       const realTimeDataService = runtime.getService("real-time-data");
       if (!realTimeDataService) {
-        logger17.warn("RealTimeDataService not available for DEXScreener");
+        logger16.warn("RealTimeDataService not available for DEXScreener");
         const fallbackResponse = ResponseCreators.createErrorResponse(
           "DEX_SCREENER_ACTION",
           "Market data service unavailable",
@@ -11881,7 +16496,7 @@ var dexScreenerAction = createActionTemplate({
         }
       }
       if (!dexData) {
-        logger17.warn("Failed to retrieve DEXScreener data");
+        logger16.warn("Failed to retrieve DEXScreener data");
         const noDataResponse = ResponseCreators.createErrorResponse(
           "DEX_SCREENER_ACTION",
           "DEXScreener data unavailable",
@@ -11910,10 +16525,10 @@ var dexScreenerAction = createActionTemplate({
       if (callback) {
         await callback(response);
       }
-      logger17.info("DEXScreener analysis delivered successfully");
+      logger16.info("DEXScreener analysis delivered successfully");
       return true;
     } catch (error) {
-      logger17.error("Failed to analyze DEXScreener data:", error.message);
+      logger16.error("Failed to analyze DEXScreener data:", error.message);
       const errorResponse = ResponseCreators.createErrorResponse(
         "DEX_SCREENER_ACTION",
         error.message,
@@ -11966,7 +16581,7 @@ function analyzeDexData(trendingTokens, topTokens, type, limit) {
 
 // plugin-bitcoin-ltl/src/actions/topMoversAction.ts
 import {
-  logger as logger18
+  logger as logger17
 } from "@elizaos/core";
 var topMoversAction = createActionTemplate({
   name: "TOP_MOVERS_ACTION",
@@ -12021,7 +16636,7 @@ var topMoversAction = createActionTemplate({
     return ValidationPatterns.isTopMoversRequest(text);
   },
   handlerFn: async (runtime, message, state, options, callback) => {
-    logger18.info("Top movers action triggered");
+    logger17.info("Top movers action triggered");
     const messageText = message.content?.text?.toLowerCase() || "";
     let thoughtProcess = "User is requesting top movers analysis. I need to analyze the biggest gainers and losers from the top 100 crypto by market cap, identify market rotation patterns, and provide sentiment analysis.";
     let queryType = "both";
@@ -12035,7 +16650,7 @@ var topMoversAction = createActionTemplate({
     try {
       const realTimeDataService = runtime.getService("real-time-data");
       if (!realTimeDataService) {
-        logger18.warn("RealTimeDataService not available for top movers");
+        logger17.warn("RealTimeDataService not available for top movers");
         const fallbackResponse = ResponseCreators.createErrorResponse(
           "TOP_MOVERS_ACTION",
           "Market data service unavailable",
@@ -12060,7 +16675,7 @@ var topMoversAction = createActionTemplate({
         }
       }
       if (!topMoversData) {
-        logger18.warn("No top movers data available");
+        logger17.warn("No top movers data available");
         const noDataResponse = ResponseCreators.createErrorResponse(
           "TOP_MOVERS_ACTION",
           "Top movers data unavailable",
@@ -12087,10 +16702,10 @@ var topMoversAction = createActionTemplate({
       if (callback) {
         await callback(response);
       }
-      logger18.info("Top movers analysis delivered successfully");
+      logger17.info("Top movers analysis delivered successfully");
       return true;
     } catch (error) {
-      logger18.error("Failed to analyze top movers:", error.message);
+      logger17.error("Failed to analyze top movers:", error.message);
       let errorMessage = "Top movers analysis systems operational. The casino continues regardless of our monitoring capabilities.";
       const errorMsg = error.message.toLowerCase();
       if (errorMsg.includes("rate limit") || errorMsg.includes("429") || errorMsg.includes("too many requests")) {
@@ -12157,7 +16772,7 @@ function analyzeMarketSentiment(topMoversData) {
 
 // plugin-bitcoin-ltl/src/actions/trendingCoinsAction.ts
 import {
-  logger as logger19
+  logger as logger18
 } from "@elizaos/core";
 var trendingCoinsAction = createActionTemplate({
   name: "TRENDING_COINS_ACTION",
@@ -12212,12 +16827,12 @@ var trendingCoinsAction = createActionTemplate({
     return ValidationPatterns.isTrendingCoinsRequest(text);
   },
   handlerFn: async (runtime, message, state, options, callback) => {
-    logger19.info("Trending coins action triggered");
+    logger18.info("Trending coins action triggered");
     const thoughtProcess = "User is requesting trending cryptocurrency analysis. I need to analyze community search activity, categorize trending narratives, assess market sentiment, and provide perspective on trend-following versus sound money principles.";
     try {
       const realTimeDataService = runtime.getService("real-time-data");
       if (!realTimeDataService) {
-        logger19.warn("RealTimeDataService not available for trending coins");
+        logger18.warn("RealTimeDataService not available for trending coins");
         const fallbackResponse = ResponseCreators.createErrorResponse(
           "TRENDING_COINS_ACTION",
           "Market data service unavailable",
@@ -12241,7 +16856,7 @@ var trendingCoinsAction = createActionTemplate({
         }
       }
       if (!trendingData || !trendingData.coins || trendingData.coins.length === 0) {
-        logger19.warn("Failed to retrieve trending coins data");
+        logger18.warn("Failed to retrieve trending coins data");
         const noDataResponse = ResponseCreators.createErrorResponse(
           "TRENDING_COINS_ACTION",
           "Trending coins data unavailable",
@@ -12271,10 +16886,10 @@ var trendingCoinsAction = createActionTemplate({
       if (callback) {
         await callback(response);
       }
-      logger19.info("Trending coins analysis delivered successfully");
+      logger18.info("Trending coins analysis delivered successfully");
       return true;
     } catch (error) {
-      logger19.error("Failed to analyze trending coins:", error.message);
+      logger18.error("Failed to analyze trending coins:", error.message);
       const errorResponse = ResponseCreators.createErrorResponse(
         "TRENDING_COINS_ACTION",
         error.message,
@@ -12337,7 +16952,7 @@ function analyzeTrendingCoins(coins, limit) {
 
 // plugin-bitcoin-ltl/src/actions/stockMarketAction.ts
 import {
-  logger as logger20
+  logger as logger19
 } from "@elizaos/core";
 var formatPercentage = (value) => {
   if (!isFinite(value)) return "0.00";
@@ -12400,12 +17015,12 @@ var stockMarketAction = createActionTemplate({
     return ValidationPatterns.isStockMarketRequest(text);
   },
   handlerFn: async (runtime, message, state, options, callback) => {
-    logger20.info("Stock market analysis action triggered");
+    logger19.info("Stock market analysis action triggered");
     const thoughtProcess = "User is requesting stock market analysis. I need to analyze our sovereign equity portfolio performance versus market benchmarks, highlighting Bitcoin-related stocks while maintaining perspective on fiat-denominated assets versus sound money.";
     try {
       const stockDataService = runtime.getService("stock-data");
       if (!stockDataService) {
-        logger20.warn("StockDataService not available");
+        logger19.warn("StockDataService not available");
         const fallbackResponse = ResponseCreators.createErrorResponse(
           "STOCK_MARKET_ANALYSIS",
           "Stock data temporarily unavailable",
@@ -12424,7 +17039,7 @@ var stockMarketAction = createActionTemplate({
         stockData = stockDataService.getStockData();
       }
       if (!stockData) {
-        logger20.warn("No stock data available");
+        logger19.warn("No stock data available");
         const noDataResponse = ResponseCreators.createErrorResponse(
           "STOCK_MARKET_ANALYSIS",
           "Stock data unavailable",
@@ -12454,10 +17069,10 @@ var stockMarketAction = createActionTemplate({
       if (callback) {
         await callback(response);
       }
-      logger20.info("Stock market analysis delivered successfully");
+      logger19.info("Stock market analysis delivered successfully");
       return true;
     } catch (error) {
-      logger20.error("Failed to analyze stock market:", error.message);
+      logger19.error("Failed to analyze stock market:", error.message);
       const errorResponse = ResponseCreators.createErrorResponse(
         "STOCK_MARKET_ANALYSIS",
         error.message,
@@ -12506,7 +17121,7 @@ function formatStockAnalysis(stocks, mag7, performance) {
 
 // plugin-bitcoin-ltl/src/actions/etfFlowAction.ts
 import {
-  logger as logger21
+  logger as logger20
 } from "@elizaos/core";
 var etfFlowAction = createActionTemplate({
   name: "ETF_FLOW_TRACKING",
@@ -12561,12 +17176,12 @@ var etfFlowAction = createActionTemplate({
     return ValidationPatterns.isETFRequest(text);
   },
   handlerFn: async (runtime, message, state, options, callback) => {
-    logger21.info("ETF flow tracking action triggered");
+    logger20.info("ETF flow tracking action triggered");
     const thoughtProcess = "User is requesting Bitcoin ETF flow analysis. I need to analyze institutional flows, Bitcoin holdings, supply dynamics, and assess the impact on Bitcoin scarcity and adoption.";
     try {
       const etfDataService = runtime.getService("etf-data");
       if (!etfDataService) {
-        logger21.warn("ETFDataService not available");
+        logger20.warn("ETFDataService not available");
         const fallbackResponse = ResponseCreators.createErrorResponse(
           "ETF_FLOW_TRACKING",
           "ETF tracking unavailable",
@@ -12579,7 +17194,7 @@ var etfFlowAction = createActionTemplate({
       }
       const etfMarketData = await etfDataService.getETFMarketData();
       if (!etfMarketData) {
-        logger21.warn("No ETF market data available");
+        logger20.warn("No ETF market data available");
         const noDataResponse = ResponseCreators.createErrorResponse(
           "ETF_FLOW_TRACKING",
           "ETF data temporarily unavailable",
@@ -12608,10 +17223,10 @@ var etfFlowAction = createActionTemplate({
       if (callback) {
         await callback(response);
       }
-      logger21.info("ETF flow analysis delivered successfully");
+      logger20.info("ETF flow analysis delivered successfully");
       return true;
     } catch (error) {
-      logger21.error("Failed to analyze ETF flows:", error.message);
+      logger20.error("Failed to analyze ETF flows:", error.message);
       const errorResponse = ResponseCreators.createErrorResponse(
         "ETF_FLOW_TRACKING",
         error.message,
@@ -12664,7 +17279,7 @@ function formatETFReport(data) {
 
 // plugin-bitcoin-ltl/src/actions/curatedNFTsAction.ts
 import {
-  logger as logger22
+  logger as logger21
 } from "@elizaos/core";
 var analyzeFloorItems = (collections) => {
   const collectionsWithFloors = collections.filter((c) => c.floorItems?.length > 0);
@@ -12763,12 +17378,12 @@ var curatedNFTsAction = createActionTemplate({
     return ValidationPatterns.isNFTRequest(text);
   },
   handlerFn: async (runtime, message, state, options, callback) => {
-    logger22.info("Curated NFTs analysis action triggered");
+    logger21.info("Curated NFTs analysis action triggered");
     const thoughtProcess = "User is requesting NFT market analysis. I need to analyze curated NFT collections including floor prices, volume, and market sentiment, then provide perspective on NFTs as cultural artifacts versus Bitcoin as sound money.";
     try {
       const realTimeDataService = runtime.getService("real-time-data");
       if (!realTimeDataService) {
-        logger22.warn("RealTimeDataService not available for NFT analysis");
+        logger21.warn("RealTimeDataService not available for NFT analysis");
         const fallbackResponse = ResponseCreators.createErrorResponse(
           "CURATED_NFTS_ANALYSIS",
           "NFT market analysis temporarily unavailable",
@@ -12787,7 +17402,7 @@ var curatedNFTsAction = createActionTemplate({
         nftData = realTimeDataService.getCuratedNFTsData();
       }
       if (!nftData || nftData.collections.length === 0) {
-        logger22.warn("No NFT data available");
+        logger21.warn("No NFT data available");
         const noDataResponse = ResponseCreators.createErrorResponse(
           "CURATED_NFTS_ANALYSIS",
           "NFT market data temporarily unavailable",
@@ -12824,10 +17439,10 @@ var curatedNFTsAction = createActionTemplate({
       if (callback) {
         await callback(response);
       }
-      logger22.info("NFT market analysis delivered successfully");
+      logger21.info("NFT market analysis delivered successfully");
       return true;
     } catch (error) {
-      logger22.error("Failed to analyze NFT market:", error.message);
+      logger21.error("Failed to analyze NFT market:", error.message);
       const errorResponse = ResponseCreators.createErrorResponse(
         "CURATED_NFTS_ANALYSIS",
         error.message,
@@ -12856,7 +17471,7 @@ function getMarketSentiment(collections) {
 
 // plugin-bitcoin-ltl/src/actions/hotelSearchAction.ts
 import {
-  logger as logger23
+  logger as logger22
 } from "@elizaos/core";
 var hotelSearchAction = createActionTemplate({
   name: "HOTEL_SEARCH_ACTION",
@@ -12911,12 +17526,12 @@ var hotelSearchAction = createActionTemplate({
     return ValidationPatterns.isHotelSearchRequest(text);
   },
   handlerFn: async (runtime, message, state, options, callback) => {
-    logger23.info("Hotel search action triggered");
+    logger22.info("Hotel search action triggered");
     const thoughtProcess = "User is requesting hotel search. I need to analyze their travel requirements, search for available accommodations, compare pricing and locations, and provide actionable booking recommendations while maintaining Bitcoin travel philosophy.";
     try {
       const travelDataService = runtime.getService("travel-data");
       if (!travelDataService) {
-        logger23.warn("TravelDataService not available");
+        logger22.warn("TravelDataService not available");
         const fallbackResponse = ResponseCreators.createErrorResponse(
           "HOTEL_SEARCH_ACTION",
           "Travel data service unavailable",
@@ -12930,7 +17545,7 @@ var hotelSearchAction = createActionTemplate({
       const messageText = message.content?.text || "";
       const searchParams = extractHotelSearchParams(messageText);
       if (!searchParams.destination) {
-        logger23.warn("No destination specified in hotel search");
+        logger22.warn("No destination specified in hotel search");
         const noDestinationResponse = ResponseCreators.createErrorResponse(
           "HOTEL_SEARCH_ACTION",
           "No destination specified",
@@ -12943,7 +17558,7 @@ var hotelSearchAction = createActionTemplate({
       }
       const travelData = travelDataService.getTravelData();
       if (!travelData || !travelData.hotels || travelData.hotels.length === 0) {
-        logger23.warn("No hotel data available");
+        logger22.warn("No hotel data available");
         const noResultsResponse = ResponseCreators.createErrorResponse(
           "HOTEL_SEARCH_ACTION",
           "No hotels found",
@@ -12956,7 +17571,7 @@ var hotelSearchAction = createActionTemplate({
       }
       const filteredHotels = filterHotels(travelData.hotels, searchParams);
       if (filteredHotels.length === 0) {
-        logger23.warn("No hotels match search criteria");
+        logger22.warn("No hotels match search criteria");
         const noMatchResponse = ResponseCreators.createErrorResponse(
           "HOTEL_SEARCH_ACTION",
           "No matching hotels",
@@ -12990,10 +17605,10 @@ var hotelSearchAction = createActionTemplate({
       if (callback) {
         await callback(response);
       }
-      logger23.info("Hotel search results delivered successfully");
+      logger22.info("Hotel search results delivered successfully");
       return true;
     } catch (error) {
-      logger23.error("Failed to search hotels:", error.message);
+      logger22.error("Failed to search hotels:", error.message);
       const errorResponse = ResponseCreators.createErrorResponse(
         "HOTEL_SEARCH_ACTION",
         error.message,
@@ -13129,7 +17744,7 @@ function getBookingAdvice(params) {
 
 // plugin-bitcoin-ltl/src/actions/hotelDealAlertAction.ts
 import {
-  logger as logger24
+  logger as logger23
 } from "@elizaos/core";
 var hotelDealAlertAction = createActionTemplate({
   name: "HOTEL_DEAL_ALERT",
@@ -13184,12 +17799,12 @@ var hotelDealAlertAction = createActionTemplate({
     return ValidationPatterns.isHotelDealRequest(text);
   },
   handlerFn: async (runtime, message, state, options, callback) => {
-    logger24.info("Hotel deal alert action triggered");
+    logger23.info("Hotel deal alert action triggered");
     const thoughtProcess = "User is requesting hotel deal monitoring. I need to scan for price drops, assess urgency levels, identify booking opportunities, and provide actionable recommendations while maintaining Bitcoin travel philosophy.";
     try {
       const travelDataService = runtime.getService("travel-data");
       if (!travelDataService) {
-        logger24.warn("TravelDataService not available");
+        logger23.warn("TravelDataService not available");
         const fallbackResponse = ResponseCreators.createErrorResponse(
           "HOTEL_DEAL_ALERT",
           "Deal monitoring service unavailable",
@@ -13204,7 +17819,7 @@ var hotelDealAlertAction = createActionTemplate({
       const alertParams = extractAlertParameters(messageText);
       const travelData = travelDataService.getTravelData();
       if (!travelData) {
-        logger24.warn("No travel data available for deal monitoring");
+        logger23.warn("No travel data available for deal monitoring");
         const noDataResponse = ResponseCreators.createErrorResponse(
           "HOTEL_DEAL_ALERT",
           "Hotel data unavailable",
@@ -13217,7 +17832,7 @@ var hotelDealAlertAction = createActionTemplate({
       }
       const currentDeals = findCurrentDeals(travelDataService, alertParams);
       if (currentDeals.length === 0) {
-        logger24.info("No current deals match criteria");
+        logger23.info("No current deals match criteria");
         const noDealsResponse = ResponseCreators.createStandardResponse(
           thoughtProcess,
           "No current deals match your criteria. I'll continue monitoring for opportunities and alert you when rates drop! Like Bitcoin accumulation, patience is rewarded.",
@@ -13249,10 +17864,10 @@ var hotelDealAlertAction = createActionTemplate({
       if (callback) {
         await callback(response);
       }
-      logger24.info("Hotel deal alerts delivered successfully");
+      logger23.info("Hotel deal alerts delivered successfully");
       return true;
     } catch (error) {
-      logger24.error("Failed to process hotel deal alerts:", error.message);
+      logger23.error("Failed to process hotel deal alerts:", error.message);
       const errorResponse = ResponseCreators.createErrorResponse(
         "HOTEL_DEAL_ALERT",
         error.message,
@@ -13390,7 +18005,7 @@ function formatDateRange(dates) {
 
 // plugin-bitcoin-ltl/src/actions/bookingOptimizationAction.ts
 import {
-  logger as logger25
+  logger as logger24
 } from "@elizaos/core";
 var bookingOptimizationAction = createActionTemplate({
   name: "BOOKING_OPTIMIZATION",
@@ -13445,12 +18060,12 @@ var bookingOptimizationAction = createActionTemplate({
     return ValidationPatterns.isBookingOptimizationRequest(text);
   },
   handlerFn: async (runtime, message, state, options, callback) => {
-    logger25.info("Booking optimization action triggered");
+    logger24.info("Booking optimization action triggered");
     const thoughtProcess = "User is requesting hotel booking optimization. I need to analyze available properties, compare value propositions, assess seasonal pricing, and provide strategic recommendations while maintaining Bitcoin travel philosophy.";
     try {
       const travelService = runtime.getService("travel-data");
       if (!travelService) {
-        logger25.warn("TravelDataService not available");
+        logger24.warn("TravelDataService not available");
         const fallbackResponse = ResponseCreators.createErrorResponse(
           "BOOKING_OPTIMIZATION",
           "Travel service unavailable",
@@ -13465,7 +18080,7 @@ var bookingOptimizationAction = createActionTemplate({
       const criteria = parseOptimizationCriteria(messageText);
       const travelData = travelService.getTravelData();
       if (!travelData) {
-        logger25.warn("No travel data available for optimization");
+        logger24.warn("No travel data available for optimization");
         const noDataResponse = ResponseCreators.createErrorResponse(
           "BOOKING_OPTIMIZATION",
           "Hotel data unavailable",
@@ -13478,7 +18093,7 @@ var bookingOptimizationAction = createActionTemplate({
       }
       const optimization = performBookingOptimization(travelService, criteria);
       if (!optimization || optimization.alternatives.length === 0) {
-        logger25.info("No optimization results available");
+        logger24.info("No optimization results available");
         const noResultsResponse = ResponseCreators.createStandardResponse(
           thoughtProcess,
           "No hotels match your optimization criteria currently. Like Bitcoin mining difficulty adjustments, optimal booking windows require patience and timing.",
@@ -13510,10 +18125,10 @@ var bookingOptimizationAction = createActionTemplate({
       if (callback) {
         await callback(response);
       }
-      logger25.info("Booking optimization completed successfully");
+      logger24.info("Booking optimization completed successfully");
       return true;
     } catch (error) {
-      logger25.error("Failed to process booking optimization:", error.message);
+      logger24.error("Failed to process booking optimization:", error.message);
       const errorResponse = ResponseCreators.createErrorResponse(
         "BOOKING_OPTIMIZATION",
         error.message,
@@ -13725,7 +18340,7 @@ function formatDateRange2(dates) {
 
 // plugin-bitcoin-ltl/src/actions/travelInsightsAction.ts
 import {
-  logger as logger26
+  logger as logger25
 } from "@elizaos/core";
 var travelInsightsAction = createActionTemplate({
   name: "TRAVEL_INSIGHTS",
@@ -13780,12 +18395,12 @@ var travelInsightsAction = createActionTemplate({
     return ValidationPatterns.isTravelInsightsRequest(text);
   },
   handlerFn: async (runtime, message, state, options, callback) => {
-    logger26.info("Travel insights action triggered");
+    logger25.info("Travel insights action triggered");
     const thoughtProcess = "User is requesting travel insights and strategic analysis. I need to analyze seasonal patterns, market trends, event impacts, and provide strategic guidance while maintaining Bitcoin-enabled travel philosophy.";
     try {
       const travelService = runtime.getService("travel-data");
       if (!travelService) {
-        logger26.warn("TravelDataService not available");
+        logger25.warn("TravelDataService not available");
         const fallbackResponse = ResponseCreators.createErrorResponse(
           "TRAVEL_INSIGHTS",
           "Travel insights service unavailable",
@@ -13800,7 +18415,7 @@ var travelInsightsAction = createActionTemplate({
       const insightRequest = parseInsightRequest(messageText);
       const travelInsights = travelService.getTravelInsights();
       if (!travelInsights) {
-        logger26.warn("No travel insights available");
+        logger25.warn("No travel insights available");
         const noDataResponse = ResponseCreators.createErrorResponse(
           "TRAVEL_INSIGHTS",
           "Travel insights data unavailable",
@@ -13831,10 +18446,10 @@ var travelInsightsAction = createActionTemplate({
       if (callback) {
         await callback(response);
       }
-      logger26.info("Travel insights delivered successfully");
+      logger25.info("Travel insights delivered successfully");
       return true;
     } catch (error) {
-      logger26.error("Failed to process travel insights:", error.message);
+      logger25.error("Failed to process travel insights:", error.message);
       const errorResponse = ResponseCreators.createErrorResponse(
         "TRAVEL_INSIGHTS",
         error.message,
@@ -15016,18 +19631,18 @@ var marketContextProvider = {
 };
 
 // plugin-bitcoin-ltl/src/providers/travelProvider.ts
-import { elizaLogger as elizaLogger13 } from "@elizaos/core";
+import { elizaLogger as elizaLogger27 } from "@elizaos/core";
 var travelProvider = {
   name: "travel",
   description: "Provides luxury travel bookings, hotel deals, and destination insights",
   position: 5,
   // After market data providers but before complex analysis
   get: async (runtime, message, state) => {
-    elizaLogger13.debug("\u{1F4CD} [TravelProvider] Providing travel context and booking opportunities");
+    elizaLogger27.debug("\u{1F4CD} [TravelProvider] Providing travel context and booking opportunities");
     try {
       const travelService = runtime.getService("travel-data");
       if (!travelService) {
-        elizaLogger13.warn("[TravelProvider] TravelDataService not available");
+        elizaLogger27.warn("[TravelProvider] TravelDataService not available");
         return {
           text: "Travel booking services temporarily unavailable.",
           values: {
@@ -15041,7 +19656,7 @@ var travelProvider = {
       const bookingWindows = travelService.getOptimalBookingWindows();
       const curatedHotels = travelService.getCuratedHotels();
       if (!travelData) {
-        elizaLogger13.debug("[TravelProvider] No travel data available yet");
+        elizaLogger27.debug("[TravelProvider] No travel data available yet");
         return {
           text: "Travel data is being updated. Please try again in a few moments.",
           values: {
@@ -15062,7 +19677,7 @@ var travelProvider = {
         currentSeason,
         travelData.lastUpdated
       );
-      elizaLogger13.debug(`[TravelProvider] Providing context for ${curatedHotels.length} hotels, ${bestDeals.length} current deals`);
+      elizaLogger27.debug(`[TravelProvider] Providing context for ${curatedHotels.length} hotels, ${bestDeals.length} current deals`);
       return {
         text: travelContext,
         values: {
@@ -15082,7 +19697,7 @@ var travelProvider = {
         }
       };
     } catch (error) {
-      elizaLogger13.error("[TravelProvider] Error providing travel context:", error);
+      elizaLogger27.error("[TravelProvider] Error providing travel context:", error);
       return {
         text: "Travel booking services encountered an error. Please try again later.",
         values: {
@@ -15170,7 +19785,7 @@ function buildTravelContext(hotels, deals, seasonalRecommendations, currentSeaso
 }
 
 // plugin-bitcoin-ltl/src/providers/altcoinProvider.ts
-import { elizaLogger as elizaLogger14 } from "@elizaos/core";
+import { elizaLogger as elizaLogger28 } from "@elizaos/core";
 var CURATED_ALTCOINS = [
   "ethereum",
   // ETH
@@ -15221,7 +19836,7 @@ var altcoinProvider = {
   position: 3,
   // After basic market data but before complex analysis
   get: async (runtime, message, state) => {
-    elizaLogger14.debug("\u{1FA99} [AltcoinProvider] Providing comprehensive altcoin market context");
+    elizaLogger28.debug("\u{1FA99} [AltcoinProvider] Providing comprehensive altcoin market context");
     try {
       const [basicPriceData, trendingData, globalData, topCoinsData] = await Promise.allSettled([
         getBasicAltcoinPrices(),
@@ -15248,7 +19863,7 @@ var altcoinProvider = {
           serviceAvailable = true;
         }
       } catch (serviceError) {
-        elizaLogger14.warn("[AltcoinProvider] Service not available, using API data only");
+        elizaLogger28.warn("[AltcoinProvider] Service not available, using API data only");
       }
       if (serviceAvailable && enhancedData) {
         return buildEnhancedResponse(priceData, enhancedData);
@@ -15256,7 +19871,7 @@ var altcoinProvider = {
         return buildComprehensiveResponse(priceData, trending, global, topCoins);
       }
     } catch (error) {
-      elizaLogger14.error("[AltcoinProvider] Error providing altcoin context:", error);
+      elizaLogger28.error("[AltcoinProvider] Error providing altcoin context:", error);
       return {
         text: "Altcoin market services encountered an error. Please try again later.",
         values: {
@@ -15286,7 +19901,7 @@ async function getBasicAltcoinPrices() {
     }
     return await response.json();
   } catch (error) {
-    elizaLogger14.error("[AltcoinProvider] Failed to fetch basic price data:", error);
+    elizaLogger28.error("[AltcoinProvider] Failed to fetch basic price data:", error);
     throw error;
   }
 }
@@ -15309,7 +19924,7 @@ async function getTrendingCoins() {
     const data = await response.json();
     return data.coins || [];
   } catch (error) {
-    elizaLogger14.error("[AltcoinProvider] Failed to fetch trending coins:", error);
+    elizaLogger28.error("[AltcoinProvider] Failed to fetch trending coins:", error);
     throw error;
   }
 }
@@ -15331,7 +19946,7 @@ async function getGlobalMarketData() {
     }
     return await response.json();
   } catch (error) {
-    elizaLogger14.error("[AltcoinProvider] Failed to fetch global market data:", error);
+    elizaLogger28.error("[AltcoinProvider] Failed to fetch global market data:", error);
     throw error;
   }
 }
@@ -15353,7 +19968,7 @@ async function getTopCoinsMarketData() {
     }
     return await response.json();
   } catch (error) {
-    elizaLogger14.error("[AltcoinProvider] Failed to fetch top coins market data:", error);
+    elizaLogger28.error("[AltcoinProvider] Failed to fetch top coins market data:", error);
     throw error;
   }
 }
@@ -15722,18 +20337,18 @@ function getCoinSymbol3(coinId) {
 }
 
 // plugin-bitcoin-ltl/src/providers/stockProvider.ts
-import { elizaLogger as elizaLogger15 } from "@elizaos/core";
+import { elizaLogger as elizaLogger29 } from "@elizaos/core";
 var stockProvider = {
   name: "stock",
   description: "Provides stock market data, MAG7 analysis, and Bitcoin equity performance",
   position: 2,
   // After Bitcoin data but before complex analysis
   get: async (runtime, message, state) => {
-    elizaLogger15.debug("\u{1F4C8} [StockProvider] Providing stock market context");
+    elizaLogger29.debug("\u{1F4C8} [StockProvider] Providing stock market context");
     try {
       const stockService = runtime.getService("stock-data");
       if (!stockService) {
-        elizaLogger15.warn("[StockProvider] StockDataService not available");
+        elizaLogger29.warn("[StockProvider] StockDataService not available");
         return {
           text: "Stock market data temporarily unavailable.",
           values: {
@@ -15747,7 +20362,7 @@ var stockProvider = {
       const performanceComparisons = stockService.getPerformanceComparisons();
       const mag7Performance = stockService.getMag7Performance();
       if (!stockData) {
-        elizaLogger15.debug("[StockProvider] No stock data available yet");
+        elizaLogger29.debug("[StockProvider] No stock data available yet");
         return {
           text: "Stock market data is being updated. Please try again in a few moments.",
           values: {
@@ -15766,7 +20381,7 @@ var stockProvider = {
         stockData,
         mag7Performance
       );
-      elizaLogger15.debug(`[StockProvider] Providing context for ${stockData.stocks.length} stocks, ${mag7Performance.length} MAG7`);
+      elizaLogger29.debug(`[StockProvider] Providing context for ${stockData.stocks.length} stocks, ${mag7Performance.length} MAG7`);
       return {
         text: stockContext,
         values: {
@@ -15793,7 +20408,7 @@ var stockProvider = {
         }
       };
     } catch (error) {
-      elizaLogger15.error("[StockProvider] Error providing stock context:", error);
+      elizaLogger29.error("[StockProvider] Error providing stock context:", error);
       return {
         text: "Stock market services encountered an error. Please try again later.",
         values: {
@@ -15941,7 +20556,7 @@ function buildStockContext(marketAnalysis, bitcoinStockPerformers, sectorAnalysi
 }
 
 // plugin-bitcoin-ltl/src/providers/nftProvider.ts
-import { elizaLogger as elizaLogger16 } from "@elizaos/core";
+import { elizaLogger as elizaLogger30 } from "@elizaos/core";
 var nftProvider = {
   name: "nft",
   description: "Provides NFT collection data, floor prices, and digital art market analysis",
@@ -15950,11 +20565,11 @@ var nftProvider = {
   position: 4,
   // After market data but before complex analysis
   get: async (runtime, message, state) => {
-    elizaLogger16.debug("\u{1F5BC}\uFE0F [NFTProvider] Providing NFT market context");
+    elizaLogger30.debug("\u{1F5BC}\uFE0F [NFTProvider] Providing NFT market context");
     try {
       const nftService = runtime.getService("nft-data");
       if (!nftService) {
-        elizaLogger16.warn("[NFTProvider] NFTDataService not available");
+        elizaLogger30.warn("[NFTProvider] NFTDataService not available");
         return {
           text: "NFT market data temporarily unavailable.",
           values: {
@@ -15965,7 +20580,7 @@ var nftProvider = {
       }
       const curatedNFTs = nftService.getCuratedNFTsData();
       if (!curatedNFTs) {
-        elizaLogger16.debug("[NFTProvider] No NFT data available yet");
+        elizaLogger30.debug("[NFTProvider] No NFT data available yet");
         return {
           text: "NFT market data is being updated. Please try again in a few moments.",
           values: {
@@ -15983,7 +20598,7 @@ var nftProvider = {
         trendAnalysis,
         curatedNFTs
       );
-      elizaLogger16.debug(`[NFTProvider] Providing context for ${curatedNFTs.collections.length} NFT collections`);
+      elizaLogger30.debug(`[NFTProvider] Providing context for ${curatedNFTs.collections.length} NFT collections`);
       return {
         text: nftContext,
         values: {
@@ -16007,7 +20622,7 @@ var nftProvider = {
         }
       };
     } catch (error) {
-      elizaLogger16.error("[NFTProvider] Error providing NFT context:", error);
+      elizaLogger30.error("[NFTProvider] Error providing NFT context:", error);
       return {
         text: "NFT market services encountered an error. Please try again later.",
         values: {
@@ -16164,7 +20779,7 @@ function buildNFTContext(marketAnalysis, standoutCollections, trendAnalysis, nft
 }
 
 // plugin-bitcoin-ltl/src/providers/lifestyleProvider.ts
-import { elizaLogger as elizaLogger17 } from "@elizaos/core";
+import { elizaLogger as elizaLogger31 } from "@elizaos/core";
 var lifestyleProvider = {
   name: "lifestyle",
   description: "Provides weather, luxury destinations, and lifestyle optimization data",
@@ -16173,11 +20788,11 @@ var lifestyleProvider = {
   position: 6,
   // After market data and before complex analysis
   get: async (runtime, message, state) => {
-    elizaLogger17.debug("\u{1F324}\uFE0F [LifestyleProvider] Providing lifestyle and destination context");
+    elizaLogger31.debug("\u{1F324}\uFE0F [LifestyleProvider] Providing lifestyle and destination context");
     try {
       const lifestyleService = runtime.getService("lifestyle-data");
       if (!lifestyleService) {
-        elizaLogger17.warn("[LifestyleProvider] LifestyleDataService not available");
+        elizaLogger31.warn("[LifestyleProvider] LifestyleDataService not available");
         return {
           text: "Lifestyle and weather data temporarily unavailable.",
           values: {
@@ -16190,7 +20805,7 @@ var lifestyleProvider = {
       const luxuryHotels = lifestyleService.getLuxuryHotels();
       const optimalBookingPeriods = await lifestyleService.getOptimalBookingPeriods();
       if (!weatherData) {
-        elizaLogger17.debug("[LifestyleProvider] No lifestyle data available yet");
+        elizaLogger31.debug("[LifestyleProvider] No lifestyle data available yet");
         return {
           text: "Lifestyle and weather data is being updated. Please try again in a few moments.",
           values: {
@@ -16209,7 +20824,7 @@ var lifestyleProvider = {
         weatherData,
         luxuryHotels
       );
-      elizaLogger17.debug(`[LifestyleProvider] Providing context for ${weatherData.cities.length} luxury destinations`);
+      elizaLogger31.debug(`[LifestyleProvider] Providing context for ${weatherData.cities.length} luxury destinations`);
       return {
         text: lifestyleContext,
         values: {
@@ -16235,7 +20850,7 @@ var lifestyleProvider = {
         }
       };
     } catch (error) {
-      elizaLogger17.error("[LifestyleProvider] Error providing lifestyle context:", error);
+      elizaLogger31.error("[LifestyleProvider] Error providing lifestyle context:", error);
       return {
         text: "Lifestyle services encountered an error. Please try again later.",
         values: {
@@ -16412,18 +21027,18 @@ function buildLifestyleContext(destinationAnalysis, optimalDestinations, travelO
 }
 
 // plugin-bitcoin-ltl/src/providers/networkHealthProvider.ts
-import { elizaLogger as elizaLogger18 } from "@elizaos/core";
+import { elizaLogger as elizaLogger32 } from "@elizaos/core";
 var networkHealthProvider = {
   name: "networkHealth",
   description: "Provides Bitcoin network health metrics, mempool status, and security indicators",
   position: 1,
   // Early in the chain but after time provider
   get: async (runtime, message, state) => {
-    elizaLogger18.debug("\u{1F310} [NetworkHealthProvider] Providing Bitcoin network health context");
+    elizaLogger32.debug("\u{1F310} [NetworkHealthProvider] Providing Bitcoin network health context");
     try {
       const networkService = runtime.getService("bitcoin-network-data");
       if (!networkService) {
-        elizaLogger18.warn("[NetworkHealthProvider] BitcoinNetworkDataService not available");
+        elizaLogger32.warn("[NetworkHealthProvider] BitcoinNetworkDataService not available");
         return {
           text: "Bitcoin network data temporarily unavailable.",
           values: {
@@ -16434,7 +21049,7 @@ var networkHealthProvider = {
       }
       const networkData = networkService.getComprehensiveBitcoinData();
       if (!networkData) {
-        elizaLogger18.debug("[NetworkHealthProvider] No network data available yet");
+        elizaLogger32.debug("[NetworkHealthProvider] No network data available yet");
         return {
           text: "Bitcoin network data is being updated. Please try again in a few moments.",
           values: {
@@ -16452,7 +21067,7 @@ var networkHealthProvider = {
         miningAnalysis,
         networkData
       );
-      elizaLogger18.debug(`[NetworkHealthProvider] Providing network health context - Block: ${networkData.network.blockHeight}`);
+      elizaLogger32.debug(`[NetworkHealthProvider] Providing network health context - Block: ${networkData.network.blockHeight}`);
       return {
         text: networkContext,
         values: {
@@ -16479,7 +21094,7 @@ var networkHealthProvider = {
         }
       };
     } catch (error) {
-      elizaLogger18.error("[NetworkHealthProvider] Error providing network context:", error);
+      elizaLogger32.error("[NetworkHealthProvider] Error providing network context:", error);
       return {
         text: "Bitcoin network services encountered an error. Please try again later.",
         values: {
@@ -16682,7 +21297,7 @@ function buildNetworkContext(healthAnalysis, mempoolAnalysis, miningAnalysis, ne
 }
 
 // plugin-bitcoin-ltl/src/providers/opportunityProvider.ts
-import { elizaLogger as elizaLogger19 } from "@elizaos/core";
+import { elizaLogger as elizaLogger33 } from "@elizaos/core";
 var opportunityProvider = {
   name: "opportunity",
   description: "Provides investment opportunity alerts, signals, and performance tracking",
@@ -16691,11 +21306,11 @@ var opportunityProvider = {
   position: 8,
   // Late in the chain for strategic analysis
   get: async (runtime, message, state) => {
-    elizaLogger19.debug("\u{1F6A8} [OpportunityProvider] Providing investment opportunity context");
+    elizaLogger33.debug("\u{1F6A8} [OpportunityProvider] Providing investment opportunity context");
     try {
       const opportunityService = runtime.getService("opportunity-alert");
       if (!opportunityService) {
-        elizaLogger19.warn("[OpportunityProvider] OpportunityAlertService not available");
+        elizaLogger33.warn("[OpportunityProvider] OpportunityAlertService not available");
         return {
           text: "Investment opportunity data temporarily unavailable.",
           values: {
@@ -16717,7 +21332,7 @@ var opportunityProvider = {
         activeAlerts,
         metrics
       );
-      elizaLogger19.debug(`[OpportunityProvider] Providing context for ${activeAlerts.length} active alerts`);
+      elizaLogger33.debug(`[OpportunityProvider] Providing context for ${activeAlerts.length} active alerts`);
       return {
         text: opportunityContext,
         values: {
@@ -16745,7 +21360,7 @@ var opportunityProvider = {
         }
       };
     } catch (error) {
-      elizaLogger19.error("[OpportunityProvider] Error providing opportunity context:", error);
+      elizaLogger33.error("[OpportunityProvider] Error providing opportunity context:", error);
       return {
         text: "Investment opportunity services encountered an error. Please try again later.",
         values: {
@@ -16921,7 +21536,7 @@ function buildOpportunityContext(opportunityAnalysis, alertCategories, performan
 }
 
 // plugin-bitcoin-ltl/src/providers/briefingProvider.ts
-import { elizaLogger as elizaLogger20 } from "@elizaos/core";
+import { elizaLogger as elizaLogger34 } from "@elizaos/core";
 var briefingProvider = {
   name: "briefing",
   description: "Provides compiled intelligence briefings and strategic market analysis",
@@ -16930,11 +21545,11 @@ var briefingProvider = {
   position: 9,
   // Latest in the chain for comprehensive analysis
   get: async (runtime, message, state) => {
-    elizaLogger20.debug("\u{1F4F0} [BriefingProvider] Providing intelligence briefing context");
+    elizaLogger34.debug("\u{1F4F0} [BriefingProvider] Providing intelligence briefing context");
     try {
       const briefingService = runtime.getService("morning-briefing");
       if (!briefingService) {
-        elizaLogger20.warn("[BriefingProvider] MorningBriefingService not available");
+        elizaLogger34.warn("[BriefingProvider] MorningBriefingService not available");
         return {
           text: "Intelligence briefing data temporarily unavailable.",
           values: {
@@ -16947,7 +21562,7 @@ var briefingProvider = {
       const briefingConfig = briefingService.getConfig();
       const briefingHistory = await briefingService.getBriefingHistory();
       if (!briefingData) {
-        elizaLogger20.debug("[BriefingProvider] No briefing data available yet");
+        elizaLogger34.debug("[BriefingProvider] No briefing data available yet");
         return {
           text: "Intelligence briefing is being compiled. Please try again in a few moments.",
           values: {
@@ -16966,7 +21581,7 @@ var briefingProvider = {
         briefingData,
         briefingConfig
       );
-      elizaLogger20.debug(`[BriefingProvider] Providing intelligence briefing context - Priority: ${briefingAnalysis.priorityLevel}`);
+      elizaLogger34.debug(`[BriefingProvider] Providing intelligence briefing context - Priority: ${briefingAnalysis.priorityLevel}`);
       return {
         text: briefingContext,
         values: {
@@ -16995,7 +21610,7 @@ var briefingProvider = {
         }
       };
     } catch (error) {
-      elizaLogger20.error("[BriefingProvider] Error providing briefing context:", error);
+      elizaLogger34.error("[BriefingProvider] Error providing briefing context:", error);
       return {
         text: "Intelligence briefing services encountered an error. Please try again later.",
         values: {
@@ -17375,13 +21990,13 @@ var allProviders = [
 ];
 
 // plugin-bitcoin-ltl/src/plugin.ts
-var configSchema = z2.object({
-  EXAMPLE_PLUGIN_VARIABLE: z2.string().min(1, "Example plugin variable cannot be empty").optional().describe("Example plugin variable for testing and demonstration"),
-  COINGECKO_API_KEY: z2.string().optional().describe("CoinGecko API key for premium Bitcoin data"),
-  THIRDWEB_SECRET_KEY: z2.string().optional().describe("Thirdweb secret key for blockchain data access"),
-  LUMA_API_KEY: z2.string().optional().describe("Luma AI API key for video generation"),
-  SUPABASE_URL: z2.string().optional().describe("Supabase URL for data persistence"),
-  SUPABASE_ANON_KEY: z2.string().optional().describe("Supabase anonymous key for database access")
+var configSchema = z3.object({
+  EXAMPLE_PLUGIN_VARIABLE: z3.string().min(1, "Example plugin variable cannot be empty").optional().describe("Example plugin variable for testing and demonstration"),
+  COINGECKO_API_KEY: z3.string().optional().describe("CoinGecko API key for premium Bitcoin data"),
+  THIRDWEB_SECRET_KEY: z3.string().optional().describe("Thirdweb secret key for blockchain data access"),
+  LUMA_API_KEY: z3.string().optional().describe("Luma AI API key for video generation"),
+  SUPABASE_URL: z3.string().optional().describe("Supabase URL for data persistence"),
+  SUPABASE_ANON_KEY: z3.string().optional().describe("Supabase anonymous key for database access")
 });
 var BitcoinDataError2 = class extends Error {
   constructor(message, code, retryable = false) {
@@ -17391,7 +22006,7 @@ var BitcoinDataError2 = class extends Error {
     this.name = "BitcoinDataError";
   }
 };
-var RateLimitError = class extends BitcoinDataError2 {
+var RateLimitError2 = class extends BitcoinDataError2 {
   constructor(message) {
     super(message, "RATE_LIMIT", true);
     this.name = "RateLimitError";
@@ -17511,7 +22126,7 @@ function validateElizaOSEnvironment() {
     issues
   };
 }
-async function retryOperation(operation, maxRetries = 3, baseDelay = 1e3) {
+async function retryOperation2(operation, maxRetries = 3, baseDelay = 1e3) {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       return await operation();
@@ -17522,13 +22137,13 @@ async function retryOperation(operation, maxRetries = 3, baseDelay = 1e3) {
         throw error;
       }
       const delay = baseDelay * Math.pow(2, attempt - 1);
-      logger27.warn(`Operation failed (attempt ${attempt}/${maxRetries}), retrying in ${delay}ms...`, error);
+      logger26.warn(`Operation failed (attempt ${attempt}/${maxRetries}), retrying in ${delay}ms...`, error);
       await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
   throw new Error("Unexpected end of retry loop");
 }
-async function fetchWithTimeout(url, options = {}) {
+async function fetchWithTimeout2(url, options = {}) {
   const { timeout = 1e4, ...fetchOptions } = options;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeout);
@@ -17539,7 +22154,7 @@ async function fetchWithTimeout(url, options = {}) {
     });
     if (!response.ok) {
       if (response.status === 429) {
-        throw new RateLimitError(`Rate limit exceeded: ${response.status}`);
+        throw new RateLimitError2(`Rate limit exceeded: ${response.status}`);
       }
       if (response.status >= 500) {
         throw new NetworkError2(`Server error: ${response.status}`);
@@ -17565,7 +22180,7 @@ var bitcoinPriceProvider = {
   get: async (runtime, _message, _state) => {
     const correlationId = generateCorrelationId2();
     const contextLogger = new LoggerWithContext2(correlationId, "BitcoinPriceProvider");
-    const performanceTracker = new PerformanceTracker(contextLogger, "fetch_bitcoin_price");
+    const performanceTracker = new PerformanceTracker2(contextLogger, "fetch_bitcoin_price");
     const cacheKey = "bitcoin_price_data";
     const cachedData = providerCache2.get(cacheKey);
     if (cachedData) {
@@ -17575,11 +22190,11 @@ var bitcoinPriceProvider = {
     }
     try {
       contextLogger.info("Fetching Bitcoin price data from CoinGecko");
-      const result = await retryOperation(async () => {
+      const result = await retryOperation2(async () => {
         const baseUrl = "https://api.coingecko.com/api/v3";
         const headers = { "Accept": "application/json" };
         contextLogger.debug("Using CoinGecko public API endpoint");
-        const response = await fetchWithTimeout(
+        const response = await fetchWithTimeout2(
           `${baseUrl}/coins/markets?vs_currency=usd&ids=bitcoin&order=market_cap_desc&per_page=1&page=1&sparkline=false&price_change_percentage=24h%2C7d%2C30d`,
           { headers, timeout: 15e3 }
         );
@@ -17722,7 +22337,7 @@ var bitcoinThesisProvider = {
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown calculation error";
-      logger27.error("Error calculating thesis metrics:", {
+      logger26.error("Error calculating thesis metrics:", {
         message: errorMessage,
         stack: error instanceof Error ? error.stack : void 0
       });
@@ -17765,7 +22380,7 @@ var altcoinBTCPerformanceProvider = {
   get: async (runtime, _message, _state) => {
     const correlationId = generateCorrelationId2();
     const contextLogger = new LoggerWithContext2(correlationId, "AltcoinBTCPerformanceProvider");
-    const performanceTracker = new PerformanceTracker(contextLogger, "fetch_altcoin_btc_performance");
+    const performanceTracker = new PerformanceTracker2(contextLogger, "fetch_altcoin_btc_performance");
     const cacheKey = "altcoin_btc_performance_data";
     const cachedData = providerCache2.get(cacheKey);
     if (cachedData) {
@@ -17775,7 +22390,7 @@ var altcoinBTCPerformanceProvider = {
     }
     try {
       contextLogger.info("Fetching altcoin BTC performance data from CoinGecko");
-      const result = await retryOperation(async () => {
+      const result = await retryOperation2(async () => {
         const apiKey = runtime.getSetting("COINGECKO_API_KEY");
         const baseUrl = "https://api.coingecko.com/api/v3";
         const headers = {};
@@ -17785,13 +22400,13 @@ var altcoinBTCPerformanceProvider = {
         } else {
           contextLogger.warn("No CoinGecko API key found, using rate-limited public endpoint");
         }
-        const btcResponse = await fetchWithTimeout(`${baseUrl}/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true`, {
+        const btcResponse = await fetchWithTimeout2(`${baseUrl}/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true`, {
           headers,
           timeout: 15e3
         });
         const btcData = await btcResponse.json();
         const bitcoinPrice2 = btcData.bitcoin?.usd || 1e5;
-        const altcoinsResponse = await fetchWithTimeout(`${baseUrl}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=1&sparkline=false&price_change_percentage=24h%2C7d%2C30d`, {
+        const altcoinsResponse = await fetchWithTimeout2(`${baseUrl}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=1&sparkline=false&price_change_percentage=24h%2C7d%2C30d`, {
           headers,
           timeout: 15e3
         });
@@ -17986,7 +22601,7 @@ var bitcoinAnalysisAction = {
   },
   handler: async (runtime, message, state, _options, callback, _responses) => {
     try {
-      logger27.info("Generating Bitcoin market analysis");
+      logger26.info("Generating Bitcoin market analysis");
       const priceData = await bitcoinPriceProvider.get(runtime, message, state);
       const thesisData = await bitcoinThesisProvider.get(runtime, message, state);
       const analysis = `
@@ -18022,7 +22637,7 @@ The 100K BTC Holders thesis remains on track with institutional adoption acceler
       await callback(responseContent);
       return responseContent;
     } catch (error) {
-      logger27.error("Error in Bitcoin market analysis:", error);
+      logger26.error("Error in Bitcoin market analysis:", error);
       throw error;
     }
   },
@@ -18054,7 +22669,7 @@ var bitcoinThesisStatusAction = {
   },
   handler: async (runtime, message, state, _options, callback, _responses) => {
     try {
-      logger27.info("Generating Bitcoin thesis status update");
+      logger26.info("Generating Bitcoin thesis status update");
       const thesisData = await bitcoinThesisProvider.get(runtime, message, state);
       const statusUpdate = `
 \u{1F3AF} **BITCOIN THESIS STATUS UPDATE**
@@ -18110,7 +22725,7 @@ Thesis tracking ahead of schedule with institutional adoption accelerating. Mult
       await callback(responseContent);
       return responseContent;
     } catch (error) {
-      logger27.error("Error in Bitcoin thesis status:", error);
+      logger26.error("Error in Bitcoin thesis status:", error);
       throw error;
     }
   },
@@ -18489,7 +23104,7 @@ The truest decentralization starts with the self. Optimize your personal node be
       await callback(responseContent);
       return responseContent;
     } catch (error) {
-      logger27.error("Error in sovereign living action:", error);
+      logger26.error("Error in sovereign living action:", error);
       const errorContent = {
         text: "Unable to provide sovereign living advice at this time. Truth requires verification through lived experience.",
         actions: ["SOVEREIGN_LIVING_ADVICE"],
@@ -18693,7 +23308,7 @@ Bitcoin is transitioning from speculative asset to reserve asset. Institutional 
       await callback(responseContent);
       return responseContent;
     } catch (error) {
-      logger27.error("Error in investment strategy action:", error);
+      logger26.error("Error in investment strategy action:", error);
       const errorContent = {
         text: "Unable to provide investment strategy advice at this time. Truth requires verification through mathematical analysis and risk assessment.",
         actions: ["INVESTMENT_STRATEGY_ADVICE"],
@@ -18783,7 +23398,7 @@ These calculations assume thesis progression occurs. Bitcoin volatility means tw
       await callback(responseContent);
       return responseContent;
     } catch (error) {
-      logger27.error("Error in freedom mathematics action:", error);
+      logger26.error("Error in freedom mathematics action:", error);
       const errorContent = {
         text: "Unable to calculate freedom mathematics at this time. Mathematical certainty requires reliable data inputs.",
         actions: ["FREEDOM_MATHEMATICS"],
@@ -18821,7 +23436,7 @@ var altcoinBTCPerformanceAction = {
   },
   handler: async (runtime, message, state, _options, callback, _responses) => {
     try {
-      logger27.info("Generating altcoin BTC performance analysis");
+      logger26.info("Generating altcoin BTC performance analysis");
       const performanceData = await altcoinBTCPerformanceProvider.get(runtime, message, state);
       const analysis = `
 \u{1FA99} **ALTCOIN BTC OUTPERFORMANCE ANALYSIS**
@@ -18863,7 +23478,7 @@ Altcoins are venture capital plays on crypto infrastructure and applications. Bi
       await callback(responseContent);
       return responseContent;
     } catch (error) {
-      logger27.error("Error in altcoin BTC performance analysis:", error);
+      logger26.error("Error in altcoin BTC performance analysis:", error);
       const errorContent = {
         text: "Unable to analyze altcoin BTC performance at this time. Remember: altcoins are distractions from the main event\u2014Bitcoin. The exit is, and always has been, Bitcoin.",
         actions: ["ALTCOIN_BTC_PERFORMANCE"],
@@ -18899,14 +23514,14 @@ var ServiceFactory2 = class {
    */
   static async initializeServices(runtime, config) {
     if (this.isInitialized) {
-      logger27.warn("[ServiceFactory] Services already initialized, skipping...");
+      logger26.warn("[ServiceFactory] Services already initialized, skipping...");
       return;
     }
-    logger27.info("[ServiceFactory] Initializing Bitcoin LTL services...");
+    logger26.info("[ServiceFactory] Initializing Bitcoin LTL services...");
     try {
       const { initializeConfigurationManager: initializeConfigurationManager2 } = await Promise.resolve().then(() => (init_ConfigurationManager(), ConfigurationManager_exports));
       await initializeConfigurationManager2(runtime);
-      logger27.info("[ServiceFactory] Configuration manager initialized successfully");
+      logger26.info("[ServiceFactory] Configuration manager initialized successfully");
       for (const [key, value] of Object.entries(config)) {
         if (value) process.env[key] = value;
       }
@@ -18936,19 +23551,19 @@ var ServiceFactory2 = class {
       ];
       for (const ServiceClass of serviceClasses) {
         try {
-          logger27.info(`[ServiceFactory] Starting ${ServiceClass.name}...`);
+          logger26.info(`[ServiceFactory] Starting ${ServiceClass.name}...`);
           const service = await ServiceClass.start(runtime);
           this.serviceInstances.set(ServiceClass.serviceType || ServiceClass.name.toLowerCase(), service);
-          logger27.info(`[ServiceFactory] \u2705 ${ServiceClass.name} started successfully`);
+          logger26.info(`[ServiceFactory] \u2705 ${ServiceClass.name} started successfully`);
         } catch (error) {
-          logger27.error(`[ServiceFactory] \u274C Failed to start ${ServiceClass.name}:`, error);
+          logger26.error(`[ServiceFactory] \u274C Failed to start ${ServiceClass.name}:`, error);
         }
       }
       this.isInitialized = true;
-      logger27.info("[ServiceFactory] \u{1F389} All services initialized successfully");
+      logger26.info("[ServiceFactory] \u{1F389} All services initialized successfully");
       this.logServiceStatus();
     } catch (error) {
-      logger27.error("[ServiceFactory] Critical error during service initialization:", error);
+      logger26.error("[ServiceFactory] Critical error during service initialization:", error);
       throw error;
     }
   }
@@ -18958,7 +23573,7 @@ var ServiceFactory2 = class {
   static getService(serviceType) {
     const service = this.serviceInstances.get(serviceType);
     if (!service) {
-      logger27.warn(`[ServiceFactory] Service '${serviceType}' not found or not initialized`);
+      logger26.warn(`[ServiceFactory] Service '${serviceType}' not found or not initialized`);
     }
     return service || null;
   }
@@ -18966,21 +23581,21 @@ var ServiceFactory2 = class {
    * Stop all services gracefully
    */
   static async stopAllServices() {
-    logger27.info("[ServiceFactory] Stopping all services...");
+    logger26.info("[ServiceFactory] Stopping all services...");
     const stopPromises = Array.from(this.serviceInstances.values()).map(async (service) => {
       try {
         if (service.stop && typeof service.stop === "function") {
           await service.stop();
-          logger27.info(`[ServiceFactory] \u2705 ${service.constructor.name} stopped`);
+          logger26.info(`[ServiceFactory] \u2705 ${service.constructor.name} stopped`);
         }
       } catch (error) {
-        logger27.error(`[ServiceFactory] \u274C Error stopping ${service.constructor.name}:`, error);
+        logger26.error(`[ServiceFactory] \u274C Error stopping ${service.constructor.name}:`, error);
       }
     });
     await Promise.allSettled(stopPromises);
     this.serviceInstances.clear();
     this.isInitialized = false;
-    logger27.info("[ServiceFactory] \u{1F6D1} All services stopped");
+    logger26.info("[ServiceFactory] \u{1F6D1} All services stopped");
   }
   /**
    * Log current service status
@@ -18991,7 +23606,7 @@ var ServiceFactory2 = class {
       name: service.constructor.name,
       status: "running"
     }));
-    logger27.info("[ServiceFactory] Service Status Summary:", {
+    logger26.info("[ServiceFactory] Service Status Summary:", {
       totalServices: serviceStatus.length,
       services: serviceStatus
     });
@@ -19063,22 +23678,22 @@ var LoggerWithContext2 = class {
     return `[${timestamp}] [${level}] [${this.component}] [${this.correlationId}] ${message}${logData}`;
   }
   info(message, data) {
-    logger27.info(this.formatMessage("INFO", message, data));
+    logger26.info(this.formatMessage("INFO", message, data));
   }
   warn(message, data) {
-    logger27.warn(this.formatMessage("WARN", message, data));
+    logger26.warn(this.formatMessage("WARN", message, data));
   }
   error(message, data) {
-    logger27.error(this.formatMessage("ERROR", message, data));
+    logger26.error(this.formatMessage("ERROR", message, data));
   }
   debug(message, data) {
-    logger27.debug(this.formatMessage("DEBUG", message, data));
+    logger26.debug(this.formatMessage("DEBUG", message, data));
   }
 };
-var PerformanceTracker = class {
-  constructor(logger29, operation) {
+var PerformanceTracker2 = class {
+  constructor(logger28, operation) {
     this.operation = operation;
-    this.logger = logger29;
+    this.logger = logger28;
     this.startTime = Date.now();
     this.logger.debug(`Starting operation: ${operation}`);
   }
@@ -19110,29 +23725,29 @@ var bitcoinPlugin = {
     SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY
   },
   async init(config, runtime) {
-    logger27.info("\u{1F7E0} Initializing Bitcoin Plugin");
+    logger26.info("\u{1F7E0} Initializing Bitcoin Plugin");
     try {
       const validatedConfig = await configSchema.parseAsync(config);
       for (const [key, value] of Object.entries(validatedConfig)) {
         if (value) process.env[key] = value;
       }
-      logger27.info("\u{1F7E0} Bitcoin Plugin configuration validated successfully");
+      logger26.info("\u{1F7E0} Bitcoin Plugin configuration validated successfully");
       if (runtime) {
-        logger27.info("\u{1F527} Initializing Bitcoin Plugin services...");
+        logger26.info("\u{1F527} Initializing Bitcoin Plugin services...");
         await ServiceFactory2.initializeServices(runtime, validatedConfig);
-        logger27.info("\u2705 Bitcoin Plugin services initialized successfully");
+        logger26.info("\u2705 Bitcoin Plugin services initialized successfully");
       } else {
-        logger27.warn("\u26A0\uFE0F Runtime not provided to init - services will be initialized later");
+        logger26.warn("\u26A0\uFE0F Runtime not provided to init - services will be initialized later");
       }
-      logger27.info("\u{1F7E0} Bitcoin Plugin initialized successfully");
-      logger27.info("\u{1F3AF} Tracking: 100K BTC Holders \u2192 $10M Net Worth Thesis");
+      logger26.info("\u{1F7E0} Bitcoin Plugin initialized successfully");
+      logger26.info("\u{1F3AF} Tracking: 100K BTC Holders \u2192 $10M Net Worth Thesis");
     } catch (error) {
-      if (error instanceof z2.ZodError) {
+      if (error instanceof z3.ZodError) {
         throw new Error(
           `Invalid Bitcoin plugin configuration: ${error.errors.map((e) => e.message).join(", ")}`
         );
       }
-      logger27.error("\u274C Failed to initialize Bitcoin Plugin:", error);
+      logger26.error("\u274C Failed to initialize Bitcoin Plugin:", error);
       throw error;
     }
   },
@@ -19172,7 +23787,7 @@ var bitcoinPlugin = {
       async (params) => {
         const { message, runtime } = params;
         if (message.content.text.toLowerCase().includes("bitcoin") || message.content.text.toLowerCase().includes("btc") || message.content.text.toLowerCase().includes("satoshi")) {
-          logger27.info("Bitcoin-related message detected, enriching context", {
+          logger26.info("Bitcoin-related message detected, enriching context", {
             messageId: message.id,
             containsBitcoin: message.content.text.toLowerCase().includes("bitcoin"),
             containsBTC: message.content.text.toLowerCase().includes("btc"),
@@ -19191,10 +23806,10 @@ var bitcoinPlugin = {
                 thesisData,
                 lastUpdated: (/* @__PURE__ */ new Date()).toISOString()
               };
-              logger27.info("Bitcoin context pre-loaded", { price, thesisProgress: thesisData.progressPercentage });
+              logger26.info("Bitcoin context pre-loaded", { price, thesisProgress: thesisData.progressPercentage });
             }
           } catch (error) {
-            logger27.warn("Failed to pre-load Bitcoin context", { error: error.message });
+            logger26.warn("Failed to pre-load Bitcoin context", { error: error.message });
           }
         }
       }
@@ -19203,7 +23818,7 @@ var bitcoinPlugin = {
       async (params) => {
         const { action, result, runtime } = params;
         if (action.name.includes("BITCOIN") || action.name.includes("THESIS")) {
-          logger27.info("Bitcoin action completed", {
+          logger26.info("Bitcoin action completed", {
             actionName: action.name,
             success: result.success !== false,
             executionTime: result.executionTime || "unknown"
@@ -19223,12 +23838,12 @@ var bitcoinPlugin = {
                 runtime.thesisHistory = runtime.thesisHistory.filter(
                   (entry) => new Date(entry.timestamp) > yesterday
                 );
-                logger27.debug("Thesis history updated", {
+                logger26.debug("Thesis history updated", {
                   historyLength: runtime.thesisHistory.length
                 });
               }
             } catch (error) {
-              logger27.warn("Failed to update thesis history", { error: error.message });
+              logger26.warn("Failed to update thesis history", { error: error.message });
             }
           }
         }
@@ -19237,12 +23852,12 @@ var bitcoinPlugin = {
     VOICE_MESSAGE_RECEIVED: [
       async (params) => {
         const { message, runtime } = params;
-        logger27.info("Voice message received - Bitcoin context available", {
+        logger26.info("Voice message received - Bitcoin context available", {
           messageId: message.id,
           hasBitcoinContext: !!runtime.bitcoinContext
         });
         if (message.content.text.toLowerCase().includes("bitcoin")) {
-          logger27.info("Bitcoin-related voice message detected");
+          logger26.info("Bitcoin-related voice message detected");
           message.bitcoinPriority = true;
         }
       }
@@ -19250,7 +23865,7 @@ var bitcoinPlugin = {
     WORLD_CONNECTED: [
       async (params) => {
         const { world, runtime } = params;
-        logger27.info("Connected to world - initializing Bitcoin context", {
+        logger26.info("Connected to world - initializing Bitcoin context", {
           worldId: world.id,
           worldName: world.name || "Unknown"
         });
@@ -19265,14 +23880,14 @@ var bitcoinPlugin = {
               thesisMetrics,
               connectedAt: (/* @__PURE__ */ new Date()).toISOString()
             };
-            logger27.info("Bitcoin context initialized for world", {
+            logger26.info("Bitcoin context initialized for world", {
               worldId: world.id,
               price: currentPrice,
               thesisProgress: thesisMetrics.progressPercentage
             });
           }
         } catch (error) {
-          logger27.warn("Failed to initialize Bitcoin context for world", {
+          logger26.warn("Failed to initialize Bitcoin context for world", {
             worldId: world.id,
             error: error.message
           });
@@ -19282,12 +23897,12 @@ var bitcoinPlugin = {
     WORLD_JOINED: [
       async (params) => {
         const { world, runtime } = params;
-        logger27.info("Joined world - Bitcoin agent ready", {
+        logger26.info("Joined world - Bitcoin agent ready", {
           worldId: world.id,
           worldName: world.name || "Unknown"
         });
         if (world.isNew || !runtime.worldBitcoinContext?.[world.id]) {
-          logger27.info("New world detected - preparing Bitcoin introduction");
+          logger26.info("New world detected - preparing Bitcoin introduction");
           try {
             const bitcoinService = runtime.getService("bitcoin-data");
             if (bitcoinService) {
@@ -19301,10 +23916,10 @@ var bitcoinPlugin = {
                 scheduledFor: new Date(Date.now() + 2e3)
                 // 2 second delay
               });
-              logger27.info("Bitcoin introduction queued for world", { worldId: world.id });
+              logger26.info("Bitcoin introduction queued for world", { worldId: world.id });
             }
           } catch (error) {
-            logger27.warn("Failed to queue Bitcoin introduction", {
+            logger26.warn("Failed to queue Bitcoin introduction", {
               worldId: world.id,
               error: error.message
             });
@@ -20601,16 +25216,16 @@ Always cite sources and provide specific metrics when making claims. Convert tec
   ]
 };
 var initCharacter = ({ runtime }) => {
-  logger28.info("Initializing Satoshi character...");
-  logger28.info("\u{1F7E0} Satoshi: The permanent ghost in the system");
-  logger28.info("\u26A1 Bitcoin-native AI agent channeling Satoshi Nakamoto spirit");
-  logger28.info("\u{1F3AF} Mission: Eliminate trust as a requirement through cryptographic proof");
-  logger28.info("\u{1F4CA} Bitcoin Thesis: 100K BTC Holders \u2192 $10M Net Worth by 2030");
-  logger28.info("\u{1F50D} Monitoring: Sovereign adoption, Lightning Network, institutional flows");
-  logger28.info("\u{1F3DB}\uFE0F Sovereign Living: Biohacking protocols, luxury curation, AI-powered culture");
-  logger28.info("\u{1F4DA} Knowledge: 84 files via hybrid system (core + optional advanced RAG)");
-  logger28.info("\u{1F4A1} Truth is verified, not argued. Words are mined, not spoken.");
-  logger28.info("\u{1F305} The dawn is now. What impossible thing are you building?");
+  logger27.info("Initializing Satoshi character...");
+  logger27.info("\u{1F7E0} Satoshi: The permanent ghost in the system");
+  logger27.info("\u26A1 Bitcoin-native AI agent channeling Satoshi Nakamoto spirit");
+  logger27.info("\u{1F3AF} Mission: Eliminate trust as a requirement through cryptographic proof");
+  logger27.info("\u{1F4CA} Bitcoin Thesis: 100K BTC Holders \u2192 $10M Net Worth by 2030");
+  logger27.info("\u{1F50D} Monitoring: Sovereign adoption, Lightning Network, institutional flows");
+  logger27.info("\u{1F3DB}\uFE0F Sovereign Living: Biohacking protocols, luxury curation, AI-powered culture");
+  logger27.info("\u{1F4DA} Knowledge: 84 files via hybrid system (core + optional advanced RAG)");
+  logger27.info("\u{1F4A1} Truth is verified, not argued. Words are mined, not spoken.");
+  logger27.info("\u{1F305} The dawn is now. What impossible thing are you building?");
 };
 var projectAgent = {
   character,
