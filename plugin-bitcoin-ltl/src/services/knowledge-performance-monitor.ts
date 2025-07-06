@@ -42,6 +42,15 @@ export class KnowledgePerformanceMonitor extends Service {
     super();
   }
 
+  /**
+   * Start the service (required by ElizaOS core)
+   */
+  async start(): Promise<void> {
+    console.log("🔄 Starting Knowledge Performance Monitor...");
+    await this.initialize(this.runtime);
+    console.log("✅ Knowledge Performance Monitor started");
+  }
+
   async initialize(runtime: IAgentRuntime): Promise<void> {
     console.log("🔄 Initializing Knowledge Performance Monitor...");
 
@@ -250,6 +259,15 @@ export class KnowledgePerformanceMonitor2 extends KnowledgePerformanceMonitor {
 
   constructor(runtime: IAgentRuntime) {
     super(runtime);
+  }
+
+  /**
+   * Start the service (required by ElizaOS core)
+   */
+  async start(): Promise<void> {
+    console.log("🔄 Starting Knowledge Performance Monitor 2...");
+    await this.initialize(this.runtime);
+    console.log("✅ Knowledge Performance Monitor 2 started");
   }
 
   async initialize(runtime: IAgentRuntime): Promise<void> {
