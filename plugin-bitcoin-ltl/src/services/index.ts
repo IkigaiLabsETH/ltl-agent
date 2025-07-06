@@ -53,3 +53,6 @@ export { BitcoinIntelligenceService } from "./BitcoinIntelligenceService";
 export { MarketIntelligenceService } from "./MarketIntelligenceService";
 export { InstitutionalAdoptionService } from "./InstitutionalAdoptionService";
 export { ConfigurationService } from "./ConfigurationService";
+
+// Phase 3: Knowledge Base Integration
+export { KnowledgeBaseService } from "./KnowledgeBaseService";

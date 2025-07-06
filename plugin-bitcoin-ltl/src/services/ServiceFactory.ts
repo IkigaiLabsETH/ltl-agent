@@ -16,6 +16,13 @@ import { KnowledgeDigestService } from "./KnowledgeDigestService";
 import { SlackIngestionService } from "./SlackIngestionService";
 import { SchedulerService } from "./SchedulerService";
 
+// New Bitcoin Intelligence Services
+import { BitcoinIntelligenceService } from "./BitcoinIntelligenceService";
+import { MarketIntelligenceService } from "./MarketIntelligenceService";
+import { InstitutionalAdoptionService } from "./InstitutionalAdoptionService";
+import { ConfigurationService } from "./ConfigurationService";
+import { KnowledgeBaseService } from "./KnowledgeBaseService";
+
 // Pretty formatting
 import { 
   success, 
@@ -82,6 +89,13 @@ export class ServiceFactory {
         // Core data services (no dependencies)
         BitcoinDataService,
         BitcoinNetworkDataService,
+
+        // New Bitcoin Intelligence Services (Phase 2 & 3)
+        ConfigurationService,
+        BitcoinIntelligenceService,
+        MarketIntelligenceService,
+        InstitutionalAdoptionService,
+        KnowledgeBaseService,
 
         // Market data services
         StockDataService,

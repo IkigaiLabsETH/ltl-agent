@@ -27,6 +27,7 @@ import { weeklyHotelSuggestionsAction } from "./weeklyHotelSuggestionsAction";
 
 // New Bitcoin Intelligence Actions
 import { bitcoinMorningBriefingAction } from "./bitcoinMorningBriefingAction";
+import { bitcoinKnowledgeAction } from "./bitcoinKnowledgeAction";
 
 // Core Actions - Newly refactored
 import { helloWorldAction } from "./helloWorldAction";
@@ -55,6 +56,7 @@ export { enhancedKnowledgeSearchAction };
 
 // New Bitcoin Intelligence Actions
 export { bitcoinMorningBriefingAction };
+export { bitcoinKnowledgeAction };
 
 // Newly refactored core actions
 export { helloWorldAction };
