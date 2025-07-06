@@ -1483,31 +1483,27 @@ export class RealTimeDataService extends BaseDataService {
   private async fetchBitcoinNetworkData(): Promise<Partial<BitcoinNetworkData> | null> {
     try {
       // Fetch from multiple sources in parallel for better accuracy
-      const [blockchainData, mempoolStats, blockstreamData] = await Promise.all(
+      const [blockchainData, mempoolStats] = await Promise.all(
         [
           this.fetchBlockchainInfoData(),
           this.fetchMempoolNetworkData(),
-          this.fetchBlockstreamNetworkData(),
         ],
       );
 
       // Use the most recent and accurate data sources
-      // Priority: Mempool.space (most reliable) > Blockstream > Blockchain.info
+      // Priority: Mempool.space (most reliable) > Blockchain.info
       const hashRate =
         mempoolStats?.hashRate ||
-        blockstreamData?.hashRate ||
         blockchainData?.hashRate;
       const difficulty =
         mempoolStats?.difficulty ||
-        blockstreamData?.difficulty ||
         blockchainData?.difficulty;
       const blockHeight =
         mempoolStats?.blockHeight ||
-        blockstreamData?.blockHeight ||
         blockchainData?.blockHeight;
 
       console.log(
-        `[RealTimeDataService] 🔍 Hashrate sources - Mempool: ${mempoolStats?.hashRate ? (mempoolStats.hashRate / 1e18).toFixed(2) + " EH/s" : "N/A"}, Blockstream: ${blockstreamData?.hashRate ? (blockstreamData.hashRate / 1e18).toFixed(2) + " EH/s" : "N/A"}, Blockchain: ${blockchainData?.hashRate ? (blockchainData.hashRate / 1e18).toFixed(2) + " EH/s" : "N/A"}`,
+        `[RealTimeDataService] 🔍 Hashrate sources - Mempool: ${mempoolStats?.hashRate ? (mempoolStats.hashRate / 1e18).toFixed(2) + " EH/s" : "N/A"}, Blockchain: ${blockchainData?.hashRate ? (blockchainData.hashRate / 1e18).toFixed(2) + " EH/s" : "N/A"}`,
       );
       console.log(
         `[RealTimeDataService] 🎯 Selected hashrate: ${hashRate ? (hashRate / 1e18).toFixed(2) + " EH/s" : "N/A"}`,
@@ -1550,7 +1546,9 @@ export class RealTimeDataService extends BaseDataService {
    */
   private async fetchBlockchainInfoData(): Promise<Partial<BitcoinNetworkData> | null> {
     try {
-      const response = await fetch(`${this.BLOCKCHAIN_API}/stats`);
+      const response = await fetch(`${this.BLOCKCHAIN_API}/stats`, {
+        signal: AbortSignal.timeout(10000), // 10 second timeout
+      });
 
       if (response.ok) {
         const data = await response.json();
@@ -1565,8 +1563,13 @@ export class RealTimeDataService extends BaseDataService {
           marketCap:
             Number(data.market_price_usd) * (Number(data.totalbc) / 1e8),
         };
+      } else if (response.status === 429) {
+        console.warn(`[RealTimeDataService] Blockchain.info rate limited (429)`);
+        return null;
+      } else {
+        console.warn(`[RealTimeDataService] Blockchain.info API error: ${response.status}`);
+        return null;
       }
-      return null;
     } catch (error) {
       console.error("Error fetching Blockchain.info data:", error);
       return null;
@@ -1580,9 +1583,15 @@ export class RealTimeDataService extends BaseDataService {
     try {
       const [hashRateResponse, difficultyResponse, blockHeightResponse] =
         await Promise.all([
-          fetch(`${this.MEMPOOL_API}/v1/mining/hashrate/1m`),
-          fetch(`${this.MEMPOOL_API}/v1/difficulty-adjustment`),
-          fetch(`${this.MEMPOOL_API}/blocks/tip/height`),
+          fetch(`${this.MEMPOOL_API}/v1/mining/hashrate/1m`, {
+            signal: AbortSignal.timeout(10000), // 10 second timeout
+          }),
+          fetch(`${this.MEMPOOL_API}/v1/difficulty-adjustment`, {
+            signal: AbortSignal.timeout(10000), // 10 second timeout
+          }),
+          fetch(`${this.MEMPOOL_API}/blocks/tip/height`, {
+            signal: AbortSignal.timeout(10000), // 10 second timeout
+          }),
         ]);
 
       const results: Partial<BitcoinNetworkData> = {};
@@ -1603,6 +1612,8 @@ export class RealTimeDataService extends BaseDataService {
             results.hashRate = Number(latestHashrate.hashrateAvg);
           }
         }
+      } else if (hashRateResponse.status === 429) {
+        console.warn(`[RealTimeDataService] Mempool.space hashrate rate limited (429)`);
       }
 
       // Get current difficulty
@@ -1613,6 +1624,8 @@ export class RealTimeDataService extends BaseDataService {
         } else if (difficultyData.difficulty) {
           results.difficulty = Number(difficultyData.difficulty);
         }
+      } else if (difficultyResponse.status === 429) {
+        console.warn(`[RealTimeDataService] Mempool.space difficulty rate limited (429)`);
       }
 
       // Get current block height
@@ -1621,6 +1634,8 @@ export class RealTimeDataService extends BaseDataService {
         if (typeof blockHeight === "number") {
           results.blockHeight = blockHeight;
         }
+      } else if (blockHeightResponse.status === 429) {
+        console.warn(`[RealTimeDataService] Mempool.space block height rate limited (429)`);
       }
 
       return Object.keys(results).length > 0 ? results : null;
@@ -1630,34 +1645,13 @@ export class RealTimeDataService extends BaseDataService {
     }
   }
 
-  /**
-   * Fetch network data from Blockstream API
-   */
-  private async fetchBlockstreamNetworkData(): Promise<Partial<BitcoinNetworkData> | null> {
-    try {
-      const response = await fetch("https://blockstream.info/api/stats");
 
-      if (response.ok) {
-        const data = await response.json();
-
-        return {
-          hashRate: data.hashrate_24h ? Number(data.hashrate_24h) : null,
-          difficulty: data.difficulty ? Number(data.difficulty) : null,
-          blockHeight: data.chain_stats?.funded_txo_count
-            ? Number(data.chain_stats.funded_txo_count)
-            : null,
-        };
-      }
-      return null;
-    } catch (error) {
-      console.error("Error fetching Blockstream data:", error);
-      return null;
-    }
-  }
 
   private async fetchBitcoinSentimentData(): Promise<BitcoinSentimentData | null> {
     try {
-      const response = await fetch(`${this.ALTERNATIVE_API}/fng/`);
+      const response = await fetch(`${this.ALTERNATIVE_API}/fng/`, {
+        signal: AbortSignal.timeout(10000), // 10 second timeout
+      });
 
       if (response.ok) {
         const data = await response.json();
@@ -1665,8 +1659,13 @@ export class RealTimeDataService extends BaseDataService {
           fearGreedIndex: Number(data.data[0].value),
           fearGreedValue: data.data[0].value_classification,
         };
+      } else if (response.status === 429) {
+        console.warn(`[RealTimeDataService] Alternative.me sentiment rate limited (429)`);
+        return null;
+      } else {
+        console.warn(`[RealTimeDataService] Alternative.me API error: ${response.status}`);
+        return null;
       }
-      return null;
     } catch (error) {
       console.error("Error fetching Bitcoin sentiment data:", error);
       return null;
@@ -1677,12 +1676,21 @@ export class RealTimeDataService extends BaseDataService {
     try {
       // Fetch mempool data in parallel
       const [mempoolResponse, feesResponse] = await Promise.all([
-        fetch(`${this.MEMPOOL_API}/mempool`),
-        fetch(`${this.MEMPOOL_API}/v1/fees/recommended`),
+        fetch(`${this.MEMPOOL_API}/mempool`, {
+          signal: AbortSignal.timeout(10000), // 10 second timeout
+        }),
+        fetch(`${this.MEMPOOL_API}/v1/fees/recommended`, {
+          signal: AbortSignal.timeout(10000), // 10 second timeout
+        }),
       ]);
 
       if (!mempoolResponse.ok || !feesResponse.ok) {
-        throw new Error("Failed to fetch mempool data");
+        if (mempoolResponse.status === 429 || feesResponse.status === 429) {
+          console.warn(`[RealTimeDataService] Mempool.space mempool data rate limited (429)`);
+        } else {
+          console.warn(`[RealTimeDataService] Mempool.space mempool data API error: ${mempoolResponse.status}, ${feesResponse.status}`);
+        }
+        return null;
       }
 
       const [mempoolData, feesData] = await Promise.all([

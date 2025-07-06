@@ -100,6 +100,19 @@ import {
   AltcoinOutperformanceData,
 } from "./types/marketTypes";
 
+// Pretty formatting
+import { 
+  success, 
+  info, 
+  warning, 
+  error as errorFormat,
+  sectionHeader,
+  subsectionHeader,
+  serviceStartup,
+  serviceStarted,
+  serviceError
+} from "./utils/terminal-formatting";
+
 // Export error handling utilities for testing
 export { ElizaOSErrorHandler, validateElizaOSEnvironment };
 
@@ -122,7 +135,8 @@ const bitcoinPlugin: Plugin = {
   },
 
   async init(config: Record<string, any>, runtime: IAgentRuntime) {
-    logger.info("🟠 Initializing Bitcoin Plugin");
+    console.log(sectionHeader("Bitcoin LTL Plugin Initialization", "₿"));
+    
     try {
       const validatedConfig = await configSchema.parseAsync(config);
 
@@ -131,29 +145,27 @@ const bitcoinPlugin: Plugin = {
         if (typeof value === "string" && value) process.env[key] = value;
       }
 
-      logger.info("🟠 Bitcoin Plugin configuration validated successfully");
+      logger.info(success("Configuration validated successfully"));
 
       // Initialize all services using the ServiceFactory
       if (runtime) {
-        logger.info("🔧 Initializing Bitcoin Plugin services...");
+        console.log(subsectionHeader("Initializing Services", "🔧"));
         const { ServiceFactory } = await import("./services/ServiceFactory");
         await ServiceFactory.initializeServices(runtime, validatedConfig);
-        logger.info("✅ Bitcoin Plugin services initialized successfully");
+        logger.info(success("Services initialized successfully"));
       } else {
-        logger.warn(
-          "⚠️ Runtime not provided to init - services will be initialized later",
-        );
+        logger.warn(warning("Runtime not provided - services will be initialized later"));
       }
 
-      logger.info("🟠 Bitcoin Plugin initialized successfully");
-      logger.info("🎯 Tracking: 100K BTC Holders → $10M Net Worth Thesis");
+      logger.info(success("Bitcoin Plugin initialized successfully"));
+      console.log(subsectionHeader("Tracking: 100K BTC Holders → $10M Net Worth Thesis", "🎯"));
     } catch (error) {
       if (error instanceof Error && error.name === "ZodError") {
         throw new Error(
           `Invalid Bitcoin plugin configuration: ${error.message}`,
         );
       }
-      logger.error("❌ Failed to initialize Bitcoin Plugin:", error);
+      logger.error(errorFormat("Failed to initialize Bitcoin Plugin:"), error);
       throw error;
     }
   },

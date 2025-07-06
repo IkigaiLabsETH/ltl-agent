@@ -16,6 +16,21 @@ import { KnowledgeDigestService } from "./KnowledgeDigestService";
 import { SlackIngestionService } from "./SlackIngestionService";
 import { SchedulerService } from "./SchedulerService";
 
+// Pretty formatting
+import { 
+  success, 
+  info, 
+  warning, 
+  error as errorFormat,
+  serviceStartup,
+  serviceStarted,
+  serviceError,
+  sectionHeader,
+  subsectionHeader,
+  progressBar,
+  divider
+} from "../utils/terminal-formatting";
+
 /**
  * Service Factory for managing service lifecycle
  */
@@ -31,11 +46,11 @@ export class ServiceFactory {
     config: Record<string, any>,
   ): Promise<void> {
     if (this.isInitialized) {
-      logger.warn("[ServiceFactory] Services already initialized, skipping...");
+      logger.warn(warning("Services already initialized, skipping..."));
       return;
     }
 
-    logger.info("[ServiceFactory] Initializing Bitcoin LTL services...");
+    console.log(sectionHeader("Service Initialization", "🔧"));
 
     try {
       // Initialize configuration manager first
@@ -43,14 +58,13 @@ export class ServiceFactory {
         "./ConfigurationManager"
       );
       await initializeConfigurationManager(runtime);
-      logger.info(
-        "[ServiceFactory] Configuration manager initialized successfully",
-      );
+      logger.info(success("Configuration manager initialized successfully"));
 
       // Set environment variables from config
       for (const [key, value] of Object.entries(config)) {
         if (value) process.env[key] = value;
       }
+      
       // Initialize services in dependency order
       const serviceClasses = [
         // Core data services (no dependencies)
@@ -84,10 +98,15 @@ export class ServiceFactory {
         SchedulerService,
       ];
 
+      console.log(subsectionHeader(`Starting ${serviceClasses.length} Services`, "▶️"));
+
       // Start services sequentially to handle dependencies
-      for (const ServiceClass of serviceClasses) {
+      for (let i = 0; i < serviceClasses.length; i++) {
+        const ServiceClass = serviceClasses[i];
         try {
-          logger.info(`[ServiceFactory] Starting ${ServiceClass.name}...`);
+          const serviceName = ServiceClass.name;
+          console.log(serviceStartup(serviceName));
+          console.log(progressBar(i + 1, serviceClasses.length, 30));
 
           const service = await ServiceClass.start(runtime);
           this.serviceInstances.set(
@@ -95,31 +114,22 @@ export class ServiceFactory {
             service,
           );
 
-          // Store service instance for internal management
-          // Note: ElizaOS plugin system handles service registration through the plugin config
+          console.log(serviceStarted(serviceName));
 
-          logger.info(
-            `[ServiceFactory] ✅ ${ServiceClass.name} started successfully`,
-          );
         } catch (error) {
-          logger.error(
-            `[ServiceFactory] ❌ Failed to start ${ServiceClass.name}:`,
-            error,
-          );
+          console.log(serviceError(ServiceClass.name, error instanceof Error ? error.message : String(error)));
           // Continue with other services even if one fails
         }
       }
 
       this.isInitialized = true;
-      logger.info("[ServiceFactory] 🎉 All services initialized successfully");
+      console.log(divider());
+      logger.info(success("All services initialized successfully"));
 
       // Log service status
       this.logServiceStatus();
     } catch (error) {
-      logger.error(
-        "[ServiceFactory] Critical error during service initialization:",
-        error,
-      );
+      logger.error(errorFormat("Critical error during service initialization:"), error);
       throw error;
     }
   }

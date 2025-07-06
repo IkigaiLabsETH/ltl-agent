@@ -1,5 +1,19 @@
 import { IAgentRuntime, elizaLogger } from "@elizaos/core";
 import { z } from "zod";
+import { 
+  configSummary, 
+  serviceStatus, 
+  success, 
+  info, 
+  warning, 
+  error,
+  startupBanner,
+  sectionHeader,
+  subsectionHeader,
+  listItem,
+  keyValue,
+  divider
+} from "../utils/terminal-formatting";
 
 /**
  * Configuration schema for Bitcoin LTL plugin services
@@ -265,31 +279,32 @@ export class ConfigurationManager {
    */
   async initialize(): Promise<void> {
     try {
-      elizaLogger.info(
-        "[ConfigurationManager] Initializing service configuration...",
-      );
-
       // Load configuration from multiple sources
+      const defaultConfig = this.loadDefaultConfig();
       const envConfig = this.loadFromEnvironment();
       const runtimeConfig = this.loadFromRuntime();
-      const combinedConfig = this.mergeConfigs(envConfig, runtimeConfig);
 
-      // Validate configuration
-      const validatedConfig = ServiceConfigSchema.parse(combinedConfig);
+      // Merge configurations with priority: runtime > environment > default
+      const mergedConfig = this.mergeConfigs(
+        defaultConfig,
+        envConfig,
+        runtimeConfig,
+      );
 
-      this.config = validatedConfig;
+      // Validate and set configuration
+      this.config = ServiceConfigSchema.parse(mergedConfig);
       this.lastUpdated = Date.now();
 
-      elizaLogger.info(
-        "[ConfigurationManager] Service configuration loaded successfully",
-      );
+      // Log startup banner
+      console.log(startupBanner());
+
+      // Log configuration summary
       this.logConfigurationSummary();
+
+      elizaLogger.info(success("Service configuration loaded successfully"));
     } catch (error) {
-      elizaLogger.error(
-        "[ConfigurationManager] Failed to initialize configuration:",
-        error,
-      );
-      throw new Error(`Configuration initialization failed: ${error.message}`);
+      elizaLogger.error(error("Failed to initialize configuration manager:"), error);
+      throw error;
     }
   }
 
@@ -556,12 +571,14 @@ export class ConfigurationManager {
         key !== "global" && this.isServiceEnabled(key as keyof ServiceConfig),
     );
 
-    elizaLogger.info("[ConfigurationManager] Configuration Summary:", {
+    const summary = configSummary({
       servicesEnabled: status.servicesEnabled,
       servicesDisabled: status.servicesDisabled,
       enabledServices,
       globalConfig: this.config.global,
     });
+
+    console.log(summary);
   }
 }
 
