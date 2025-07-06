@@ -1,36 +1,36 @@
-# Hotel Hermitage Monte-Carlo - Belle Époque Luxury with Harbor Views
+# Hotel de Paris Monte-Carlo - Legendary Luxury in the Heart of Monaco
 
 ## 🏰 Hotel Overview
 
-**Hotel Hermitage Monte-Carlo** is the epitome of Belle Époque luxury, offering an authentic immersion into Monaco's golden age of sophistication and elegance. This iconic 5-star hotel combines historic charm with contemporary luxury, providing an unparalleled experience with stunning harbor views.
+**Hotel de Paris Monte-Carlo** is the crown jewel of Mediterranean luxury, representing over 150 years of legendary hospitality and sophistication. This iconic 5-star hotel combines timeless elegance with contemporary luxury, providing an unparalleled experience in the heart of Monaco's most prestigious district.
 
 ### Key Details
-- **Location**: Square Beaumarchais, 98000 Monaco
+- **Location**: Place du Casino, 98000 Monaco
 - **Category**: Luxury Hotel (5-star)
 - **Star Rating**: 5 stars
-- **Hotel ID**: monaco_hermitage
+- **Hotel ID**: monaco_hotel_de_paris
 - **City**: Monaco
 - **Country**: Monaco
 - **Timezone**: Europe/Paris
 
 ## 🏖️ Location & Setting
 
-### Belle Époque Majesty
-- **Prime location** in Monaco's prestigious district with harbor views
-- **Walking distance** to Casino de Monte-Carlo and luxury shopping
+### Legendary Position
+- **Prime location** on Place du Casino, Monaco's most prestigious square
+- **Direct access** to Casino de Monte-Carlo and luxury shopping
 - **Proximity to Mediterranean beaches** and yacht harbor
-- **Easy access** to Monaco's cultural and entertainment scene
+- **Center of Monaco's** cultural and entertainment scene
 
 ### Cultural Context
-- **Belle Époque luxury heritage** with authentic Mediterranean experiences
-- **Gastronomic excellence** with Michelin-starred dining
+- **Legendary luxury heritage** with authentic Mediterranean experiences
+- **Gastronomic excellence** with multiple Michelin-starred restaurants
 - **Cultural hub** with museums, galleries, and historic sites
 - **Entertainment capital** with world-class casinos and events
 
 ## 🏛️ Historical Significance
 
-### Belle Époque Heritage
-- **Historic hotel** with authentic Belle Époque architecture
+### 150+ Years of Excellence
+- **Historic hotel** established in 1864 with authentic Monaco architecture
 - **Witness to Monaco's golden age** and cultural development
 - **Preservation of regional traditions** through luxury hospitality
 - **Cultural significance** in Mediterranean luxury heritage
@@ -44,26 +44,26 @@
 ## 🛏️ Accommodations
 
 ### Room Categories
-- **Classic Rooms**: 35-40m² with city or garden views
-- **Deluxe Rooms**: 40-45m² with harbor views
-- **Junior Suites**: 50-60m² with separate living areas
-- **Executive Suites**: 80-120m² with private terraces
-- **Presidential Suite**: 200m² with 360° harbor views
+- **Classic Rooms**: 40-45m² with city or garden views
+- **Deluxe Rooms**: 45-50m² with Mediterranean views
+- **Junior Suites**: 55-65m² with separate living areas
+- **Executive Suites**: 85-125m² with private terraces
+- **Presidential Suite**: 250m² with 360° Mediterranean views
 
 ### Luxury Amenities
 - **Marble bathrooms** with luxury toiletries
-- **Belle Époque furniture** and authentic Monaco design elements
+- **Period furniture** and authentic Monaco design elements
 - **Silk draperies** and custom linens
 - **State-of-the-art technology** seamlessly integrated
-- **Private balconies** with harbor views
+- **Private balconies** with Mediterranean views
 
 ## 🍽️ Culinary Excellence
 
-### Belle Époque Dining
-- **Restaurant Hermitage**: Michelin-starred dining with local ingredients
-- **Le Bar Hermitage**: Traditional Mediterranean bar with local spirits
-- **Terrace dining** with harbor atmosphere
-- **Local wine selection** from Mediterranean vineyards
+### Legendary Dining
+- **Le Louis XV - Alain Ducasse**: 3 Michelin-starred dining
+- **Le Grill**: Mediterranean cuisine with panoramic views
+- **Le Bar Américain**: Traditional Mediterranean bar
+- **Terrace dining** with Mediterranean atmosphere
 
 ### Wine & Spirits
 - **Extensive wine cellar** with rare Mediterranean vintages
@@ -108,9 +108,9 @@
 ## 💰 Perfect Booking Opportunities
 
 ### Seasonal Rate Patterns
-- **Peak Season** (June-September): €900-1,400/night
-- **Shoulder Season** (April-May, October): €700-1,100/night
-- **Off-Peak** (November-March): €600-900/night
+- **Peak Season** (June-September): €1,000-1,500/night
+- **Shoulder Season** (April-May, October): €800-1,200/night
+- **Off-Peak** (November-March): €700-1,000/night
 - **Perfect Day Threshold**: 15%+ below average rates
 
 ### Optimal Booking Windows
@@ -128,29 +128,29 @@
 ## 🎯 Perfect Day Detection Criteria
 
 ### High Urgency (25%+ savings)
-- **January-March**: €450-675/night (vs. €750 average)
-- **November-December**: €525-750/night (vs. €850 average)
+- **January-March**: €525-750/night (vs. €850 average)
+- **November-December**: €600-825/night (vs. €950 average)
 - **Last-minute cancellations**: 48-72 hour windows
 - **Confidence Score**: 95% when detected
 
 ### Medium Urgency (15-24% savings)
-- **April-May**: €575-775/night (vs. €900 average)
-- **September-October**: €625-825/night (vs. €1,000 average)
+- **April-May**: €650-850/night (vs. €1,000 average)
+- **September-October**: €700-900/night (vs. €1,100 average)
 - **Weekday bookings**: Tuesday-Thursday
 - **Confidence Score**: 88% when detected
 
 ### Low Urgency (10-14% savings)
-- **June shoulder season**: €775-975/night (vs. €1,050 average)
+- **June shoulder season**: €850-1,050/night (vs. €1,150 average)
 - **Early booking discounts**: 6+ months advance
 - **Package deals**: Room + spa + dining
 - **Confidence Score**: 75% when detected
 
 ## 🏆 Unique Selling Points
 
-### Belle Époque Charm
-- **Authentic Belle Époque architecture** with modern comfort
-- **Harbor views** and Mediterranean atmosphere
-- **Historic charm** with contemporary luxury
+### Legendary Status
+- **150+ years** of luxury hospitality excellence
+- **Iconic location** on Place du Casino
+- **Legendary experiences** and cultural significance
 - **Cultural storytelling** for Bitcoin wealth preservation
 
 ### Historic Authenticity
@@ -210,7 +210,7 @@
 ### Signature Moments
 - **Casino gaming** at Casino de Monte-Carlo
 - **Mediterranean cruises** and yacht charters
-- **Gourmet dining** with Mediterranean cuisine
+- **Gourmet dining** at Le Louis XV
 - **Spa treatments** with Mediterranean therapy
 - **Historical tours** of Monaco
 
@@ -236,4 +236,4 @@
 
 ---
 
-*Hotel Hermitage Monte-Carlo represents the pinnacle of Belle Époque luxury, where historic charm meets contemporary sophistication. For Bitcoin wealth holders, it offers not just accommodation, but a gateway to the world's most prestigious Mediterranean culture, strategic value preservation, and authentic luxury experiences that transcend traditional tourism.* 
+*Hotel de Paris Monte-Carlo represents the pinnacle of Mediterranean luxury, where 150+ years of legendary hospitality meets contemporary sophistication. For Bitcoin wealth holders, it offers not just accommodation, but a gateway to the world's most prestigious Mediterranean culture, strategic value preservation, and authentic luxury experiences that transcend traditional tourism.* 
