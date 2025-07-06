@@ -477,28 +477,7 @@ function buildComprehensiveResponse(
       }
     }
 
-    // Altcoins outperforming Bitcoin
-    if (btcAnalysis.outperformers.daily.length > 0) {
-      const topOutperformers = btcAnalysis.outperformers.daily
-        .sort(
-          (a, b) =>
-            (b.price_change_percentage_24h || 0) -
-            (a.price_change_percentage_24h || 0),
-        )
-        .slice(0, 5);
-
-      context.push(`🚀 ALTCOINS OUTPERFORMING BTC (24h):`);
-      topOutperformers.forEach((coin, index) => {
-        const btcChange = btcAnalysis.btcData?.price_change_percentage_24h || 0;
-        const outperformance =
-          (coin.price_change_percentage_24h || 0) - btcChange;
-        context.push(
-          `${index + 1}. ${coin.symbol}: +${coin.price_change_percentage_24h?.toFixed(2)}% (vs BTC +${btcChange.toFixed(2)}%, +${outperformance.toFixed(2)}% better)`,
-        );
-      });
-      context.push("");
-    }
-
+    // Top 2 altcoins outperforming Bitcoin (7 days only)
     if (
       btcAnalysis.outperformers.weekly.length > 0 &&
       btcAnalysis.btcData?.price_change_percentage_7d_in_currency
@@ -509,9 +488,9 @@ function buildComprehensiveResponse(
             (b.price_change_percentage_7d_in_currency || 0) -
             (a.price_change_percentage_7d_in_currency || 0),
         )
-        .slice(0, 3);
+        .slice(0, 2); // Only top 2
 
-      context.push(`📈 ALTCOINS OUTPERFORMING BTC (7d):`);
+      context.push(`🚀 TOP 2 ALTCOINS OUTPERFORMING BTC (7d):`);
       topWeeklyOutperformers.forEach((coin, index) => {
         const btcChange =
           btcAnalysis.btcData?.price_change_percentage_7d_in_currency || 0;
@@ -519,31 +498,6 @@ function buildComprehensiveResponse(
           (coin.price_change_percentage_7d_in_currency || 0) - btcChange;
         context.push(
           `${index + 1}. ${coin.symbol}: +${coin.price_change_percentage_7d_in_currency?.toFixed(2)}% (vs BTC +${btcChange.toFixed(2)}%, +${outperformance.toFixed(2)}% better)`,
-        );
-      });
-      context.push("");
-    }
-
-    if (
-      btcAnalysis.outperformers.monthly.length > 0 &&
-      btcAnalysis.btcData?.price_change_percentage_30d_in_currency
-    ) {
-      const topMonthlyOutperformers = btcAnalysis.outperformers.monthly
-        .sort(
-          (a, b) =>
-            (b.price_change_percentage_30d_in_currency || 0) -
-            (a.price_change_percentage_30d_in_currency || 0),
-        )
-        .slice(0, 3);
-
-      context.push(`📊 ALTCOINS OUTPERFORMING BTC (30d):`);
-      topMonthlyOutperformers.forEach((coin, index) => {
-        const btcChange =
-          btcAnalysis.btcData?.price_change_percentage_30d_in_currency || 0;
-        const outperformance =
-          (coin.price_change_percentage_30d_in_currency || 0) - btcChange;
-        context.push(
-          `${index + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFixed(2)}% (vs BTC +${btcChange.toFixed(2)}%, +${outperformance.toFixed(2)}% better)`,
         );
       });
       context.push("");
@@ -601,60 +555,26 @@ function buildComprehensiveResponse(
     if (btcAnalysis.btcData) {
       btcRelativeMetrics = {
         btcPerformance: {
-          daily: btcAnalysis.btcData.price_change_percentage_24h || 0,
           weekly:
             btcAnalysis.btcData.price_change_percentage_7d_in_currency || 0,
-          monthly:
-            btcAnalysis.btcData.price_change_percentage_30d_in_currency || 0,
         },
         outperformersCount: {
-          daily: btcAnalysis.outperformers.daily.length,
           weekly: btcAnalysis.outperformers.weekly.length,
-          monthly: btcAnalysis.outperformers.monthly.length,
         },
         topOutperformers: {
-          daily: btcAnalysis.outperformers.daily
-            .sort(
-              (a, b) =>
-                (b.price_change_percentage_24h || 0) -
-                (a.price_change_percentage_24h || 0),
-            )
-            .slice(0, 5)
-            .map((coin) => ({
-              symbol: coin.symbol,
-              performance: coin.price_change_percentage_24h || 0,
-              vsBtc:
-                (coin.price_change_percentage_24h || 0) -
-                (btcAnalysis.btcData?.price_change_percentage_24h || 0),
-            })),
           weekly: btcAnalysis.outperformers.weekly
             .sort(
               (a, b) =>
                 (b.price_change_percentage_7d_in_currency || 0) -
                 (a.price_change_percentage_7d_in_currency || 0),
             )
-            .slice(0, 3)
+            .slice(0, 2) // Only top 2
             .map((coin) => ({
               symbol: coin.symbol,
               performance: coin.price_change_percentage_7d_in_currency || 0,
               vsBtc:
                 (coin.price_change_percentage_7d_in_currency || 0) -
                 (btcAnalysis.btcData?.price_change_percentage_7d_in_currency ||
-                  0),
-            })),
-          monthly: btcAnalysis.outperformers.monthly
-            .sort(
-              (a, b) =>
-                (b.price_change_percentage_30d_in_currency || 0) -
-                (a.price_change_percentage_30d_in_currency || 0),
-            )
-            .slice(0, 3)
-            .map((coin) => ({
-              symbol: coin.symbol,
-              performance: coin.price_change_percentage_30d_in_currency || 0,
-              vsBtc:
-                (coin.price_change_percentage_30d_in_currency || 0) -
-                (btcAnalysis.btcData?.price_change_percentage_30d_in_currency ||
                   0),
             })),
         },
