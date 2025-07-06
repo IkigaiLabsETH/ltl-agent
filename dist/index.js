@@ -47444,8 +47444,48 @@ var init_helpers = __esm({
       }
       formatMessage(level, message, data) {
         const timestamp = (/* @__PURE__ */ new Date()).toISOString();
-        const logData = data ? ` | Data: ${JSON.stringify(data)}` : "";
+        const logData = data ? ` | Data: ${this.safeStringify(data)}` : "";
         return `[${timestamp}] [${level}] [${this.component}] [${this.correlationId}] ${message}${logData}`;
+      }
+      /**
+       * Safely stringify data, handling circular references
+       */
+      safeStringify(obj) {
+        try {
+          return JSON.stringify(obj);
+        } catch (error) {
+          try {
+            return JSON.stringify(this.removeCircularReferences(obj));
+          } catch (fallbackError) {
+            return `[Object with circular references: ${typeof obj}]`;
+          }
+        }
+      }
+      /**
+       * Remove circular references from an object
+       */
+      removeCircularReferences(obj, seen = /* @__PURE__ */ new WeakSet()) {
+        if (obj === null || typeof obj !== "object") {
+          return obj;
+        }
+        if (seen.has(obj)) {
+          return "[Circular Reference]";
+        }
+        seen.add(obj);
+        if (Array.isArray(obj)) {
+          return obj.map((item) => this.removeCircularReferences(item, seen));
+        }
+        const result = {};
+        for (const key in obj) {
+          if (obj.hasOwnProperty(key)) {
+            try {
+              result[key] = this.removeCircularReferences(obj[key], seen);
+            } catch (error) {
+              result[key] = "[Error accessing property]";
+            }
+          }
+        }
+        return result;
       }
       info(message, data) {
         logger33.info(this.formatMessage("INFO", message, data));
@@ -51481,8 +51521,58 @@ var init_NFTDataService = __esm({
           generateCorrelationId3(),
           "NFTDataService"
         );
-        this.configService = runtime.getService("centralized-config");
+        this.configService = this.getConfigServiceSafely(runtime);
         this.errorHandler = new ComprehensiveErrorHandler2();
+      }
+      /**
+       * Safely get the CentralizedConfigService with retry logic
+       */
+      getConfigServiceSafely(runtime) {
+        let configService = runtime.getService("centralized-config");
+        if (!configService) {
+          setTimeout(() => {
+            configService = runtime.getService("centralized-config");
+            if (configService) {
+              this.configService = configService;
+              this.contextLogger.info("CentralizedConfigService successfully retrieved");
+            } else {
+              this.contextLogger.warn("CentralizedConfigService not available after retry");
+            }
+          }, 1e3);
+          return this.createFallbackConfigService();
+        }
+        return configService;
+      }
+      /**
+       * Create a fallback config service when the main one is not available
+       */
+      createFallbackConfigService() {
+        const fallback = {
+          get: (path, defaultValue) => {
+            this.contextLogger.warn(`Using fallback config for path: ${path}`);
+            return defaultValue;
+          },
+          set: (path, value) => {
+            this.contextLogger.warn(`Cannot set config in fallback mode: ${path}`);
+          },
+          getAll: () => ({}),
+          watch: (path, listener) => () => {
+          },
+          validate: () => ({ valid: true, errors: [] }),
+          getStats: () => ({ totalWatchers: 0, watchedPaths: [], lastModified: 0, configSize: 0 }),
+          updateData: async () => {
+          },
+          forceUpdate: async () => ({}),
+          start: async () => {
+          },
+          stop: async () => {
+          },
+          init: async () => {
+          },
+          capabilityDescription: "Fallback config service",
+          serviceType: "centralized-config-fallback"
+        };
+        return fallback;
       }
       get capabilityDescription() {
         return "Provides comprehensive NFT market data, collection analytics, and curated insights for top NFT collections";
@@ -51535,10 +51625,7 @@ var init_NFTDataService = __esm({
        * Start real-time updates for NFT data
        */
       async startRealTimeUpdates() {
-        const updateInterval = this.configService.get(
-          "services.nftData.updateInterval",
-          3e5
-        );
+        const updateInterval = this.configService ? this.configService.get("services.nftData.updateInterval", 3e5) : 3e5;
         this.updateInterval = setInterval(async () => {
           try {
             await this.updateData();
@@ -51591,10 +51678,19 @@ var init_NFTDataService = __esm({
         try {
           this.contextLogger.info("Fetching curated NFTs data...");
           const collections = [];
-          const headers = {
-            "X-API-KEY": this.configService.get("apis.opensea.apiKey", ""),
-            Accept: "application/json"
-          };
+          let headers;
+          if (!this.configService) {
+            this.contextLogger.warn("ConfigService not available, using fallback values");
+            headers = {
+              "X-API-KEY": "",
+              Accept: "application/json"
+            };
+          } else {
+            headers = {
+              "X-API-KEY": this.configService.get("apis.opensea.apiKey", ""),
+              Accept: "application/json"
+            };
+          }
           for (const collectionSlug of this.curatedNFTCollections) {
             try {
               const collectionData = await this.fetchEnhancedCollectionData(
@@ -51634,10 +51730,7 @@ var init_NFTDataService = __esm({
        */
       async fetchEnhancedCollectionData(collectionSlug, headers) {
         try {
-          const baseUrl = this.configService.get(
-            "apis.opensea.baseUrl",
-            "https://api.opensea.io/api/v1"
-          );
+          const baseUrl = this.configService ? this.configService.get("apis.opensea.baseUrl", "https://api.opensea.io/api/v1") : "https://api.opensea.io/api/v1";
           const collectionResponse = await axios3.get(
             `${baseUrl}/collection/${collectionSlug}`,
             { headers }
@@ -54607,11 +54700,18 @@ var init_RealTimeDataService = __esm({
       ];
       constructor(runtime) {
         super(runtime, "realTimeData");
-        this.correlationId = generateCorrelationId3();
         this.contextLogger = new LoggerWithContext3(
-          this.correlationId,
+          generateCorrelationId3(),
           "RealTimeDataService"
         );
+        const coingeckoApiKey = this.runtime.getSetting("COINGECKO_API_KEY");
+        if (!coingeckoApiKey || coingeckoApiKey.startsWith("REPLACE_WITH_YOUR_ACTUAL") || coingeckoApiKey.startsWith("your_")) {
+          this.serviceConfig.rateLimitDelay = 1e4;
+          console.log("[RealTimeDataService] Using public CoinGecko API with 10s rate limiting");
+        } else {
+          this.serviceConfig.rateLimitDelay = 3e3;
+          console.log("[RealTimeDataService] Using CoinGecko Pro API with 3s rate limiting");
+        }
       }
       get capabilityDescription() {
         return "Provides real-time market data, news feeds, and social sentiment analysis";
@@ -54890,6 +54990,13 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
               signal: AbortSignal.timeout(15e3)
             });
             if (!response.ok) {
+              if (response.status === 429) {
+                const retryAfter = response.headers.get("Retry-After");
+                const backoffTime = retryAfter ? parseInt(retryAfter) * 1e3 : 3e4;
+                console.warn(`[RealTimeDataService] Rate limited, backing off for ${backoffTime}ms`);
+                await new Promise((resolve) => setTimeout(resolve, backoffTime));
+                throw new Error(`HTTP 429: Rate limited, retry after ${backoffTime}ms`);
+              }
               if (response.status === 401 || response.status === 429) {
                 console.warn(
                   `[RealTimeDataService] CoinGecko API rate limited or unauthorized (${response.status}), using fallback data`
@@ -55434,6 +55541,13 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
               }
             );
             if (!response.ok) {
+              if (response.status === 429) {
+                const retryAfter = response.headers.get("Retry-After");
+                const backoffTime = retryAfter ? parseInt(retryAfter) * 1e3 : 3e4;
+                console.warn(`[RealTimeDataService] Rate limited, backing off for ${backoffTime}ms`);
+                await new Promise((resolve) => setTimeout(resolve, backoffTime));
+                throw new Error(`HTTP 429: Rate limited, retry after ${backoffTime}ms`);
+              }
               throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             return await response.json();
@@ -55658,6 +55772,13 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
               }
             );
             if (!response.ok) {
+              if (response.status === 429) {
+                const retryAfter = response.headers.get("Retry-After");
+                const backoffTime = retryAfter ? parseInt(retryAfter) * 1e3 : 3e4;
+                console.warn(`[RealTimeDataService] Rate limited, backing off for ${backoffTime}ms`);
+                await new Promise((resolve) => setTimeout(resolve, backoffTime));
+                throw new Error(`HTTP 429: Rate limited, retry after ${backoffTime}ms`);
+              }
               if (response.status === 401 || response.status === 429) {
                 console.warn(
                   `[RealTimeDataService] CoinGecko API rate limited or unauthorized (${response.status}), using fallback data`
@@ -55717,6 +55838,13 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
               }
             );
             if (!response.ok) {
+              if (response.status === 429) {
+                const retryAfter = response.headers.get("Retry-After");
+                const backoffTime = retryAfter ? parseInt(retryAfter) * 1e3 : 3e4;
+                console.warn(`[RealTimeDataService] Rate limited, backing off for ${backoffTime}ms`);
+                await new Promise((resolve) => setTimeout(resolve, backoffTime));
+                throw new Error(`HTTP 429: Rate limited, retry after ${backoffTime}ms`);
+              }
               throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             return await response.json();
@@ -55933,18 +56061,26 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
       }
       async fetchTopMoversData() {
         try {
-          console.log("[RealTimeDataService] Fetching top movers data...");
-          const response = await fetch(
-            `${this.COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&price_change_percentage=24h`,
-            {
-              headers: { Accept: "application/json" },
-              signal: AbortSignal.timeout(15e3)
+          const data = await this.makeQueuedRequest(async () => {
+            const response = await fetch(
+              `${this.COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&price_change_percentage=24h`,
+              {
+                headers: { Accept: "application/json" },
+                signal: AbortSignal.timeout(15e3)
+              }
+            );
+            if (!response.ok) {
+              if (response.status === 429) {
+                const retryAfter = response.headers.get("Retry-After");
+                const backoffTime = retryAfter ? parseInt(retryAfter) * 1e3 : 3e4;
+                console.warn(`[RealTimeDataService] Rate limited, backing off for ${backoffTime}ms`);
+                await new Promise((resolve) => setTimeout(resolve, backoffTime));
+                throw new Error(`HTTP 429: Rate limited, retry after ${backoffTime}ms`);
+              }
+              throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-          );
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-          }
-          const data = await response.json();
+            return await response.json();
+          });
           const validCoins = data.filter(
             (coin) => typeof coin.price_change_percentage_24h === "number"
           );
@@ -56000,18 +56136,26 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
       }
       async fetchTrendingCoinsData() {
         try {
-          console.log("[RealTimeDataService] Fetching trending coins data...");
-          const response = await fetch(
-            "https://api.coingecko.com/api/v3/search/trending",
-            {
-              headers: { Accept: "application/json" },
-              signal: AbortSignal.timeout(15e3)
+          const data = await this.makeQueuedRequest(async () => {
+            const response = await fetch(
+              `${this.COINGECKO_API}/search/trending`,
+              {
+                headers: { Accept: "application/json" },
+                signal: AbortSignal.timeout(15e3)
+              }
+            );
+            if (!response.ok) {
+              if (response.status === 429) {
+                const retryAfter = response.headers.get("Retry-After");
+                const backoffTime = retryAfter ? parseInt(retryAfter) * 1e3 : 3e4;
+                console.warn(`[RealTimeDataService] Rate limited, backing off for ${backoffTime}ms`);
+                await new Promise((resolve) => setTimeout(resolve, backoffTime));
+                throw new Error(`HTTP 429: Rate limited, retry after ${backoffTime}ms`);
+              }
+              throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-          );
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-          }
-          const data = await response.json();
+            return await response.json();
+          });
           const trending = Array.isArray(data.coins) ? data.coins.map((c) => ({
             id: c.item.id,
             name: c.item.name,
