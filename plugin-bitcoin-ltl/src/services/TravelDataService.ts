@@ -1,5 +1,7 @@
 import { IAgentRuntime, logger } from "@elizaos/core";
 import { BaseDataService } from "./BaseDataService";
+import { GoogleHotelsScraper } from "./GoogleHotelsScraper";
+import { SeasonalRateService } from "./SeasonalRateService";
 
 // Travel and hotel booking interfaces
 export interface HotelLocation {
@@ -127,6 +129,62 @@ export interface TravelDataCache {
   timestamp: number;
 }
 
+export interface PerfectDayOpportunity {
+  hotelId: string;
+  hotelName: string;
+  perfectDate: string;
+  currentRate: number;
+  averageRate: number;
+  savingsPercentage: number;
+  confidenceScore: number;
+  reasons: string[];
+  urgency: "high" | "medium" | "low";
+}
+
+// Enhanced interfaces for hybrid intelligence
+export interface MarketInsight {
+  type: "trend" | "opportunity" | "warning" | "recommendation";
+  title: string;
+  description: string;
+  impact: "high" | "medium" | "low";
+  timeframe: string;
+  confidence: number;
+  dataSource: "real-time" | "seasonal" | "hybrid";
+}
+
+export interface DealAlert {
+  hotelId: string;
+  hotelName: string;
+  dealType: "perfect-day" | "seasonal" | "flash" | "last-minute";
+  currentRate: number;
+  originalRate: number;
+  savingsPercentage: number;
+  validUntil: string;
+  urgency: "high" | "medium" | "low";
+  confidence: number;
+  reasons: string[];
+  bookingRecommendation: string;
+}
+
+export interface EnhancedTravelData {
+  perfectDays: PerfectDayOpportunity[];
+  weeklySuggestions: any[]; // Using existing WeeklySuggestion type from SeasonalRateService
+  currentDeals: DealAlert[];
+  marketInsights: MarketInsight[];
+  lastUpdated: Date;
+}
+
+/**
+ * TravelDataService
+ *
+ * Provides hotel rate intelligence, perfect day detection, and booking optimization.
+ *
+ * Integrates with Google Hotels scraping (primary) and optionally Booking.com API (if credentials are provided).
+ *
+ * If Booking.com API credentials are missing, all Booking.com logic is skipped and the system uses Google Hotels and/or simulated data.
+ *
+ * Booking.com integration is fully optional and not required for core functionality.
+ */
 export class TravelDataService extends BaseDataService {
   static serviceType = "travel-data";
   capabilityDescription =
@@ -137,6 +195,8 @@ export class TravelDataService extends BaseDataService {
 
   private travelDataCache: TravelDataCache | null = null;
   private readonly TRAVEL_CACHE_DURATION = 4 * 60 * 60 * 1000; // 4 hours
+  private googleHotelsScraper: GoogleHotelsScraper | null = null;
+  private seasonalRateService: SeasonalRateService;
 
   // European luxury cities for lifestyle travel
   private readonly luxuryLocations: HotelLocation[] = [
@@ -377,6 +437,27 @@ export class TravelDataService extends BaseDataService {
   constructor(runtime: IAgentRuntime) {
     super(runtime, "travelData");
     this.validateConfiguration();
+    this.seasonalRateService = new SeasonalRateService();
+  }
+
+  static async start(runtime: IAgentRuntime) {
+    logger.info("TravelDataService starting...");
+    const service = new TravelDataService(runtime);
+    await service.init();
+    return service;
+  }
+
+  static async stop(runtime: IAgentRuntime) {
+    logger.info("TravelDataService stopping...");
+    const service = runtime.getService("travel-data");
+    if (service && service.stop) {
+      await service.stop();
+    }
+  }
+
+  async init() {
+    logger.info("TravelDataService initialized");
+    await this.updateData();
   }
 
   private validateConfiguration(): void {
@@ -385,7 +466,7 @@ export class TravelDataService extends BaseDataService {
 
     if (!bookingApiKey || !bookingApiSecret) {
       this.logWarning(
-        "Booking.com API credentials not configured - limited functionality available",
+        "Booking.com API credentials not configured (optional) – using Google Hotels and/or simulated data. This is not an error."
       );
     }
   }
@@ -447,7 +528,7 @@ export class TravelDataService extends BaseDataService {
 
     if (!bookingApiKey) {
       this.logWarning(
-        "Booking.com API key not configured, using simulated data",
+        "Booking.com API key not configured (optional), using Google Hotels and/or simulated data."
       );
       return this.generateSimulatedRates();
     }
@@ -486,11 +567,14 @@ export class TravelDataService extends BaseDataService {
   ): Promise<HotelRateData[]> {
     const rates: HotelRateData[] = [];
 
-    // Booking.com ARI API integration
+    // Booking.com ARI API integration (optional)
     const bookingApiKey = this.runtime.getSetting("BOOKING_API_KEY");
     const bookingApiSecret = this.runtime.getSetting("BOOKING_API_SECRET");
 
     if (!bookingApiKey || !bookingApiSecret) {
+      this.logWarning(
+        `Booking.com API credentials not configured (optional) for hotel ${hotel.name} – skipping Booking.com rates.`
+      );
       return [];
     }
 
@@ -543,6 +627,9 @@ export class TravelDataService extends BaseDataService {
     const bookingApiSecret = this.runtime.getSetting("BOOKING_API_SECRET");
 
     if (!bookingApiKey || !bookingApiSecret) {
+      this.logWarning(
+        `Booking.com API credentials not configured (optional) for hotel ${hotel.name} – skipping Booking.com API call.`
+      );
       return null;
     }
 
@@ -1048,5 +1135,425 @@ export class TravelDataService extends BaseDataService {
 
   protected logError(message: string, error?: any): void {
     logger.error(`[${this.serviceName}] ${message}`, error);
+  }
+
+  // Perfect Day Detection Methods
+  public async detectPerfectDays(): Promise<PerfectDayOpportunity[]> {
+    try {
+      // First, try to get real-time data from Google Hotels scraper
+      if (this.googleHotelsScraper) {
+        try {
+          const priceData = await this.googleHotelsScraper.scrapeAllHotels(this.curatedHotels);
+          const opportunities = await this.googleHotelsScraper.detectBelowAverageRates(priceData);
+          
+          if (opportunities.length > 0) {
+            logger.info(`Found ${opportunities.length} real-time perfect day opportunities`);
+            return opportunities.map(opp => ({
+              hotelId: opp.hotelId,
+              hotelName: opp.hotelName,
+              perfectDate: opp.date,
+              currentRate: opp.currentPrice,
+              averageRate: opp.averagePrice,
+              savingsPercentage: opp.savingsPercentage,
+              confidenceScore: opp.confidence,
+              reasons: ['Real-time rate analysis', 'Below average pricing'],
+              urgency: opp.savingsPercentage >= 25 ? 'high' : opp.savingsPercentage >= 15 ? 'medium' : 'low'
+            }));
+          }
+        } catch (error) {
+          logger.warn('Google Hotels scraping failed, falling back to seasonal data:', error);
+        }
+      }
+
+      // Fallback to seasonal rate service
+      logger.info('Using seasonal rate service for perfect day detection');
+      const seasonalOpportunities: PerfectDayOpportunity[] = [];
+      
+      for (const hotel of this.curatedHotels) {
+        const hotelOpportunities = this.seasonalRateService.getPerfectDaysForHotel(hotel.hotelId);
+        seasonalOpportunities.push(...hotelOpportunities);
+      }
+
+      // Sort by savings percentage and return top opportunities
+      return seasonalOpportunities
+        .sort((a, b) => b.savingsPercentage - a.savingsPercentage)
+        .slice(0, 10); // Return top 10 opportunities
+
+    } catch (error) {
+      logger.error('Error detecting perfect days:', error);
+      return this.generateFallbackPerfectDays();
+    }
+  }
+
+  private generateFallbackPerfectDays(): PerfectDayOpportunity[] {
+    // Generate fallback perfect day opportunities using existing hotel data
+    const fallbackOpportunities: PerfectDayOpportunity[] = [];
+    
+    // Select a few hotels and generate simulated perfect days
+    const selectedHotels = this.curatedHotels.slice(0, 3);
+    
+    selectedHotels.forEach((hotel, index) => {
+      const currentRate = hotel.priceRange.min + Math.random() * (hotel.priceRange.max - hotel.priceRange.min) * 0.8;
+      const averageRate = (hotel.priceRange.min + hotel.priceRange.max) / 2;
+      const savingsPercentage = ((averageRate - currentRate) / averageRate) * 100;
+      
+      if (savingsPercentage >= 10) {
+        fallbackOpportunities.push({
+          hotelId: hotel.hotelId,
+          hotelName: hotel.name,
+          perfectDate: new Date(Date.now() + (index + 1) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          currentRate: Math.round(currentRate),
+          averageRate: Math.round(averageRate),
+          savingsPercentage: Math.round(savingsPercentage * 10) / 10,
+          confidenceScore: 0.3, // Low confidence for fallback data
+          reasons: ['Simulated data - check for actual availability'],
+          urgency: savingsPercentage >= 20 ? 'high' : 'medium'
+        });
+      }
+    });
+
+    return fallbackOpportunities.sort((a, b) => b.savingsPercentage - a.savingsPercentage);
+  }
+
+  public async getPerfectDayOpportunities(): Promise<PerfectDayOpportunity[]> {
+    return this.detectPerfectDays();
+  }
+
+  /**
+   * Get hybrid perfect days combining real-time and seasonal data
+   * Prioritizes real-time data but includes seasonal as backup
+   */
+  public async getHybridPerfectDays(): Promise<PerfectDayOpportunity[]> {
+    try {
+      const realTimeOpportunities: PerfectDayOpportunity[] = [];
+      const seasonalOpportunities: PerfectDayOpportunity[] = [];
+
+      // Get real-time opportunities from Google Hotels scraper
+      if (this.googleHotelsScraper) {
+        try {
+          const priceData = await this.googleHotelsScraper.scrapeAllHotels(this.curatedHotels);
+          const opportunities = await this.googleHotelsScraper.detectBelowAverageRates(priceData);
+          
+          realTimeOpportunities.push(...opportunities.map(opp => ({
+            hotelId: opp.hotelId,
+            hotelName: opp.hotelName,
+            perfectDate: opp.date,
+            currentRate: opp.currentPrice,
+            averageRate: opp.averagePrice,
+            savingsPercentage: opp.savingsPercentage,
+            confidenceScore: opp.confidence,
+            reasons: ['Real-time rate analysis', 'Below average pricing'],
+            urgency: (opp.savingsPercentage >= 25 ? 'high' : opp.savingsPercentage >= 15 ? 'medium' : 'low') as 'high' | 'medium' | 'low'
+          })));
+          
+          logger.info(`Found ${realTimeOpportunities.length} real-time perfect day opportunities`);
+        } catch (error) {
+          logger.warn('Google Hotels scraping failed for hybrid detection:', error);
+        }
+      }
+
+      // Get seasonal opportunities as backup
+      for (const hotel of this.curatedHotels) {
+        const hotelOpportunities = this.seasonalRateService.getPerfectDaysForHotel(hotel.hotelId);
+        seasonalOpportunities.push(...hotelOpportunities);
+      }
+
+      // Merge and rank opportunities
+      return this.mergeAndRankOpportunities(realTimeOpportunities, seasonalOpportunities);
+
+    } catch (error) {
+      logger.error('Error in hybrid perfect day detection:', error);
+      return this.generateFallbackPerfectDays();
+    }
+  }
+
+  /**
+   * Smart merging of real-time and seasonal opportunities
+   * Prioritizes real-time data but includes seasonal as backup
+   */
+  private mergeAndRankOpportunities(
+    realTime: PerfectDayOpportunity[], 
+    seasonal: any[]
+  ): PerfectDayOpportunity[] {
+    const mergedOpportunities: PerfectDayOpportunity[] = [];
+    const seenCombinations = new Set<string>();
+
+    // Add real-time opportunities first (higher priority)
+    realTime.forEach(opp => {
+      const key = `${opp.hotelId}-${opp.perfectDate}`;
+      if (!seenCombinations.has(key)) {
+        mergedOpportunities.push({
+          ...opp,
+          confidenceScore: opp.confidenceScore * 1.2, // Boost confidence for real-time data
+          reasons: [...opp.reasons, 'Real-time data source']
+        });
+        seenCombinations.add(key);
+      }
+    });
+
+    // Add seasonal opportunities as backup
+    seasonal.forEach(opp => {
+      const key = `${opp.hotelId}-${opp.perfectDate}`;
+      if (!seenCombinations.has(key)) {
+        mergedOpportunities.push({
+          ...opp,
+          confidenceScore: opp.confidenceScore * 0.8, // Reduce confidence for seasonal data
+          reasons: [...opp.reasons, 'Seasonal pattern analysis']
+        });
+        seenCombinations.add(key);
+      }
+    });
+
+    // Sort by savings percentage and confidence
+    return mergedOpportunities
+      .sort((a, b) => {
+        // Primary sort by savings percentage
+        if (Math.abs(b.savingsPercentage - a.savingsPercentage) > 5) {
+          return b.savingsPercentage - a.savingsPercentage;
+        }
+        // Secondary sort by confidence score
+        return b.confidenceScore - a.confidenceScore;
+      })
+      .slice(0, 10); // Return top 10 opportunities
+  }
+
+  /**
+   * Get comprehensive enhanced travel data
+   * Combines perfect days, weekly suggestions, current deals, and market insights
+   */
+  public async getEnhancedTravelData(): Promise<EnhancedTravelData> {
+    try {
+      // Get hybrid perfect days
+      const perfectDays = await this.getHybridPerfectDays();
+
+      // Get weekly suggestions from seasonal service
+      const weeklySuggestions = this.seasonalRateService.getWeeklySuggestions(10);
+
+      // Generate current deals from perfect days
+      const currentDeals: DealAlert[] = perfectDays.map(opp => ({
+        hotelId: opp.hotelId,
+        hotelName: opp.hotelName,
+        dealType: 'perfect-day',
+        currentRate: opp.currentRate,
+        originalRate: opp.averageRate,
+        savingsPercentage: opp.savingsPercentage,
+        validUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
+        urgency: opp.urgency,
+        confidence: opp.confidenceScore,
+        reasons: opp.reasons,
+        bookingRecommendation: this.generateBookingRecommendation(opp)
+      }));
+
+      // Generate market insights
+      const marketInsights = this.generateMarketInsights(perfectDays, weeklySuggestions);
+
+      return {
+        perfectDays,
+        weeklySuggestions,
+        currentDeals,
+        marketInsights,
+        lastUpdated: new Date()
+      };
+
+    } catch (error) {
+      logger.error('Error generating enhanced travel data:', error);
+      return this.getFallbackEnhancedTravelData();
+    }
+  }
+
+  /**
+   * Generate booking recommendations based on opportunity data
+   */
+  private generateBookingRecommendation(opp: PerfectDayOpportunity): string {
+    if (opp.urgency === 'high') {
+      return 'Book immediately - exceptional value';
+    } else if (opp.urgency === 'medium') {
+      return 'Book within 7 days - good value';
+    } else {
+      return 'Book within 14 days - decent value';
+    }
+  }
+
+  /**
+   * Generate market insights from travel data
+   */
+  private generateMarketInsights(
+    perfectDays: PerfectDayOpportunity[], 
+    weeklySuggestions: any[]
+  ): MarketInsight[] {
+    const insights: MarketInsight[] = [];
+
+    // Analyze perfect day trends
+    if (perfectDays.length > 0) {
+      const avgSavings = perfectDays.reduce((sum, opp) => sum + opp.savingsPercentage, 0) / perfectDays.length;
+      const highValueCount = perfectDays.filter(opp => opp.savingsPercentage >= 25).length;
+
+      if (avgSavings > 30) {
+        insights.push({
+          type: 'opportunity',
+          title: 'Exceptional Value Period',
+          description: `Average savings of ${avgSavings.toFixed(1)}% across ${perfectDays.length} opportunities`,
+          impact: 'high',
+          timeframe: 'next 30 days',
+          confidence: 0.9,
+          dataSource: 'hybrid'
+        });
+      }
+
+      if (highValueCount >= 3) {
+        insights.push({
+          type: 'trend',
+          title: 'Multiple High-Value Opportunities',
+          description: `${highValueCount} opportunities with 25%+ savings available`,
+          impact: 'medium',
+          timeframe: 'next 14 days',
+          confidence: 0.8,
+          dataSource: 'hybrid'
+        });
+      }
+    }
+
+    // Analyze city distribution
+    const cityCounts = perfectDays.reduce((acc, opp) => {
+      const hotel = this.curatedHotels.find(h => h.hotelId === opp.hotelId);
+      const city = hotel?.city || 'unknown';
+      acc[city] = (acc[city] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    Object.entries(cityCounts).forEach(([city, count]) => {
+      if (count >= 2) {
+        insights.push({
+          type: 'recommendation',
+          title: `${city.charAt(0).toUpperCase() + city.slice(1)} Value Cluster`,
+          description: `${count} opportunities in ${city} - consider multi-property booking`,
+          impact: 'medium',
+          timeframe: 'next 30 days',
+          confidence: 0.7,
+          dataSource: 'hybrid'
+        });
+      }
+    });
+
+    // Add seasonal insights
+    if (weeklySuggestions.length > 0) {
+      insights.push({
+        type: 'trend',
+        title: 'Seasonal Pattern Recognition',
+        description: `${weeklySuggestions.length} weekly suggestions based on historical patterns`,
+        impact: 'medium',
+        timeframe: 'ongoing',
+        confidence: 0.6,
+        dataSource: 'seasonal'
+      });
+    }
+
+    return insights;
+  }
+
+  /**
+   * Fallback enhanced travel data when primary methods fail
+   */
+  private getFallbackEnhancedTravelData(): EnhancedTravelData {
+    const fallbackPerfectDays = this.generateFallbackPerfectDays();
+    
+    return {
+      perfectDays: fallbackPerfectDays,
+      weeklySuggestions: this.seasonalRateService.getWeeklySuggestions(5),
+      currentDeals: fallbackPerfectDays.map(opp => ({
+        hotelId: opp.hotelId,
+        hotelName: opp.hotelName,
+        dealType: 'perfect-day',
+        currentRate: opp.currentRate,
+        originalRate: opp.averageRate,
+        savingsPercentage: opp.savingsPercentage,
+        validUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        urgency: opp.urgency,
+        confidence: opp.confidenceScore,
+        reasons: [...opp.reasons, 'Fallback data'],
+        bookingRecommendation: 'Verify availability before booking'
+      })),
+      marketInsights: [{
+        type: 'warning',
+        title: 'Using Fallback Data',
+        description: 'Real-time data unavailable - using simulated and seasonal data',
+        impact: 'medium',
+        timeframe: 'current',
+        confidence: 0.3,
+        dataSource: 'seasonal'
+      }],
+      lastUpdated: new Date()
+    };
+  }
+
+  /**
+   * Get comprehensive travel data with all available information
+   */
+  public async getComprehensiveTravelData(): Promise<ComprehensiveTravelData> {
+    try {
+      const hotels = this.curatedHotels;
+      const currentRates: HotelRateData[] = []; // Simplified for now
+      const optimalBookingWindows: OptimalBookingWindow[] = []; // Simplified for now
+      const travelInsights = this.getTravelInsights() || this.getFallbackTravelInsights();
+
+      return {
+        hotels,
+        currentRates,
+        optimalBookingWindows,
+        travelInsights,
+        lastUpdated: new Date()
+      };
+    } catch (error) {
+      logger.error('Error getting comprehensive travel data:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Cache travel data for performance optimization
+   */
+  public async cacheTravelData(): Promise<void> {
+    try {
+      const data = await this.getComprehensiveTravelData();
+      const cache: TravelDataCache = {
+        data,
+        timestamp: Date.now()
+      };
+      
+      await this.runtime.setCache('travel_data', cache);
+      logger.info('Travel data cached successfully');
+    } catch (error) {
+      logger.error('Error caching travel data:', error);
+    }
+  }
+
+  /**
+   * Get cached travel data if available and fresh
+   */
+  public async getCachedTravelData(): Promise<ComprehensiveTravelData | null> {
+    try {
+      const cache = await this.runtime.getCache<TravelDataCache>('travel_data');
+      if (cache && Date.now() - cache.timestamp < 30 * 60 * 1000) { // 30 minutes
+        return cache.data;
+      }
+      return null;
+    } catch (error) {
+      logger.warn('Error getting cached travel data:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get travel data with caching optimization
+   */
+  public async getOptimizedTravelData(): Promise<ComprehensiveTravelData> {
+    const cached = await this.getCachedTravelData();
+    if (cached) {
+      return cached;
+    }
+    
+    const fresh = await this.getComprehensiveTravelData();
+    await this.cacheTravelData();
+    return fresh;
   }
 }
