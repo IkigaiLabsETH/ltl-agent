@@ -28,6 +28,8 @@ import { weeklyHotelSuggestionsAction } from "./weeklyHotelSuggestionsAction";
 // New Bitcoin Intelligence Actions
 import { bitcoinMorningBriefingAction } from "./bitcoinMorningBriefingAction";
 import { bitcoinKnowledgeAction } from "./bitcoinKnowledgeAction";
+import { satoshiReasoningAction } from "./satoshiReasoningAction";
+import { advancedSatoshiReasoningAction } from "./advancedSatoshiReasoningAction";
 
 // Core Actions - Newly refactored
 import { helloWorldAction } from "./helloWorldAction";
@@ -94,6 +96,10 @@ export { bookingOptimizationAction };
 export { travelInsightsAction };
 export { hotelRateIntelligenceAction };
 export { weeklyHotelSuggestionsAction };
+
+// New Bitcoin Intelligence Actions
+export { satoshiReasoningAction };
+export { advancedSatoshiReasoningAction };
 
 // Export action categories for easy access
 export const ACTION_CATEGORIES = {
@@ -419,6 +425,25 @@ export const actionRegistry: Record<string, ActionRegistryEntry> = {
     description: "Weekly hotel suggestions and recommendations",
     tags: ["hotel", "suggestions", "recommendations", "travel"],
     dependencies: ["travel-data-service"],
+  },
+
+  // New Bitcoin Intelligence Actions
+  SATOSHI_REASONING: {
+    action: satoshiReasoningAction,
+    category: "core",
+    priority: "high",
+    description: "Satoshi's reasoning and insights",
+    tags: ["satoshi", "reasoning", "insights"],
+    isCore: true,
+  },
+
+  ADVANCED_SATOSHI_REASONING: {
+    action: advancedSatoshiReasoningAction,
+    category: "core",
+    priority: "high",
+    description: "Advanced Satoshi reasoning and insights",
+    tags: ["satoshi", "reasoning", "insights", "advanced"],
+    isCore: true,
   },
 };
 
