@@ -48011,7 +48011,12 @@ var init_comprehensive_error_handling = __esm({
         };
         Object.getOwnPropertyNames(error).forEach((prop) => {
           if (prop !== "name" && prop !== "message" && prop !== "stack") {
-            metadata[prop] = error[prop];
+            try {
+              const value = error[prop];
+              metadata[prop] = this.safeSerializeObject(value);
+            } catch (accessError) {
+              metadata[prop] = "[Error accessing property]";
+            }
           }
         });
         return metadata;
@@ -48033,20 +48038,58 @@ var init_comprehensive_error_handling = __esm({
           strategy: error.recoveryStrategy?.name || "unknown",
           metadata: error.metadata
         };
+        const safeLogData = this.safeSerializeObject(logData);
         switch (error.severity) {
           case "critical" /* CRITICAL */:
-            this.logger.error(`CRITICAL ERROR: ${error.message}`, logData);
+            this.logger.error(`CRITICAL ERROR: ${error.message}`, safeLogData);
             break;
           case "high" /* HIGH */:
-            this.logger.error(`HIGH SEVERITY ERROR: ${error.message}`, logData);
+            this.logger.error(`HIGH SEVERITY ERROR: ${error.message}`, safeLogData);
             break;
           case "medium" /* MEDIUM */:
-            this.logger.warn(`MEDIUM SEVERITY ERROR: ${error.message}`, logData);
+            this.logger.warn(`MEDIUM SEVERITY ERROR: ${error.message}`, safeLogData);
             break;
           case "low" /* LOW */:
-            this.logger.info(`LOW SEVERITY ERROR: ${error.message}`, logData);
+            this.logger.info(`LOW SEVERITY ERROR: ${error.message}`, safeLogData);
             break;
         }
+      }
+      /**
+       * Safely serialize an object to avoid circular references
+       */
+      safeSerializeObject(obj) {
+        try {
+          JSON.stringify(obj);
+          return obj;
+        } catch (error) {
+          return this.removeCircularReferences(obj);
+        }
+      }
+      /**
+       * Remove circular references from an object
+       */
+      removeCircularReferences(obj, seen = /* @__PURE__ */ new WeakSet()) {
+        if (obj === null || typeof obj !== "object") {
+          return obj;
+        }
+        if (seen.has(obj)) {
+          return "[Circular Reference]";
+        }
+        seen.add(obj);
+        if (Array.isArray(obj)) {
+          return obj.map((item) => this.removeCircularReferences(item, seen));
+        }
+        const result = {};
+        for (const key in obj) {
+          if (obj.hasOwnProperty(key)) {
+            try {
+              result[key] = this.removeCircularReferences(obj[key], seen);
+            } catch (error) {
+              result[key] = "[Error accessing property]";
+            }
+          }
+        }
+        return result;
       }
       /**
        * Add error to history
@@ -48572,7 +48615,7 @@ var init_BitcoinDataService = __esm({
             "[BitcoinDataService] Data update completed successfully"
           );
         } catch (error) {
-          elizaLogger25.error("[BitcoinDataService] Error updating data:", error);
+          elizaLogger25.error("[BitcoinDataService] Error updating data:", error instanceof Error ? error.message : String(error));
         }
       }
       /**
@@ -48601,7 +48644,7 @@ var init_BitcoinDataService = __esm({
           );
           return result;
         } catch (error) {
-          elizaLogger25.error("[BitcoinDataService] Error in force update:", error);
+          elizaLogger25.error("[BitcoinDataService] Error in force update:", error instanceof Error ? error.message : String(error));
           throw error;
         }
       }
@@ -50110,7 +50153,7 @@ var init_AltcoinDataService = __esm({
         try {
           this.marketData = await this.fetchMarketData();
         } catch (error) {
-          logger38.error("Error updating market data:", error);
+          logger38.error("Error updating market data:", error instanceof Error ? error.message : String(error));
         }
       }
       async updateCuratedAltcoinsData() {
@@ -50237,7 +50280,7 @@ var init_AltcoinDataService = __esm({
           const stockData = await this.fetchStockData();
           return [...marketData, ...stockData];
         } catch (error) {
-          logger38.error("Error fetching market data:", error);
+          logger38.error("Error fetching market data:", error instanceof Error ? error.message : String(error));
           return this.getFallbackMarketData();
         }
       }
@@ -50287,14 +50330,14 @@ var init_AltcoinDataService = __esm({
                 source: "Alpha Vantage"
               };
             } catch (error) {
-              logger38.error(`Error fetching data for ${symbol}:`, error);
+              logger38.error(`Error fetching data for ${symbol}:`, error instanceof Error ? error.message : String(error));
               return null;
             }
           });
           const results = await Promise.all(stockPromises);
           return results.filter(Boolean);
         } catch (error) {
-          logger38.error("Error fetching stock data:", error);
+          logger38.error("Error fetching stock data:", error instanceof Error ? error.message : String(error));
           return this.getFallbackStockData();
         }
       }
@@ -50336,7 +50379,7 @@ var init_AltcoinDataService = __esm({
           );
           return result;
         } catch (error) {
-          logger38.error("Error fetching curated altcoins data:", error);
+          logger38.error("Error fetching curated altcoins data:", error instanceof Error ? error.message : String(error));
           logger38.info("[AltcoinDataService] Using fallback curated altcoins data");
           return this.getFallbackCuratedAltcoinsData();
         }
@@ -50469,8 +50512,7 @@ var init_AltcoinDataService = __esm({
           logger38.error("[AltcoinDataService] \u274C Error in fetchTop100VsBtcData:", {
             error: error instanceof Error ? error.message : "Unknown error",
             stack: error instanceof Error ? error.stack : void 0,
-            type: typeof error,
-            details: error
+            type: typeof error
           });
           return null;
         }
@@ -50550,7 +50592,7 @@ var init_AltcoinDataService = __esm({
           );
           return result;
         } catch (error) {
-          logger38.error("Error in fetchDexScreenerData:", error);
+          logger38.error("Error in fetchDexScreenerData:", error instanceof Error ? error.message : String(error));
           return null;
         }
       }
@@ -50607,7 +50649,7 @@ var init_AltcoinDataService = __esm({
           );
           return result;
         } catch (error) {
-          logger38.error("Error in fetchTopMoversData:", error);
+          logger38.error("Error in fetchTopMoversData:", error instanceof Error ? error.message : String(error));
           logger38.info("[AltcoinDataService] Using fallback top movers data");
           return this.getFallbackTopMoversData();
         }
@@ -50649,7 +50691,7 @@ var init_AltcoinDataService = __esm({
           );
           return result;
         } catch (error) {
-          logger38.error("Error in fetchTrendingCoinsData:", error);
+          logger38.error("Error in fetchTrendingCoinsData:", error instanceof Error ? error.message : String(error));
           logger38.info("[AltcoinDataService] Using fallback trending coins data");
           return this.getFallbackTrendingCoinsData();
         }
@@ -51487,17 +51529,19 @@ var init_ETFDataService = __esm({
 // plugin-bitcoin-ltl/src/services/NFTDataService.ts
 import { elizaLogger as elizaLogger26 } from "@elizaos/core";
 import axios3 from "axios";
-var NFTDataService2;
+var USE_OPENSEA_API, NFTDataService2;
 var init_NFTDataService = __esm({
   "plugin-bitcoin-ltl/src/services/NFTDataService.ts"() {
     init_BaseDataService();
     init_utils();
+    USE_OPENSEA_API = typeof process !== "undefined" && process.env.USE_OPENSEA_API !== void 0 ? process.env.USE_OPENSEA_API === "true" : true;
     NFTDataService2 = class _NFTDataService2 extends BaseDataService2 {
       static serviceType = "nft-data";
       contextLogger;
       configService;
       errorHandler;
       updateInterval = null;
+      useOpenSeaApi;
       // Cache management
       curatedNFTsCache = null;
       CURATED_NFTS_CACHE_DURATION = 60 * 1e3;
@@ -51523,6 +51567,7 @@ var init_NFTDataService = __esm({
         );
         this.configService = this.getConfigServiceSafely(runtime);
         this.errorHandler = new ComprehensiveErrorHandler2();
+        this.useOpenSeaApi = this.runtime?.getSetting?.("USE_OPENSEA_API") ?? USE_OPENSEA_API;
       }
       /**
        * Safely get the CentralizedConfigService with retry logic
@@ -51675,6 +51720,10 @@ var init_NFTDataService = __esm({
        * Fetch curated NFTs data
        */
       async fetchCuratedNFTsData() {
+        if (!this.useOpenSeaApi) {
+          this.contextLogger.info("OpenSea API is disabled by config (USE_OPENSEA_API=false). Returning default value.");
+          return null;
+        }
         try {
           this.contextLogger.info("Fetching curated NFTs data...");
           const collections = [];
@@ -51729,6 +51778,10 @@ var init_NFTDataService = __esm({
        * Fetch enhanced collection data from OpenSea API
        */
       async fetchEnhancedCollectionData(collectionSlug, headers) {
+        if (!this.useOpenSeaApi) {
+          this.contextLogger.info("OpenSea API is disabled by config (USE_OPENSEA_API=false). Returning default value.");
+          return null;
+        }
         try {
           const baseUrl = this.configService ? this.configService.get("apis.opensea.baseUrl", "https://api.opensea.io/api/v1") : "https://api.opensea.io/api/v1";
           const collectionResponse = await axios3.get(
@@ -54606,11 +54659,12 @@ var init_CulturalContextService = __esm({
 // plugin-bitcoin-ltl/src/services/RealTimeDataService.ts
 import { elizaLogger as elizaLogger27 } from "@elizaos/core";
 import axios4 from "axios";
-var RealTimeDataService2;
+var USE_OPENSEA_API2, RealTimeDataService2;
 var init_RealTimeDataService = __esm({
   "plugin-bitcoin-ltl/src/services/RealTimeDataService.ts"() {
     init_BaseDataService();
     init_utils();
+    USE_OPENSEA_API2 = typeof process !== "undefined" && process.env.USE_OPENSEA_API !== void 0 ? process.env.USE_OPENSEA_API === "true" : true;
     RealTimeDataService2 = class _RealTimeDataService2 extends BaseDataService2 {
       static serviceType = "real-time-data";
       contextLogger;
@@ -54698,6 +54752,8 @@ var init_RealTimeDataService = __esm({
           category: "generative-art"
         }
       ];
+      // In the RealTimeDataService class constructor, add:
+      useOpenSeaApi;
       constructor(runtime) {
         super(runtime, "realTimeData");
         this.contextLogger = new LoggerWithContext3(
@@ -54712,6 +54768,7 @@ var init_RealTimeDataService = __esm({
           this.serviceConfig.rateLimitDelay = 3e3;
           console.log("[RealTimeDataService] Using CoinGecko Pro API with 3s rate limiting");
         }
+        this.useOpenSeaApi = this.runtime?.getSetting?.("USE_OPENSEA_API") ?? USE_OPENSEA_API2;
       }
       get capabilityDescription() {
         return "Provides real-time market data, news feeds, and social sentiment analysis";
@@ -56194,6 +56251,10 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
         }
       }
       async fetchCuratedNFTsData() {
+        if (!this.useOpenSeaApi) {
+          this.contextLogger.info("OpenSea API is disabled by config (USE_OPENSEA_API=false). Returning null.");
+          return null;
+        }
         try {
           console.log(
             "[RealTimeDataService] Fetching enhanced curated NFTs data..."
@@ -56248,6 +56309,10 @@ ${i + 1}. ${coin.symbol}: +${coin.price_change_percentage_30d_in_currency?.toFix
         }
       }
       async fetchEnhancedCollectionData(collectionInfo, headers) {
+        if (!this.useOpenSeaApi) {
+          this.contextLogger.info("OpenSea API is disabled by config (USE_OPENSEA_API=false). Returning null.");
+          return null;
+        }
         try {
           console.log(
             `[RealTimeDataService] Fetching collection data for: ${collectionInfo.slug}`
