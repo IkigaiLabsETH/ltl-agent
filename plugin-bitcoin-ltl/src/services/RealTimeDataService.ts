@@ -886,21 +886,21 @@ export class RealTimeDataService extends BaseDataService {
     return [
       {
         symbol: "BTC",
-        price: 45000,
-        change24h: 2000,
-        changePercent24h: 4.7,
-        volume24h: 25000000000,
-        marketCap: 880000000000,
+        price: 0, // No fallback price - will be handled by error state
+        change24h: 0, // No fallback change
+        changePercent24h: 0, // No fallback percentage
+        volume24h: 0, // No fallback volume
+        marketCap: 0, // No fallback market cap
         lastUpdate: new Date(),
         source: "Fallback",
       },
       {
         symbol: "ETH",
-        price: 2800,
-        change24h: 150,
-        changePercent24h: 5.7,
-        volume24h: 12000000000,
-        marketCap: 340000000000,
+        price: 0, // No fallback price - will be handled by error state
+        change24h: 0, // No fallback change
+        changePercent24h: 0, // No fallback percentage
+        volume24h: 0, // No fallback volume
+        marketCap: 0, // No fallback market cap
         lastUpdate: new Date(),
         source: "Fallback",
       },
@@ -956,10 +956,10 @@ export class RealTimeDataService extends BaseDataService {
     const fallbackData: CuratedAltcoinsData = {};
     this.curatedCoinIds.forEach((id) => {
       fallbackData[id] = {
-        price: Math.random() * 1000 + 1, // Random price between 1-1000
-        change24h: (Math.random() - 0.5) * 20, // Random change between -10% and +10%
-        marketCap: Math.random() * 1000000000 + 1000000, // Random market cap
-        volume24h: Math.random() * 100000000 + 1000000, // Random volume
+        price: 0, // No fallback price - will be handled by error state
+        change24h: 0, // No fallback change
+        marketCap: 0, // No fallback market cap
+        volume24h: 0, // No fallback volume
       };
     });
     return fallbackData;

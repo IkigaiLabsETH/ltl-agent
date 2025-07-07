@@ -301,30 +301,30 @@ export class AltcoinDataService extends BaseDataService {
         id: "ethereum",
         symbol: "ETH",
         name: "Ethereum",
-        price: 3500,
-        change24h: 2.5,
-        marketCap: 420000000000,
-        volume24h: 15000000000,
+        price: 0, // No fallback price - will be handled by error state
+        change24h: 0, // No fallback change
+        marketCap: 0, // No fallback market cap
+        volume24h: 0, // No fallback volume
         lastUpdate: new Date(),
       },
       solana: {
         id: "solana",
         symbol: "SOL",
         name: "Solana",
-        price: 150,
-        change24h: 5.2,
-        marketCap: 65000000000,
-        volume24h: 3000000000,
+        price: 0, // No fallback price - will be handled by error state
+        change24h: 0, // No fallback change
+        marketCap: 0, // No fallback market cap
+        volume24h: 0, // No fallback volume
         lastUpdate: new Date(),
       },
       pepe: {
         id: "pepe",
         symbol: "PEPE",
         name: "Pepe",
-        price: 0.000012,
-        change24h: -3.1,
-        marketCap: 5000000000,
-        volume24h: 800000000,
+        price: 0, // No fallback price - will be handled by error state
+        change24h: 0, // No fallback change
+        marketCap: 0, // No fallback market cap
+        volume24h: 0, // No fallback volume
         lastUpdate: new Date(),
       },
     };
