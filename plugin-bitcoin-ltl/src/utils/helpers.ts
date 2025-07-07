@@ -330,5 +330,75 @@ export function generateCorrelationId(): string {
   return `btc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
+/**
+ * Sanitize provider results to prevent JSON.stringify errors
+ * This function removes circular references and limits object sizes
+ */
+export function sanitizeProviderResult(result: any, maxDepth: number = 3, maxArrayLength: number = 100): any {
+  return sanitizeObject(result, maxDepth, maxArrayLength, new WeakSet());
+}
+
+/**
+ * Recursively sanitize an object to prevent circular references and size issues
+ */
+function sanitizeObject(obj: any, maxDepth: number, maxArrayLength: number, seen: WeakSet<any>, currentDepth: number = 0): any {
+  // Handle null, undefined, and primitives
+  if (obj === null || obj === undefined || typeof obj !== 'object') {
+    return obj;
+  }
+
+  // Prevent circular references
+  if (seen.has(obj)) {
+    return '[Circular Reference]';
+  }
+
+  // Limit recursion depth
+  if (currentDepth >= maxDepth) {
+    return '[Max Depth Reached]';
+  }
+
+  seen.add(obj);
+
+  try {
+    // Handle arrays
+    if (Array.isArray(obj)) {
+      if (obj.length > maxArrayLength) {
+        return obj.slice(0, maxArrayLength).map(item => 
+          sanitizeObject(item, maxDepth, maxArrayLength, seen, currentDepth + 1)
+        ).concat([`[${obj.length - maxArrayLength} more items...]`]);
+      }
+      return obj.map(item => 
+        sanitizeObject(item, maxDepth, maxArrayLength, seen, currentDepth + 1)
+      );
+    }
+
+    // Handle objects
+    const result: any = {};
+    const keys = Object.keys(obj);
+    
+    // Limit number of properties for very large objects
+    const maxKeys = 50;
+    const keysToProcess = keys.length > maxKeys ? keys.slice(0, maxKeys) : keys;
+    
+    for (const key of keysToProcess) {
+      try {
+        result[key] = sanitizeObject(obj[key], maxDepth, maxArrayLength, seen, currentDepth + 1);
+      } catch (error) {
+        result[key] = '[Error accessing property]';
+      }
+    }
+
+    if (keys.length > maxKeys) {
+      result['[additional_properties]'] = `${keys.length - maxKeys} more properties...`;
+    }
+
+    return result;
+  } catch (error) {
+    return '[Error sanitizing object]';
+  } finally {
+    seen.delete(obj);
+  }
+}
+
 // Global cache instance for providers
 export const providerCache = new ProviderCache();

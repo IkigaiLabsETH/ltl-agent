@@ -1,5 +1,6 @@
 import { Provider, IAgentRuntime, Memory, State } from "@elizaos/core";
 import { RealTimeDataService } from "../services/RealTimeDataService";
+import { sanitizeProviderResult } from "../utils/helpers";
 
 /**
  * Real-Time Data Provider - Market trends and real-time information
@@ -30,7 +31,6 @@ export const realTimeDataProvider: Provider = {
       const topMovers = realTimeService.getTopMoversData();
       const dexScreenerData = realTimeService.getDexScreenerData();
       const curatedAltcoins = realTimeService.getCuratedAltcoinsData();
-      const top100VsBtc = realTimeService.getTop100VsBtcData();
       const alerts = realTimeService.getAlerts();
 
       // Format trending context
@@ -54,34 +54,25 @@ export const realTimeDataProvider: Provider = {
         context += `Top loser: ${topLoser.symbol} (${topLoser.price_change_percentage_24h.toFixed(1)}%). `;
       }
 
-      if (
-        top100VsBtc?.outperformingCount &&
-        top100VsBtc?.underperformingCount
-      ) {
-        const outperformingPercent = (
-          (top100VsBtc.outperformingCount / top100VsBtc.totalCoins) *
-          100
-        ).toFixed(0);
-        context += `${outperformingPercent}% of top 100 coins outperforming Bitcoin. `;
+      if (dexScreenerData?.trendingTokens?.length > 0) {
+        const solanaTokens = dexScreenerData.trendingTokens.filter(
+          (t) => t.chainId === "solana",
+        );
+        context += `DEX trending: ${solanaTokens.length} Solana tokens. `;
       }
 
-      if (dexScreenerData?.trendingTokens?.length > 0) {
-        const solanaTrending = dexScreenerData.trendingTokens.filter(
-          (t) => t.chainId === "solana",
-        ).length;
-        context += `${solanaTrending} Solana tokens trending on DEX. `;
+      if (curatedAltcoins && Object.keys(curatedAltcoins).length > 0) {
+        context += `Curated altcoins: ${Object.keys(curatedAltcoins).length} coins tracked. `;
       }
 
       if (alerts?.length > 0) {
         const criticalAlerts = alerts.filter(
           (a) => a.severity === "critical" || a.severity === "high",
         );
-        if (criticalAlerts.length > 0) {
-          context += `${criticalAlerts.length} high-priority market alerts active. `;
-        }
+        context += `Active alerts: ${criticalAlerts.length} critical/high priority. `;
       }
 
-      return {
+      const result = {
         text: context,
         values: {
           // Trending data
@@ -102,12 +93,6 @@ export const realTimeDataProvider: Provider = {
           topLoser: topMovers?.topLosers?.[0]?.symbol || null,
           topLoserChange:
             topMovers?.topLosers?.[0]?.price_change_percentage_24h || 0,
-
-          // Bitcoin comparison
-          outperformingBtcCount: top100VsBtc?.outperformingCount || 0,
-          underperformingBtcCount: top100VsBtc?.underperformingCount || 0,
-          totalTop100: top100VsBtc?.totalCoins || 0,
-          avgBtcPerformance: top100VsBtc?.averagePerformance || 0,
 
           // DEX data
           dexTrendingCount: dexScreenerData?.trendingTokens?.length || 0,
@@ -135,14 +120,18 @@ export const realTimeDataProvider: Provider = {
           topMovers: topMovers,
           dexScreenerData: dexScreenerData,
           curatedAltcoins: curatedAltcoins,
-          top100VsBtc: top100VsBtc,
           alerts: alerts,
         },
       };
+
+      // Sanitize the result to prevent JSON.stringify errors
+      return sanitizeProviderResult(result);
+
     } catch (error) {
       return {
-        text: `Real-time data temporarily unavailable: ${error.message}`,
+        text: "❌ Error fetching real-time data",
         values: { realTimeDataError: true },
+        data: { error: error instanceof Error ? error.message : "Unknown error" },
       };
     }
   },
