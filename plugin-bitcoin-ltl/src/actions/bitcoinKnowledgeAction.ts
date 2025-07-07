@@ -1,6 +1,7 @@
 import { Action, IAgentRuntime, Memory, State, HandlerCallback } from "@elizaos/core";
 import { BitcoinIntelligenceService } from "../services/BitcoinIntelligenceService";
 import { KnowledgeBaseService } from "../services/KnowledgeBaseService";
+import { getRandomSatoshiEnding } from '../utils/btc-performance.utils';
 
 /**
  * Bitcoin Knowledge Integration Action
@@ -78,30 +79,7 @@ export const bitcoinKnowledgeAction: Action = {
 
       // Create integrated response
       const response = {
-        text: `🟠 **Bitcoin Knowledge Integration** 🟠
-
-**Real-Time Market Status:**
-💰 Price: $${bitcoinData.network.price.toLocaleString()}
-📊 Market Cap: $${(bitcoinData.network.marketCap / 1e9).toFixed(2)}B
-🎯 Dominance: ${bitcoinData.network.dominance.toFixed(2)}%
-
-**Bitcoin Thesis Context:**
-${thesisSummary}
-
-**Market Cycle Intelligence:**
-${cycleSummary}
-
-**Satoshi Philosophy:**
-${satoshiSummary}
-
-**Knowledge Base:**
-📚 ${bitcoinTopics.length} Bitcoin-related topics available
-🔍 ${topics.length} total knowledge files indexed
-
-**Relevant Market Context:**
-${relevantKnowledge ? relevantKnowledge : "Current market conditions align with Bitcoin's long-term thesis."}
-
-*"Truth is verified, not argued. Stack accordingly."* 🟠`,
+        text: `🟠 **Bitcoin Knowledge Integration** 🟠\n\n**Real-Time Market Status:**\n💰 Price: $${bitcoinData.network.price.toLocaleString()}\n📊 Market Cap: $${(bitcoinData.network.marketCap / 1e9).toFixed(2)}B\n🎯 Dominance: ${bitcoinData.network.dominance.toFixed(2)}%\n\n**Bitcoin Thesis Context:**\n${thesisSummary}\n\n**Market Cycle Intelligence:**\n${cycleSummary}\n\n**Satoshi Philosophy:**\n${satoshiSummary}\n\n**Knowledge Base:**\n📚 ${bitcoinTopics.length} Bitcoin-related topics available\n🔍 ${topics.length} total knowledge files indexed\n\n**Relevant Market Context:**\n${relevantKnowledge ? relevantKnowledge : "Current market conditions align with Bitcoin's long-term thesis."}\n\n*"${getRandomSatoshiEnding()}"*`,
         thought: `Integrated Bitcoin knowledge base (${bitcoinTopics.length} topics) with real-time market data. Provided context from thesis, cycles, and Satoshi philosophy.`,
         actions: ["BITCOIN_KNOWLEDGE_INTEGRATION"]
       };
@@ -129,7 +107,7 @@ ${relevantKnowledge ? relevantKnowledge : "Current market conditions align with 
       {
         name: "{{name2}}",
         content: {
-          text: "🟠 **Bitcoin Knowledge Integration** 🟠\n\n**Real-Time Market Status:**\n💰 Price: $107,940\n📊 Market Cap: $2,165.83B\n🎯 Dominance: 63.89%\n\n**Bitcoin Thesis Context:**\nBitcoin represents sound money in a digital age - 21 million fixed supply, predictable issuance, and decentralized verification...\n\n**Market Cycle Intelligence:**\nCurrent phase shows strong momentum with institutional adoption accelerating...\n\n**Satoshi Philosophy:**\nBitcoin is the exit strategy from fiat currency. Everything else is noise...\n\n*\"Truth is verified, not argued. Stack accordingly.\"* 🟠",
+          text: "🟠 **Bitcoin Knowledge Integration** 🟠\n\n**Real-Time Market Status:**\n💰 Price: $107,940\n📊 Market Cap: $2,165.83B\n🎯 Dominance: 63.89%\n\n**Bitcoin Thesis Context:**\nBitcoin represents sound money in a digital age - 21 million fixed supply, predictable issuance, and decentralized verification...\n\n**Market Cycle Intelligence:**\nCurrent phase shows strong momentum with institutional adoption accelerating...\n\n**Satoshi Philosophy:**\nBitcoin is the exit strategy from fiat currency. Everything else is noise...\n\n*\"The protocol is permanent.\"* 🟠",
           actions: ["BITCOIN_KNOWLEDGE_INTEGRATION"]
         }
       }
@@ -142,7 +120,7 @@ ${relevantKnowledge ? relevantKnowledge : "Current market conditions align with 
       {
         name: "{{name2}}",
         content: {
-          text: "🟠 **Bitcoin Knowledge Integration** 🟠\n\n**Satoshi Philosophy Applied:**\nSatoshi's vision of sound money becomes more relevant as fiat currencies face inflationary pressures...\n\n**Current Market Context:**\nWith Bitcoin at $107,940 and institutional adoption accelerating, we're seeing Satoshi's thesis validated...\n\n**Knowledge Integration:**\nThe Bitcoin thesis, market cycles, and Satoshi philosophy all point to continued adoption...\n\n*\"Bitcoin is the exit strategy from fiat currency. Everything else is noise.\"* 🟠",
+          text: "🟠 **Bitcoin Knowledge Integration** 🟠\n\n**Satoshi Philosophy Applied:**\nSatoshi's vision of sound money becomes more relevant as fiat currencies face inflationary pressures...\n\n**Current Market Context:**\nWith Bitcoin at $107,940 and institutional adoption accelerating, we're seeing Satoshi's thesis validated...\n\n**Knowledge Integration:**\nThe Bitcoin thesis, market cycles, and Satoshi philosophy all point to continued adoption...\n\n*\"Sovereignty is non-negotiable.\"* 🟠",
           actions: ["BITCOIN_KNOWLEDGE_INTEGRATION"]
         }
       }
