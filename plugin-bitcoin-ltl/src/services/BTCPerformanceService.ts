@@ -31,6 +31,12 @@ import { LoggerWithContext, generateCorrelationId } from "../utils/helpers";
 
 export class BTCPerformanceService extends BaseDataService {
   static serviceType = "btc-performance";
+  
+  // Debug: Log the serviceType to ensure it's accessible
+  static {
+    console.log(`[DEBUG] BTCPerformanceService.serviceType: ${BTCPerformanceService.serviceType}`);
+  }
+
   public declare config: BTCBenchmarkConfig;
   private benchmarkData: BTCPerformanceBenchmark | null = null;
   private lastUpdate: Date | null = null;
