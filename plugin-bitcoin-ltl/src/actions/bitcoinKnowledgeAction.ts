@@ -109,7 +109,7 @@ export const bitcoinKnowledgeAction: Action = {
       {
         name: "{{name2}}",
         content: {
-          text: "🟠 **Bitcoin Knowledge Integration** 🟠\n\n**Real-Time Market Status:**\n💰 Price: $107,940\n📊 Market Cap: $2,165.83B\n🎯 Dominance: 63.89%\n\n**Bitcoin Thesis Context:**\nBitcoin represents sound money in a digital age - 21 million fixed supply, predictable issuance, and decentralized verification...\n\n**Market Cycle Intelligence:**\nCurrent phase shows strong momentum with institutional adoption accelerating...\n\n**Satoshi Philosophy:**\nBitcoin is the exit strategy from fiat currency. Everything else is noise...\n\n*\"The protocol is permanent.\"* 🟠",
+          text: "🟠 **Bitcoin Knowledge Integration** 🟠\n\n**Real-Time Market Status:**\n💰 Price: [Real-time data]\n📊 Market Cap: [Real-time data]\n🎯 Dominance: [Real-time data]%\n\n**Bitcoin Thesis Context:**\n[Summary from knowledge base]\n\n**Market Cycle Intelligence:**\n[Summary from knowledge base]\n\n**Satoshi Philosophy:**\n[Summary from knowledge base]\n\n**Knowledge Base:**\n📚 [N] Bitcoin-related topics available\n🔍 [N] total knowledge files indexed\n\n**Relevant Market Context:**\n[Relevant knowledge snippet]\n\n*\"[Random Satoshi ending]\"*",
           actions: ["BITCOIN_KNOWLEDGE_INTEGRATION"]
         }
       }
@@ -122,7 +122,7 @@ export const bitcoinKnowledgeAction: Action = {
       {
         name: "{{name2}}",
         content: {
-          text: "🟠 **Bitcoin Knowledge Integration** 🟠\n\n**Satoshi Philosophy Applied:**\nSatoshi's vision of sound money becomes more relevant as fiat currencies face inflationary pressures...\n\n**Current Market Context:**\nWith Bitcoin at $107,940 and institutional adoption accelerating, we're seeing Satoshi's thesis validated...\n\n**Knowledge Integration:**\nThe Bitcoin thesis, market cycles, and Satoshi philosophy all point to continued adoption...\n\n*\"Sovereignty is non-negotiable.\"* 🟠",
+          text: "🟠 **Bitcoin Knowledge Integration** 🟠\n\n**Satoshi Philosophy Applied:**\nSatoshi's vision of sound money becomes more relevant as fiat currencies face inflationary pressures...\n\n**Current Market Context:**\nWith Bitcoin at [Real-time data] and institutional adoption accelerating, we're seeing Satoshi's thesis validated...\n\n**Knowledge Integration:**\nThe Bitcoin thesis, market cycles, and Satoshi philosophy all point to continued adoption...\n\n*\"[Random Satoshi ending]\"*",
           actions: ["BITCOIN_KNOWLEDGE_INTEGRATION"]
         }
       }

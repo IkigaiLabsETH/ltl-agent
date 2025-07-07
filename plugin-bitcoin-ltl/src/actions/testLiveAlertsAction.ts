@@ -36,7 +36,7 @@ export const testLiveAlertsAction: Action = {
       "🚨 Bitcoin price surged 8.5% in the last hour!",
       "critical",
       0.95,
-      { priceChange: 8.5, currentPrice: 108500, previousPrice: 100000 }
+      { priceChange: 8.5, currentPrice: 0, previousPrice: 0 } // No fallback prices - will use real data
     );
 
     alertService.addNetworkAlert(
@@ -49,7 +49,7 @@ export const testLiveAlertsAction: Action = {
     alertService.addOpportunityAlert(
       "💡 High-confidence accumulation opportunity: Bitcoin below $60K with strong fundamentals",
       0.85,
-      { price: 58000, dominance: 65, confidence: 0.85 }
+      { price: 0, dominance: 65, confidence: 0.85 } // No fallback price - will use real data
     );
 
     alertService.addRiskAlert(

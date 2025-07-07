@@ -108,18 +108,16 @@ The 100K BTC Holders thesis remains on track with institutional adoption acceler
   examples: [
     [
       {
-        name: "{{user}}",
-        content: {
-          text: "Give me a Bitcoin market analysis",
-        },
+        name: "{{name1}}",
+        content: { text: "Give me a Bitcoin market analysis." }
       },
       {
-        name: "BitcoinExpert",
+        name: "{{name2}}",
         content: {
-          text: "📊 **BITCOIN MARKET ANALYSIS**\n\nBitcoin is currently trading at $95,432 with a market cap of $1.9T. 24h change: +2.15%. 10.0% progress toward $1M target. Estimated 75,000 addresses with 10+ BTC (75.0% of 100K target).\n\nKey Catalysts: Sovereign adoption, institutional infrastructure, regulatory clarity, market dynamics.\n\nInvestment Implications: Thesis on track with institutional adoption accelerating.",
-          actions: ["BITCOIN_MARKET_ANALYSIS"],
-        },
-      },
+          text: "📊 **BITCOIN MARKET ANALYSIS**\n\nBitcoin is currently trading at [Real-time data] with a market cap of [Real-time data]. 24h change: [Real-time data]. Progress toward $1M target: [Calculated]. Estimated [N] addresses with 10+ BTC ([%] of 100K target).\n\nKey Catalysts: [Dynamic]",
+          actions: ["BITCOIN_MARKET_ANALYSIS"]
+        }
+      }
     ],
     [
       {

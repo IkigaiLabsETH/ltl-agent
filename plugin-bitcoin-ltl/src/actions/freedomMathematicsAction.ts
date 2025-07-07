@@ -132,33 +132,16 @@ These calculations assume thesis progression occurs. Bitcoin volatility means tw
   examples: [
     [
       {
-        name: "user",
-        content: {
-          text: "How much Bitcoin do I need for financial freedom?",
-        },
+        name: "{{name1}}",
+        content: { text: "How much Bitcoin do I need for $5M freedom?" }
       },
       {
-        name: "Satoshi",
+        name: "{{name2}}",
         content: {
-          text: "With Bitcoin's historical forty-four percent compound annual growth rate, six point one five plus BTC enables freedom by twenty twenty-five. At current thesis prices, single-digit Bitcoin holdings become generational wealth. Less than zero point three BTC per millionaire worldwide.",
-          actions: ["FREEDOM_MATHEMATICS"],
-        },
-      },
-    ],
-    [
-      {
-        name: "user",
-        content: {
-          text: "Calculate freedom mathematics for 5 million dollars",
-        },
-      },
-      {
-        name: "Satoshi",
-        content: {
-          text: "🔢 **BITCOIN FREEDOM MATHEMATICS**\n\n**Target Freedom:** $5,000,000\n\n**Current Analysis (Bitcoin at $100,000):**\n• **Exact BTC Needed:** 50.00 BTC\n• **Conservative Target:** 75.00 BTC (50% safety buffer)\n\n**Thesis Price Scenarios:**\n• **2-3 years → $250,000 BTC:** Need only 20.0 BTC\n• **3-5 years → $500,000 BTC:** Need only 10.0 BTC\n• **5-10 years → $1,000,000 BTC:** Need only 5.0 BTC",
-          actions: ["FREEDOM_MATHEMATICS"],
-        },
-      },
-    ],
+          text: "🔢 **BITCOIN FREEDOM MATHEMATICS**\n\n**Target Freedom:** $5,000,000\n\n**Current Analysis (Bitcoin at [Real-time data]):**\n• **Exact BTC Needed:** [Calculated]\n• **Conservative Target:** [Calculated] (50% safety buffer)\n\n**Thesis Price Scenarios:**\n• 2-3 years → $250,000 BTC: Need only [Calculated] BTC\n• 3-5 years → $500,000 BTC: Need only [Calculated] BTC\n• 5-10 years → $1,000,000 BTC: Need only [Calculated] BTC",
+          actions: ["FREEDOM_MATHEMATICS"]
+        }
+      }
+    ]
   ],
 }; 

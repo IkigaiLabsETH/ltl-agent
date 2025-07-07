@@ -32,7 +32,7 @@ export class InstitutionalAdoptionService extends BaseDataService {
       bitcoinHoldings: 189150,
       bitcoinValue: 8200000000, // $8.2B
       acquisitionDate: "2020-08-11",
-      averagePrice: 43350,
+      averagePrice: 0, // No fallback price - will be calculated from real data
       currentValue: 8200000000,
       percentageOfTreasury: 95,
       lastUpdated: new Date()
@@ -43,7 +43,7 @@ export class InstitutionalAdoptionService extends BaseDataService {
       bitcoinHoldings: 9720,
       bitcoinValue: 420000000, // $420M
       acquisitionDate: "2021-02-08",
-      averagePrice: 43200,
+      averagePrice: 0, // No fallback price - will be calculated from real data
       currentValue: 420000000,
       percentageOfTreasury: 15,
       lastUpdated: new Date()
@@ -54,7 +54,7 @@ export class InstitutionalAdoptionService extends BaseDataService {
       bitcoinHoldings: 8027,
       bitcoinValue: 347000000, // $347M
       acquisitionDate: "2020-10-08",
-      averagePrice: 43200,
+      averagePrice: 0, // No fallback price - will be calculated from real data
       currentValue: 347000000,
       percentageOfTreasury: 10,
       lastUpdated: new Date()
@@ -65,7 +65,7 @@ export class InstitutionalAdoptionService extends BaseDataService {
       bitcoinHoldings: 15741,
       bitcoinValue: 680000000, // $680M
       acquisitionDate: "2021-01-01",
-      averagePrice: 43200,
+      averagePrice: 0, // No fallback price - will be calculated from real data
       currentValue: 680000000,
       percentageOfTreasury: 80,
       lastUpdated: new Date()
@@ -76,7 +76,7 @@ export class InstitutionalAdoptionService extends BaseDataService {
       bitcoinHoldings: 8758,
       bitcoinValue: 378000000, // $378M
       acquisitionDate: "2021-01-01",
-      averagePrice: 43200,
+      averagePrice: 0, // No fallback price - will be calculated from real data
       currentValue: 378000000,
       percentageOfTreasury: 75,
       lastUpdated: new Date()

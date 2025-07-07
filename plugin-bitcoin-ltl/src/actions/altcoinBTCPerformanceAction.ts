@@ -131,33 +131,16 @@ Altcoins are venture capital plays on crypto infrastructure and applications. Bi
   examples: [
     [
       {
-        name: "user",
-        content: {
-          text: "Which altcoins are outperforming Bitcoin today?",
-        },
+        name: "{{name1}}",
+        content: { text: "Which altcoins are outperforming Bitcoin?" }
       },
       {
-        name: "Satoshi",
+        name: "{{name2}}",
         content: {
-          text: "Current analysis shows 15/49 altcoins outperforming Bitcoin over 24h. ETH leading at +2.3% vs BTC. Remember: altcoins are venture capital plays on crypto infrastructure. Bitcoin is monetary infrastructure. The exit is always Bitcoin.",
-          actions: ["ALTCOIN_BTC_PERFORMANCE"],
-        },
-      },
-    ],
-    [
-      {
-        name: "user",
-        content: {
-          text: "Check altcoin performance vs Bitcoin",
-        },
-      },
-      {
-        name: "Satoshi",
-        content: {
-          text: "🪙 **ALTCOIN BTC OUTPERFORMANCE ANALYSIS**\n\n**Bitcoin Price:** $100,000\n\n**Top Outperformers (24h vs BTC):**\n• ETH (Ethereum): +2.5% vs BTC\n• SOL (Solana): +1.8% vs BTC\n• ADA (Cardano): +1.2% vs BTC\n\n**Summary:**\n• 20/49 coins outperforming BTC (24h)\n• 15/49 coins outperforming BTC (7d)\n• 10/49 coins outperforming BTC (30d)\n• Average BTC performance: +0.5%\n\n**Analysis:** Bitcoin dominance continues",
-          actions: ["ALTCOIN_BTC_PERFORMANCE"],
-        },
-      },
-    ],
+          text: "🪙 **ALTCOIN BTC OUTPERFORMANCE ANALYSIS**\n\n**Bitcoin Price:** [Real-time data]\n\n**Top Outperformers (24h vs BTC):**\n• ETH (Ethereum): [change]% vs BTC\n• SOL (Solana): [change]% vs BTC\n• ADA (Cardano): [change]% vs BTC\n\n**Summary:**\n• [N]/[N] coins outperforming BTC (24h)\n• [N] coins outperforming BTC (7d)\n• [N] coins outperforming BTC (30d)",
+          actions: ["ALTCOIN_BTC_PERFORMANCE"]
+        }
+      }
+    ]
   ],
 }; 

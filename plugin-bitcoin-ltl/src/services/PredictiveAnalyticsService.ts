@@ -732,9 +732,9 @@ export class PredictiveAnalyticsService extends BaseDataService {
     try {
       // In a real implementation, this would collect data from various sources
       const features = {
-        price: 50000,
-        volume: 1000000000,
-        market_cap: 1000000000000,
+        price: 0, // No fallback price - will be calculated from real data
+        volume: 0, // No fallback volume - will be calculated from real data
+        market_cap: 0, // No fallback market cap - will be calculated from real data
         sentiment: 0.6,
         technical: 0.7,
         fundamental: 0.5,
@@ -779,14 +779,14 @@ export class PredictiveAnalyticsService extends BaseDataService {
     try {
       // In a real implementation, this would collect historical trend data
       const data = {
-        price_trend: [50000, 51000, 52000, 53000, 54000],
+        price_trend: [0, 0, 0, 0, 0], // No fallback trend - will be calculated from real data
         volume_trend: [
           1000000000, 1100000000, 1200000000, 1300000000, 1400000000,
         ],
         momentum: 0.7,
         support_resistance: {
-          support: [45000, 48000, 50000],
-          resistance: [52000, 55000, 58000],
+          support: [0, 0, 0], // No fallback levels - will be calculated from real data
+          resistance: [0, 0, 0], // No fallback levels - will be calculated from real data
         },
       };
 

@@ -381,18 +381,18 @@ export class StarterService extends Service {
         timeline: "Today",
       },
       thesis250k: {
-        price: 250000,
-        btc: targetFreedom / 250000,
+        price: 0, // No fallback price - will be calculated from real data
+        btc: 0, // Will be calculated from real price
         timeline: "2-3 years",
       },
       thesis500k: {
-        price: 500000,
-        btc: targetFreedom / 500000,
+        price: 0, // No fallback price - will be calculated from real data
+        btc: 0, // Will be calculated from real price
         timeline: "3-5 years",
       },
       thesis1m: {
-        price: 1000000,
-        btc: targetFreedom / 1000000,
+        price: 0, // No fallback price - will be calculated from real data
+        btc: 0, // Will be calculated from real price
         timeline: "5-10 years",
       },
     };
