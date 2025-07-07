@@ -259,8 +259,18 @@ export class BitcoinAPIClient {
         priceChange24h: data.market_data.price_change_percentage_24h,
         dominance: data.market_data.market_cap_percentage || 0
       };
-    } catch (error) {
-      this.contextLogger.error('Error fetching Bitcoin market data from CoinGecko:', error);
+    } catch (error: any) {
+      if (error instanceof Response) {
+        let body = '';
+        try { body = await error.text(); } catch {}
+        this.contextLogger.error('Error fetching Bitcoin market data from CoinGecko:', {
+          status: error.status,
+          statusText: error.statusText,
+          body,
+        });
+      } else {
+        this.contextLogger.error('Error fetching Bitcoin market data from CoinGecko:', error);
+      }
       throw error;
     }
   }

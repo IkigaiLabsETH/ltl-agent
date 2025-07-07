@@ -800,11 +800,23 @@ export class AltcoinDataService extends BaseDataService {
       );
       return result;
     } catch (error) {
-      logger.error("[AltcoinDataService] ❌ Error in fetchTop100VsBtcData:", {
-        error: error instanceof Error ? error.message : "Unknown error",
-        stack: error instanceof Error ? error.stack : undefined,
-        type: typeof error,
-      });
+      if (error instanceof Response) {
+        let bodyText = '';
+        try {
+          bodyText = await error.text();
+        } catch {}
+        logger.error("[AltcoinDataService] ❌ Error in fetchTop100VsBtcData (HTTP Response):", {
+          status: error.status,
+          statusText: error.statusText,
+          body: bodyText,
+        });
+      } else {
+        logger.error("[AltcoinDataService] ❌ Error in fetchTop100VsBtcData:", {
+          error: error instanceof Error ? error.message : "Unknown error",
+          stack: error instanceof Error ? error.stack : undefined,
+          type: typeof error,
+        });
+      }
       return null;
     }
   }

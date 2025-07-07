@@ -242,33 +242,9 @@ export interface AssetClassResponse {
 // ============================================================================
 
 export interface BTCBenchmarkConfig {
-  // Update intervals (in seconds)
-  intervals: {
-    realTime: number;      // 30 seconds for real-time data
-    marketData: number;    // 5 minutes for market data
-    historical: number;    // 1 hour for historical data
-  };
-  
-  // Tracked assets
-  trackedAssets: {
-    stocks: string[];      // Stock symbols
-    altcoins: string[];    // CoinGecko IDs
-    indices: string[];     // Index symbols
-    commodities: string[]; // Commodity symbols
-  };
-  
-  // Performance thresholds
-  thresholds: {
-    significantOutperformance: number; // % threshold for "significant"
-    highVolatility: number;           // Volatility threshold
-    strongCorrelation: number;        // Correlation threshold
-  };
-  
-  // Feature flags
-  features: {
-    enableHistoricalTracking: boolean;
-    enableMilestoneAnalysis: boolean;
-    enableTrendAnalysis: boolean;
-    enableNarrativeGeneration: boolean;
-  };
+  intervals: { realTime: number; marketData: number; historical: number };
+  trackedAssets: { stocks: string[]; altcoins: string[]; indices: string[]; commodities: string[] };
+  thresholds: { significantOutperformance: number; highVolatility: number; strongCorrelation: number };
+  features: { enableHistoricalTracking: boolean; enableMilestoneAnalysis: boolean; enableTrendAnalysis: boolean; enableNarrativeGeneration: boolean };
+  [key: string]: any;
 } 

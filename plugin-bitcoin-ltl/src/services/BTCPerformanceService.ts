@@ -14,6 +14,7 @@ import {
   AssetPerformanceResponse,
   AssetClassResponse,
   AssetCategory,
+  HistoricalPerformance,
 } from "../types/btcPerformanceTypes";
 import {
   calculateBTCPerformance,
@@ -25,16 +26,24 @@ import {
   getTopPerformers,
   getUnderperformers,
 } from "../utils/btcPerformanceUtils";
+import { BaseDataService } from "./BaseDataService";
+import { LoggerWithContext, generateCorrelationId } from "../utils/helpers";
 
-export class BTCPerformanceService extends Service {
-  private config: BTCBenchmarkConfig;
+export class BTCPerformanceService extends BaseDataService {
+  static serviceType = "btc-performance";
+  public declare config: BTCBenchmarkConfig;
   private benchmarkData: BTCPerformanceBenchmark | null = null;
   private lastUpdate: Date | null = null;
   private updateInterval: NodeJS.Timeout | null = null;
+  private contextLogger: LoggerWithContext;
+
+  public get capabilityDescription(): string {
+    return "Provides BTC-relative performance analysis across multiple asset classes";
+  }
 
   constructor(runtime: IAgentRuntime) {
     super(runtime, "btcPerformance");
-    
+    this.contextLogger = new LoggerWithContext(this.correlationId, "BTCPerformanceService");
     this.config = {
       intervals: {
         realTime: 30,
@@ -65,8 +74,6 @@ export class BTCPerformanceService extends Service {
         enableNarrativeGeneration: true,
       },
     };
-
-    this.contextLogger.info("BTC Performance Service initialized");
   }
 
   static async start(runtime: IAgentRuntime): Promise<BTCPerformanceService> {
@@ -320,7 +327,7 @@ export class BTCPerformanceService extends Service {
     change24h: number;
   }> {
     try {
-      const bitcoinService = this.runtime.getService("bitcoin-intelligence");
+      const bitcoinService = this.runtime.getService("bitcoin-intelligence") as any;
       if (!bitcoinService) {
         throw new Error("BitcoinIntelligenceService not available");
       }
@@ -350,7 +357,7 @@ export class BTCPerformanceService extends Service {
    */
   private async getStockData(btcData: any): Promise<AssetPerformance[]> {
     try {
-      const stockService = this.runtime.getService("stock-data");
+      const stockService = this.runtime.getService("stock-data") as any;
       if (!stockService) {
         this.contextLogger.warn("StockDataService not available, using mock data");
         return this.getMockStockData(btcData);
@@ -387,7 +394,7 @@ export class BTCPerformanceService extends Service {
    */
   private async getAltcoinData(btcData: any): Promise<AssetPerformance[]> {
     try {
-      const altcoinService = this.runtime.getService("altcoin-data");
+      const altcoinService = this.runtime.getService("altcoin-data") as any;
       if (!altcoinService) {
         this.contextLogger.warn("AltcoinDataService not available, using mock data");
         return this.getMockAltcoinData(btcData);
@@ -530,7 +537,7 @@ export class BTCPerformanceService extends Service {
   /**
    * Get historical data
    */
-  private async getHistoricalData() {
+  private async getHistoricalData(): Promise<HistoricalPerformance> {
     // Placeholder - will be implemented with historical data service
     return {
       inceptionToDate: {
@@ -546,11 +553,11 @@ export class BTCPerformanceService extends Service {
         bearMarkets: [],
       },
       trends: {
-        last24Hours: { direction: 'STABLE', magnitude: 0, confidence: 0, keyFactors: [] },
-        last7Days: { direction: 'STABLE', magnitude: 0, confidence: 0, keyFactors: [] },
-        last30Days: { direction: 'STABLE', magnitude: 0, confidence: 0, keyFactors: [] },
-        last90Days: { direction: 'STABLE', magnitude: 0, confidence: 0, keyFactors: [] },
-        lastYear: { direction: 'STABLE', magnitude: 0, confidence: 0, keyFactors: [] },
+        last24Hours: { direction: 'STABLE' as const, magnitude: 0, confidence: 0, keyFactors: [] },
+        last7Days: { direction: 'STABLE' as const, magnitude: 0, confidence: 0, keyFactors: [] },
+        last30Days: { direction: 'STABLE' as const, magnitude: 0, confidence: 0, keyFactors: [] },
+        last90Days: { direction: 'STABLE' as const, magnitude: 0, confidence: 0, keyFactors: [] },
+        lastYear: { direction: 'STABLE' as const, magnitude: 0, confidence: 0, keyFactors: [] },
       },
     };
   }
@@ -737,5 +744,10 @@ export class BTCPerformanceService extends Service {
         lastUpdated: new Date(),
       },
     ];
+  }
+
+  async updateData(): Promise<void> {
+    // Required by BaseDataService. Triggers a full benchmark data update.
+    await this.updateBenchmarkData();
   }
 } 
