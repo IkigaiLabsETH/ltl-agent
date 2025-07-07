@@ -73,7 +73,7 @@ describe("NFTDataService", () => {
         const configMap: Record<string, any> = {
           "services.nftData.updateInterval": 300000,
           "apis.opensea.apiKey": "test-opensea-key",
-          "apis.opensea.baseUrl": "https://api.opensea.io/api/v1",
+          "apis.opensea.baseUrl": "https://api.opensea.io/api/v2",
         };
         return configMap[path] || defaultValue;
       },
@@ -433,7 +433,7 @@ describe("NFTDataService", () => {
       );
       expect(mockConfigService.get).toHaveBeenCalledWith(
         "apis.opensea.baseUrl",
-        "https://api.opensea.io/api/v1",
+        "https://api.opensea.io/api/v2",
       );
     });
 

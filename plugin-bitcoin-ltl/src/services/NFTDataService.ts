@@ -452,19 +452,19 @@ export class NFTDataService extends BaseDataService {
     try {
       // Add null check for configService
       const baseUrl = this.configService 
-        ? this.configService.get("apis.opensea.baseUrl", "https://api.opensea.io/api/v1")
-        : "https://api.opensea.io/api/v1";
+        ? this.configService.get("apis.opensea.baseUrl", "https://api.opensea.io/api/v2")
+        : "https://api.opensea.io/api/v2";
 
-      // Fetch collection info
+      // Fetch collection info (v2 API endpoint)
       const collectionResponse = await axios.get(
-        `${baseUrl}/collection/${collectionSlug}`,
+        `${baseUrl}/collections/${collectionSlug}`,
         { headers },
       );
       const collectionInfo = collectionResponse.data.collection;
 
-      // Fetch collection stats
+      // Fetch collection stats (v2 API endpoint)
       const statsResponse = await axios.get(
-        `${baseUrl}/collection/${collectionSlug}/stats`,
+        `${baseUrl}/collections/${collectionSlug}/stats`,
         { headers },
       );
       const statsData = statsResponse.data.stats;

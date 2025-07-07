@@ -171,6 +171,12 @@ export class BitcoinIntelligenceService extends Service {
     this.contextLogger = new LoggerWithContext(generateCorrelationId(), "BitcoinIntelligence");
   }
 
+  static async start(runtime: IAgentRuntime): Promise<BitcoinIntelligenceService> {
+    const service = new BitcoinIntelligenceService(runtime);
+    await service.start();
+    return service;
+  }
+
   async start(): Promise<void> {
     // No-op for now; required by Service interface
     return;

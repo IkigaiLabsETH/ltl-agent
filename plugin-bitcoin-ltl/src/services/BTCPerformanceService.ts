@@ -69,6 +69,12 @@ export class BTCPerformanceService extends Service {
     this.contextLogger.info("BTC Performance Service initialized");
   }
 
+  static async start(runtime: IAgentRuntime): Promise<BTCPerformanceService> {
+    const service = new BTCPerformanceService(runtime);
+    await service.start();
+    return service;
+  }
+
   async start(): Promise<void> {
     this.contextLogger.info("Starting BTC Performance Service");
     
