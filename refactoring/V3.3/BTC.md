@@ -80,6 +80,277 @@ interface MarketIntelligence {
 }
 ```
 
+## 🚦 Comprehensive BTC Performance Tracking System
+
+### **Purpose & Overview**
+
+The BTC Performance Tracking System provides a holistic, real-time benchmarking of Bitcoin (BTC) against a wide spectrum of global assets—including major stocks (MAG7, MicroStrategy, Tesla), top 100 altcoins, key commodities (gold), and indices (S&P 500). This system empowers Satoshi to deliver Satoshi-level, Bitcoin-centric intelligence while maintaining full market awareness, enabling:
+- **Continuous performance comparison** of BTC vs. other assets
+- **Volatility and risk analysis** across asset classes
+- **Altcoin season and rotation detection**
+- **Stock and macro correlation tracking**
+- **Actionable, data-driven insights** for portfolio and risk management
+
+### **Technical Architecture**
+
+#### **Service Layer**
+- **BTCPerformanceService**: Aggregates real-time data for BTC, stocks, altcoins, commodities, and indices. Calculates BTC-relative performance, volatility, and rankings. Generates actionable market intelligence and signals.
+- **Utility Functions**: Calculate BTC-relative metrics, volatility, altcoin season index, and asset rankings.
+- **Actions**: 
+  - `getBTCBenchmarkAction`: Provides comprehensive BTC benchmark data and comparative analytics.
+  - `altcoinBTCPerformanceAction`: Delivers detailed altcoin performance analysis relative to BTC.
+- **Providers**: Supply BTC performance data and intelligence to the agent runtime and user-facing dashboards.
+
+#### **Data Flow**
+1. **Data Aggregation**: Real-time price and market data is fetched for BTC, selected stocks (MAG7, MSTR, TSLA), top 100 altcoins, gold, and S&P 500.
+2. **Metric Calculation**: The system computes:
+   - BTC-relative performance (YTD, 1Y, 3Y, etc.)
+   - Volatility and Sharpe ratios
+   - Altcoin season index and rotation signals
+   - Asset and asset class rankings
+3. **Intelligence Generation**: Market context, actionable insights, and alerts are generated based on comparative performance and market conditions.
+4. **Action & Provider Integration**: Intelligence is exposed via agent actions, dashboard widgets, and alerting systems for real-time user access.
+
+### **Real-Time Market Intelligence & Example Insights**
+
+- **BTC vs Stocks**: "BTC is +15.3% YTD vs Tesla, +12.4% vs MAG7, +8.7% vs MicroStrategy."
+- **BTC vs Altcoins**: "BTC outperformed 87 of top 100 altcoins this quarter. Altcoin season index: 45 (Bitcoin-dominated)."
+- **BTC vs Commodities/Indices**: "BTC +25.7% YTD vs Gold, +18.2% vs S&P 500."
+- **Rotation & Risk Signals**: "Altcoin season index approaching neutral—monitor for capital rotation."
+- **Portfolio & Risk Management**: "BTC remains the risk-adjusted leader; volatility lower than 70% of tracked altcoins."
+
+### **User-Facing Features & Use Cases**
+- **Agent Actions**: Users can query BTC's performance against any tracked asset or class, receive real-time comparative analytics, and actionable recommendations.
+- **Dashboard Widgets**: Live performance charts, rankings, and rotation signals.
+- **Alerting**: Automated alerts for major shifts (e.g., BTC losing/gaining dominance, altcoin season triggers, stock correlation spikes).
+- **Portfolio Insights**: Data-driven guidance for allocation, rebalancing, and risk assessment.
+
+### **Integration with Satoshi Intelligence Stack**
+This system is fully integrated with Satoshi's broader intelligence architecture, complementing:
+- **Network Intelligence**: BTC network health and on-chain analytics
+- **Macro Intelligence**: Global economic and policy context
+- **Philosophy Layer**: Bitcoin-native, data-driven guidance
+
+## 🔧 REFACTORING BRIEFING: BTC Performance System Consolidation
+
+### **Objective**
+Consolidate all BTC vs asset performance logic into the unified `BTCPerformanceService` and remove redundant calculations from legacy files. The goal is to establish a single source of truth for BTC-relative performance data.
+
+### **Target Files for Refactoring**
+
+#### **1. `src/providers/stockProvider.ts`**
+**Current Issues:**
+- Contains `analyzeBitcoinStockPerformance()` function with duplicate BTC-relative logic
+- MSTR-specific analysis logic that should use unified service
+- Manual stock categorization that duplicates `BTCPerformanceService` logic
+
+**Refactoring Prompt:**
+```
+You are refactoring stockProvider.ts to eliminate redundant BTC performance calculations.
+
+CONTEXT:
+- BTCPerformanceService is the canonical source for BTC vs asset performance
+- btcPerformanceProvider exposes unified benchmark data
+- All BTC-relative calculations should use the unified service output
+
+TASKS:
+1. Remove analyzeBitcoinStockPerformance() function
+2. Replace any BTC-relative logic with calls to btcPerformanceProvider
+3. Keep only raw stock data fetching and basic formatting
+4. Update any MSTR-specific logic to use unified service data
+5. Ensure all BTC performance context comes from btcPerformanceProvider
+
+CONSTRAINTS:
+- Do not calculate BTC-relative performance manually
+- Do not duplicate asset categorization logic
+- Maintain existing API for raw stock data
+- Preserve error handling and logging
+```
+
+#### **2. `src/providers/altcoinProvider.ts`**
+**Current Issues:**
+- Contains `analyzeBitcoinRelativePerformance()` function
+- Manual altcoin season index calculations
+- Duplicate BTC performance ranking logic
+
+**Refactoring Prompt:**
+```
+You are refactoring altcoinProvider.ts to use the unified BTC performance system.
+
+CONTEXT:
+- BTCPerformanceService handles all altcoin vs BTC calculations
+- btcPerformanceProvider provides altcoin season index and rankings
+- Altcoin performance should be sourced from unified service
+
+TASKS:
+1. Remove analyzeBitcoinRelativePerformance() function
+2. Replace manual altcoin season calculations with btcPerformanceProvider data
+3. Remove duplicate BTC performance ranking logic
+4. Keep only raw altcoin data fetching and basic formatting
+5. Update buildComprehensiveResponse() to use unified BTC performance data
+
+CONSTRAINTS:
+- Do not calculate altcoin season index manually
+- Do not duplicate BTC-relative performance calculations
+- Maintain existing API for raw altcoin data
+- Use btcPerformanceProvider for all BTC context
+```
+
+#### **3. `src/providers/marketContextProvider.ts`**
+**Current Issues:**
+- Contains `formatStockCorrelations()` with manual BTC correlation logic
+- Tesla, MSTR, MAG7 vs BTC analysis that duplicates unified service
+- Manual sentiment analysis that should use unified intelligence
+
+**Refactoring Prompt:**
+```
+You are refactoring marketContextProvider.ts to use unified BTC performance intelligence.
+
+CONTEXT:
+- BTCPerformanceService provides comprehensive market intelligence
+- btcPerformanceProvider includes stock correlations and sentiment
+- All BTC vs asset analysis should use unified service output
+
+TASKS:
+1. Remove formatStockCorrelations() function
+2. Replace manual Tesla/MSTR/MAG7 analysis with btcPerformanceProvider data
+3. Update market context formatting to use unified intelligence
+4. Remove duplicate sentiment analysis logic
+5. Ensure all BTC correlation insights come from unified service
+
+CONSTRAINTS:
+- Do not calculate stock vs BTC correlations manually
+- Do not duplicate market sentiment analysis
+- Use btcPerformanceProvider for all BTC market context
+- Maintain existing provider interface structure
+```
+
+#### **4. `src/actions/btcRelativePerformanceAction.ts`**
+**Current Issues:**
+- Contains `formatBtcRelativeResponse()` with manual BTC-relative formatting
+- Duplicate altcoin season detection logic
+- Manual performance ranking that should use unified service
+
+**Refactoring Prompt:**
+```
+You are refactoring btcRelativePerformanceAction.ts to use the unified BTC performance system.
+
+CONTEXT:
+- BTCPerformanceService provides comprehensive BTC-relative data
+- btcPerformanceProvider includes formatted performance metrics
+- All BTC-relative responses should use unified service output
+
+TASKS:
+1. Remove formatBtcRelativeResponse() function
+2. Replace manual altcoin season detection with btcPerformanceProvider data
+3. Update action handler to use unified BTC performance service
+4. Remove duplicate performance ranking logic
+5. Ensure all BTC-relative insights come from unified service
+
+CONSTRAINTS:
+- Do not calculate BTC-relative performance manually
+- Do not duplicate altcoin season detection
+- Use BTCPerformanceService for all performance data
+- Maintain existing action interface and response format
+```
+
+### **Refactoring Principles**
+
+#### **Single Source of Truth**
+```
+PRINCIPLE: All BTC vs asset performance calculations must flow through BTCPerformanceService
+
+IMPLEMENTATION:
+- BTCPerformanceService calculates all metrics
+- btcPerformanceProvider exposes formatted data
+- Other services/providers/actions consume, don't calculate
+- No duplicate calculation logic anywhere in the codebase
+```
+
+#### **Data Flow Architecture**
+```
+UNIFIED DATA FLOW:
+Raw Data Sources → BTCPerformanceService → btcPerformanceProvider → Actions/Providers
+
+LEGACY REFACTORING:
+Old Files → Remove Calculation Logic → Use btcPerformanceProvider → Maintain Interfaces
+```
+
+#### **Interface Preservation**
+```
+CONSTRAINT: Maintain existing public APIs during refactoring
+
+STRATEGY:
+- Keep function signatures unchanged
+- Replace internal logic with unified service calls
+- Preserve error handling and logging patterns
+- Update only the data source, not the interface
+```
+
+### **Testing Strategy**
+
+#### **Pre-Refactoring Tests**
+```
+TEST SCOPE:
+1. Capture current behavior of target files
+2. Document expected outputs for key scenarios
+3. Create baseline performance metrics
+4. Identify critical user-facing functionality
+```
+
+#### **Post-Refactoring Validation**
+```
+VALIDATION CRITERIA:
+1. Same outputs from refactored functions
+2. Improved performance (faster response times)
+3. Reduced code duplication
+4. Unified data consistency
+5. No regression in functionality
+```
+
+### **Migration Checklist**
+
+#### **Phase 1: Analysis**
+- [ ] Audit each target file for BTC-relative logic
+- [ ] Document current calculation methods
+- [ ] Identify data dependencies
+- [ ] Map function relationships
+
+#### **Phase 2: Refactoring**
+- [ ] Remove duplicate calculation functions
+- [ ] Replace with btcPerformanceProvider calls
+- [ ] Update data flow to use unified service
+- [ ] Preserve existing interfaces
+
+#### **Phase 3: Testing**
+- [ ] Run existing test suites
+- [ ] Validate output consistency
+- [ ] Performance benchmarking
+- [ ] Integration testing
+
+#### **Phase 4: Cleanup**
+- [ ] Remove unused imports
+- [ ] Clean up dead code
+- [ ] Update documentation
+- [ ] Verify no regressions
+
+### **Success Metrics**
+
+#### **Code Quality**
+- **Reduction in duplicate logic**: Target 90% reduction in BTC calculation duplication
+- **Improved maintainability**: Single source of truth for all BTC performance logic
+- **Enhanced consistency**: Unified data across all providers and actions
+
+#### **Performance**
+- **Faster response times**: Eliminate redundant API calls and calculations
+- **Reduced memory usage**: Single data source instead of multiple calculations
+- **Better caching**: Centralized caching in BTCPerformanceService
+
+#### **Reliability**
+- **Data consistency**: Same BTC performance data across all interfaces
+- **Error handling**: Centralized error management in unified service
+- **Monitoring**: Single point for performance and health monitoring
+
 ## 📊 Real-Time Bitcoin Intelligence Dashboard
 
 ### **Bitcoin Network Health (Live Data)**
@@ -481,6 +752,8 @@ class BitcoinOpportunityAlerts {
 - **MarketIntelligenceService** - Altcoin vs Bitcoin performance analysis
 - **ETFDataService** - Institutional adoption tracking
 - **StockDataService** - Traditional finance correlations
+- **BTCPerformanceService** - Comprehensive BTC performance tracking against stocks, altcoins, commodities, and indices
+- **getBTCBenchmarkAction** and **altcoinBTCPerformanceAction** - Real-time comparative analytics and actionable insights
 - **Real API integration** with CoinGecko, Blockchain.info, Mempool.space
 - **Altcoin season index** calculation and monitoring
 - **Stock market correlations** (Tesla, MicroStrategy, MAG7)
@@ -530,6 +803,7 @@ class BitcoinOpportunityAlerts {
 • KnowledgeBaseService - Knowledge management
 • LiveAlertService - Real-time alerting
 • ConfigurationService - Environment management
+• BTCPerformanceService - BTC vs asset class performance tracking
 
 🔗 Data Services:
 • BitcoinNetworkDataService - Network metrics
@@ -547,6 +821,7 @@ class BitcoinOpportunityAlerts {
 • bitcoinKnowledgeProvider - Knowledge base context
 • alertProvider - Live alerts context
 • feedbackProvider - User feedback analytics
+• btcPerformanceProvider - BTC performance and comparative analytics
 ```
 
 #### **Action Layer**
@@ -559,6 +834,8 @@ class BitcoinOpportunityAlerts {
 • viewAlertsAction - Alert management
 • feedbackAction - User feedback collection
 • feedbackStatsAction - Analytics viewing
+• getBTCBenchmarkAction - BTC benchmark and comparative analytics
+• altcoinBTCPerformanceAction - Altcoin BTC performance analysis
 ```
 
 ### **📈 PERFORMANCE METRICS**

@@ -12,6 +12,17 @@ export const marketContextProvider: Provider = {
 
   get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
     try {
+      // Get unified BTC performance data if available
+      let btcPerformanceData = null;
+      try {
+        const btcPerformanceService = runtime.getService("btc-performance") as any;
+        if (btcPerformanceService && typeof btcPerformanceService.getBenchmarkData === 'function') {
+          btcPerformanceData = await btcPerformanceService.getBenchmarkData();
+        }
+      } catch (error) {
+        console.debug("Unified BTC performance data not available, using fallback");
+      }
+
       // Get the Market Intelligence Service
       const marketService = runtime.getService("market-intelligence") as unknown as MarketIntelligenceService;
       
@@ -37,8 +48,8 @@ export const marketContextProvider: Provider = {
       // Format altcoin season analysis
       const altcoinSeasonAnalysis = formatAltcoinSeasonAnalysis(marketData);
       
-      // Format stock correlations
-      const stockCorrelations = formatStockCorrelations(marketData);
+      // Format stock correlations using unified BTC performance data
+      const stockCorrelations = formatStockCorrelations(marketData, btcPerformanceData);
       
       // Format macro environment
       const macroEnvironment = formatMacroEnvironment(marketData);
@@ -99,7 +110,9 @@ ${etfIntelligence}
           etfAUM: marketData.spotBitcoinETFs.totalAUM,
           etfDailyFlows: marketData.spotBitcoinETFs.dailyFlows,
           fearGreedIndex: marketData.fearGreedIndex,
-          fearGreedValue: marketData.fearGreedValue
+          fearGreedValue: marketData.fearGreedValue,
+          // Include unified BTC performance data
+          btcPerformanceData: btcPerformanceData,
         },
         data: {
           marketData: marketData,
@@ -107,6 +120,7 @@ ${etfIntelligence}
           stockCorrelations: stockCorrelations,
           macroEnvironment: macroEnvironment,
           etfIntelligence: etfIntelligence,
+          btcPerformanceData: btcPerformanceData,
           lastUpdated: new Date()
         }
       };
@@ -147,9 +161,9 @@ function formatAltcoinSeasonAnalysis(marketData: any): string {
 }
 
 /**
- * Format stock correlations with insights
+ * Format stock correlations with insights using unified BTC performance data
  */
-function formatStockCorrelations(marketData: any): string {
+function formatStockCorrelations(marketData: any, btcPerformanceData: any): string {
   const insights = [];
   
   if (marketData.teslaVsBitcoin > 10) {

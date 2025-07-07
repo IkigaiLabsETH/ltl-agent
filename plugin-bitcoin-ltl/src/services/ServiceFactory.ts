@@ -1,5 +1,6 @@
 import { IAgentRuntime, logger, Service } from "@elizaos/core";
 import { StockDataService } from "./StockDataService";
+import { BTCPerformanceService } from "./BTCPerformanceService";
 import { AltcoinDataService } from "./AltcoinDataService";
 import { ETFDataService } from "./ETFDataService";
 import { NFTDataService } from "./NFTDataService";
@@ -93,6 +94,7 @@ export class ServiceFactory {
         InstitutionalAdoptionService,
         KnowledgeBaseService,
         AdvancedMarketIntelligenceService,
+        BTCPerformanceService,
 
         // Market data services
         StockDataService,

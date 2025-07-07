@@ -42,6 +42,17 @@ export const stockProvider: Provider = {
         };
       }
 
+      // Get unified BTC performance data if available
+      let btcPerformanceData = null;
+      try {
+        const btcPerformanceService = runtime.getService("btc-performance") as any;
+        if (btcPerformanceService && typeof btcPerformanceService.getBenchmarkData === 'function') {
+          btcPerformanceData = await btcPerformanceService.getBenchmarkData();
+        }
+      } catch (error) {
+        elizaLogger.debug("[StockProvider] BTC performance data not available, using fallback");
+      }
+
       // Get comprehensive stock data
       const stockData = stockService.getStockData();
       const bitcoinStocks = stockService.getBitcoinRelatedStocks();
@@ -65,10 +76,11 @@ export const stockProvider: Provider = {
         mag7Performance,
       );
 
-      // Find standout Bitcoin-related stocks
+      // Find standout Bitcoin-related stocks using unified BTC performance data
       const bitcoinStockPerformers = analyzeBitcoinStockPerformance(
         bitcoinStocks,
         stockData,
+        btcPerformanceData,
       );
 
       // Analyze sector performance
@@ -107,6 +119,8 @@ export const stockProvider: Provider = {
           sectorRotation: sectorAnalysis.rotationSignal,
           bitcoinStockOutperformers:
             bitcoinStockPerformers.outperformers.length,
+          // Include unified BTC performance data
+          btcPerformanceData: btcPerformanceData,
           // Include data for actions to access
           stocks: stockData.stocks,
           mag7: mag7Performance,
@@ -177,12 +191,66 @@ function analyzeStockMarketConditions(stockData: any, mag7: any[]): any {
 }
 
 /**
- * Helper function to analyze Bitcoin-related stock performance
+ * Helper function to analyze Bitcoin-related stock performance using unified BTC performance data
  */
 function analyzeBitcoinStockPerformance(
   bitcoinStocks: any[],
   allStocks: any,
+  btcPerformanceData?: any,
 ): any {
+  // Use unified BTC performance data if available
+  if (btcPerformanceData?.keyAssets?.mstr) {
+    const mstrData = btcPerformanceData.keyAssets.mstr;
+    const mag7Data = btcPerformanceData.keyAssets.mag7;
+    
+    const analysis = {
+      outperformers: [],
+      underperformers: [],
+      averagePerformance: 0,
+      strongSignals: [],
+    };
+
+    // Use unified performance data for signals
+    if (mstrData.performance > 5) {
+      analysis.strongSignals.push("MSTR leverage signal - outperforming Bitcoin");
+    } else if (mstrData.performance < -5) {
+      analysis.strongSignals.push("MSTR underperforming Bitcoin - leverage working against");
+    }
+
+    if (mag7Data.aggregatePerformance.performanceYTD > 3) {
+      analysis.strongSignals.push("Strong institutional Bitcoin exposure");
+    }
+
+    // Fallback to basic stock analysis if unified data not available
+    if (bitcoinStocks?.length > 0) {
+      const totalChange = bitcoinStocks.reduce(
+        (sum, stock) => sum + stock.changePercent,
+        0,
+      );
+      analysis.averagePerformance =
+        Math.round((totalChange / bitcoinStocks.length) * 100) / 100;
+
+      analysis.outperformers = bitcoinStocks
+        .filter(
+          (stock) =>
+            stock.changePercent > 5 ||
+            stock.changePercent > (allStocks?.performance?.sp500Performance || 0),
+        )
+        .sort((a, b) => b.changePercent - a.changePercent);
+
+      analysis.underperformers = bitcoinStocks
+        .filter((stock) => stock.changePercent < -3)
+        .sort((a, b) => a.changePercent - b.changePercent);
+
+      if (analysis.outperformers.length > analysis.underperformers.length) {
+        analysis.strongSignals.push("Bitcoin equity momentum");
+      }
+    }
+
+    return analysis;
+  }
+
+  // Fallback to original logic if no unified data available
   const analysis = {
     outperformers: [],
     underperformers: [],
@@ -191,7 +259,6 @@ function analyzeBitcoinStockPerformance(
   };
 
   if (bitcoinStocks?.length > 0) {
-    // Calculate average performance
     const totalChange = bitcoinStocks.reduce(
       (sum, stock) => sum + stock.changePercent,
       0,
@@ -199,7 +266,6 @@ function analyzeBitcoinStockPerformance(
     analysis.averagePerformance =
       Math.round((totalChange / bitcoinStocks.length) * 100) / 100;
 
-    // Find outperformers (>5% or beating market)
     analysis.outperformers = bitcoinStocks
       .filter(
         (stock) =>
@@ -208,12 +274,10 @@ function analyzeBitcoinStockPerformance(
       )
       .sort((a, b) => b.changePercent - a.changePercent);
 
-    // Find underperformers
     analysis.underperformers = bitcoinStocks
       .filter((stock) => stock.changePercent < -3)
       .sort((a, b) => a.changePercent - b.changePercent);
 
-    // Identify strong signals
     if (analysis.outperformers.length > analysis.underperformers.length) {
       analysis.strongSignals.push("Bitcoin equity momentum");
     }
@@ -222,7 +286,6 @@ function analyzeBitcoinStockPerformance(
       analysis.strongSignals.push("Strong institutional Bitcoin exposure");
     }
 
-    // Check MSTR specifically (often leads the sector)
     const mstr = bitcoinStocks.find((stock) => stock.symbol === "MSTR");
     if (mstr && mstr.changePercent > 8) {
       analysis.strongSignals.push("MSTR leverage signal");
