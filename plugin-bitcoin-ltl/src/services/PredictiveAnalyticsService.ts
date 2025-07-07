@@ -846,10 +846,8 @@ export class PredictiveAnalyticsService extends BaseDataService {
     strength: number;
   }> {
     return [
-      { price: 45000, type: "support", strength: 0.8 },
-      { price: 48000, type: "support", strength: 0.6 },
-      { price: 52000, type: "resistance", strength: 0.7 },
-      { price: 55000, type: "resistance", strength: 0.9 },
+      { price: 0, type: "support", strength: 0 }, // No fallback levels - will be calculated from real data
+      { price: 0, type: "resistance", strength: 0 }, // No fallback levels - will be calculated from real data
     ];
   }
 
@@ -897,7 +895,7 @@ export class PredictiveAnalyticsService extends BaseDataService {
   private async getHistoricalPriceData(): Promise<any[]> {
     return Array.from({ length: 100 }, (_, i) => ({
       timestamp: Date.now() - i * 24 * 60 * 60 * 1000,
-      price: 50000 + Math.random() * 10000,
+      price: 0, // No fallback price - will be handled by error state
     }));
   }
 

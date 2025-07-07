@@ -1058,14 +1058,14 @@ export class AdvancedAlertingService extends BaseDataService {
     try {
       // In a real implementation, this would fetch from various data sources
       return {
-        price: 50000 + Math.random() * 10000,
-        price24h: 50000,
-        volume: 1000000000 + Math.random() * 500000000,
-        volume24h: 1000000000,
-        rsi: 30 + Math.random() * 40,
-        sentiment: Math.random(),
-        marketCap: 1000000000000,
-        dominance: 50 + Math.random() * 10,
+        price: 0, // No fallback price - will be handled by error state
+        price24h: 0, // No fallback price24h
+        volume: 0, // No fallback volume
+        volume24h: 0, // No fallback volume24h
+        rsi: 0, // No fallback RSI
+        sentiment: 0, // No fallback sentiment
+        marketCap: 0, // No fallback market cap
+        dominance: 0, // No fallback dominance
         timestamp: Date.now(),
       };
     } catch (error) {

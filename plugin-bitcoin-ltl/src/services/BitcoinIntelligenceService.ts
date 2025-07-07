@@ -644,10 +644,10 @@ export class BitcoinIntelligenceService extends Service {
 
   private getMockNetworkData(): BitcoinIntelligenceData['network'] {
     return {
-      price: 107940,
-      marketCap: 2165830000000,
-      dominance: 63.89,
-      change24h: 2.3,
+      price: 0, // No fallback price - will be handled by error state
+      marketCap: 0, // No fallback market cap
+      dominance: 0, // No fallback dominance
+      change24h: 0, // No fallback change
       hashRate: 885430000000000000000,
       mempoolSize: 2.1,
       feeRate: 15,
@@ -660,18 +660,18 @@ export class BitcoinIntelligenceService extends Service {
   private getMockTreasuryCompanyData(): BitcoinIntelligenceData['treasuryCompanies'] {
     return {
       mstr: {
-        price: 1450.67,
-        vsBitcoin: 12.8,
+        price: 0, // No fallback price - will be handled by error state
+        vsBitcoin: 0, // No fallback vsBitcoin
         btcHoldings: 568840,
-        btcHoldingsValue: 61400000000,
+        btcHoldingsValue: 0, // Will be calculated from real price
         leverageStatus: 'WORKING',
         narrative: "MicroStrategy continues to lead corporate Bitcoin adoption",
       },
       mtplf: {
-        price: 0.85,
-        vsBitcoin: 8.2,
+        price: 0, // No fallback price - will be handled by error state
+        vsBitcoin: 0, // No fallback vsBitcoin
         btcHoldings: 1250,
-        btcHoldingsValue: 135000000,
+        btcHoldingsValue: 0, // Will be calculated from real price
         narrative: "Metaplanet represents Japanese Bitcoin adoption strategy",
       },
     };
