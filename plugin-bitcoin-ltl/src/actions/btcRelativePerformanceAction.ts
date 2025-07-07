@@ -104,34 +104,49 @@ export const btcRelativePerformanceAction: Action = createActionTemplate({
       "User is requesting Bitcoin relative performance analysis. I need to analyze which altcoins are outperforming Bitcoin on a 7-day basis, assess if this indicates altseason, and provide context about Bitcoin's role as the monetary base layer.";
 
     try {
-      const realTimeDataService = runtime.getService(
-        "real-time-data",
-      ) as RealTimeDataService;
-
-      if (!realTimeDataService) {
-        logger.warn(
-          "RealTimeDataService not available for BTC relative performance",
-        );
-
-        const fallbackResponse = ResponseCreators.createErrorResponse(
-          "BTC_RELATIVE_PERFORMANCE",
-          "Real-time data service unavailable",
-          "Market data service unavailable. Bitcoin relative performance analysis requires live data to assess altcoin vs Bitcoin momentum properly.",
-        );
-
-        if (callback) {
-          await callback(fallbackResponse);
+      // Get unified BTC performance data if available
+      let btcPerformanceData = null;
+      try {
+        const btcPerformanceService = runtime.getService("btc-performance") as any;
+        if (btcPerformanceService && typeof btcPerformanceService.getBenchmarkData === 'function') {
+          btcPerformanceData = await btcPerformanceService.getBenchmarkData();
         }
-        return false;
+      } catch (error) {
+        logger.debug("Unified BTC performance data not available, using fallback");
       }
 
-      // Get the Top 200 vs BTC data
-      let btcData = realTimeDataService.getTop100VsBtcData();
-      if (!btcData) {
-        btcData = await realTimeDataService.forceTop100VsBtcUpdate();
+      // Fallback to RealTimeDataService if unified data not available
+      let btcData = null;
+      if (!btcPerformanceData) {
+        const realTimeDataService = runtime.getService(
+          "real-time-data",
+        ) as RealTimeDataService;
+
+        if (!realTimeDataService) {
+          logger.warn(
+            "Neither BTC performance service nor RealTimeDataService available",
+          );
+
+          const fallbackResponse = ResponseCreators.createErrorResponse(
+            "BTC_RELATIVE_PERFORMANCE",
+            "BTC performance services unavailable",
+            "Market data services unavailable. Bitcoin relative performance analysis requires live data to assess altcoin vs Bitcoin momentum properly.",
+          );
+
+          if (callback) {
+            await callback(fallbackResponse);
+          }
+          return false;
+        }
+
+        // Get the Top 200 vs BTC data
+        btcData = realTimeDataService.getTop100VsBtcData();
+        if (!btcData) {
+          btcData = await realTimeDataService.forceTop100VsBtcUpdate();
+        }
       }
 
-      if (!btcData) {
+      if (!btcPerformanceData && !btcData) {
         logger.warn("No BTC relative performance data available");
 
         const noDataResponse = ResponseCreators.createErrorResponse(
@@ -146,28 +161,63 @@ export const btcRelativePerformanceAction: Action = createActionTemplate({
         return false;
       }
 
-      // Analyze market dynamics
-      const topPerformers = btcData.outperforming.slice(0, 8);
-      const totalOutperforming = btcData.outperformingCount;
-      const totalCoins = btcData.totalCoins;
-      const outperformingPercent = (totalOutperforming / totalCoins) * 100;
-      const isAltseason = outperformingPercent > 50;
+      // Generate response using unified data or fallback
+      let responseText: string;
+      let responseData: any;
 
-      // Generate response
-      const responseText = formatBtcRelativeResponse(
-        topPerformers,
-        totalOutperforming,
-        totalCoins,
-        outperformingPercent,
-        isAltseason,
-        btcData.averagePerformance,
-      );
+      if (btcPerformanceData) {
+        // Use unified BTC performance data
+        const altcoinSeasonIndex = btcPerformanceData.marketIntelligence.altcoinSeasonIndex;
+        const isAltseason = altcoinSeasonIndex > 75;
+        const topPerformers = btcPerformanceData.assetClasses.altcoins.topPerformers.slice(0, 8);
+        const totalOutperforming = btcPerformanceData.assetClasses.altcoins.topPerformers.length;
+        const totalCoins = btcPerformanceData.assetClasses.altcoins.topPerformers.length + btcPerformanceData.assetClasses.altcoins.underperformers.length;
+        const outperformingPercent = (totalOutperforming / totalCoins) * 100;
+        const averagePerformance = btcPerformanceData.assetClasses.altcoins.aggregatePerformance.performance7d || 0;
 
-      const response = ResponseCreators.createStandardResponse(
-        thoughtProcess,
-        responseText,
-        "BTC_RELATIVE_PERFORMANCE",
-        {
+        responseText = formatBtcRelativeResponse(
+          topPerformers,
+          totalOutperforming,
+          totalCoins,
+          outperformingPercent,
+          isAltseason,
+          averagePerformance,
+          btcPerformanceData,
+        );
+
+        responseData = {
+          outperformingCount: totalOutperforming,
+          totalCoins: totalCoins,
+          outperformingPercent,
+          isAltseason,
+          averageRelativePerformance: averagePerformance,
+          topPerformers: topPerformers.map((coin: any) => ({
+            name: coin.name,
+            symbol: coin.symbol,
+            relativePerformance: coin.vsBTC?.performance7d || 0,
+            price: coin.price,
+            rank: coin.market_cap_rank,
+          })),
+          lastUpdated: btcPerformanceData.lastUpdated,
+        };
+      } else {
+        // Use fallback data
+        const topPerformers = btcData.outperforming.slice(0, 8);
+        const totalOutperforming = btcData.outperformingCount;
+        const totalCoins = btcData.totalCoins;
+        const outperformingPercent = (totalOutperforming / totalCoins) * 100;
+        const isAltseason = outperformingPercent > 50;
+
+        responseText = formatBtcRelativeResponse(
+          topPerformers,
+          totalOutperforming,
+          totalCoins,
+          outperformingPercent,
+          isAltseason,
+          btcData.averagePerformance,
+        );
+
+        responseData = {
           outperformingCount: totalOutperforming,
           totalCoins: totalCoins,
           outperformingPercent,
@@ -181,7 +231,14 @@ export const btcRelativePerformanceAction: Action = createActionTemplate({
             rank: coin.market_cap_rank,
           })),
           lastUpdated: btcData.lastUpdated,
-        },
+        };
+      }
+
+      const response = ResponseCreators.createStandardResponse(
+        thoughtProcess,
+        responseText,
+        "BTC_RELATIVE_PERFORMANCE",
+        responseData,
       );
 
       if (callback) {
@@ -212,7 +269,7 @@ export const btcRelativePerformanceAction: Action = createActionTemplate({
 });
 
 /**
- * Format BTC relative performance response
+ * Format BTC relative performance response using unified BTC performance data
  */
 function formatBtcRelativeResponse(
   topPerformers: any[],
@@ -221,10 +278,53 @@ function formatBtcRelativeResponse(
   outperformingPercent: number,
   isAltseason: boolean,
   averagePerformance: number,
+  btcPerformanceData?: any,
 ): string {
   let response = "";
 
-  // Market sentiment
+  // Use unified BTC performance data if available
+  if (btcPerformanceData?.marketIntelligence) {
+    const altcoinSeasonIndex = btcPerformanceData.marketIntelligence.altcoinSeasonIndex;
+    const marketSentiment = btcPerformanceData.marketIntelligence.overallMarketSentiment;
+    const topAltcoins = btcPerformanceData.assetClasses.altcoins.topPerformers.slice(0, 3);
+    
+    // Market sentiment from unified data
+    if (altcoinSeasonIndex > 75) {
+      response += `🚀 ALTSEASON DETECTED! Altcoin Season Index: ${altcoinSeasonIndex} (${marketSentiment}). `;
+    } else {
+      response += `₿ Bitcoin dominance - Altcoin Season Index: ${altcoinSeasonIndex} (${marketSentiment}). `;
+    }
+
+    // Top performers from unified data
+    if (topAltcoins.length > 0) {
+      const topPerformersText = topAltcoins
+        .map((coin: any) => {
+          const performance = coin.vsBTC?.performance7d || 0;
+          const rank = coin.market_cap_rank || "?";
+          return `${coin.symbol.toUpperCase()} +${performance.toFixed(2)}% vs BTC (#${rank})`;
+        })
+        .join(", ");
+
+      response += `Top outperformers (7d): ${topPerformersText}. `;
+    }
+
+    // Summary stats from unified data
+    const avgPerformance = btcPerformanceData.assetClasses.altcoins.aggregatePerformance.performance7d || 0;
+    response += `Average relative performance: ${avgPerformance >= 0 ? "+" : ""}${avgPerformance.toFixed(2)}%. `;
+
+    // Satoshi's perspective
+    if (altcoinSeasonIndex > 75) {
+      response +=
+        "Altcoin momentum building, but remember: most altcoins are venture capital plays. Bitcoin remains the monetary base layer. Use this strength to accumulate more Bitcoin.";
+    } else {
+      response +=
+        "Bitcoin dominance continues as digital gold thesis strengthens. The market recognizes store of value over speculation. Stack sats.";
+    }
+
+    return response;
+  }
+
+  // Fallback to original logic if unified data not available
   if (isAltseason) {
     response += `🚀 ALTSEASON DETECTED! ${totalOutperforming}/${totalCoins} (${outperformingPercent.toFixed(1)}%) altcoins beating Bitcoin. `;
   } else {

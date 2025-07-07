@@ -80,13 +80,8 @@ import {
   testLiveAlertsAction,
 } from "./actions";
 
-// Import culinary actions from individual files
-import { dailyCulinaryAction } from "./actions/dailyCulinaryAction";
-import { restaurantRecommendationAction } from "./actions/restaurantRecommendationAction";
-import { michelinHotelAction } from "./actions/michelinHotelAction";
-import { homeCookingAction } from "./actions/homeCookingAction";
-import { beverageInsightAction } from "./actions/beverageInsightAction";
-import { morningHealthAction } from "./actions/morningHealthAction";
+// Enhanced Bitcoin Intelligence Actions
+import { enhancedBitcoinMorningBriefingAction } from "./actions/enhancedBitcoinMorningBriefingAction";
 
 import { allProviders } from "./providers";
 
@@ -126,6 +121,22 @@ import {
 
 // Export error handling utilities for testing
 export { ElizaOSErrorHandler, validateElizaOSEnvironment };
+
+import { BTCPerformanceService } from './services/BTCPerformanceService';
+import { btcPerformanceProvider } from './providers/btcPerformanceProvider';
+import {
+  getBTCBenchmarkAction,
+  getAssetPerformanceAction,
+  getTopPerformersAction,
+  getUnderperformersAction
+} from './actions/btcPerformanceAction';
+
+import { dailyCulinaryAction } from './actions/dailyCulinaryAction';
+import { restaurantRecommendationAction } from './actions/restaurantRecommendationAction';
+import { michelinHotelAction } from './actions/michelinHotelAction';
+import { homeCookingAction } from './actions/homeCookingAction';
+import { beverageInsightAction } from './actions/beverageInsightAction';
+import { morningHealthAction } from './actions/morningHealthAction';
 
 /**
  * Bitcoin Plugin
@@ -181,7 +192,7 @@ const bitcoinPlugin: Plugin = {
     }
   },
 
-  providers: [...allProviders],
+  providers: [...allProviders, btcPerformanceProvider],
 
   actions: [
     morningBriefingAction,
@@ -222,6 +233,9 @@ const bitcoinPlugin: Plugin = {
     homeCookingAction,
     beverageInsightAction,
     
+    // Enhanced Bitcoin Intelligence Actions
+    enhancedBitcoinMorningBriefingAction,
+    
     // New Bitcoin Intelligence Actions (Phase 2 & 3)
     bitcoinMorningBriefingAction,
     bitcoinKnowledgeAction,
@@ -238,7 +252,7 @@ const bitcoinPlugin: Plugin = {
     
     // Live Alerting System
     viewAlertsAction,
-    testLiveAlertsAction,
+    testLiveAlertsAction
   ],
 
   events: {
@@ -1425,6 +1439,7 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
     MarketIntelligenceService,
     InstitutionalAdoptionService,
     ConfigurationService,
+    BTCPerformanceService,
   ],
 
   tests: [bitcoinTestSuite],

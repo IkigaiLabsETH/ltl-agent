@@ -106,6 +106,14 @@ export const altcoinProvider: Provider = {
     );
 
     try {
+      // Get unified BTC performance data if available
+      let btcRelativeData = null;
+      try {
+        btcRelativeData = await getBitcoinRelativePerformanceData(runtime);
+      } catch (error) {
+        elizaLogger.debug("[AltcoinProvider] Unified BTC performance data not available, using fallback");
+      }
+
       // Fetch data from multiple CoinGecko endpoints
       const [basicPriceData, trendingData, globalData, topCoinsData] =
         await Promise.allSettled([
@@ -158,6 +166,7 @@ export const altcoinProvider: Provider = {
           trending,
           global,
           topCoins,
+          btcRelativeData,
         );
       }
     } catch (error) {
@@ -300,7 +309,7 @@ async function getTopCoinsMarketData(): Promise<MarketDataCoin[]> {
 }
 
 /**
- * Analyze Bitcoin-relative performance across timeframes
+ * Analyze Bitcoin relative performance using unified BTC performance data
  */
 function analyzeBitcoinRelativePerformance(topCoins: MarketDataCoin[]): {
   btcData: MarketDataCoin | null;
@@ -361,6 +370,40 @@ function analyzeBitcoinRelativePerformance(topCoins: MarketDataCoin[]): {
 }
 
 /**
+ * Get Bitcoin relative performance data from unified BTC performance system
+ */
+async function getBitcoinRelativePerformanceData(runtime: any): Promise<any> {
+  try {
+    const btcPerformanceService = runtime.getService("btc-performance") as any;
+    if (btcPerformanceService && typeof btcPerformanceService.getBenchmarkData === 'function') {
+      const benchmarkData = await btcPerformanceService.getBenchmarkData();
+      return {
+        btcData: {
+          price_change_percentage_24h: benchmarkData.btcChange24h,
+          price_change_percentage_7d_in_currency: benchmarkData.assetClasses.altcoins.aggregatePerformance.performance7d,
+          price_change_percentage_30d_in_currency: benchmarkData.assetClasses.altcoins.aggregatePerformance.performance30d,
+        },
+        outperformers: {
+          daily: benchmarkData.assetClasses.altcoins.topPerformers.slice(0, 10),
+          weekly: benchmarkData.assetClasses.altcoins.topPerformers.slice(0, 10),
+          monthly: benchmarkData.assetClasses.altcoins.topPerformers.slice(0, 10),
+        },
+        underperformers: {
+          daily: benchmarkData.assetClasses.altcoins.underperformers.slice(0, 10),
+          weekly: benchmarkData.assetClasses.altcoins.underperformers.slice(0, 10),
+          monthly: benchmarkData.assetClasses.altcoins.underperformers.slice(0, 10),
+        },
+        altcoinSeasonIndex: benchmarkData.marketIntelligence.altcoinSeasonIndex,
+        marketSentiment: benchmarkData.marketIntelligence.overallMarketSentiment,
+      };
+    }
+  } catch (error) {
+    console.debug("Unified BTC performance data not available, using fallback");
+  }
+  return null;
+}
+
+/**
  * Build comprehensive response using multiple API endpoints
  */
 function buildComprehensiveResponse(
@@ -368,6 +411,7 @@ function buildComprehensiveResponse(
   trending: TrendingCoin[] | null,
   global: GlobalMarketData | null,
   topCoins: MarketDataCoin[] | null,
+  btcRelativeData: any | null,
 ): any {
   const context = [];
 
@@ -446,14 +490,12 @@ function buildComprehensiveResponse(
     context.push("");
   }
 
-  // Bitcoin-relative performance analysis
-  if (topCoins && topCoins.length > 0) {
-    const btcAnalysis = analyzeBitcoinRelativePerformance(topCoins);
-
-    if (btcAnalysis.btcData) {
-      const btc = btcAnalysis.btcData;
-      
-      // Only show Bitcoin performance if we have meaningful data
+  // Bitcoin-relative performance analysis using unified data when available
+  if (btcRelativeData) {
+    // Use unified BTC performance data
+    const btc = btcRelativeData.btcData;
+    
+    if (btc) {
       const btc24h = btc.price_change_percentage_24h || 0;
       const btc7d = btc.price_change_percentage_7d_in_currency || 0;
       const btc30d = btc.price_change_percentage_30d_in_currency || 0;
@@ -477,7 +519,55 @@ function buildComprehensiveResponse(
       }
     }
 
-    // Top 2 altcoins outperforming Bitcoin (7 days only)
+    // Altcoin season analysis from unified data
+    if (btcRelativeData.altcoinSeasonIndex !== undefined) {
+      const seasonStatus = btcRelativeData.altcoinSeasonIndex > 75 ? 'Altcoin Season' : 
+                          btcRelativeData.altcoinSeasonIndex > 25 ? 'Mixed Market' : 'Bitcoin Dominated';
+      context.push(`🎯 ALTCOIN SEASON INDEX: ${btcRelativeData.altcoinSeasonIndex} (${seasonStatus})`);
+      context.push("");
+    }
+
+    // Top altcoins outperforming Bitcoin from unified data
+    if (btcRelativeData.outperformers.weekly.length > 0) {
+      const topWeeklyOutperformers = btcRelativeData.outperformers.weekly.slice(0, 2);
+      context.push(`🚀 TOP 2 ALTCOINS OUTPERFORMING BTC (7d):`);
+      topWeeklyOutperformers.forEach((coin: any, index: number) => {
+        context.push(
+          `${index + 1}. ${coin.symbol}: +${coin.vsBTC?.performance7d?.toFixed(2) || 'N/A'}% vs BTC`,
+        );
+      });
+      context.push("");
+    }
+  } else if (topCoins && topCoins.length > 0) {
+    // Fallback to original analysis if unified data not available
+    const btcAnalysis = analyzeBitcoinRelativePerformance(topCoins);
+
+    if (btcAnalysis.btcData) {
+      const btc = btcAnalysis.btcData;
+      
+      const btc24h = btc.price_change_percentage_24h || 0;
+      const btc7d = btc.price_change_percentage_7d_in_currency || 0;
+      const btc30d = btc.price_change_percentage_30d_in_currency || 0;
+      
+      if (btc24h !== 0 || btc7d !== 0 || btc30d !== 0) {
+        context.push(`₿ BITCOIN PERFORMANCE:`);
+        context.push(
+          `• 24h: ${btc24h > 0 ? "+" : ""}${btc24h.toFixed(2)}%`,
+        );
+        if (btc7d !== 0) {
+          context.push(
+            `• 7d: ${btc7d > 0 ? "+" : ""}${btc7d.toFixed(2)}%`,
+          );
+        }
+        if (btc30d !== 0) {
+          context.push(
+            `• 30d: ${btc30d > 0 ? "+" : ""}${btc30d.toFixed(2)}%`,
+          );
+        }
+        context.push("");
+      }
+    }
+
     if (
       btcAnalysis.outperformers.weekly.length > 0 &&
       btcAnalysis.btcData?.price_change_percentage_7d_in_currency
@@ -488,7 +578,7 @@ function buildComprehensiveResponse(
             (b.price_change_percentage_7d_in_currency || 0) -
             (a.price_change_percentage_7d_in_currency || 0),
         )
-        .slice(0, 2); // Only top 2
+        .slice(0, 2);
 
       context.push(`🚀 TOP 2 ALTCOINS OUTPERFORMING BTC (7d):`);
       topWeeklyOutperformers.forEach((coin, index) => {
@@ -502,8 +592,10 @@ function buildComprehensiveResponse(
       });
       context.push("");
     }
+  }
 
-    // General top gainers/losers
+  // General top gainers/losers (only if we have topCoins data)
+  if (topCoins && topCoins.length > 0) {
     const topGainers = topCoins
       .filter((coin) => coin.price_change_percentage_24h > 0)
       .sort(
