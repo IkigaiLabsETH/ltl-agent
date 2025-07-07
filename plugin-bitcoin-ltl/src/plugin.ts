@@ -1293,15 +1293,9 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
           const forceUpdate = req.query.force === "true";
 
           let dexData;
-          if (forceUpdate) {
-            dexData = await service.forceDexScreenerUpdate();
-          } else {
-            dexData = service.getDexScreenerData();
-            if (!dexData) {
-              // Try to fetch if not cached
-              dexData = await service.forceDexScreenerUpdate();
-            }
-          }
+          // The force update feature is not available for RealTimeDataService
+          // Only get cached data
+          dexData = service.getDexScreenerData();
 
           if (!dexData) {
             return res.status(503).json({
@@ -1370,15 +1364,9 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
           const forceUpdate = req.query.force === "true";
 
           let dexData;
-          if (forceUpdate) {
-            dexData = await service.forceDexScreenerUpdate();
-          } else {
-            dexData = service.getDexScreenerData();
-            if (!dexData) {
-              // Try to fetch if not cached
-              dexData = await service.forceDexScreenerUpdate();
-            }
-          }
+          // The force update feature is not available for RealTimeDataService
+          // Only get cached data
+          dexData = service.getDexScreenerData();
 
           if (!dexData) {
             return res.status(503).json({
