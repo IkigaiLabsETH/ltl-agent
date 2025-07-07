@@ -1,5 +1,6 @@
 import { Provider, type IAgentRuntime, type Memory, type State } from "@elizaos/core";
 import { BitcoinIntelligenceService } from "../services/BitcoinIntelligenceService";
+import { sanitizeProviderResult } from "../utils/helpers";
 
 /**
  * Bitcoin Network Provider
@@ -45,35 +46,11 @@ export const bitcoinNetworkProvider: Provider = {
       
       // Format fee status
       const feeStatus = formatFeeStatus(networkData);
+      
+      // Build comprehensive provider text
+      const providerText = `${networkStatus} ${healthSummary} ${mempoolStatus} ${feeStatus}`;
 
-      const providerText = `🟠 BITCOIN NETWORK STATUS - [Live]
-
-💰 Price: $${networkData.price.toLocaleString()} 
-📊 Market Cap: $${(networkData.marketCap / 1e9).toFixed(2)}B
-🎯 Dominance: ${networkData.dominance.toFixed(2)}%
-
-🔒 Network Security: ${networkData.networkSecurity}
-⚡ Hash Rate: ${(networkData.hashRate / 1e18).toFixed(2)} EH/s
-📦 Mempool: ${(networkData.mempoolSize / 1e6).toFixed(1)}MB (${networkData.mempoolStatus})
-💸 Fee Rate: ${networkData.feeRate.fastest} sat/vB (${networkData.feeStatus})
-
-⚡ Lightning Network: ${networkData.lightningCapacity.toLocaleString()} BTC capacity
-👥 Active Addresses: ${networkData.activeAddresses.toLocaleString()} (24h)
-💎 Long-Term Holders: ${networkData.longTermHolders.toFixed(1)}% of supply
-📈 MVRV Ratio: ${networkData.mvrvRatio.toFixed(1)} (${getMVRVStatus(networkData.mvrvRatio)})
-
-🔄 Exchange Flows: ${formatExchangeFlows(networkData.exchangeFlows)}
-📊 Realized Cap: $${(networkData.realizedCap / 1e9).toFixed(1)}B
-
-${healthSummary}
-
-${mempoolStatus}
-
-${feeStatus}
-
-🎯 Next Halving: ${networkData.nextHalving.blocks.toLocaleString()} blocks (${networkData.nextHalving.daysRemaining} days)`;
-
-      return {
+      const result = {
         text: providerText,
         values: {
           bitcoinNetworkAvailable: true,
@@ -98,6 +75,9 @@ ${feeStatus}
           lastUpdated: new Date()
         }
       };
+
+      // Sanitize the result to prevent JSON.stringify errors
+      return sanitizeProviderResult(result);
 
     } catch (error) {
       console.error('Error in bitcoinNetworkProvider:', error);

@@ -1,4 +1,4 @@
-import { Service } from "@elizaos/core";
+import { Service, IAgentRuntime } from "@elizaos/core";
 import { Alert, AlertType, AlertSeverity } from "../types/alertTypes";
 import { v4 as uuidv4 } from "uuid";
 
@@ -9,6 +9,14 @@ import { v4 as uuidv4 } from "uuid";
 export class LiveAlertService extends Service {
   private alerts: Alert[] = [];
   private maxAlerts = 100;
+
+  /**
+   * Static start method required by ElizaOS
+   */
+  static async start(runtime: IAgentRuntime): Promise<LiveAlertService> {
+    const service = new LiveAlertService(runtime);
+    return service;
+  }
 
   /**
    * Add a new alert
