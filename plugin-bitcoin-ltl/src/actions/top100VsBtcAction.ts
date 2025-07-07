@@ -12,15 +12,12 @@ import {
   ValidationPatterns,
   ResponseCreators,
 } from "./base/ActionTemplate";
-import {
-  RealTimeDataService,
-  Top100VsBtcData,
-} from "../services/RealTimeDataService";
+import { AltcoinDataService } from "../services/AltcoinDataService";
 
 export const top100VsBtcAction: Action = createActionTemplate({
   name: "TOP100_VS_BTC_ACTION",
   description:
-    "Comprehensive analysis of top 100 cryptocurrencies performance against Bitcoin over multiple timeframes with relative strength assessment",
+    "Analysis of curated altcoins performance and market trends with Bitcoin comparison",
   similes: [
     "top 100 vs bitcoin",
     "altcoins vs bitcoin",
@@ -38,14 +35,14 @@ export const top100VsBtcAction: Action = createActionTemplate({
     [
       {
         name: "{{user}}",
-        content: { text: "How are the top 100 coins performing vs Bitcoin?" },
+        content: { text: "How are the top altcoins performing vs Bitcoin?" },
       },
       {
         name: "Satoshi",
         content: {
-          text: "Top 100 vs Bitcoin: 32 coins outperforming BTC (7d). Leaders: HYPE +45%, SUI +28%, AVAX +22%. Bitcoin dominance: 58.3% (+0.8%). 68 coins underperforming BTC. Altseason indicators mixed - some rotation happening but Bitcoin still leading. Quality over quantity in this market.",
+          text: "Curated altcoins analysis: ETH +2.5%, SOL +5.2%, PEPE -3.1%. Trending: ETH, SOL, PEPE. Bitcoin remains the benchmark. Focus on fundamentals over short-term performance.",
           thought:
-            "User wants top 100 crypto performance vs Bitcoin analysis. I need to analyze relative performance, identify outperformers and underperformers, assess Bitcoin dominance trends, and provide perspective on altseason dynamics.",
+            "User wants altcoin performance vs Bitcoin analysis. I need to analyze curated altcoins data, identify trends, and provide perspective on Bitcoin as the benchmark.",
           actions: ["TOP100_VS_BTC_ACTION"],
         },
       },
@@ -53,14 +50,14 @@ export const top100VsBtcAction: Action = createActionTemplate({
     [
       {
         name: "{{user}}",
-        content: { text: "Which coins are beating Bitcoin this week?" },
+        content: { text: "Which coins are trending?" },
       },
       {
         name: "Satoshi",
         content: {
-          text: "Coins beating Bitcoin (7d): 32 of 100. Strong outperformers: HYPE +45% vs BTC +18%, SUI +28% vs BTC, AVAX +22% vs BTC. AI/Layer-1 narrative rotation. 68% still underperforming BTC. Bitcoin remains the benchmark - temporary rotations don't change the fundamentals.",
+          text: "Trending coins: ETH (rank #2), SOL (rank #5), PEPE (rank #25). Market sentiment mixed. Bitcoin dominance strong. Quality projects with real utility outperform in the long run.",
           thought:
-            "User specifically asking about coins outperforming Bitcoin. I should identify the outperformers, analyze the sectors/narratives driving performance, and maintain perspective on Bitcoin as the long-term benchmark.",
+            "User asking about trending coins. I should identify trending coins, analyze market sentiment, and maintain perspective on Bitcoin as the benchmark.",
           actions: ["TOP100_VS_BTC_ACTION"],
         },
       },
@@ -73,9 +70,9 @@ export const top100VsBtcAction: Action = createActionTemplate({
       {
         name: "Satoshi",
         content: {
-          text: "Not yet altseason. Only 32% of top 100 outperforming Bitcoin. Bitcoin dominance: 58.3% (+0.8%). True altseason needs 70%+ outperformers. Current: selective rotation in AI/Layer-1 sectors. Most alts still bleeding against BTC. Be patient - altseason follows Bitcoin strength, not weakness.",
+          text: "Not altseason yet. Bitcoin dominance remains strong. Curated altcoins showing mixed performance. True altseason needs sustained Bitcoin weakness and broad altcoin strength. Current: selective rotation only.",
           thought:
-            "User asking about altseason timing. I need to analyze the percentage of coins outperforming Bitcoin, check dominance trends, compare to historical altseason thresholds, and provide perspective on market cycle timing.",
+            "User asking about altseason timing. I need to analyze altcoin performance, check Bitcoin dominance, and provide perspective on market cycle timing.",
           actions: ["TOP100_VS_BTC_ACTION"],
         },
       },
@@ -97,23 +94,23 @@ export const top100VsBtcAction: Action = createActionTemplate({
     options: any,
     callback?: HandlerCallback,
   ): Promise<boolean> => {
-    logger.info("Top 100 vs BTC analysis action triggered");
+    logger.info("Altcoin analysis action triggered");
 
     const thoughtProcess =
-      "User is requesting top 100 vs Bitcoin performance analysis. I need to analyze relative performance across timeframes, identify outperformers/underperformers, assess Bitcoin dominance trends, and provide perspective on altseason dynamics.";
+      "User is requesting altcoin performance analysis. I need to analyze curated altcoins data, identify trends, and provide perspective on Bitcoin as the benchmark.";
 
     try {
-      const realTimeDataService = runtime.getService(
-        "real-time-data",
-      ) as RealTimeDataService;
+      const altcoinService = runtime.getService(
+        "altcoin-data",
+      ) as AltcoinDataService;
 
-      if (!realTimeDataService) {
-        logger.warn("RealTimeDataService not available");
+      if (!altcoinService) {
+        logger.warn("AltcoinDataService not available");
 
         const fallbackResponse = ResponseCreators.createErrorResponse(
           "TOP100_VS_BTC_ACTION",
-          "Market data service unavailable",
-          "Market data service unavailable. Bitcoin remains the benchmark regardless of data availability.",
+          "Altcoin data service unavailable",
+          "Altcoin data service unavailable. Bitcoin remains the benchmark regardless of data availability.",
         );
 
         if (callback) {
@@ -122,16 +119,17 @@ export const top100VsBtcAction: Action = createActionTemplate({
         return false;
       }
 
-      // Get top 100 vs BTC data
-      const top100Data = realTimeDataService.getTop100VsBtcData();
+      // Get curated altcoins and trending data
+      const curatedData = altcoinService.getCuratedAltcoinsData();
+      const trendingData = altcoinService.getTrendingCoinsData();
 
-      if (!top100Data) {
-        logger.warn("Top 100 vs BTC data not available");
+      if (!curatedData && !trendingData) {
+        logger.warn("Altcoin data not available");
 
         const noDataResponse = ResponseCreators.createErrorResponse(
           "TOP100_VS_BTC_ACTION",
-          "Performance data unavailable",
-          "Performance comparison data unavailable. Bitcoin remains the measuring stick for all digital assets.",
+          "Altcoin data unavailable",
+          "Altcoin data unavailable. Bitcoin remains the measuring stick for all digital assets.",
         );
 
         if (callback) {
@@ -141,20 +139,19 @@ export const top100VsBtcAction: Action = createActionTemplate({
       }
 
       // Analyze the data
-      const analysis = analyzeTop100VsBtc(top100Data);
+      const analysis = analyzeAltcoinData(curatedData, trendingData);
 
       const response = ResponseCreators.createStandardResponse(
         thoughtProcess,
         analysis.responseText,
         "TOP100_VS_BTC_ACTION",
         {
-          totalCoins: analysis.totalCoins,
-          outperformers: analysis.outperformers,
+          curatedCoinsCount: analysis.curatedCoinsCount,
+          trendingCoinsCount: analysis.trendingCoinsCount,
+          topPerformers: analysis.topPerformers,
           underperformers: analysis.underperformers,
-          bitcoinDominance: analysis.bitcoinDominance,
+          marketSentiment: analysis.marketSentiment,
           altseasonIndicator: analysis.altseasonIndicator,
-          topSectors: analysis.topSectors,
-          timeframe: analysis.timeframe,
         },
       );
 
@@ -162,18 +159,18 @@ export const top100VsBtcAction: Action = createActionTemplate({
         await callback(response);
       }
 
-      logger.info("Top 100 vs BTC analysis delivered successfully");
+      logger.info("Altcoin analysis delivered successfully");
       return true;
     } catch (error) {
       logger.error(
-        "Failed to analyze top 100 vs BTC:",
+        "Failed to analyze altcoins:",
         (error as Error).message,
       );
 
       const errorResponse = ResponseCreators.createErrorResponse(
         "TOP100_VS_BTC_ACTION",
         (error as Error).message,
-        "Performance analysis failed. Bitcoin remains the ultimate benchmark for all digital assets.",
+        "Altcoin analysis failed. Bitcoin remains the ultimate benchmark for all digital assets.",
       );
 
       if (callback) {
@@ -186,127 +183,77 @@ export const top100VsBtcAction: Action = createActionTemplate({
 });
 
 /**
- * Analyze top 100 vs BTC performance data
+ * Analyze altcoin data from simplified service
  */
-function analyzeTop100VsBtc(data: Top100VsBtcData): {
+function analyzeAltcoinData(
+  curatedData: any,
+  trendingData: any,
+): {
   responseText: string;
-  totalCoins: number;
-  outperformers: number;
-  underperformers: number;
-  bitcoinDominance: number;
+  curatedCoinsCount: number;
+  trendingCoinsCount: number;
+  topPerformers: string[];
+  underperformers: string[];
+  marketSentiment: string;
   altseasonIndicator: string;
-  topSectors: string[];
-  timeframe: string;
 } {
-  // Use the actual properties from Top100VsBtcData interface
-  const totalCoins = data.totalCoins;
-  const outperformers = data.outperformingCount;
-  const underperformers = totalCoins - outperformers;
-  const outperformerPercentage = (outperformers / totalCoins) * 100;
+  let responseText = "🟠 **Altcoin Market Analysis** 🟠\n\n";
 
-  // Top outperformers
-  const topOutperformers = data.topPerformers.slice(0, 3);
+  // Analyze curated altcoins
+  if (curatedData && Object.keys(curatedData).length > 0) {
+    const coins = Object.values(curatedData);
+    const positivePerformers = coins.filter((coin: any) => coin.change24h > 0);
+    const negativePerformers = coins.filter((coin: any) => coin.change24h < 0);
 
-  // Determine altseason status
-  let altseasonIndicator = "No";
-  if (outperformerPercentage > 70) {
-    altseasonIndicator = "Yes";
-  } else if (outperformerPercentage > 50) {
-    altseasonIndicator = "Emerging";
-  } else if (outperformerPercentage > 30) {
-    altseasonIndicator = "Selective";
+    const topPerformers = positivePerformers
+      .sort((a: any, b: any) => b.change24h - a.change24h)
+      .slice(0, 3)
+      .map((coin: any) => `${coin.symbol} +${coin.change24h.toFixed(1)}%`);
+
+    const underperformers = negativePerformers
+      .sort((a: any, b: any) => a.change24h - b.change24h)
+      .slice(0, 3)
+      .map((coin: any) => `${coin.symbol} ${coin.change24h.toFixed(1)}%`);
+
+    responseText += `**Curated Altcoins (${coins.length} tracked):**\n`;
+    responseText += `📈 Top performers: ${topPerformers.join(", ")}\n`;
+    responseText += `📉 Underperformers: ${underperformers.join(", ")}\n\n`;
+
+    // Market sentiment
+    const positiveRatio = positivePerformers.length / coins.length;
+    let marketSentiment = "neutral";
+    if (positiveRatio > 0.6) marketSentiment = "bullish";
+    else if (positiveRatio < 0.4) marketSentiment = "bearish";
+
+    // Altseason indicator
+    let altseasonIndicator = "not altseason";
+    if (positiveRatio > 0.7) altseasonIndicator = "potential altseason";
+    else if (positiveRatio > 0.5) altseasonIndicator = "mixed signals";
+
+    return {
+      responseText,
+      curatedCoinsCount: coins.length,
+      trendingCoinsCount: trendingData?.coins?.length || 0,
+      topPerformers,
+      underperformers,
+      marketSentiment,
+      altseasonIndicator,
+    };
   }
 
-  // Build response
-  let responseText = `Top 100 vs Bitcoin: ${outperformers} coins outperforming BTC (7d). `;
-
-  if (topOutperformers.length > 0) {
-    const leadersText = topOutperformers
-      .map(
-        (coin) =>
-          `${coin.symbol} +${(coin.btc_relative_performance_7d || 0).toFixed(0)}%`,
-      )
-      .join(", ");
-    responseText += `Leaders: ${leadersText}. `;
-  }
-
-  // Use placeholder dominance data since it's not in the interface
-  const dominance = 58.3; // Placeholder
-  const dominanceChange = 0.8; // Placeholder
-
-  responseText += `Bitcoin dominance: ${dominance.toFixed(1)}% `;
-  responseText += `(${dominanceChange > 0 ? "+" : ""}${dominanceChange.toFixed(1)}%). `;
-
-  responseText += `${underperformers} coins underperforming BTC. `;
-
-  // Add altseason assessment
-  if (altseasonIndicator === "Yes") {
-    responseText += "Altseason in progress - broad altcoin outperformance. ";
-  } else if (altseasonIndicator === "Emerging") {
-    responseText += "Altseason emerging - majority outperforming BTC. ";
-  } else if (altseasonIndicator === "Selective") {
-    responseText +=
-      "Altseason indicators mixed - some rotation happening but Bitcoin still leading. ";
-  } else {
-    responseText += "Not yet altseason. Bitcoin still dominates performance. ";
-  }
-
-  // Add sector analysis (simplified since we don't have detailed sector data)
-  const topSectors = ["AI", "Layer-1", "DeFi"]; // Placeholder
-  if (topSectors.length > 0) {
-    responseText += `${topSectors[0]} sector leading rotation. `;
-  }
-
-  // Add Bitcoin perspective
-  if (altseasonIndicator === "No") {
-    responseText +=
-      "Be patient - altseason follows Bitcoin strength, not weakness.";
-  } else {
-    responseText += "Quality over quantity in this market.";
-  }
+  // Fallback analysis
+  responseText += "**Altcoin Market Overview:**\n";
+  responseText += "📊 Limited data available\n";
+  responseText += "🎯 Bitcoin remains the benchmark\n";
+  responseText += "💡 Focus on fundamentals over short-term performance\n\n";
 
   return {
     responseText,
-    totalCoins,
-    outperformers,
-    underperformers,
-    bitcoinDominance: dominance,
-    altseasonIndicator,
-    topSectors,
-    timeframe: "7d",
+    curatedCoinsCount: 0,
+    trendingCoinsCount: trendingData?.coins?.length || 0,
+    topPerformers: [],
+    underperformers: [],
+    marketSentiment: "neutral",
+    altseasonIndicator: "insufficient data",
   };
-}
-
-/**
- * Analyze sector performance vs Bitcoin
- */
-function analyzeSectorPerformance(
-  coins: any[],
-  bitcoinPerformance: number,
-): Array<{ name: string; outperformers: number; total: number }> {
-  const sectorMap = new Map<string, { outperformers: number; total: number }>();
-
-  coins.forEach((coin) => {
-    const sector = coin.sector || "Other";
-    if (!sectorMap.has(sector)) {
-      sectorMap.set(sector, { outperformers: 0, total: 0 });
-    }
-
-    const sectorData = sectorMap.get(sector)!;
-    sectorData.total++;
-
-    if (coin.performance7d > bitcoinPerformance) {
-      sectorData.outperformers++;
-    }
-  });
-
-  return Array.from(sectorMap.entries())
-    .map(([name, data]) => ({
-      name,
-      outperformers: data.outperformers,
-      total: data.total,
-      percentage: (data.outperformers / data.total) * 100,
-    }))
-    .sort((a, b) => b.percentage - a.percentage)
-    .slice(0, 3);
 }

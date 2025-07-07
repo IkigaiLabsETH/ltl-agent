@@ -574,49 +574,48 @@ export class MorningBriefingService extends BaseDataService {
       };
 
       // Get real altcoin performance data
-      if (realTimeDataService) {
+      const altcoinService = this.runtime.getService("altcoin-data") as any;
+      if (altcoinService) {
         try {
-          let top100VsBtcData = realTimeDataService.getTop100VsBtcData();
-          if (!top100VsBtcData) {
-            // Force update if no cached data
-            top100VsBtcData =
-              await realTimeDataService.forceTop100VsBtcUpdate();
-          }
+          const curatedData = altcoinService.getCuratedAltcoinsData();
+          
+          if (curatedData && Object.keys(curatedData).length > 0) {
+            const coins = Object.values(curatedData);
+            const positivePerformers = coins.filter((coin: any) => coin.change24h > 0);
+            const negativePerformers = coins.filter((coin: any) => coin.change24h < 0);
 
-          if (top100VsBtcData) {
             // Get top outperformers (up to 5 for briefing)
-            const topOutperformers = top100VsBtcData.outperforming
+            const topOutperformers = positivePerformers
+              .sort((a: any, b: any) => b.change24h - a.change24h)
               .slice(0, 5)
-              .map((coin) => ({
-                symbol: coin.symbol.toUpperCase(),
-                change: coin.btc_relative_performance_7d || 0,
-                reason: `Outperforming BTC by ${(coin.btc_relative_performance_7d || 0).toFixed(1)}%`,
+              .map((coin: any) => ({
+                symbol: coin.symbol,
+                change: coin.change24h,
+                reason: `24h change: +${coin.change24h.toFixed(1)}%`,
               }));
 
             // Get top underperformers (up to 3 for briefing)
-            const topUnderperformers = top100VsBtcData.underperforming
+            const topUnderperformers = negativePerformers
+              .sort((a: any, b: any) => a.change24h - b.change24h)
               .slice(0, 3)
-              .map((coin) => ({
-                symbol: coin.symbol.toUpperCase(),
-                change: coin.btc_relative_performance_7d || 0,
-                reason: `Underperforming BTC by ${Math.abs(coin.btc_relative_performance_7d || 0).toFixed(1)}%`,
+              .map((coin: any) => ({
+                symbol: coin.symbol,
+                change: coin.change24h,
+                reason: `24h change: ${coin.change24h.toFixed(1)}%`,
               }));
 
-            const outperformingPercent =
-              (top100VsBtcData.outperformingCount /
-                top100VsBtcData.totalCoins) *
-              100;
+            const outperformingPercent = (positivePerformers.length / coins.length) * 100;
             const isAltseason = outperformingPercent > 50;
 
             altcoinsData = {
               outperformers: topOutperformers,
               underperformers: topUnderperformers,
-              totalOutperforming: top100VsBtcData.outperformingCount,
+              totalOutperforming: positivePerformers.length,
               isAltseason: isAltseason,
             };
 
             elizaLogger.info(
-              `[MorningBriefingService:${this.correlationId}] Real altcoin data loaded: ${top100VsBtcData.outperformingCount}/${top100VsBtcData.totalCoins} outperforming BTC (${outperformingPercent.toFixed(1)}%)`,
+              `[MorningBriefingService:${this.correlationId}] Real altcoin data loaded: ${positivePerformers.length}/${coins.length} positive performers (${outperformingPercent.toFixed(1)}%)`,
             );
           }
         } catch (error) {

@@ -406,9 +406,13 @@ export class BTCPerformanceService extends BaseDataService {
         return this.getMockAltcoinData(btcData);
       }
 
-      const altcoins = await altcoinService.getTop100VsBtcData();
+      const curatedData = altcoinService.getCuratedAltcoinsData();
       
-      return altcoins.slice(0, 20).map(altcoin => ({
+      if (!curatedData) {
+        return this.getMockAltcoinData(btcData);
+      }
+
+      return Object.values(curatedData).slice(0, 20).map((altcoin: any) => ({
         symbol: altcoin.symbol,
         name: altcoin.name,
         price: altcoin.price,
@@ -416,11 +420,11 @@ export class BTCPerformanceService extends BaseDataService {
         volume24h: altcoin.volume24h,
         vsBTC: calculateBTCPerformance(
           altcoin.price, btcData.price,
-          altcoin.price24h || altcoin.price, btcData.price24h || btcData.price,
-          altcoin.price7d || altcoin.price, btcData.price7d || btcData.price,
-          altcoin.price30d || altcoin.price, btcData.price30d || btcData.price,
-          altcoin.priceYTD || altcoin.price, btcData.priceYTD || btcData.price,
-          altcoin.priceInception || altcoin.price, btcData.priceInception || btcData.price
+          altcoin.price, btcData.price, // Use current price for 24h comparison
+          altcoin.price, btcData.price, // Use current price for 7d comparison
+          altcoin.price, btcData.price, // Use current price for 30d comparison
+          altcoin.price, btcData.price, // Use current price for YTD comparison
+          altcoin.price, btcData.price  // Use current price for inception comparison
         ),
         category: 'TOP_ALTCOIN' as AssetCategory,
         narrative: this.generateAltcoinNarrative(altcoin.symbol),

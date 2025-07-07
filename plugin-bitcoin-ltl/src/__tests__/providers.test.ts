@@ -81,12 +81,7 @@ const createMockRuntime = (): IAgentRuntime =>
               ],
               topLosers: [{ symbol: "ADA", price_change_percentage_24h: -8.2 }],
             }),
-            getTop100VsBtcData: vi.fn().mockReturnValue({
-              outperformingCount: 35,
-              underperformingCount: 65,
-              totalCoins: 100,
-              averagePerformance: -2.5,
-            }),
+
             getDexScreenerData: vi.fn().mockReturnValue({
               trendingTokens: [
                 { chainId: "solana", symbol: "BONK" },
@@ -268,13 +263,7 @@ const createMockRuntime = (): IAgentRuntime =>
               },
               lastUpdated: new Date().toISOString(),
             }),
-            getTop100VsBtcData: vi.fn().mockReturnValue({
-              outperformingCount: 35,
-              underperformingCount: 65,
-              totalCoins: 100,
-              averagePerformance: -2.5,
-              lastUpdated: new Date().toISOString(),
-            }),
+
             getTrendingCoinsData: vi.fn().mockReturnValue({
               coins: [{ symbol: "ETH", name: "Ethereum", market_cap_rank: 2 }],
               lastUpdated: new Date().toISOString(),

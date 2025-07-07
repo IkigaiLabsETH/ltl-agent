@@ -14,7 +14,6 @@ import {
 } from "./base/ActionTemplate";
 import {
   RealTimeDataService,
-  Top100VsBtcData,
 } from "../services/RealTimeDataService";
 
 export const btcRelativePerformanceAction: Action = createActionTemplate({
@@ -139,10 +138,10 @@ export const btcRelativePerformanceAction: Action = createActionTemplate({
           return false;
         }
 
-        // Get the Top 200 vs BTC data
-        btcData = realTimeDataService.getTop100VsBtcData();
-        if (!btcData) {
-          btcData = await realTimeDataService.forceTop100VsBtcUpdate();
+        // Get curated altcoins data as fallback
+        const altcoinService = runtime.getService("altcoin-data") as any;
+        if (altcoinService) {
+          btcData = altcoinService.getCuratedAltcoinsData();
         }
       }
 
