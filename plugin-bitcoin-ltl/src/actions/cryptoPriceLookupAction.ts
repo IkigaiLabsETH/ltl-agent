@@ -174,7 +174,7 @@ export const cryptoPriceLookupAction: Action = {
       const marketCapRank = result.market_cap_rank || 0;
 
       // Get Bitcoin price for comparison
-      let bitcoinPrice = 100000; // Fallback
+      let bitcoinPrice = 0;
       try {
         const btcBaseUrl = "https://api.coingecko.com/api/v3";
         const btcHeaders: Record<string, string> = {
@@ -185,11 +185,15 @@ export const cryptoPriceLookupAction: Action = {
           { headers: btcHeaders, timeout: 5000 },
         );
         const btcData = (await btcResponse.json()) as any;
-        bitcoinPrice = btcData.bitcoin?.usd || 100000;
+        if (!btcData.bitcoin?.usd) {
+          throw new Error("No Bitcoin price data available");
+        }
+        bitcoinPrice = btcData.bitcoin.usd;
       } catch (error) {
         logger.warn(
-          "Failed to fetch Bitcoin price for comparison, using fallback",
+          "Failed to fetch Bitcoin price for comparison",
         );
+        throw new Error("Unable to fetch Bitcoin price for comparison");
       }
       const btcPrice = price / bitcoinPrice;
 

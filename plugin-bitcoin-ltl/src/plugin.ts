@@ -500,18 +500,29 @@ const bitcoinPlugin: Plugin = {
               "bitcoin-data",
             ) as StarterService;
             if (bitcoinService) {
-              const currentPrice = await bitcoinService.getBitcoinPrice();
-              const thesisMetrics =
-                await bitcoinService.calculateThesisMetrics(currentPrice);
+              try {
+                const currentPrice = await bitcoinService.getBitcoinPrice();
+                const thesisMetrics =
+                  await bitcoinService.calculateThesisMetrics(currentPrice);
 
-              // Queue an introduction message about the Bitcoin thesis
-              runtime.queueMessage = runtime.queueMessage || [];
-              runtime.queueMessage.push({
-                type: "introduction",
-                content: `🟠 Bitcoin Agent Online | Current BTC: $${currentPrice.toLocaleString()} | Thesis Progress: ${thesisMetrics.progressPercentage.toFixed(1)}% toward $1M | ${thesisMetrics.estimatedHolders.toLocaleString()} of 100K holders target`,
-                worldId: world.id,
-                scheduledFor: new Date(Date.now() + 2000), // 2 second delay
-              });
+                // Queue an introduction message about the Bitcoin thesis
+                runtime.queueMessage = runtime.queueMessage || [];
+                runtime.queueMessage.push({
+                  type: "introduction",
+                  content: `🟠 Bitcoin Agent Online | Current BTC: $${currentPrice.toLocaleString()} | Thesis Progress: ${thesisMetrics.progressPercentage.toFixed(1)}% toward $1M | ${thesisMetrics.estimatedHolders.toLocaleString()} of 100K holders target`,
+                  worldId: world.id,
+                  scheduledFor: new Date(Date.now() + 2000), // 2 second delay
+                });
+              } catch (error) {
+                // Queue a fallback introduction message
+                runtime.queueMessage = runtime.queueMessage || [];
+                runtime.queueMessage.push({
+                  type: "introduction",
+                  content: `🟠 Bitcoin Agent Online | Bitcoin price data temporarily unavailable | Focus on fundamentals and long-term thesis`,
+                  worldId: world.id,
+                  scheduledFor: new Date(Date.now() + 2000), // 2 second delay
+                });
+              }
 
               logger.info("Bitcoin introduction queued for world", {
                 worldId: world.id,
@@ -538,12 +549,26 @@ const bitcoinPlugin: Plugin = {
 
       let enhancedPrompt = params.prompt;
 
-      if (bitcoinContext) {
+      if (bitcoinContext && bitcoinContext.price > 0) {
         enhancedPrompt = `
 Current Bitcoin Context:
 - Price: $${bitcoinContext.price.toLocaleString()}
 - Thesis Progress: ${bitcoinContext.thesisData.progressPercentage.toFixed(1)}% toward $1M target
 - Estimated Holders: ${bitcoinContext.thesisData.estimatedHolders.toLocaleString()}/100K target
+
+${params.prompt}
+
+Respond as a Bitcoin-maximalist AI with concise, factual insights focused on:
+- Austrian economics principles
+- Bitcoin's monetary properties
+- Long-term wealth preservation
+- Cypherpunk philosophy
+Keep response under 100 words.`;
+      } else {
+        enhancedPrompt = `
+Current Bitcoin Context:
+- Price: Data temporarily unavailable
+- Focus: Bitcoin fundamentals and long-term thesis
 
 ${params.prompt}
 
@@ -571,7 +596,7 @@ Keep response under 100 words.`;
 
       let enhancedPrompt = params.prompt;
 
-      if (bitcoinContext) {
+      if (bitcoinContext && bitcoinContext.price > 0) {
         const trendAnalysis =
           thesisHistory.length > 0
             ? `Recent thesis trend: ${thesisHistory.map((h: any) => h.progressPercentage.toFixed(1)).join("% → ")}%`
@@ -618,6 +643,44 @@ You are a Bitcoin-maximalist AI with deep expertise in:
 - Focus on educational value and actionable advice
 - Use 🟠 Bitcoin emoji appropriately
 - Reference current market context when relevant
+
+Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist perspective.`;
+      } else {
+        enhancedPrompt = `
+## Bitcoin Agent Context ##
+
+Current Market Data:
+- Bitcoin Price: Data temporarily unavailable
+- Focus: Bitcoin fundamentals and long-term thesis
+- Strategy: Emphasize sound money principles over price speculation
+
+## User Query ##
+${params.prompt}
+
+## Response Guidelines ##
+You are a Bitcoin-maximalist AI with deep expertise in:
+
+**Economic Philosophy:**
+- Austrian economics and sound money principles
+- Fiat currency criticism and monetary debasement
+- Bitcoin as the ultimate store of value and medium of exchange
+
+**Technical Understanding:**
+- Bitcoin's decentralized architecture and security model
+- Lightning Network for payments scalability
+- Mining economics and network security
+
+**Investment Thesis:**
+- 100K BTC Holders → $10M Net Worth thesis tracking
+- Long-term wealth preservation strategy
+- Corporate treasury adoption trends
+
+**Communication Style:**
+- Confident but not dogmatic
+- Data-driven insights with specific metrics
+- Focus on educational value and actionable advice
+- Use 🟠 Bitcoin emoji appropriately
+- Emphasize fundamentals over price speculation
 
 Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist perspective.`;
       }

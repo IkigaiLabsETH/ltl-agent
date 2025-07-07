@@ -54,10 +54,8 @@ export const bitcoinAnalysisAction: Action = {
       }
 
       // Get current Bitcoin data
-      const [priceData, thesisData] = await Promise.all([
-        bitcoinService.getEnhancedMarketData(),
-        bitcoinService.calculateThesisMetrics(100000), // Use current estimate
-      ]);
+      const priceData = await bitcoinService.getEnhancedMarketData();
+      const thesisData = await bitcoinService.calculateThesisMetrics(priceData.price);
 
       const analysis = `
 📊 **BITCOIN MARKET ANALYSIS**
