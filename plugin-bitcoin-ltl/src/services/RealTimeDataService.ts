@@ -215,124 +215,6 @@ export interface TrendingCoinsCache {
   timestamp: number;
 }
 
-export interface NFTCollectionStats {
-  total_supply: number;
-  num_owners: number;
-  average_price: number;
-  floor_price: number;
-  market_cap: number;
-  one_day_volume: number;
-  one_day_change: number;
-  one_day_sales: number;
-  seven_day_volume: number;
-  seven_day_change: number;
-  seven_day_sales: number;
-  thirty_day_volume: number;
-  thirty_day_change: number;
-  thirty_day_sales: number;
-}
-
-export interface NFTCollection {
-  collection: string;
-  name: string;
-  description: string;
-  image_url: string;
-  banner_image_url: string;
-  owner: string;
-  category: string;
-  is_disabled: boolean;
-  is_nsfw: boolean;
-  trait_offers_enabled: boolean;
-  collection_offers_enabled: boolean;
-  opensea_url: string;
-  project_url: string;
-  wiki_url: string;
-  discord_url: string;
-  telegram_url: string;
-  twitter_username: string;
-  instagram_username: string;
-  contracts: Array<{
-    address: string;
-    chain: string;
-  }>;
-  editors: string[];
-  fees: Array<{
-    fee: number;
-    recipient: string;
-    required: boolean;
-  }>;
-  rarity: {
-    strategy_id: string;
-    strategy_version: string;
-    rank_at: string;
-    max_rank: number;
-    tokens_scored: number;
-  };
-  total_supply: number;
-  created_date: string;
-}
-
-export interface NFTCollectionData {
-  slug: string;
-  collection: NFTCollection;
-  stats: NFTCollectionStats;
-  lastUpdated: Date;
-  category: "blue-chip" | "generative-art" | "digital-art" | "pfp" | "utility";
-  floorItems?: NFTFloorItem[];
-  recentSales?: NFTSaleEvent[];
-  contractAddress?: string;
-  blockchain?: string;
-}
-
-export interface NFTFloorItem {
-  token_id: string;
-  name: string;
-  image_url: string;
-  price_eth: number;
-  price_usd: number;
-  rarity_rank?: number;
-  listing_time: string;
-  opensea_url: string;
-}
-
-export interface NFTSaleEvent {
-  token_id: string;
-  name: string;
-  image_url: string;
-  price_eth: number;
-  price_usd: number;
-  buyer: string;
-  seller: string;
-  transaction_hash: string;
-  timestamp: string;
-  event_type: "sale" | "transfer" | "mint";
-}
-
-export interface NFTTraitFloor {
-  trait_type: string;
-  trait_value: string;
-  floor_price: number;
-  count: number;
-}
-
-export interface CuratedNFTsData {
-  collections: NFTCollectionData[];
-  summary: {
-    totalVolume24h: number;
-    totalMarketCap: number;
-    avgFloorPrice: number;
-    topPerformers: NFTCollectionData[];
-    worstPerformers: NFTCollectionData[];
-    totalCollections: number;
-  };
-  lastUpdated: Date;
-}
-
-export interface CuratedNFTsCache {
-  data: CuratedNFTsData;
-  timestamp: number;
-}
-
 // At the top, after imports
 const USE_OPENSEA_API = typeof process !== 'undefined' && process.env.USE_OPENSEA_API !== undefined
   ? process.env.USE_OPENSEA_API === 'true'
@@ -399,17 +281,6 @@ export class RealTimeDataService extends BaseDataService {
   private readonly TOP_MOVERS_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes - reduce API calls
   private trendingCoinsCache: TrendingCoinsCache | null = null;
   private readonly TRENDING_COINS_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes - reduce API calls
-  private curatedNFTsCache: CuratedNFTsCache | null = null;
-  private readonly CURATED_NFTS_CACHE_DURATION = 60 * 1000; // 1 minute (matches website caching)
-
-  // Curated NFT collections (focused on high-value generative art)
-  private readonly curatedNFTCollections = [
-    { slug: "qql", category: "generative-art" as const },
-    {
-      slug: "meridian-by-matt-deslauriers",
-      category: "generative-art" as const,
-    },
-  ];
 
   // In the RealTimeDataService class constructor, add:
   private useOpenSeaApi: boolean;
@@ -545,7 +416,6 @@ export class RealTimeDataService extends BaseDataService {
       await this.updateDexScreenerData();
       await this.updateTopMoversData();
       await this.updateTrendingCoinsData();
-      await this.updateCuratedNFTsData();
       
       // Generate alerts based on updated data
       this.alerts = this.generateAlerts(
@@ -1156,451 +1026,8 @@ export class RealTimeDataService extends BaseDataService {
     return this.trendingCoinsCache.data;
   }
 
-  public getCuratedNFTsData(): CuratedNFTsData | null {
-    if (!this.curatedNFTsCache || !this.isCuratedNFTsCacheValid()) {
-      return null;
-    }
-    return this.curatedNFTsCache.data;
-  }
-
   public async forceCuratedAltcoinsUpdate(): Promise<CuratedAltcoinsData | null> {
     return await this.fetchCuratedAltcoinsData();
-  }
-
-  // Top 100 vs BTC data is now handled by AltcoinDataService to avoid duplication
-
-  public async forceDexScreenerUpdate(): Promise<DexScreenerData | null> {
-    return await this.fetchDexScreenerData();
-  }
-
-  public async forceTopMoversUpdate(): Promise<TopMoversData | null> {
-    return await this.fetchTopMoversData();
-  }
-
-  public async forceTrendingCoinsUpdate(): Promise<TrendingCoinsData | null> {
-    return await this.fetchTrendingCoinsData();
-  }
-
-  public async forceCuratedNFTsUpdate(): Promise<CuratedNFTsData | null> {
-    return await this.fetchCuratedNFTsData();
-  }
-
-  // Comprehensive Bitcoin data fetcher
-  private async fetchComprehensiveBitcoinData(): Promise<ComprehensiveBitcoinData | null> {
-    try {
-      // Fetch all data in parallel
-      const [priceData, networkData, sentimentData, mempoolData] =
-        await Promise.all([
-          this.fetchBitcoinPriceData(),
-          this.fetchBitcoinNetworkData(),
-          this.fetchBitcoinSentimentData(),
-          this.fetchBitcoinMempoolData(),
-        ]);
-
-      // Combine all data
-      const response: ComprehensiveBitcoinData = {
-        price: {
-          usd: priceData?.usd || null,
-          change24h: priceData?.change24h || null,
-        },
-        network: {
-          hashRate: networkData?.hashRate || null,
-          difficulty: networkData?.difficulty || null,
-          blockHeight: networkData?.blockHeight || null,
-          avgBlockTime: networkData?.avgBlockTime || null,
-          avgBlockSize: networkData?.avgBlockSize || null,
-          totalBTC: networkData?.totalBTC || null,
-          marketCap: networkData?.marketCap || null,
-          nextHalving: networkData?.nextHalving || {
-            blocks: null,
-            estimatedDate: null,
-          },
-          mempoolSize: mempoolData?.mempoolSize || null,
-          mempoolFees: mempoolData?.mempoolFees || {
-            fastestFee: null,
-            halfHourFee: null,
-            economyFee: null,
-          },
-          mempoolTxs: mempoolData?.mempoolTxs || null,
-          miningRevenue: mempoolData?.miningRevenue || null,
-          miningRevenue24h: mempoolData?.miningRevenue24h || null,
-          lightningCapacity: null,
-          lightningChannels: null,
-          liquidity: null,
-        },
-        sentiment: {
-          fearGreedIndex: sentimentData?.fearGreedIndex || null,
-          fearGreedValue: sentimentData?.fearGreedValue || null,
-        },
-        nodes: {
-          total: null,
-          countries: null,
-        },
-        lastUpdated: new Date(),
-      };
-
-      return response;
-    } catch (error) {
-      console.error("Error fetching comprehensive Bitcoin data:", error);
-      return null;
-    }
-  }
-
-  private async fetchBitcoinPriceData(): Promise<{
-    usd: number;
-    change24h: number;
-  } | null> {
-    try {
-      const data = await this.makeQueuedRequest(async () => {
-        const response = await fetch(
-          `${this.COINGECKO_API}/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true`,
-          {
-            headers: { Accept: "application/json" },
-            signal: AbortSignal.timeout(15000),
-          },
-        );
-
-        if (!response.ok) {
-          if (response.status === 429) {
-            // Handle rate limiting with exponential backoff
-            const retryAfter = response.headers.get('Retry-After');
-            const backoffTime = retryAfter ? parseInt(retryAfter) * 1000 : 30000; // Default 30s
-            console.warn(`[RealTimeDataService] Rate limited, backing off for ${backoffTime}ms`);
-            await new Promise(resolve => setTimeout(resolve, backoffTime));
-            throw new Error(`HTTP 429: Rate limited, retry after ${backoffTime}ms`);
-          }
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        return await response.json();
-      });
-
-      return {
-        usd: Number(data.bitcoin?.usd) || null,
-        change24h: Number(data.bitcoin?.usd_24h_change) || null,
-      };
-    } catch (error) {
-      console.error("Error fetching Bitcoin price data:", error);
-      return null;
-    }
-  }
-
-  private async fetchBitcoinNetworkData(): Promise<Partial<BitcoinNetworkData> | null> {
-    try {
-      // Fetch from multiple sources in parallel for better accuracy
-      const [blockchainData, mempoolStats] = await Promise.all(
-        [
-          this.fetchBlockchainInfoData(),
-          this.fetchMempoolNetworkData(),
-        ],
-      );
-
-      // Use the most recent and accurate data sources
-      // Priority: Mempool.space (most reliable) > Blockchain.info
-      const hashRate =
-        mempoolStats?.hashRate ||
-        blockchainData?.hashRate;
-      const difficulty =
-        mempoolStats?.difficulty ||
-        blockchainData?.difficulty;
-      const blockHeight =
-        mempoolStats?.blockHeight ||
-        blockchainData?.blockHeight;
-
-      console.log(
-        `[RealTimeDataService] 🔍 Hashrate sources - Mempool: ${mempoolStats?.hashRate ? (mempoolStats.hashRate / 1e18).toFixed(2) + " EH/s" : "N/A"}, Blockchain: ${blockchainData?.hashRate ? (blockchainData.hashRate / 1e18).toFixed(2) + " EH/s" : "N/A"}`,
-      );
-      console.log(
-        `[RealTimeDataService] 🎯 Selected hashrate: ${hashRate ? (hashRate / 1e18).toFixed(2) + " EH/s" : "N/A"}`,
-      );
-
-      // Calculate next halving using most reliable block height
-      const currentBlock = blockHeight || 0;
-      const currentHalvingEpoch = Math.floor(currentBlock / 210000);
-      const nextHalvingBlock = (currentHalvingEpoch + 1) * 210000;
-      const blocksUntilHalving = nextHalvingBlock - currentBlock;
-
-      // Estimate halving date based on average block time (10 minutes target)
-      const avgBlockTime = blockchainData?.avgBlockTime || 10;
-      const minutesUntilHalving = blocksUntilHalving * avgBlockTime;
-      const halvingDate = new Date(
-        Date.now() + minutesUntilHalving * 60 * 1000,
-      );
-
-      return {
-        hashRate: hashRate,
-        difficulty: difficulty,
-        blockHeight: blockHeight,
-        avgBlockTime: blockchainData?.avgBlockTime || avgBlockTime,
-        avgBlockSize: blockchainData?.avgBlockSize || null,
-        totalBTC: blockchainData?.totalBTC || null,
-        marketCap: blockchainData?.marketCap || null,
-        nextHalving: {
-          blocks: blocksUntilHalving,
-          estimatedDate: halvingDate.toISOString(),
-        },
-      };
-    } catch (error) {
-      console.error("Error fetching Bitcoin network data:", error);
-      return null;
-    }
-  }
-
-  /**
-   * Fetch from Blockchain.info API
-   */
-  private async fetchBlockchainInfoData(): Promise<Partial<BitcoinNetworkData> | null> {
-    try {
-      const response = await fetch(`${this.BLOCKCHAIN_API}/stats`, {
-        signal: AbortSignal.timeout(10000), // 10 second timeout
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-
-        return {
-          hashRate: Number(data.hash_rate) * 1e9, // Convert from GH/s to H/s
-          difficulty: Number(data.difficulty),
-          blockHeight: Number(data.n_blocks_total),
-          avgBlockTime: Number(data.minutes_between_blocks),
-          avgBlockSize: Number(data.blocks_size),
-          totalBTC: Number(data.totalbc) / 1e8,
-          marketCap:
-            Number(data.market_price_usd) * (Number(data.totalbc) / 1e8),
-        };
-      } else if (response.status === 429) {
-        console.warn(`[RealTimeDataService] Blockchain.info rate limited (429)`);
-        return null;
-      } else {
-        console.warn(`[RealTimeDataService] Blockchain.info API error: ${response.status}`);
-        return null;
-      }
-    } catch (error) {
-      console.error("Error fetching Blockchain.info data:", error);
-      return null;
-    }
-  }
-
-  /**
-   * Fetch network data from Mempool.space API (most accurate)
-   */
-  private async fetchMempoolNetworkData(): Promise<Partial<BitcoinNetworkData> | null> {
-    try {
-      const [hashRateResponse, difficultyResponse, blockHeightResponse] =
-        await Promise.all([
-          fetch(`${this.MEMPOOL_API}/v1/mining/hashrate/1m`, {
-            signal: AbortSignal.timeout(10000), // 10 second timeout
-          }),
-          fetch(`${this.MEMPOOL_API}/v1/difficulty-adjustment`, {
-            signal: AbortSignal.timeout(10000), // 10 second timeout
-          }),
-          fetch(`${this.MEMPOOL_API}/blocks/tip/height`, {
-            signal: AbortSignal.timeout(10000), // 10 second timeout
-          }),
-        ]);
-
-      const results: Partial<BitcoinNetworkData> = {};
-
-      // Get current hashrate (most recent data point from 1-month history)
-      if (hashRateResponse.ok) {
-        const hashRateData = await hashRateResponse.json();
-        if (hashRateData.currentHashrate) {
-          results.hashRate = Number(hashRateData.currentHashrate);
-        } else if (
-          hashRateData.hashrates &&
-          hashRateData.hashrates.length > 0
-        ) {
-          // Get the most recent hashrate from the array
-          const latestHashrate =
-            hashRateData.hashrates[hashRateData.hashrates.length - 1];
-          if (latestHashrate && latestHashrate.hashrateAvg) {
-            results.hashRate = Number(latestHashrate.hashrateAvg);
-          }
-        }
-      } else if (hashRateResponse.status === 429) {
-        console.warn(`[RealTimeDataService] Mempool.space hashrate rate limited (429)`);
-      }
-
-      // Get current difficulty
-      if (difficultyResponse.ok) {
-        const difficultyData = await difficultyResponse.json();
-        if (difficultyData.currentDifficulty) {
-          results.difficulty = Number(difficultyData.currentDifficulty);
-        } else if (difficultyData.difficulty) {
-          results.difficulty = Number(difficultyData.difficulty);
-        }
-      } else if (difficultyResponse.status === 429) {
-        console.warn(`[RealTimeDataService] Mempool.space difficulty rate limited (429)`);
-      }
-
-      // Get current block height
-      if (blockHeightResponse.ok) {
-        const blockHeight = await blockHeightResponse.json();
-        if (typeof blockHeight === "number") {
-          results.blockHeight = blockHeight;
-        }
-      } else if (blockHeightResponse.status === 429) {
-        console.warn(`[RealTimeDataService] Mempool.space block height rate limited (429)`);
-      }
-
-      return Object.keys(results).length > 0 ? results : null;
-    } catch (error) {
-      console.error("Error fetching Mempool.space network data:", error);
-      return null;
-    }
-  }
-
-
-
-  private async fetchBitcoinSentimentData(): Promise<BitcoinSentimentData | null> {
-    try {
-      const response = await fetch(`${this.ALTERNATIVE_API}/fng/`, {
-        signal: AbortSignal.timeout(10000), // 10 second timeout
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        return {
-          fearGreedIndex: Number(data.data[0].value),
-          fearGreedValue: data.data[0].value_classification,
-        };
-      } else if (response.status === 429) {
-        console.warn(`[RealTimeDataService] Alternative.me sentiment rate limited (429)`);
-        return null;
-      } else {
-        console.warn(`[RealTimeDataService] Alternative.me API error: ${response.status}`);
-        return null;
-      }
-    } catch (error) {
-      console.error("Error fetching Bitcoin sentiment data:", error);
-      return null;
-    }
-  }
-
-  private async fetchBitcoinMempoolData(): Promise<Partial<BitcoinNetworkData> | null> {
-    try {
-      // Fetch mempool data in parallel
-      const [mempoolResponse, feesResponse] = await Promise.all([
-        fetch(`${this.MEMPOOL_API}/mempool`, {
-          signal: AbortSignal.timeout(10000), // 10 second timeout
-        }),
-        fetch(`${this.MEMPOOL_API}/v1/fees/recommended`, {
-          signal: AbortSignal.timeout(10000), // 10 second timeout
-        }),
-      ]);
-
-      if (!mempoolResponse.ok || !feesResponse.ok) {
-        if (mempoolResponse.status === 429 || feesResponse.status === 429) {
-          console.warn(`[RealTimeDataService] Mempool.space mempool data rate limited (429)`);
-        } else {
-          console.warn(`[RealTimeDataService] Mempool.space mempool data API error: ${mempoolResponse.status}, ${feesResponse.status}`);
-        }
-        return null;
-      }
-
-      const [mempoolData, feesData] = await Promise.all([
-        mempoolResponse.json(),
-        feesResponse.json(),
-      ]);
-
-      return {
-        mempoolSize: mempoolData.vsize || null, // Virtual size in bytes
-        mempoolTxs: mempoolData.count || null, // Number of transactions
-        mempoolFees: {
-          fastestFee: feesData.fastestFee || null,
-          halfHourFee: feesData.halfHourFee || null,
-          economyFee: feesData.economyFee || null,
-        },
-        miningRevenue: mempoolData.total_fee || null, // Total fees in satoshis
-        miningRevenue24h: null, // We'll need another endpoint for this
-      };
-    } catch (error) {
-      console.error("Error fetching Bitcoin mempool data:", error);
-      return null;
-    }
-  }
-
-  // Curated altcoins data management
-  private isCuratedCacheValid(): boolean {
-    if (!this.curatedAltcoinsCache) return false;
-    return (
-      Date.now() - this.curatedAltcoinsCache.timestamp <
-      this.CURATED_CACHE_DURATION
-    );
-  }
-
-  private async updateCuratedAltcoinsData(): Promise<void> {
-    // Only fetch if cache is invalid
-    if (!this.isCuratedCacheValid()) {
-      const data = await this.fetchCuratedAltcoinsData();
-      if (data) {
-        this.curatedAltcoinsCache = {
-          data,
-          timestamp: Date.now(),
-        };
-      }
-    }
-  }
-
-  private async fetchCuratedAltcoinsData(): Promise<CuratedAltcoinsData | null> {
-    try {
-      const idsParam = this.curatedCoinIds.join(",");
-      const data = await this.makeQueuedRequest(async () => {
-        const response = await fetch(
-          `${this.COINGECKO_API}/simple/price?ids=${idsParam}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true&include_24hr_vol=true`,
-          {
-            headers: {
-              Accept: "application/json",
-            },
-            signal: AbortSignal.timeout(15000),
-          },
-        );
-
-        if (!response.ok) {
-          if (response.status === 429) {
-            // Handle rate limiting with exponential backoff
-            const retryAfter = response.headers.get('Retry-After');
-            const backoffTime = retryAfter ? parseInt(retryAfter) * 1000 : 30000; // Default 30s
-            console.warn(`[RealTimeDataService] Rate limited, backing off for ${backoffTime}ms`);
-            await new Promise(resolve => setTimeout(resolve, backoffTime));
-            throw new Error(`HTTP 429: Rate limited, retry after ${backoffTime}ms`);
-          }
-          if (response.status === 401 || response.status === 429) {
-            console.warn(
-              `[RealTimeDataService] CoinGecko API rate limited or unauthorized (${response.status}), using fallback data`,
-            );
-            return this.getFallbackCuratedAltcoinsData();
-          }
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        return await response.json();
-      });
-
-      // Ensure all requested IDs are present in the response (with zeroed data if missing)
-      const result: CuratedAltcoinsData = {};
-      this.curatedCoinIds.forEach((id) => {
-        result[id] = data[id]
-          ? {
-              price: data[id].usd || 0,
-              change24h: data[id].usd_24h_change || 0,
-              marketCap: data[id].usd_market_cap || 0,
-              volume24h: data[id].usd_24h_vol || 0,
-            }
-          : { price: 0, change24h: 0, marketCap: 0, volume24h: 0 };
-      });
-
-      console.log(
-        `[RealTimeDataService] Fetched curated altcoins data for ${this.curatedCoinIds.length} coins`,
-      );
-      return result;
-    } catch (error) {
-      console.error("Error fetching curated altcoins data:", error);
-      console.info(
-        "[RealTimeDataService] Using fallback curated altcoins data",
-      );
-      return this.getFallbackCuratedAltcoinsData();
-    }
   }
 
   // Top 100 vs BTC data is now handled by AltcoinDataService to avoid duplication
@@ -1920,21 +1347,21 @@ export class RealTimeDataService extends BaseDataService {
     }
   }
 
-  // Curated NFTs data management
-  private isCuratedNFTsCacheValid(): boolean {
-    if (!this.curatedNFTsCache) return false;
+  // Curated altcoins data management
+  private isCuratedCacheValid(): boolean {
+    if (!this.curatedAltcoinsCache) return false;
     return (
-      Date.now() - this.curatedNFTsCache.timestamp <
-      this.CURATED_NFTS_CACHE_DURATION
+      Date.now() - this.curatedAltcoinsCache.timestamp <
+      this.CURATED_CACHE_DURATION
     );
   }
 
-  private async updateCuratedNFTsData(): Promise<void> {
+  private async updateCuratedAltcoinsData(): Promise<void> {
     // Only fetch if cache is invalid
-    if (!this.isCuratedNFTsCacheValid()) {
-      const data = await this.fetchCuratedNFTsData();
+    if (!this.isCuratedCacheValid()) {
+      const data = await this.fetchCuratedAltcoinsData();
       if (data) {
-        this.curatedNFTsCache = {
+        this.curatedAltcoinsCache = {
           data,
           timestamp: Date.now(),
         };
@@ -1942,14 +1369,16 @@ export class RealTimeDataService extends BaseDataService {
     }
   }
 
-  private async fetchCuratedNFTsData(): Promise<CuratedNFTsData | null> {
+  private async fetchCuratedAltcoinsData(): Promise<CuratedAltcoinsData | null> {
     try {
-      const idsParam = this.curatedNFTCollections.map(collection => collection.slug).join(",");
+      const idsParam = this.curatedCoinIds.join(",");
       const data = await this.makeQueuedRequest(async () => {
         const response = await fetch(
-          `${this.COINGECKO_API}/search/nft-collections?ids=${idsParam}&order=market_cap_desc&per_page=10&page=1`,
+          `${this.COINGECKO_API}/simple/price?ids=${idsParam}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true&include_24hr_vol=true`,
           {
-            headers: { Accept: "application/json" },
+            headers: {
+              Accept: "application/json",
+            },
             signal: AbortSignal.timeout(15000),
           },
         );
@@ -1963,108 +1392,41 @@ export class RealTimeDataService extends BaseDataService {
             await new Promise(resolve => setTimeout(resolve, backoffTime));
             throw new Error(`HTTP 429: Rate limited, retry after ${backoffTime}ms`);
           }
+          if (response.status === 401 || response.status === 429) {
+            console.warn(
+              `[RealTimeDataService] CoinGecko API rate limited or unauthorized (${response.status}), using fallback data`,
+            );
+            return this.getFallbackCuratedAltcoinsData();
+          }
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
 
         return await response.json();
       });
 
-      // Map and validate NFT collections (matches website exactly)
-      const collections: NFTCollectionData[] = Array.isArray(data.collections)
-        ? data.collections.map((c: any) => ({
-            slug: c.slug,
-            collection: {
-              collection: c.name,
-              name: c.name,
-              description: c.description,
-              image_url: c.image_url,
-              banner_image_url: c.banner_image_url,
-              owner: c.owner,
-              category: c.category,
-              is_disabled: c.is_disabled,
-              is_nsfw: c.is_nsfw,
-              trait_offers_enabled: c.trait_offers_enabled,
-              collection_offers_enabled: c.collection_offers_enabled,
-              opensea_url: c.opensea_url,
-              project_url: c.project_url,
-              wiki_url: c.wiki_url,
-              discord_url: c.discord_url,
-              telegram_url: c.telegram_url,
-              twitter_username: c.twitter_username,
-              instagram_username: c.instagram_username,
-              contracts: c.contracts.map((contract: any) => ({
-                address: contract.address,
-                chain: contract.chain,
-              })),
-              editors: c.editors,
-              fees: c.fees.map((fee: any) => ({
-                fee: fee.fee,
-                recipient: fee.recipient,
-                required: fee.required,
-              })),
-              rarity: {
-                strategy_id: c.rarity.strategy_id,
-                strategy_version: c.rarity.strategy_version,
-                rank_at: c.rarity.rank_at,
-                max_rank: c.rarity.max_rank,
-                tokens_scored: c.rarity.tokens_scored,
-              },
-              total_supply: c.total_supply,
-              created_date: c.created_date,
-            },
-            stats: {
-              total_supply: c.stats.total_supply,
-              num_owners: c.stats.num_owners,
-              average_price: c.stats.average_price,
-              floor_price: c.stats.floor_price,
-              market_cap: c.stats.market_cap,
-              one_day_volume: c.stats.one_day_volume,
-              one_day_change: c.stats.one_day_change,
-              one_day_sales: c.stats.one_day_sales,
-              seven_day_volume: c.stats.seven_day_volume,
-              seven_day_change: c.stats.seven_day_change,
-              seven_day_sales: c.stats.seven_day_sales,
-              thirty_day_volume: c.stats.thirty_day_volume,
-              thirty_day_change: c.stats.thirty_day_change,
-              thirty_day_sales: c.stats.thirty_day_sales,
-            },
-            lastUpdated: new Date(),
-            category: c.category,
-            floorItems: c.floorItems,
-            recentSales: c.recentSales,
-            contractAddress: c.contractAddress,
-            blockchain: c.blockchain,
-          }))
-        : [];
-
-      // Calculate summary statistics
-      const totalVolume24h = collections.reduce((total, collection) => total + collection.stats.one_day_volume, 0);
-      const totalMarketCap = collections.reduce((total, collection) => total + collection.stats.market_cap, 0);
-      const avgFloorPrice = collections.reduce((total, collection) => total + collection.stats.floor_price, 0) / collections.length;
-      const topPerformers = collections.slice(0, 5); // Top 5 performers
-      const worstPerformers = collections.slice(-5); // Bottom 5 performers
-      const totalCollections = collections.length;
-
-      const result: CuratedNFTsData = {
-        collections,
-        summary: {
-          totalVolume24h,
-          totalMarketCap,
-          avgFloorPrice,
-          topPerformers,
-          worstPerformers,
-          totalCollections,
-        },
-        lastUpdated: new Date(),
-      };
+      // Ensure all requested IDs are present in the response (with zeroed data if missing)
+      const result: CuratedAltcoinsData = {};
+      this.curatedCoinIds.forEach((id) => {
+        result[id] = data[id]
+          ? {
+              price: data[id].usd || 0,
+              change24h: data[id].usd_24h_change || 0,
+              marketCap: data[id].usd_market_cap || 0,
+              volume24h: data[id].usd_24h_vol || 0,
+            }
+          : { price: 0, change24h: 0, marketCap: 0, volume24h: 0 };
+      });
 
       console.log(
-        `[RealTimeDataService] Fetched curated NFTs data: ${collections.length} collections`,
+        `[RealTimeDataService] Fetched curated altcoins data for ${this.curatedCoinIds.length} coins`,
       );
       return result;
     } catch (error) {
-      console.error("Error in fetchCuratedNFTsData:", error);
-      return null;
+      console.error("Error fetching curated altcoins data:", error);
+      console.info(
+        "[RealTimeDataService] Using fallback curated altcoins data",
+      );
+      return this.getFallbackCuratedAltcoinsData();
     }
   }
 }

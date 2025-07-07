@@ -16,7 +16,6 @@ import { topMoversAction } from "./topMoversAction";
 import { trendingCoinsAction } from "./trendingCoinsAction";
 import { stockMarketAction } from "./stockMarketAction";
 import { etfFlowAction } from "./etfFlowAction";
-import { curatedNFTsAction } from "./curatedNFTsAction";
 import { hotelSearchAction } from "./hotelSearchAction";
 import { hotelDealAlertAction } from "./hotelDealAlertAction";
 import { bookingOptimizationAction } from "./bookingOptimizationAction";
@@ -24,6 +23,16 @@ import { travelInsightsAction } from "./travelInsightsAction";
 import { hotelRateIntelligenceAction } from "./hotelRateIntelligenceAction";
 import { enhancedKnowledgeSearchAction } from "./enhanced-knowledge-search";
 import { weeklyHotelSuggestionsAction } from "./weeklyHotelSuggestionsAction";
+import { feedbackAction } from "./feedbackAction";
+import { feedbackStatsAction } from "./feedbackStatsAction";
+import { viewAlertsAction } from "./viewAlertsAction";
+import { testLiveAlertsAction } from "./testLiveAlertsAction";
+
+// New Bitcoin Intelligence Actions
+import { bitcoinMorningBriefingAction } from "./bitcoinMorningBriefingAction";
+import { bitcoinKnowledgeAction } from "./bitcoinKnowledgeAction";
+import { satoshiReasoningAction } from "./satoshiReasoningAction";
+import { advancedSatoshiReasoningAction } from "./advancedSatoshiReasoningAction";
 
 // Core Actions - Newly refactored
 import { helloWorldAction } from "./helloWorldAction";
@@ -49,6 +58,10 @@ export { bitcoinPriceAction };
 export { altcoinPriceAction };
 export { weatherAction };
 export { enhancedKnowledgeSearchAction };
+
+// New Bitcoin Intelligence Actions
+export { bitcoinMorningBriefingAction };
+export { bitcoinKnowledgeAction };
 
 // Newly refactored core actions
 export { helloWorldAction };
@@ -76,9 +89,6 @@ export { trendingCoinsAction };
 export { stockMarketAction };
 export { etfFlowAction };
 
-// NFT Actions
-export { curatedNFTsAction };
-
 // Travel & Booking Actions
 export { hotelSearchAction };
 export { hotelDealAlertAction };
@@ -87,12 +97,31 @@ export { travelInsightsAction };
 export { hotelRateIntelligenceAction };
 export { weeklyHotelSuggestionsAction };
 
+// New Bitcoin Intelligence Actions
+export { satoshiReasoningAction };
+export { advancedSatoshiReasoningAction };
+
+// Feedback Actions
+export { feedbackAction };
+export { feedbackStatsAction };
+
+// New Actions
+export { viewAlertsAction };
+export { testLiveAlertsAction };
+
 // Export action categories for easy access
 export const ACTION_CATEGORIES = {
-  CORE: "core",
   MARKET: "market",
-  NFT: "nft",
+  BITCOIN: "bitcoin",
+  ALTCOIN: "altcoin",
   TRAVEL: "travel",
+  LIFESTYLE: "lifestyle",
+  SYSTEM: "system",
+  ANALYSIS: "analysis",
+  KNOWLEDGE: "knowledge",
+  FEEDBACK: "feedback",
+  ALERTS: "alerts",
+  ETF: "etf",
 } as const;
 
 export const ACTION_PRIORITIES = {
@@ -348,16 +377,6 @@ export const actionRegistry: Record<string, ActionRegistryEntry> = {
     dependencies: ["etf-data-service"],
   },
 
-  // NFT Actions
-  CURATED_NFTS: {
-    action: curatedNFTsAction,
-    category: "nft",
-    priority: "medium",
-    description: "Curated NFT collections and market analysis",
-    tags: ["nft", "collections", "curation", "market"],
-    dependencies: ["nft-data-service"],
-  },
-
   // Travel & Booking Actions
   HOTEL_SEARCH: {
     action: hotelSearchAction,
@@ -411,6 +430,52 @@ export const actionRegistry: Record<string, ActionRegistryEntry> = {
     description: "Weekly hotel suggestions and recommendations",
     tags: ["hotel", "suggestions", "recommendations", "travel"],
     dependencies: ["travel-data-service"],
+  },
+
+  // New Bitcoin Intelligence Actions
+  SATOSHI_REASONING: {
+    action: satoshiReasoningAction,
+    category: "core",
+    priority: "high",
+    description: "Satoshi's reasoning and insights",
+    tags: ["satoshi", "reasoning", "insights"],
+    isCore: true,
+  },
+
+  ADVANCED_SATOSHI_REASONING: {
+    action: advancedSatoshiReasoningAction,
+    category: "core",
+    priority: "high",
+    description: "Advanced Satoshi reasoning and insights",
+    tags: ["satoshi", "reasoning", "insights", "advanced"],
+    isCore: true,
+  },
+
+  FEEDBACK: {
+    action: feedbackAction,
+    category: "core",
+    priority: "high",
+    description: "User feedback and survey action",
+    tags: ["feedback", "survey"],
+    isCore: true,
+  },
+
+  VIEW_ALERTS: {
+    action: viewAlertsAction,
+    category: "core",
+    priority: "high",
+    description: "View alerts and notifications",
+    tags: ["alerts", "notifications"],
+    isCore: true,
+  },
+
+  TEST_LIVE_ALERTS: {
+    action: testLiveAlertsAction,
+    category: "testing",
+    priority: "medium",
+    description: "Generate sample alerts for testing the live alerting system",
+    tags: ["alerts", "testing", "demo"],
+    isCore: false,
   },
 };
 

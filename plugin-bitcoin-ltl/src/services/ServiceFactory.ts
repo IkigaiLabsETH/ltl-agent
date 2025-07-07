@@ -1,10 +1,8 @@
 import { IAgentRuntime, logger, Service } from "@elizaos/core";
-import { BitcoinDataService } from "./BitcoinDataService";
-import { BitcoinNetworkDataService } from "./BitcoinNetworkDataService";
 import { StockDataService } from "./StockDataService";
+import { BTCPerformanceService } from "./BTCPerformanceService";
 import { AltcoinDataService } from "./AltcoinDataService";
 import { ETFDataService } from "./ETFDataService";
-import { NFTDataService } from "./NFTDataService";
 import { LifestyleDataService } from "./LifestyleDataService";
 import { TravelDataService } from "./TravelDataService";
 import { CulturalContextService } from "./CulturalContextService";
@@ -15,6 +13,15 @@ import { PerformanceTrackingService } from "./PerformanceTrackingService";
 import { KnowledgeDigestService } from "./KnowledgeDigestService";
 import { SlackIngestionService } from "./SlackIngestionService";
 import { SchedulerService } from "./SchedulerService";
+import { LiveAlertService } from "./LiveAlertService";
+
+// New Bitcoin Intelligence Services
+import { BitcoinIntelligenceService } from "./BitcoinIntelligenceService";
+import { MarketIntelligenceService } from "./MarketIntelligenceService";
+import { InstitutionalAdoptionService } from "./InstitutionalAdoptionService";
+import { ConfigurationService } from "./ConfigurationService";
+import { KnowledgeBaseService } from "./KnowledgeBaseService";
+import { AdvancedMarketIntelligenceService } from "./AdvancedMarketIntelligenceService";
 
 // Pretty formatting
 import { 
@@ -79,15 +86,19 @@ export class ServiceFactory {
       
       // Initialize services in dependency order
       const serviceClasses = [
-        // Core data services (no dependencies)
-        BitcoinDataService,
-        BitcoinNetworkDataService,
+        // New Bitcoin Intelligence Services (Phase 2 & 3)
+        ConfigurationService,
+        BitcoinIntelligenceService,
+        MarketIntelligenceService,
+        InstitutionalAdoptionService,
+        KnowledgeBaseService,
+        AdvancedMarketIntelligenceService,
+        BTCPerformanceService,
 
         // Market data services
         StockDataService,
         AltcoinDataService,
         ETFDataService,
-        NFTDataService,
 
         // Lifestyle and travel services
         LifestyleDataService,
@@ -96,6 +107,7 @@ export class ServiceFactory {
 
         // Real-time and aggregation services
         RealTimeDataService,
+        LiveAlertService,
 
         // Analysis and intelligence services
         MorningBriefingService,
@@ -117,14 +129,14 @@ export class ServiceFactory {
         const ServiceClass = serviceClasses[i];
         try {
           const serviceName = ServiceClass.name;
+          const serviceType = ServiceClass.serviceType || ServiceClass.name.toLowerCase();
+          
+          console.log(`[DEBUG] Registering service: ${serviceName} with serviceType: ${serviceType}`);
           console.log(serviceStartup(serviceName));
           console.log(progressBar(i + 1, serviceClasses.length, 30));
 
           const service = await ServiceClass.start(runtime);
-          this.serviceInstances.set(
-            ServiceClass.serviceType || ServiceClass.name.toLowerCase(),
-            service,
-          );
+          this.serviceInstances.set(serviceType, service);
 
           console.log(serviceStarted(serviceName));
 
