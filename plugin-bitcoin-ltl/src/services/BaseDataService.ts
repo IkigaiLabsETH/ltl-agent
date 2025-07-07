@@ -1,6 +1,7 @@
 import { IAgentRuntime, Service, elizaLogger } from "@elizaos/core";
 import { v4 as uuidv4 } from "uuid";
 import { getConfigurationManager, ServiceConfig } from "./ConfigurationManager";
+import { getPerformanceMonitor } from "../utils/PerformanceMonitor";
 
 /**
  * Custom error types for better error handling
@@ -197,6 +198,9 @@ export abstract class BaseDataService extends Service {
   protected configKey: keyof ServiceConfig;
   protected serviceConfig: any;
 
+  // Performance monitoring
+  protected performanceMonitor = getPerformanceMonitor();
+
   constructor(runtime: IAgentRuntime, configKey: keyof ServiceConfig) {
     super();
     this.runtime = runtime;
@@ -230,6 +234,10 @@ export abstract class BaseDataService extends Service {
 
     // Watch for configuration changes
     this.watchConfiguration();
+
+    // Start performance monitoring for this service
+    const serviceName = this.constructor.name;
+    this.performanceMonitor.startServiceTimer(serviceName);
   }
 
   /**
@@ -321,6 +329,11 @@ export abstract class BaseDataService extends Service {
     elizaLogger.info(
       `[${this.constructor.name}:${this.correlationId}] Stopping service...`,
     );
+
+    // End performance monitoring for this service
+    const serviceName = this.constructor.name;
+    this.performanceMonitor.endServiceTimer(serviceName);
+    this.performanceMonitor.takeMemorySnapshot();
 
     // Clear any pending requests
     this.requestQueue = [];
