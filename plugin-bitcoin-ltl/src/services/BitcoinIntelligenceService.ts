@@ -172,30 +172,8 @@ export class BitcoinIntelligenceService extends Service {
   }
 
   async start(): Promise<void> {
-    this.contextLogger.info("🟠 Starting Bitcoin Intelligence Service");
-    
-    // Get dependent services
-    this.btcPerformanceService = this.runtime.getService("btc-performance") as unknown as BTCPerformanceService;
-    this.bitcoinNetworkService = this.runtime.getService("bitcoin-network-data") as BitcoinNetworkDataService;
-    
-    if (!this.btcPerformanceService) {
-      this.contextLogger.warn("⚠️ BTC Performance Service not available");
-    }
-    
-    if (!this.bitcoinNetworkService) {
-      this.contextLogger.warn("⚠️ Bitcoin Network Data Service not available");
-    }
-    
-    // Initial data fetch
-    await this.updateIntelligenceData();
-    
-    // Set up periodic updates (every 5 minutes)
-    this.updateInterval = setInterval(
-      () => this.updateIntelligenceData(),
-      5 * 60 * 1000
-    );
-    
-    this.contextLogger.info("🟠 Bitcoin Intelligence Service started");
+    // No-op for now; required by Service interface
+    return;
   }
 
   async stop(): Promise<void> {
