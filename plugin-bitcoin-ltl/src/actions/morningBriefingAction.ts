@@ -24,18 +24,16 @@ export const morningBriefingAction: Action = createActionTemplate({
   examples: [
     [
       {
-        name: "{{user}}",
-        content: { text: "GM" },
+        name: "{{name1}}",
+        content: { text: "Give me the morning briefing." }
       },
       {
-        name: "Satoshi",
+        name: "{{name2}}",
         content: {
-          text: "GM. 07:30. Clear skies. Bitcoin at $100,500. ETH and SOL outperforming overnight. MSTR up 3.2% on correlation play. No new urgent signals from research channels. Support holding strong.",
-          thought:
-            "User greeted with GM - classic Bitcoin morning greeting. I should provide a comprehensive morning briefing covering market conditions, weather, and research insights to start their day.",
-          actions: ["MORNING_BRIEFING"],
-        },
-      },
+          text: "GM. 07:30. Clear skies. Bitcoin at [Real-time data]. ETH and SOL outperforming overnight. MSTR up [change]% on correlation play. No new urgent signals from research channels. Support holding strong.",
+          actions: ["MORNING_BRIEFING"]
+        }
+      }
     ],
     [
       {

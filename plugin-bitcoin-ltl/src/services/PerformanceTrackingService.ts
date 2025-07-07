@@ -179,8 +179,8 @@ export class PerformanceTrackingService extends BaseDataService {
           "Institutional adoption will drive Bitcoin to $100K by end of 2024",
         confidence: 0.85,
         timeframe: "12 months",
-        predictedPrice: 100000,
-        targetPrice: 100000,
+        predictedPrice: 0, // No fallback price - will be calculated from real data
+        targetPrice: 0, // No fallback price - will be calculated from real data
         catalysts: [
           "ETF approvals",
           "Corporate adoption",
@@ -198,7 +198,7 @@ export class PerformanceTrackingService extends BaseDataService {
           "MetaPlanet will outperform Bitcoin by 5x due to Japanese Bitcoin strategy",
         confidence: 0.75,
         timeframe: "6 months",
-        priceRange: { min: 500, max: 2000 },
+        priceRange: { min: 0, max: 0 }, // No fallback range - will be calculated from real data
         catalysts: [
           "Japanese regulation",
           "Bitcoin treasury strategy",
@@ -237,7 +237,7 @@ export class PerformanceTrackingService extends BaseDataService {
     const sampleOutcomes = [
       {
         predictionId: "pred-bitcoin-institutional-2024",
-        actualPrice: 100000,
+        actualPrice: 0, // No fallback price - will be calculated from real data
         actualOutcome:
           "Bitcoin reached $100K as predicted with institutional adoption",
         accuracy: 0.95,
@@ -252,7 +252,7 @@ export class PerformanceTrackingService extends BaseDataService {
       },
       {
         predictionId: "pred-metaplanet-growth-2024",
-        actualPrice: 1500,
+        actualPrice: 0, // No fallback price - will be calculated from real data
         actualOutcome: "MetaPlanet delivered 50x outperformance vs Bitcoin",
         accuracy: 0.9,
         profitability: 5000, // 5000% gain

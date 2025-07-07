@@ -95,16 +95,15 @@ export const bitcoinPriceAction: Action = {
     [
       {
         name: "{{name1}}",
-        content: { text: "What is the current Bitcoin price?" },
+        content: { text: "What is the current Bitcoin price?" }
       },
       {
         name: "{{name2}}",
         content: {
-          text: "Bitcoin is currently trading at $95,432 USD, up 2.15% in the last 24 hours. Market cap: $1.9 trillion.",
-          thought: "Retrieved current Bitcoin price from market data provider.",
-          actions: ["GET_BITCOIN_PRICE"],
-        },
-      },
+          text: "Bitcoin is currently trading at [Real-time data] USD, [change] in the last 24 hours. Market cap: [Real-time data].",
+          actions: ["BITCOIN_PRICE"]
+        }
+      }
     ],
     [
       {
