@@ -8,7 +8,7 @@ import {
 import { CentralizedConfigService } from "./CentralizedConfigService";
 import { CacheService } from "./CacheService";
 import { PerformanceMonitorService } from "./PerformanceMonitorService";
-import { BitcoinNetworkService } from "./BitcoinNetworkService";
+import { BitcoinIntelligenceService } from "./BitcoinIntelligenceService";
 import { MarketDataService } from "./MarketDataService";
 
 /**
@@ -20,7 +20,7 @@ export interface IntegrationStatus {
     config: boolean;
     cache: boolean;
     performance: boolean;
-    bitcoinNetwork: boolean;
+    bitcoinIntelligence: boolean;
     marketData: boolean;
   };
   lastHealthCheck: number;
@@ -51,7 +51,7 @@ export class IntegrationService extends BaseDataService {
   private configService: CentralizedConfigService | null = null;
   private cacheService: CacheService | null = null;
   private performanceService: PerformanceMonitorService | null = null;
-  private bitcoinNetworkService: BitcoinNetworkService | null = null;
+  private bitcoinIntelligenceService: BitcoinIntelligenceService | null = null;
   private marketDataService: MarketDataService | null = null;
   private integrationConfig: IntegrationConfig;
   private healthCheckInterval: NodeJS.Timeout | null = null;
@@ -254,14 +254,14 @@ export class IntegrationService extends BaseDataService {
    */
   private async initializeDataServices(): Promise<void> {
     try {
-      // Initialize Bitcoin Network Service
-      this.bitcoinNetworkService = this.runtime.getService(
-        "bitcoin-network",
-      ) as BitcoinNetworkService;
-      if (!this.bitcoinNetworkService) {
-        this.contextLogger.warn("BitcoinNetworkService not found");
+      // Initialize Bitcoin Intelligence Service
+      this.bitcoinIntelligenceService = this.runtime.getService(
+        "bitcoin-intelligence",
+      ) as BitcoinIntelligenceService;
+      if (!this.bitcoinIntelligenceService) {
+        this.contextLogger.warn("BitcoinIntelligenceService not found");
       } else {
-        this.contextLogger.info("Bitcoin Network service initialized");
+        this.contextLogger.info("Bitcoin Intelligence service initialized");
       }
 
       // Initialize Market Data Service
@@ -304,9 +304,9 @@ export class IntegrationService extends BaseDataService {
 
       // Set up data service performance monitoring
       if (this.performanceService) {
-        if (this.bitcoinNetworkService) {
+        if (this.bitcoinIntelligenceService) {
           this.contextLogger.info(
-            "Bitcoin Network service performance monitoring enabled",
+            "Bitcoin Intelligence service performance monitoring enabled",
           );
         }
         if (this.marketDataService) {
@@ -386,7 +386,7 @@ export class IntegrationService extends BaseDataService {
           config: this.configService !== null,
           cache: this.cacheService !== null,
           performance: this.performanceService !== null,
-          bitcoinNetwork: this.bitcoinNetworkService !== null,
+          bitcoinIntelligence: this.bitcoinIntelligenceService !== null,
           marketData: this.marketDataService !== null,
         },
         lastHealthCheck: Date.now(),
@@ -466,13 +466,13 @@ export class IntegrationService extends BaseDataService {
   async getStatus(): Promise<IntegrationStatus> {
     const status: IntegrationStatus = {
       isHealthy: this.isInitialized,
-      services: {
-        config: this.configService !== null,
-        cache: this.cacheService !== null,
-        performance: this.performanceService !== null,
-        bitcoinNetwork: this.bitcoinNetworkService !== null,
-        marketData: this.marketDataService !== null,
-      },
+              services: {
+          config: this.configService !== null,
+          cache: this.cacheService !== null,
+          performance: this.performanceService !== null,
+          bitcoinIntelligence: this.bitcoinIntelligenceService !== null,
+          marketData: this.marketDataService !== null,
+        },
       lastHealthCheck: Date.now(),
       uptime: Date.now() - this.startTime,
       errorCount: this.errorCount,
@@ -492,14 +492,14 @@ export class IntegrationService extends BaseDataService {
     config: CentralizedConfigService | null;
     cache: CacheService | null;
     performance: PerformanceMonitorService | null;
-    bitcoinNetwork: BitcoinNetworkService | null;
+    bitcoinIntelligence: BitcoinIntelligenceService | null;
     marketData: MarketDataService | null;
   } {
     return {
       config: this.configService,
       cache: this.cacheService,
       performance: this.performanceService,
-      bitcoinNetwork: this.bitcoinNetworkService,
+      bitcoinIntelligence: this.bitcoinIntelligenceService,
       marketData: this.marketDataService,
     };
   }
@@ -554,8 +554,8 @@ export class IntegrationService extends BaseDataService {
 
       const promises: Promise<any>[] = [];
 
-      if (this.bitcoinNetworkService) {
-        promises.push(this.bitcoinNetworkService.forceUpdate());
+      if (this.bitcoinIntelligenceService) {
+        promises.push(this.bitcoinIntelligenceService.forceUpdate());
       }
 
       if (this.marketDataService) {

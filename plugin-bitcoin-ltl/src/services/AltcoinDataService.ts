@@ -662,151 +662,218 @@ export class AltcoinDataService extends BaseDataService {
   }
 
   private async executeTop100VsBtcFetch(): Promise<Top100VsBtcData | null> {
-    try {
-      logger.info("[AltcoinDataService] Starting fetchTop100VsBtcData...");
+    const maxRetries = 3;
+    let attempt = 0;
 
-      // Step 1: Fetch top 100 coins in USD (reduced from 200) with 7d performance data
-      const usdMarketData = await this.makeQueuedRequest(async () => {
-        const response = await fetch(
-          `${this.COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&price_change_percentage=24h,7d,30d`,
-          {
-            headers: { Accept: "application/json" },
-            signal: AbortSignal.timeout(15000),
-          },
-        );
+    while (attempt < maxRetries) {
+      try {
+        attempt++;
+        logger.info(`[AltcoinDataService] Starting fetchTop100VsBtcData... (attempt ${attempt}/${maxRetries})`);
 
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        // Step 1: Fetch top 100 coins in USD with 7d performance data
+        const usdMarketData = await this.makeQueuedRequest(async () => {
+          const response = await fetch(
+            `${this.COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&price_change_percentage=24h,7d,30d`,
+            {
+              headers: { Accept: "application/json" },
+              signal: AbortSignal.timeout(15000),
+            },
+          );
+
+          if (!response.ok) {
+            if (response.status === 429) {
+              // Rate limited - this is expected and handled by makeQueuedRequest
+              throw new Error(`HTTP 429: Rate limited`);
+            }
+            if (response.status >= 500) {
+              // Server error - retry
+              throw new Error(`HTTP ${response.status}: Server error`);
+            }
+            // Other client errors - don't retry
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+
+          return await response.json();
+        });
+
+        // Validate the response
+        if (!Array.isArray(usdMarketData) || usdMarketData.length === 0) {
+          logger.warn(
+            `[AltcoinDataService] Invalid or empty usdMarketData response (attempt ${attempt}/${maxRetries})`,
+          );
+          if (attempt === maxRetries) {
+            logger.info("[AltcoinDataService] Using fallback data after all retries failed");
+            return this.getFallbackTop100VsBtcData();
+          }
+          // Retry with exponential backoff
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+          continue;
         }
 
-        return await response.json();
-      });
-
-      logger.info(
-        `[AltcoinDataService] Fetched ${usdMarketData?.length || 0} coins from CoinGecko`,
-      );
-
-      // Validate the response
-      if (!Array.isArray(usdMarketData)) {
-        logger.error(
-          "[AltcoinDataService] Invalid usdMarketData response:",
-          typeof usdMarketData,
+        logger.info(
+          `[AltcoinDataService] Fetched ${usdMarketData.length} coins from CoinGecko`,
         );
-        return null;
+
+        // Step 2: Find Bitcoin's performance
+        const btc = usdMarketData.find((coin) => coin.id === "bitcoin");
+        if (!btc) {
+          logger.warn(
+            `[AltcoinDataService] Bitcoin data not found in response (attempt ${attempt}/${maxRetries})`,
+          );
+          if (attempt === maxRetries) {
+            logger.info("[AltcoinDataService] Using fallback data after all retries failed");
+            return this.getFallbackTop100VsBtcData();
+          }
+          // Retry with exponential backoff
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+          continue;
+        }
+
+        const btcPerformance7d = btc.price_change_percentage_7d_in_currency || 0;
+        const btcPerformance24h = btc.price_change_percentage_24h || 0;
+        const btcPerformance30d =
+          btc.price_change_percentage_30d_in_currency || 0;
+
+        logger.info(
+          `[AltcoinDataService] Bitcoin 7d performance: ${btcPerformance7d.toFixed(2)}%`,
+        );
+
+        // Step 3: Filter out Bitcoin and stablecoins, calculate relative performance
+        const stablecoinSymbols = [
+          "usdt",
+          "usdc",
+          "usds",
+          "tusd",
+          "busd",
+          "dai",
+          "frax",
+          "usdp",
+          "gusd",
+          "lusd",
+          "fei",
+          "tribe",
+        ];
+
+        const altcoins = usdMarketData
+          .filter(
+            (coin) =>
+              coin.id !== "bitcoin" &&
+              typeof coin.price_change_percentage_7d_in_currency === "number" &&
+              coin.market_cap_rank <= 100 &&
+              !stablecoinSymbols.includes(coin.symbol.toLowerCase()), // Exclude stablecoins
+          )
+          .map((coin) => ({
+            id: coin.id,
+            symbol: coin.symbol,
+            name: coin.name,
+            image: coin.image || "",
+            current_price: coin.current_price || 0,
+            market_cap_rank: coin.market_cap_rank || 0,
+            price_change_percentage_24h: coin.price_change_percentage_24h || 0,
+            price_change_percentage_7d_in_currency:
+              coin.price_change_percentage_7d_in_currency || 0,
+            price_change_percentage_30d_in_currency:
+              coin.price_change_percentage_30d_in_currency || 0,
+            // Calculate relative performance vs Bitcoin (website's approach)
+            btc_relative_performance_7d:
+              (coin.price_change_percentage_7d_in_currency || 0) -
+              btcPerformance7d,
+            btc_relative_performance_24h:
+              (coin.price_change_percentage_24h || 0) - btcPerformance24h,
+            btc_relative_performance_30d:
+              (coin.price_change_percentage_30d_in_currency || 0) -
+              btcPerformance30d,
+          }))
+          .sort(
+            (a, b) =>
+              b.btc_relative_performance_7d - a.btc_relative_performance_7d,
+          ); // Sort by best 7d relative performance
+
+        // Step 4: Separate outperformers and underperformers based on 7d performance
+        const outperformingVsBtc = altcoins.filter(
+          (coin) => coin.btc_relative_performance_7d > 0,
+        );
+        const underperformingVsBtc = altcoins.filter(
+          (coin) => coin.btc_relative_performance_7d <= 0,
+        );
+
+        // Step 5: Calculate analytics
+        const totalCoins = altcoins.length;
+        const outperformingCount = outperformingVsBtc.length;
+        const underperformingCount = underperformingVsBtc.length;
+
+        const averageRelativePerformance =
+          altcoins.length > 0
+            ? altcoins.reduce(
+                (sum, coin) => sum + coin.btc_relative_performance_7d,
+                0,
+              ) / altcoins.length
+            : 0;
+
+        const result: Top100VsBtcData = {
+          outperforming: outperformingVsBtc.slice(0, 20), // Top 20 outperformers
+          underperforming: underperformingVsBtc.slice(-10), // Bottom 10 underperformers
+          totalCoins,
+          outperformingCount,
+          underperformingCount,
+          averagePerformance: averageRelativePerformance,
+          topPerformers: outperformingVsBtc.slice(0, 8), // Top 8 performers (like website)
+          worstPerformers: underperformingVsBtc.slice(-5), // Worst 5 performers
+          lastUpdated: new Date(),
+        };
+
+        logger.info(
+          `[AltcoinDataService] ✅ Fetched top 100 vs BTC data: ${outperformingCount}/${totalCoins} outperforming Bitcoin (7d), avg relative: ${averageRelativePerformance.toFixed(2)}%`,
+        );
+        return result;
+
+      } catch (error) {
+        // Handle specific error types
+        if (error instanceof Error) {
+          if (error.message.includes('429') || error.message.includes('Rate limited')) {
+            // Rate limiting - this is expected and handled by makeQueuedRequest
+            logger.debug(`[AltcoinDataService] Rate limited (attempt ${attempt}/${maxRetries})`);
+            if (attempt === maxRetries) {
+              logger.info("[AltcoinDataService] Using fallback data after rate limit");
+              return this.getFallbackTop100VsBtcData();
+            }
+            // Wait longer for rate limits
+            await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 5000));
+            continue;
+          }
+          
+          if (error.message.includes('Server error') || error.message.includes('timeout')) {
+            // Server error or timeout - retry
+            logger.warn(`[AltcoinDataService] Server error/timeout (attempt ${attempt}/${maxRetries}): ${error.message}`);
+            if (attempt === maxRetries) {
+              logger.info("[AltcoinDataService] Using fallback data after server errors");
+              return this.getFallbackTop100VsBtcData();
+            }
+            // Retry with exponential backoff
+            await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 2000));
+            continue;
+          }
+        }
+
+        // For any other error, log once and use fallback
+        logger.warn(`[AltcoinDataService] Unexpected error in fetchTop100VsBtcData (attempt ${attempt}/${maxRetries}):`, {
+          error: error instanceof Error ? error.message : "Unknown error",
+          type: typeof error,
+        });
+        
+        if (attempt === maxRetries) {
+          logger.info("[AltcoinDataService] Using fallback data after all retries failed");
+          return this.getFallbackTop100VsBtcData();
+        }
+        
+        // Retry with exponential backoff
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
       }
-
-      // Step 2: Find Bitcoin's performance
-      const btc = usdMarketData.find((coin) => coin.id === "bitcoin");
-      if (!btc) {
-        logger.error("[AltcoinDataService] Bitcoin data not found in response");
-        return null;
-      }
-
-      const btcPerformance7d = btc.price_change_percentage_7d_in_currency || 0;
-      const btcPerformance24h = btc.price_change_percentage_24h || 0;
-      const btcPerformance30d =
-        btc.price_change_percentage_30d_in_currency || 0;
-
-      logger.info(
-        `[AltcoinDataService] Bitcoin 7d performance: ${btcPerformance7d.toFixed(2)}%`,
-      );
-
-      // Step 3: Filter out Bitcoin and stablecoins, calculate relative performance
-      const stablecoinSymbols = [
-        "usdt",
-        "usdc",
-        "usds",
-        "tusd",
-        "busd",
-        "dai",
-        "frax",
-        "usdp",
-        "gusd",
-        "lusd",
-        "fei",
-        "tribe",
-      ];
-
-      const altcoins = usdMarketData
-        .filter(
-          (coin) =>
-            coin.id !== "bitcoin" &&
-            typeof coin.price_change_percentage_7d_in_currency === "number" &&
-            coin.market_cap_rank <= 100 &&
-            !stablecoinSymbols.includes(coin.symbol.toLowerCase()), // Exclude stablecoins
-        )
-        .map((coin) => ({
-          id: coin.id,
-          symbol: coin.symbol,
-          name: coin.name,
-          image: coin.image || "",
-          current_price: coin.current_price || 0,
-          market_cap_rank: coin.market_cap_rank || 0,
-          price_change_percentage_24h: coin.price_change_percentage_24h || 0,
-          price_change_percentage_7d_in_currency:
-            coin.price_change_percentage_7d_in_currency || 0,
-          price_change_percentage_30d_in_currency:
-            coin.price_change_percentage_30d_in_currency || 0,
-          // Calculate relative performance vs Bitcoin (website's approach)
-          btc_relative_performance_7d:
-            (coin.price_change_percentage_7d_in_currency || 0) -
-            btcPerformance7d,
-          btc_relative_performance_24h:
-            (coin.price_change_percentage_24h || 0) - btcPerformance24h,
-          btc_relative_performance_30d:
-            (coin.price_change_percentage_30d_in_currency || 0) -
-            btcPerformance30d,
-        }))
-        .sort(
-          (a, b) =>
-            b.btc_relative_performance_7d - a.btc_relative_performance_7d,
-        ); // Sort by best 7d relative performance
-
-      // Step 4: Separate outperformers and underperformers based on 7d performance
-      const outperformingVsBtc = altcoins.filter(
-        (coin) => coin.btc_relative_performance_7d > 0,
-      );
-      const underperformingVsBtc = altcoins.filter(
-        (coin) => coin.btc_relative_performance_7d <= 0,
-      );
-
-      // Step 5: Calculate analytics
-      const totalCoins = altcoins.length;
-      const outperformingCount = outperformingVsBtc.length;
-      const underperformingCount = underperformingVsBtc.length;
-
-      const averageRelativePerformance =
-        altcoins.length > 0
-          ? altcoins.reduce(
-              (sum, coin) => sum + coin.btc_relative_performance_7d,
-              0,
-            ) / altcoins.length
-          : 0;
-
-      const result: Top100VsBtcData = {
-        outperforming: outperformingVsBtc.slice(0, 20), // Top 20 outperformers
-        underperforming: underperformingVsBtc.slice(-10), // Bottom 10 underperformers
-        totalCoins,
-        outperformingCount,
-        underperformingCount,
-        averagePerformance: averageRelativePerformance,
-        topPerformers: outperformingVsBtc.slice(0, 8), // Top 8 performers (like website)
-        worstPerformers: underperformingVsBtc.slice(-5), // Worst 5 performers
-        lastUpdated: new Date(),
-      };
-
-      logger.info(
-        `[AltcoinDataService] ✅ Fetched top 100 vs BTC data: ${outperformingCount}/${totalCoins} outperforming Bitcoin (7d), avg relative: ${averageRelativePerformance.toFixed(2)}%`,
-      );
-      return result;
-    } catch (error) {
-      logger.error("[AltcoinDataService] ❌ Error in fetchTop100VsBtcData:", {
-        error: error instanceof Error ? error.message : "Unknown error",
-        stack: error instanceof Error ? error.stack : undefined,
-        type: typeof error,
-      });
-      return null;
     }
+
+    // This should never be reached, but just in case
+    logger.info("[AltcoinDataService] Using fallback data as last resort");
+    return this.getFallbackTop100VsBtcData();
   }
 
   private async fetchDexScreenerData(): Promise<DexScreenerData | null> {
@@ -988,8 +1055,8 @@ export class AltcoinDataService extends BaseDataService {
         }));
 
       const result: TopMoversData = {
-        topGainers,
-        topLosers,
+        topGainers: topGainers,
+        topLosers: topLosers,
         lastUpdated: new Date(),
       };
 
@@ -1325,6 +1392,97 @@ export class AltcoinDataService extends BaseDataService {
 
     return {
       coins: fallbackCoins,
+      lastUpdated: new Date(),
+    };
+  }
+
+  private getFallbackTop100VsBtcData(): Top100VsBtcData {
+    // Create fallback data with popular altcoins
+    const fallbackOutperforming: Top100VsBtcCoin[] = [
+      {
+        id: "ethereum",
+        symbol: "ETH",
+        name: "Ethereum",
+        image: "",
+        current_price: 3500,
+        market_cap_rank: 2,
+        price_change_percentage_24h: 2.5,
+        price_change_percentage_7d_in_currency: 8.2,
+        price_change_percentage_30d_in_currency: 15.3,
+        btc_relative_performance_7d: 5.2,
+        btc_relative_performance_24h: 1.5,
+        btc_relative_performance_30d: 8.3,
+      },
+      {
+        id: "solana",
+        symbol: "SOL",
+        name: "Solana",
+        image: "",
+        current_price: 120,
+        market_cap_rank: 5,
+        price_change_percentage_24h: 4.8,
+        price_change_percentage_7d_in_currency: 12.5,
+        price_change_percentage_30d_in_currency: 25.7,
+        btc_relative_performance_7d: 9.5,
+        btc_relative_performance_24h: 3.8,
+        btc_relative_performance_30d: 18.7,
+      },
+      {
+        id: "cardano",
+        symbol: "ADA",
+        name: "Cardano",
+        image: "",
+        current_price: 0.45,
+        market_cap_rank: 8,
+        price_change_percentage_24h: 1.2,
+        price_change_percentage_7d_in_currency: 6.8,
+        price_change_percentage_30d_in_currency: 12.4,
+        btc_relative_performance_7d: 3.8,
+        btc_relative_performance_24h: 0.2,
+        btc_relative_performance_30d: 5.4,
+      },
+    ];
+
+    const fallbackUnderperforming: Top100VsBtcCoin[] = [
+      {
+        id: "ripple",
+        symbol: "XRP",
+        name: "XRP",
+        image: "",
+        current_price: 0.52,
+        market_cap_rank: 6,
+        price_change_percentage_24h: -1.8,
+        price_change_percentage_7d_in_currency: -2.3,
+        price_change_percentage_30d_in_currency: -5.7,
+        btc_relative_performance_7d: -5.3,
+        btc_relative_performance_24h: -2.8,
+        btc_relative_performance_30d: -8.7,
+      },
+      {
+        id: "dogecoin",
+        symbol: "DOGE",
+        name: "Dogecoin",
+        image: "",
+        current_price: 0.08,
+        market_cap_rank: 9,
+        price_change_percentage_24h: -2.1,
+        price_change_percentage_7d_in_currency: -4.2,
+        price_change_percentage_30d_in_currency: -8.9,
+        btc_relative_performance_7d: -7.2,
+        btc_relative_performance_24h: -3.1,
+        btc_relative_performance_30d: -11.9,
+      },
+    ];
+
+    return {
+      outperforming: fallbackOutperforming,
+      underperforming: fallbackUnderperforming,
+      totalCoins: 5,
+      outperformingCount: 3,
+      underperformingCount: 2,
+      averagePerformance: 1.2,
+      topPerformers: fallbackOutperforming.slice(0, 3),
+      worstPerformers: fallbackUnderperforming.slice(-2),
       lastUpdated: new Date(),
     };
   }

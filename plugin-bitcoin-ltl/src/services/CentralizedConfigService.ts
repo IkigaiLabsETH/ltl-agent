@@ -65,7 +65,7 @@ const ConfigSchema = z.object({
     opensea: z.object({
       enabled: z.boolean().default(true),
       apiKey: z.string().optional(),
-      baseUrl: z.string().default("https://api.opensea.io/api/v1"),
+      baseUrl: z.string().default("https://api.opensea.io/api/v2"),
       timeout: z.number().default(10000),
     }),
     twitter: z.object({
@@ -512,7 +512,7 @@ export class CentralizedConfigService extends BaseDataService {
         opensea: {
           enabled: true,
           apiKey: undefined,
-          baseUrl: "https://api.opensea.io/api/v1",
+          baseUrl: "https://api.opensea.io/api/v2",
           timeout: 10000,
         },
         twitter: {

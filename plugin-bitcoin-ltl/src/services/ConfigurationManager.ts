@@ -199,6 +199,19 @@ const ServiceConfigSchema = z.object({
     })
     .default({}),
 
+  // BTC Performance Service Configuration
+  btcPerformance: z
+    .object({
+      enabled: z.boolean().default(true),
+      cacheTimeout: z.number().default(300000), // 5 minutes
+      updateInterval: z.number().default(300000), // 5 minutes
+      maxRetries: z.number().default(3),
+      includeAssetClasses: z
+        .array(z.string())
+        .default(["STOCK", "ALTCOIN", "COMMODITY", "INDEX"]),
+    })
+    .default({}),
+
   // Content Services Configuration
   knowledgeDigest: z
     .object({

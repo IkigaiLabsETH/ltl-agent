@@ -17,7 +17,6 @@ import {
 // Core imports
 import bitcoinTestSuite from "./tests";
 import {
-  BitcoinDataService,
   SlackIngestionService,
   MorningBriefingService,
   KnowledgeDigestService,
@@ -29,11 +28,15 @@ import {
   LifestyleDataService,
   ETFDataService,
   TravelDataService,
-  NFTDataService,
   AltcoinDataService,
-  BitcoinNetworkDataService,
   StarterService,
 } from "./services";
+
+// New Bitcoin Intelligence Services
+import { BitcoinIntelligenceService } from "./services/BitcoinIntelligenceService";
+import { MarketIntelligenceService } from "./services/MarketIntelligenceService";
+import { InstitutionalAdoptionService } from "./services/InstitutionalAdoptionService";
+import { ConfigurationService } from "./services/ConfigurationService";
 
 // Actions and Providers
 import {
@@ -44,7 +47,6 @@ import {
   dexScreenerAction,
   topMoversAction,
   trendingCoinsAction,
-  curatedNFTsAction,
   weatherAction,
   stockMarketAction,
   hotelSearchAction,
@@ -66,15 +68,18 @@ import {
   freedomMathematicsAction,
   altcoinBTCPerformanceAction,
   cryptoPriceLookupAction,
+  bitcoinMorningBriefingAction,
+  bitcoinKnowledgeAction,
+  satoshiReasoningAction,
+  advancedSatoshiReasoningAction,
+  feedbackAction,
+  feedbackStatsAction,
+  viewAlertsAction,
+  testLiveAlertsAction,
 } from "./actions";
 
-// Import culinary actions from individual files
-import { dailyCulinaryAction } from "./actions/dailyCulinaryAction";
-import { restaurantRecommendationAction } from "./actions/restaurantRecommendationAction";
-import { michelinHotelAction } from "./actions/michelinHotelAction";
-import { homeCookingAction } from "./actions/homeCookingAction";
-import { beverageInsightAction } from "./actions/beverageInsightAction";
-import { morningHealthAction } from "./actions/morningHealthAction";
+// Enhanced Bitcoin Intelligence Actions
+import { enhancedBitcoinMorningBriefingAction } from "./actions/enhancedBitcoinMorningBriefingAction";
 
 import { allProviders } from "./providers";
 
@@ -114,6 +119,22 @@ import {
 
 // Export error handling utilities for testing
 export { ElizaOSErrorHandler, validateElizaOSEnvironment };
+
+import { BTCPerformanceService } from './services/BTCPerformanceService';
+import { btcPerformanceProvider } from './providers/btcPerformanceProvider';
+import {
+  getBTCBenchmarkAction,
+  getAssetPerformanceAction,
+  getTopPerformersAction,
+  getUnderperformersAction
+} from './actions/btcPerformanceAction';
+
+import { dailyCulinaryAction } from './actions/dailyCulinaryAction';
+import { restaurantRecommendationAction } from './actions/restaurantRecommendationAction';
+import { michelinHotelAction } from './actions/michelinHotelAction';
+import { homeCookingAction } from './actions/homeCookingAction';
+import { beverageInsightAction } from './actions/beverageInsightAction';
+import { morningHealthAction } from './actions/morningHealthAction';
 
 /**
  * Bitcoin Plugin
@@ -169,7 +190,7 @@ const bitcoinPlugin: Plugin = {
     }
   },
 
-  providers: [...allProviders],
+  providers: [...allProviders, btcPerformanceProvider],
 
   actions: [
     morningBriefingAction,
@@ -179,7 +200,6 @@ const bitcoinPlugin: Plugin = {
     dexScreenerAction,
     topMoversAction,
     trendingCoinsAction,
-    curatedNFTsAction,
     weatherAction,
     stockMarketAction,
     etfFlowAction,
@@ -209,6 +229,27 @@ const bitcoinPlugin: Plugin = {
     michelinHotelAction,
     homeCookingAction,
     beverageInsightAction,
+    
+    // Enhanced Bitcoin Intelligence Actions
+    enhancedBitcoinMorningBriefingAction,
+    
+    // New Bitcoin Intelligence Actions (Phase 2 & 3)
+    bitcoinMorningBriefingAction,
+    bitcoinKnowledgeAction,
+    
+    // Phase 4: Satoshi Reasoning
+    satoshiReasoningAction,
+    
+    // Phase 4.5: Advanced Intelligence
+    advancedSatoshiReasoningAction,
+    
+    // User Feedback
+    feedbackAction,
+    feedbackStatsAction,
+    
+    // Live Alerting System
+    viewAlertsAction,
+    testLiveAlertsAction
   ],
 
   events: {
@@ -1177,12 +1218,12 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
       handler: async (req: any, res: any, runtime: IAgentRuntime) => {
         try {
           const service = runtime.getService(
-            "real-time-data",
-          ) as RealTimeDataService;
+            "altcoin-data",
+          ) as AltcoinDataService;
           if (!service) {
             return res.status(503).json({
               success: false,
-              error: "Real-time data service not available",
+              error: "Altcoin data service not available",
             });
           }
 
@@ -1252,15 +1293,9 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
           const forceUpdate = req.query.force === "true";
 
           let dexData;
-          if (forceUpdate) {
-            dexData = await service.forceDexScreenerUpdate();
-          } else {
-            dexData = service.getDexScreenerData();
-            if (!dexData) {
-              // Try to fetch if not cached
-              dexData = await service.forceDexScreenerUpdate();
-            }
-          }
+          // The force update feature is not available for RealTimeDataService
+          // Only get cached data
+          dexData = service.getDexScreenerData();
 
           if (!dexData) {
             return res.status(503).json({
@@ -1329,15 +1364,9 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
           const forceUpdate = req.query.force === "true";
 
           let dexData;
-          if (forceUpdate) {
-            dexData = await service.forceDexScreenerUpdate();
-          } else {
-            dexData = service.getDexScreenerData();
-            if (!dexData) {
-              // Try to fetch if not cached
-              dexData = await service.forceDexScreenerUpdate();
-            }
-          }
+          // The force update feature is not available for RealTimeDataService
+          // Only get cached data
+          dexData = service.getDexScreenerData();
 
           if (!dexData) {
             return res.status(503).json({
@@ -1374,7 +1403,6 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
   ],
 
   services: [
-    BitcoinDataService,
     SlackIngestionService,
     MorningBriefingService,
     KnowledgeDigestService,
@@ -1386,12 +1414,16 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
     LifestyleDataService,
     ETFDataService,
     TravelDataService,
-    NFTDataService,
     AltcoinDataService,
-    BitcoinNetworkDataService,
     StarterService,
     // Register CentralizedConfigService so it is available to all services
     require("./services/CentralizedConfigService").CentralizedConfigService,
+    // New Bitcoin Intelligence Services
+    BitcoinIntelligenceService,
+    MarketIntelligenceService,
+    InstitutionalAdoptionService,
+    ConfigurationService,
+    BTCPerformanceService,
   ],
 
   tests: [bitcoinTestSuite],
