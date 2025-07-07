@@ -129,14 +129,14 @@ export class ServiceFactory {
         const ServiceClass = serviceClasses[i];
         try {
           const serviceName = ServiceClass.name;
+          const serviceType = ServiceClass.serviceType || ServiceClass.name.toLowerCase();
+          
+          console.log(`[DEBUG] Registering service: ${serviceName} with serviceType: ${serviceType}`);
           console.log(serviceStartup(serviceName));
           console.log(progressBar(i + 1, serviceClasses.length, 30));
 
           const service = await ServiceClass.start(runtime);
-          this.serviceInstances.set(
-            ServiceClass.serviceType || ServiceClass.name.toLowerCase(),
-            service,
-          );
+          this.serviceInstances.set(serviceType, service);
 
           console.log(serviceStarted(serviceName));
 
