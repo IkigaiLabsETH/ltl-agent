@@ -3,7 +3,6 @@ import { StockDataService } from "./StockDataService";
 import { BTCPerformanceService } from "./BTCPerformanceService";
 import { AltcoinDataService } from "./AltcoinDataService";
 import { ETFDataService } from "./ETFDataService";
-import { NFTDataService } from "./NFTDataService";
 import { LifestyleDataService } from "./LifestyleDataService";
 import { TravelDataService } from "./TravelDataService";
 import { CulturalContextService } from "./CulturalContextService";
@@ -100,7 +99,6 @@ export class ServiceFactory {
         StockDataService,
         AltcoinDataService,
         ETFDataService,
-        NFTDataService,
 
         // Lifestyle and travel services
         LifestyleDataService,

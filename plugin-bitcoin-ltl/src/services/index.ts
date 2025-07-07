@@ -16,7 +16,6 @@ export { ETFDataService } from "./ETFDataService";
 
 // New focused services (replacing RealTimeDataService)
 export { MarketDataService } from "./MarketDataService";
-export { NFTDataService } from "./NFTDataService";
 export { NewsDataService } from "./NewsDataService";
 export { SocialSentimentService } from "./SocialSentimentService";
 

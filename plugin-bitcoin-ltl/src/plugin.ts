@@ -28,7 +28,6 @@ import {
   LifestyleDataService,
   ETFDataService,
   TravelDataService,
-  NFTDataService,
   AltcoinDataService,
   StarterService,
 } from "./services";
@@ -48,7 +47,6 @@ import {
   dexScreenerAction,
   topMoversAction,
   trendingCoinsAction,
-  curatedNFTsAction,
   weatherAction,
   stockMarketAction,
   hotelSearchAction,
@@ -202,7 +200,6 @@ const bitcoinPlugin: Plugin = {
     dexScreenerAction,
     topMoversAction,
     trendingCoinsAction,
-    curatedNFTsAction,
     weatherAction,
     stockMarketAction,
     etfFlowAction,
@@ -1429,7 +1426,6 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
     LifestyleDataService,
     ETFDataService,
     TravelDataService,
-    NFTDataService,
     AltcoinDataService,
     StarterService,
     // Register CentralizedConfigService so it is available to all services
