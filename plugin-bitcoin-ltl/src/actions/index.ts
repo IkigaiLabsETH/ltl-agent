@@ -16,7 +16,6 @@ import { topMoversAction } from "./topMoversAction";
 import { trendingCoinsAction } from "./trendingCoinsAction";
 import { stockMarketAction } from "./stockMarketAction";
 import { etfFlowAction } from "./etfFlowAction";
-import { curatedNFTsAction } from "./curatedNFTsAction";
 import { hotelSearchAction } from "./hotelSearchAction";
 import { hotelDealAlertAction } from "./hotelDealAlertAction";
 import { bookingOptimizationAction } from "./bookingOptimizationAction";
@@ -90,9 +89,6 @@ export { trendingCoinsAction };
 export { stockMarketAction };
 export { etfFlowAction };
 
-// NFT Actions
-export { curatedNFTsAction };
-
 // Travel & Booking Actions
 export { hotelSearchAction };
 export { hotelDealAlertAction };
@@ -115,10 +111,17 @@ export { testLiveAlertsAction };
 
 // Export action categories for easy access
 export const ACTION_CATEGORIES = {
-  CORE: "core",
   MARKET: "market",
-  NFT: "nft",
+  BITCOIN: "bitcoin",
+  ALTCOIN: "altcoin",
   TRAVEL: "travel",
+  LIFESTYLE: "lifestyle",
+  SYSTEM: "system",
+  ANALYSIS: "analysis",
+  KNOWLEDGE: "knowledge",
+  FEEDBACK: "feedback",
+  ALERTS: "alerts",
+  ETF: "etf",
 } as const;
 
 export const ACTION_PRIORITIES = {
@@ -372,16 +375,6 @@ export const actionRegistry: Record<string, ActionRegistryEntry> = {
     description: "ETF flow analysis and institutional movement tracking",
     tags: ["etf", "flow", "institutional", "analysis"],
     dependencies: ["etf-data-service"],
-  },
-
-  // NFT Actions
-  CURATED_NFTS: {
-    action: curatedNFTsAction,
-    category: "nft",
-    priority: "medium",
-    description: "Curated NFT collections and market analysis",
-    tags: ["nft", "collections", "curation", "market"],
-    dependencies: ["nft-data-service"],
   },
 
   // Travel & Booking Actions
