@@ -1213,7 +1213,7 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
       },
     },
     {
-      path: "/bitcoin/top100-vs-btc",
+      path: "/altcoins/curated",
       type: "GET",
       handler: async (req: any, res: any, runtime: IAgentRuntime) => {
         try {
@@ -1230,37 +1230,37 @@ Provide comprehensive, nuanced analysis while maintaining Bitcoin-maximalist per
           // Check for force update parameter
           const forceUpdate = req.query.force === "true";
 
-          let top100Data;
+          let curatedData;
           if (forceUpdate) {
-            top100Data = await service.forceTop100VsBtcUpdate();
+            curatedData = await service.forceCuratedAltcoinsUpdate();
           } else {
-            top100Data = service.getTop100VsBtcData();
-            if (!top100Data) {
+            curatedData = service.getCuratedAltcoinsData();
+            if (!curatedData) {
               // Try to fetch if not cached
-              top100Data = await service.forceTop100VsBtcUpdate();
+              curatedData = await service.forceCuratedAltcoinsUpdate();
             }
           }
 
-          if (!top100Data) {
+          if (!curatedData) {
             return res.status(503).json({
               success: false,
               error:
-                "Top 100 vs BTC data not available yet. Please try again in a few moments.",
-              hint: "Data is cached for 10 minutes. Use ?force=true to force refresh.",
+                "Curated altcoins data not available yet. Please try again in a few moments.",
+              hint: "Data is cached for 5 minutes. Use ?force=true to force refresh.",
             });
           }
 
           res.json({
             success: true,
-            data: top100Data,
+            data: curatedData,
             meta: {
               plugin: "bitcoin-ltl",
-              endpoint: "top100-vs-btc",
+              endpoint: "altcoins-curated",
               source: "CoinGecko API",
-              cacheDuration: "10 minutes",
-              revalidate: 600,
+              cacheDuration: "5 minutes",
+              revalidate: 300,
               description:
-                "Top 100 cryptocurrencies performance vs Bitcoin with outperforming/underperforming analysis",
+                "Curated altcoins market data with price, volume, and market cap information",
               disclaimer:
                 "Data from CoinGecko public API. Not financial advice.",
             },
