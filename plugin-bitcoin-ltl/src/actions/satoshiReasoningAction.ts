@@ -1,6 +1,7 @@
 import { Action, IAgentRuntime, Memory, State, HandlerCallback, Content } from "@elizaos/core";
 import { BitcoinIntelligenceService } from "../services/BitcoinIntelligenceService";
 import { KnowledgeBaseService } from "../services/KnowledgeBaseService";
+import { getRandomSatoshiEnding } from '../utils/btc-performance.utils';
 
 /**
  * Satoshi Reasoning Action (Enhanced)
@@ -86,7 +87,7 @@ export const satoshiReasoningAction: Action = {
       }
 
       // 6. Compose the response
-      const responseText = `🟠 **Satoshi Reasoning** 🟠\n\n**Your Question:**\n${userQuery}\n\n**Philosophy:**\n${satoshiQuote}\n\n**Knowledge Synthesis:**\n${knowledgeSummaries.length > 0 ? knowledgeSummaries.join("\n") : "(no relevant knowledge found)"}\n\n**Market Data:**\n${bitcoinData ? `Price: $${bitcoinData.network.price.toLocaleString()} | Market Cap: $${(bitcoinData.network.marketCap/1e9).toFixed(2)}B | Dominance: ${bitcoinData.network.dominance.toFixed(2)}%` : "(data unavailable)"}\n\n**Actionable Insight:**\n${actionable}\n`;
+      const responseText = `🟠 **Satoshi Reasoning** 🟠\n\n**Your Question:**\n${userQuery}\n\n**Philosophy:**\n${satoshiQuote}\n\n**Knowledge Synthesis:**\n${knowledgeSummaries.length > 0 ? knowledgeSummaries.join("\n") : "(no relevant knowledge found)"}\n\n**Market Data:**\n${bitcoinData ? `Price: $${bitcoinData.network.price.toLocaleString()} | Market Cap: $${(bitcoinData.network.marketCap/1e9).toFixed(2)}B | Dominance: ${bitcoinData.network.dominance.toFixed(2)}%` : "(data unavailable)"}\n\n**Actionable Insight:**\n${actionable}\n\n*${getRandomSatoshiEnding()}*`;
 
       const content: Content = {
         text: responseText,

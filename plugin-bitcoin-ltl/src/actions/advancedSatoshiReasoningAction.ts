@@ -1,6 +1,7 @@
 import { Action, IAgentRuntime, Memory, State, HandlerCallback, Content } from "@elizaos/core";
 import { AdvancedMarketIntelligenceService } from "../services/AdvancedMarketIntelligenceService";
 import { KnowledgeBaseService } from "../services/KnowledgeBaseService";
+import { getRandomSatoshiEnding } from '../utils/btc-performance.utils';
 
 /**
  * Advanced Satoshi Reasoning Action
@@ -78,45 +79,9 @@ export const advancedSatoshiReasoningAction: Action = {
       }
 
       // Compose advanced response
-      const responseText = `🟠 **Advanced Satoshi Intelligence** 🟠
-
-**Your Question:**
-${userQuery}
-
-**Philosophy:**
-${satoshiQuote}
-
-**Market Intelligence:**
-${marketConditions ? `
-🎯 **Market Condition:** ${marketConditions.type} (${(marketConditions.confidence * 100).toFixed(0)}% confidence)
-⚠️ **Risk Level:** ${marketConditions.riskLevel}
-📊 **Signals:** ${marketConditions.signals.join(', ')}
-` : 'Market data unavailable'}
-
-**Risk Assessment:**
-${riskAssessment ? `
-🔒 **Overall Risk:** ${riskAssessment.overallRisk}
-📈 **Market Risk:** ${(riskAssessment.marketRisk * 100).toFixed(0)}%
-📊 **Volatility Risk:** ${(riskAssessment.volatilityRisk * 100).toFixed(0)}%
-🔄 **Correlation Risk:** ${(riskAssessment.correlationRisk * 100).toFixed(0)}%
-💧 **Liquidity Risk:** ${(riskAssessment.liquidityRisk * 100).toFixed(0)}%
-` : 'Risk assessment unavailable'}
-
-**Knowledge Synthesis:**
-${knowledgeInsights || '(no relevant knowledge found)'}
-
-**Opportunities:**
-${marketConditions?.opportunities.length ? marketConditions.opportunities.map(opp => 
+      const responseText = `🟠 **Advanced Satoshi Intelligence** 🟠\n\n**Your Question:**\n${userQuery}\n\n**Philosophy:**\n${satoshiQuote}\n\n**Market Intelligence:**\n${marketConditions ? `\n🎯 **Market Condition:** ${marketConditions.type} (${(marketConditions.confidence * 100).toFixed(0)}% confidence)\n⚠️ **Risk Level:** ${marketConditions.riskLevel}\n📊 **Signals:** ${marketConditions.signals.join(', ')}\n` : 'Market data unavailable'}\n\n**Risk Assessment:**\n${riskAssessment ? `\n🔒 **Overall Risk:** ${riskAssessment.overallRisk}\n📈 **Market Risk:** ${(riskAssessment.marketRisk * 100).toFixed(0)}%\n📊 **Volatility Risk:** ${(riskAssessment.volatilityRisk * 100).toFixed(0)}%\n🔄 **Correlation Risk:** ${(riskAssessment.correlationRisk * 100).toFixed(0)}%\n💧 **Liquidity Risk:** ${(riskAssessment.liquidityRisk * 100).toFixed(0)}%\n` : 'Risk assessment unavailable'}\n\n**Knowledge Synthesis:**\n${knowledgeInsights || '(no relevant knowledge found)'}\n\n**Opportunities:**\n${marketConditions?.opportunities && marketConditions.opportunities.length ? marketConditions.opportunities.map(opp => 
   `🎯 **${opp.type}**: ${opp.description}\n   Risk/Reward: ${opp.riskRewardRatio}:1 | Confidence: ${(opp.confidence * 100).toFixed(0)}%\n   Action: ${opp.action}`
-).join('\n\n') : 'No specific opportunities identified'}
-
-**Advanced Actionable Insights:**
-${actionableInsights}
-
-**Risk Recommendations:**
-${riskAssessment?.recommendations.length ? riskAssessment.recommendations.map(rec => `• ${rec}`).join('\n') : 'No specific recommendations'}
-
-*"The most rebellious act in a world of synthetic everything is to live real."* 🟠`;
+).join('\n\n') : 'No specific opportunities identified'}\n\n**Advanced Actionable Insights:**\n${actionableInsights}\n\n**Risk Recommendations:**\n${riskAssessment?.recommendations && riskAssessment.recommendations.length ? riskAssessment.recommendations.map(rec => `• ${rec}`).join('\n') : 'No specific recommendations'}\n\n*${getRandomSatoshiEnding()}*`;
 
       const content: Content = {
         text: responseText,
