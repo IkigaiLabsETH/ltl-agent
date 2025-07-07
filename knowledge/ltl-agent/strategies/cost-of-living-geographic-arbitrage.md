@@ -118,7 +118,7 @@ Geographic arbitrage represents one of the most powerful strategies for Bitcoin-
 | **Lisbon** | $4,500–$5,500 | 0.04–0.05 BTC | Rising demand, suburbs cheaper |
 | **Marbella** | $3,500–$4,500 | 0.03–0.04 BTC | Golden Mile premium |
 
-*Based on Bitcoin price of $108,838
+*Based on current Bitcoin price from real-time data
 
 ### Key Real Estate Insights
 
@@ -253,7 +253,7 @@ Geographic arbitrage represents one of the most powerful strategies for Bitcoin-
 #### Geographic Arbitrage Impact
 - **Monthly Savings:** $2,000–$4,500 (moving to European cities)
 - **Annual Additional Bitcoin:** $24,000–$54,000 worth
-- **At $108,838/BTC:** 0.22–0.50 additional BTC annually
+- **At current BTC price:** 0.22–0.50 additional BTC annually
 
 ## Implementation Timeline
 

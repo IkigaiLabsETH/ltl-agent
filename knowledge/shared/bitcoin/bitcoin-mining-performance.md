@@ -6,9 +6,9 @@ Analysis of Bitcoin mining and crypto-related stock performance for June 2025, c
 ## Market Context - June 2025
 
 ### Bitcoin Market Conditions
-- **Bitcoin Price**: Stable around $107,000 (June 2025)
-- **Monthly Performance**: -1.74% decrease (per TradingView data)
-- **Market Sentiment**: Positive despite slight price decline
+- **Bitcoin Price**: [Real-time data from API]
+- **Monthly Performance**: [Calculated from real-time data]
+- **Market Sentiment**: [Based on current market analysis]
 - **Institutional Interest**: Continued growth in crypto market participation
 
 ### Regulatory Environment
