@@ -96,10 +96,10 @@ Every surge begins with scarcity or storytelling, but unsustainable leverage, pr
 ## Current Market Context (2024-2025)
 
 ### Key Metrics
-- **Current Price**: ~$104,319 (near ATH of $111,814)
-- **Market Cap**: $2,165.83B
-- **24h Volume**: $28.65B
-- **Recent Drawdown**: ~76.9% (2021-24) vs historical 86-93%
+- **Current Price**: [Real-time data from API]
+- **Market Cap**: [Real-time data from API]
+- **24h Volume**: [Real-time data from API]
+- **Recent Drawdown**: [Calculated from real-time data]
 
 ### Expected Timeline
 - **Current Phase**: Strong momentum post-April 2024 halving

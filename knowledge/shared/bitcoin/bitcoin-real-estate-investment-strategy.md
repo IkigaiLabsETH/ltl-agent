@@ -101,7 +101,7 @@ Portugal's Atlantic coast presents unique opportunities for mirror-clad modular 
 **Loan Parameters**:
 - **Loan Draw**: $1.80M (≈€1.66M)
 - **Strike Terms**: Max 50% initial LTV, 12% APR, up to $2M
-- **Spot BTC**: $103,779 (reference price)
+- **Spot BTC**: [Real-time data from API]
 - **Collateral Posted**: 34.7 BTC (50% LTV)
 
 **Price Sensitivity Matrix**:
@@ -237,7 +237,7 @@ The Federal Housing Finance Agency (FHFA) directed Fannie Mae and Freddie Mac to
 ### Future Market Outlook
 
 #### Bitcoin Price Trajectory
-- **Current Level**: $108K (June 2025)
+- **Current Level**: [Real-time data from API]
 - **Power-Law Models**: $100K+ by 2028
 - **Long-term Forecasts**: $1M+ per BTC by 2037
 - **Fixed Supply**: 21M maximum vs inflationary housing market
@@ -262,4 +262,4 @@ The Federal Housing Finance Agency (FHFA) directed Fannie Mae and Freddie Mac to
 
 The intersection of Bitcoin and real estate represents a generational wealth-building opportunity. While traditional real estate faces historic headwinds, smart home development combined with Bitcoin-backed financing creates unique value propositions. The key is timing, positioning, and maintaining conviction through market cycles while building sovereignty through land ownership and cryptocurrency holdings.
 
-The future belongs to those who own both digital and physical assets, positioning themselves ahead of the civilizational shift toward decentralized, sovereignty-focused living. Bitcoin at $108K represents not just digital gold, but the financial infrastructure for the next era of property development and wealth creation. 
+The future belongs to those who own both digital and physical assets, positioning themselves ahead of the civilizational shift toward decentralized, sovereignty-focused living. Bitcoin represents not just digital gold, but the financial infrastructure for the next era of property development and wealth creation. 
