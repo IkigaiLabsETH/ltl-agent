@@ -50,3 +50,22 @@ export * from "./loggingUtils";
 
 // Cache utilities
 export * from "./cacheUtils";
+
+// Performance optimization utilities
+export {
+  PerformanceMonitor,
+  getPerformanceMonitor,
+} from "./PerformanceMonitor";
+
+export {
+  LazyLoader,
+  ServiceLazyLoader,
+  getLazyLoader,
+  getServiceLazyLoader,
+  LOADING_PRIORITIES,
+} from "./LazyLoader";
+
+export {
+  PerformanceTest,
+  runPerformanceTest,
+} from "./PerformanceTest";
