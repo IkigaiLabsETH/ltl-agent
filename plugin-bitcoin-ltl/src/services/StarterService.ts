@@ -249,10 +249,13 @@ export class StarterService extends Service {
         "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd",
       );
       const data = (await response.json()) as any; // Type assertion for API response
-      return data.bitcoin?.usd || 100000;
+      if (!data.bitcoin?.usd) {
+        throw new Error("No Bitcoin price data available");
+      }
+      return data.bitcoin.usd;
     } catch (error) {
       logger.error("Error fetching Bitcoin price:", error);
-      return 100000; // Fallback price
+      throw new Error("Unable to fetch Bitcoin price data");
     }
   }
 
@@ -337,14 +340,14 @@ export class StarterService extends Service {
       const bitcoin = data[0];
 
       return {
-        price: bitcoin.current_price || 100000,
-        marketCap: bitcoin.market_cap || 2000000000000,
-        volume24h: bitcoin.total_volume || 50000000000,
+        price: bitcoin.current_price || 0,
+        marketCap: bitcoin.market_cap || 0,
+        volume24h: bitcoin.total_volume || 0,
         priceChange24h: bitcoin.price_change_percentage_24h || 0,
         priceChange7d: bitcoin.price_change_percentage_7d || 0,
         priceChange30d: 0, // Not available in markets endpoint
-        allTimeHigh: bitcoin.high_24h || 100000,
-        allTimeLow: bitcoin.low_24h || 100,
+        allTimeHigh: bitcoin.high_24h || 0,
+        allTimeLow: bitcoin.low_24h || 0,
         circulatingSupply: 19700000, // Static for Bitcoin
         totalSupply: 19700000, // Static for Bitcoin
         maxSupply: 21000000, // Static for Bitcoin
@@ -352,21 +355,7 @@ export class StarterService extends Service {
       };
     } catch (error) {
       logger.error("Error fetching enhanced market data:", error);
-      // Return fallback data
-      return {
-        price: 100000,
-        marketCap: 2000000000000,
-        volume24h: 50000000000,
-        priceChange24h: 0,
-        priceChange7d: 0,
-        priceChange30d: 0,
-        allTimeHigh: 100000,
-        allTimeLow: 100,
-        circulatingSupply: 19700000,
-        totalSupply: 19700000,
-        maxSupply: 21000000,
-        lastUpdated: new Date().toISOString(),
-      };
+      throw new Error("Unable to fetch Bitcoin market data");
     }
   }
 

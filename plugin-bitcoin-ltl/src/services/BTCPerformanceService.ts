@@ -348,13 +348,7 @@ export class BTCPerformanceService extends BaseDataService {
       };
     } catch (error) {
       this.contextLogger.error("Error getting BTC data:", error);
-      // Return fallback data
-      return {
-        price: 107940,
-        marketCap: 2165830000000,
-        dominance: 63.89,
-        change24h: 2.3,
-      };
+      throw new Error("Unable to fetch BTC performance data");
     }
   }
 

@@ -76,14 +76,14 @@ export const bitcoinPriceProvider: Provider = {
       const data = result;
 
       const priceData: BitcoinPriceData = {
-        price: data.current_price || 100000,
-        marketCap: data.market_cap || 2000000000000,
-        volume24h: data.total_volume || 50000000000,
+        price: data.current_price || 0,
+        marketCap: data.market_cap || 0,
+        volume24h: data.total_volume || 0,
         priceChange24h: data.price_change_percentage_24h || 0,
         priceChange7d: data.price_change_percentage_7d || 0,
         priceChange30d: 0, // Not available in markets endpoint, would need separate call
-        allTimeHigh: data.high_24h || 100000, // Using 24h high as proxy
-        allTimeLow: data.low_24h || 3000, // Using 24h low as proxy
+        allTimeHigh: data.high_24h || 0, // Using 24h high as proxy
+        allTimeLow: data.low_24h || 0, // Using 24h low as proxy
         circulatingSupply: 19700000, // Static for Bitcoin
         totalSupply: 19700000, // Static for Bitcoin
         maxSupply: 21000000, // Static for Bitcoin
@@ -149,29 +149,28 @@ export const bitcoinPriceProvider: Provider = {
             : undefined,
       });
 
-      // Provide fallback data with current market estimates
-      const fallbackData: BitcoinPriceData = {
-        price: 100000, // Current market estimate
-        marketCap: 2000000000000, // ~$2T estimate
-        volume24h: 50000000000, // ~$50B estimate
-        priceChange24h: 0,
-        priceChange7d: 0,
-        priceChange30d: 0,
-        allTimeHigh: 100000,
-        allTimeLow: 3000,
-        circulatingSupply: 19700000,
-        totalSupply: 19700000,
-        maxSupply: 21000000,
-        lastUpdated: new Date().toISOString(),
-      };
-
+      // Return error state instead of fake data
       return {
-        text: `Bitcoin price data unavailable (${errorCode}). Using fallback estimate: $100,000 BTC with ~19.7M circulating supply.`,
-        values: fallbackData,
+        text: `Bitcoin price data unavailable (${errorCode}). Please try again in a moment.`,
+        values: {
+          price: null,
+          marketCap: null,
+          volume24h: null,
+          priceChange24h: null,
+          priceChange7d: null,
+          priceChange30d: null,
+          allTimeHigh: null,
+          allTimeLow: null,
+          circulatingSupply: 19700000,
+          totalSupply: 19700000,
+          maxSupply: 21000000,
+          lastUpdated: new Date().toISOString(),
+          error: true,
+        },
         data: {
           error: errorMessage,
           code: errorCode,
-          fallback: true,
+          fallback: false,
           timestamp: new Date().toISOString(),
           correlation_id: correlationId,
         },

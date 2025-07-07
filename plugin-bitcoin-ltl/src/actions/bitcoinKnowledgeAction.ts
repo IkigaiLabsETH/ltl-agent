@@ -72,6 +72,8 @@ export const bitcoinKnowledgeAction: Action = {
       } else if (bitcoinData.network.price < 50000) {
         const searchResults = knowledgeService.search("bear market");
         relevantKnowledge = searchResults.length > 0 ? searchResults[0].snippet : "";
+      } else if (bitcoinData.network.price === 0) {
+        relevantKnowledge = "Bitcoin price data unavailable - focusing on fundamental analysis.";
       } else {
         const searchResults = knowledgeService.search("accumulation");
         relevantKnowledge = searchResults.length > 0 ? searchResults[0].snippet : "";

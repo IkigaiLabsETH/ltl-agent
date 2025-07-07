@@ -35,10 +35,10 @@ export const bitcoinMarketProvider: Provider = {
       ) as unknown as BitcoinService;
       const extendedRuntime = runtime as ExtendedRuntime;
 
-      let bitcoinPrice = 100000; // Default fallback price
+      let bitcoinPrice = 0; // Start with 0 to force real data fetch
       let priceChange24h = 0;
-      let marketCap = 2000000000000; // ~2 trillion default
-      let volume24h = 50000000000; // ~50 billion default
+      let marketCap = 0;
+      let volume24h = 0;
 
       // Try to get price from service first
       if (
@@ -106,18 +106,19 @@ export const bitcoinMarketProvider: Provider = {
       if (!bitcoinPrice || bitcoinPrice <= 0 || bitcoinPrice > 1000000) {
         if (
           extendedRuntime.bitcoinContext &&
-          extendedRuntime.bitcoinContext.price
+          extendedRuntime.bitcoinContext.price &&
+          extendedRuntime.bitcoinContext.price > 0
         ) {
           bitcoinPrice = extendedRuntime.bitcoinContext.price;
           console.log(
             `[BitcoinProvider] Using cached price: $${bitcoinPrice.toLocaleString()}`,
           );
         } else {
-          // Ultimate fallback - reasonable estimate
-          bitcoinPrice = 100000;
-          console.log(
-            "[BitcoinProvider] Using ultimate fallback price: $100,000",
+          // No valid price available - return error state
+          console.warn(
+            "[BitcoinProvider] No valid Bitcoin price available from any source",
           );
+          throw new Error("Unable to fetch valid Bitcoin price data");
         }
       }
 
@@ -160,24 +161,24 @@ export const bitcoinMarketProvider: Provider = {
     } catch (error) {
       console.error("[BitcoinProvider] Critical error:", error);
 
-      // Return fallback data even on error
+      // Return error state instead of fake data
       return {
-        text: "Bitcoin: $100,000 (price data temporarily unavailable)",
+        text: "Bitcoin price data temporarily unavailable - please try again in a moment",
         values: {
-          bitcoinPrice: 100000,
-          bitcoinChange24h: 0,
-          bitcoinPriceDirection: "neutral",
-          marketCap: 2000000000000,
-          volume24h: 50000000000,
+          bitcoinPrice: null,
+          bitcoinChange24h: null,
+          bitcoinPriceDirection: "unknown",
+          marketCap: null,
+          volume24h: null,
           lastUpdated: new Date().toISOString(),
           bitcoinDataError: true,
         },
         data: {
           bitcoinData: {
-            price: 100000,
-            change24h: 0,
-            marketCap: 2000000000000,
-            volume24h: 50000000000,
+            price: null,
+            change24h: null,
+            marketCap: null,
+            volume24h: null,
             lastUpdated: new Date().toISOString(),
             error: error.message,
           },

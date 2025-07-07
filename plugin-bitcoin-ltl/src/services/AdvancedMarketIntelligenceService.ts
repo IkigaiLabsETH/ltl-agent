@@ -98,6 +98,9 @@ export class AdvancedMarketIntelligenceService extends BaseDataService {
           confidence = 0.7;
           riskLevel = 'LOW';
         }
+      } else if (price === 0) {
+        // No valid price data
+        return this.getDefaultCondition();
       }
 
       // Market cap analysis
